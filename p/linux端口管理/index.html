@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="zh-cn" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="端口管理 lsof 介绍 lsof（list open files）\n一个列出当前系统打开文件的工具。\n基本语法 1 lsof -i:端口号 示例 查看服务器80端口占用情况 1 2 3 4 5 6 7 8 9 COMMAND：进程名称 PID：进程标识符 USER：进程所有者 FD：文件描述符，应用程序通过描述符识别该文件。如cwd、txt等 TYPE：文件类型，如DIR、REG等 DEVICE：指定磁盘的名称 SIZE：文件大小 NODE：索引节点（文件在磁盘上的标识） NAME：代开文件的确切名称 ">
+<title>Linux端口管理</title>
+
+<link rel='canonical' href='https://YLine-hub.github.io/p/linux%E7%AB%AF%E5%8F%A3%E7%AE%A1%E7%90%86/'>
+
+<link rel="stylesheet" href="/scss/style.min.6a692fd055deae459f2a9767f57f3855ba80cafd5041317f24f7360f6ca47cdf.css"><meta property='og:title' content="Linux端口管理">
+<meta property='og:description' content="端口管理 lsof 介绍 lsof（list open files）\n一个列出当前系统打开文件的工具。\n基本语法 1 lsof -i:端口号 示例 查看服务器80端口占用情况 1 2 3 4 5 6 7 8 9 COMMAND：进程名称 PID：进程标识符 USER：进程所有者 FD：文件描述符，应用程序通过描述符识别该文件。如cwd、txt等 TYPE：文件类型，如DIR、REG等 DEVICE：指定磁盘的名称 SIZE：文件大小 NODE：索引节点（文件在磁盘上的标识） NAME：代开文件的确切名称 ">
+<meta property='og:url' content='https://YLine-hub.github.io/p/linux%E7%AB%AF%E5%8F%A3%E7%AE%A1%E7%90%86/'>
+<meta property='og:site_name' content='リンボの個人ブログ'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:published_time' content='2025-10-05T03:06:03&#43;08:00'/><meta property='article:modified_time' content='2025-10-05T03:06:03&#43;08:00'/>
+<meta name="twitter:title" content="Linux端口管理">
+<meta name="twitter:description" content="端口管理 lsof 介绍 lsof（list open files）\n一个列出当前系统打开文件的工具。\n基本语法 1 lsof -i:端口号 示例 查看服务器80端口占用情况 1 2 3 4 5 6 7 8 9 COMMAND：进程名称 PID：进程标识符 USER：进程所有者 FD：文件描述符，应用程序通过描述符识别该文件。如cwd、txt等 TYPE：文件类型，如DIR、REG等 DEVICE：指定磁盘的名称 SIZE：文件大小 NODE：索引节点（文件在磁盘上的标识） NAME：代开文件的确切名称 ">
+    <link rel="shortcut icon" href="/favicon.ico" />
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        
+            
+            <figure class="site-avatar">
+                <a href="/">
+                
+                    
+                    
+                    
+                        
+                        <img src="/img/avatar_hu_7f398a7818085507.png" width="300"
+                            height="300" class="site-logo" loading="lazy" alt="Avatar">
+                    
+                
+                </a>
+                
+                    <span class="emoji">🏖️</span>
+                
+            </figure>
+            
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">リンボの個人ブログ</a></h1>
+            <h2 class="site-description">努力不一定能获得回报，但不努力一定不会有回报。</h2>
+        </div>
+    </header><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-home" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <polyline points="5 12 3 12 12 3 21 12 19 12" />
+  <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7" />
+  <path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6" />
+</svg>
+
+
+
+                
+                <span>主页</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/%E5%85%B3%E4%BA%8E/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/archives/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/search/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-search" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="10" cy="10" r="7" />
+  <line x1="21" y1="21" x2="15" y2="15" />
+</svg>
+
+
+
+                
+                <span>搜索</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav id="TableOfContents">
+  <ol>
+    <li><a href="#端口管理">端口管理</a>
+      <ol>
+        <li><a href="#lsof">lsof</a>
+          <ol>
+            <li><a href="#介绍">介绍</a></li>
+            <li><a href="#基本语法">基本语法</a></li>
+            <li><a href="#示例">示例</a></li>
+          </ol>
+        </li>
+        <li><a href="#netstat">netstat</a>
+          <ol>
+            <li><a href="#介绍-1">介绍</a></li>
+            <li><a href="#基本语法-1">基本语法</a></li>
+            <li><a href="#示例-1">示例</a></li>
+          </ol>
+        </li>
+      </ol>
+    </li>
+  </ol>
+</nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            <a href="/categories/linux/" >
+                Linux
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/p/linux%E7%AB%AF%E5%8F%A3%E7%AE%A1%E7%90%86/">Linux端口管理</a>
+        </h2>
+    
+        
+    </div>
+
+    
+    
+    
+    
+    <footer class="article-time">
+        
+            <div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                <time class="article-time--published">2025-10-05</time>
+            </div>
+        
+
+        
+    </footer>
+    
+
+    
+</div>
+
+</header>
+
+    <section class="article-content">
+    
+    
+    <h2 id="端口管理">端口管理
+</h2><h3 id="lsof">lsof
+</h3><h4 id="介绍">介绍
+</h4><ul>
+<li>
+<p>lsof（list open files）</p>
+</li>
+<li>
+<p>一个列出当前系统打开文件的工具。</p>
+</li>
+</ul>
+<h4 id="基本语法">基本语法
+</h4><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">lsof -i:端口号
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="示例">示例
+</h4><ul>
+<li>查看服务器80端口占用情况</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span><span class="lnt">9
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">COMMAND：进程名称
+</span></span><span class="line"><span class="cl">PID：进程标识符
+</span></span><span class="line"><span class="cl">USER：进程所有者
+</span></span><span class="line"><span class="cl">FD：文件描述符，应用程序通过描述符识别该文件。如cwd、txt等
+</span></span><span class="line"><span class="cl">TYPE：文件类型，如DIR、REG等
+</span></span><span class="line"><span class="cl">DEVICE：指定磁盘的名称
+</span></span><span class="line"><span class="cl">SIZE：文件大小
+</span></span><span class="line"><span class="cl">NODE：索引节点（文件在磁盘上的标识）
+</span></span><span class="line"><span class="cl">NAME：代开文件的确切名称
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linux%E7%AB%AF%E5%8F%A3%E7%AE%A1%E7%90%86/image.png"
+	width="518"
+	height="96"
+	srcset="/p/linux%E7%AB%AF%E5%8F%A3%E7%AE%A1%E7%90%86/image_hu_e3e9f73441c36dda.png 480w, /p/linux%E7%AB%AF%E5%8F%A3%E7%AE%A1%E7%90%86/image_hu_614282baaa577a6f.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="539"
+		data-flex-basis="1295px"
+	
+></p>
+<ul>
+<li>查看所有端口使用情况</li>
+</ul>
+<p><img src="/p/linux%E7%AB%AF%E5%8F%A3%E7%AE%A1%E7%90%86/image-1.png"
+	width="831"
+	height="439"
+	srcset="/p/linux%E7%AB%AF%E5%8F%A3%E7%AE%A1%E7%90%86/image-1_hu_f5fca68f917e770e.png 480w, /p/linux%E7%AB%AF%E5%8F%A3%E7%AE%A1%E7%90%86/image-1_hu_45986448befb35d3.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="189"
+		data-flex-basis="454px"
+	
+></p>
+<p>更多lsof命令：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span><span class="lnt">9
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">lsof -i:8080：查看8080端口占用
+</span></span><span class="line"><span class="cl">lsof abc.txt：显示开启文件abc.txt的进程
+</span></span><span class="line"><span class="cl">lsof -c abc：显示abc进程现在打开的文件
+</span></span><span class="line"><span class="cl">lsof -c -p 1234：列出进程号为1234的进程所打开的文件
+</span></span><span class="line"><span class="cl">lsof -g gid：显示归属gid的进程情况
+</span></span><span class="line"><span class="cl">lsof +d /usr/local/：显示目录下被进程开启的文件
+</span></span><span class="line"><span class="cl">lsof +D /usr/local/：同上，但是会搜索目录下的目录，时间较长
+</span></span><span class="line"><span class="cl">lsof -d 4：显示使用fd为4的进程
+</span></span><span class="line"><span class="cl">lsof -i -U：显示所有打开的端口和UNIX domain文件
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="netstat">netstat
+</h3><h4 id="介绍-1">介绍
+</h4><ul>
+<li>用于显示 tcp，udp 的端口和进程等相关情况。</li>
+</ul>
+<h4 id="基本语法-1">基本语法
+</h4><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl"># 查看端口占用语法格式
+</span></span><span class="line"><span class="cl">netstat -tunlp | grep 端口号
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>options:
+<ul>
+<li><code>-t</code> (tcp) 仅显示tcp相关选项</li>
+<li><code>-u</code> (udp)仅显示udp相关选项</li>
+<li><code>-n</code> 拒绝显示别名，能显示数字的全部转化为数字</li>
+<li><code>-l</code> 仅列出在Listen(监听)的服务状态</li>
+<li><code>-p</code> 显示建立相关链接的程序名</li>
+</ul>
+</li>
+</ul>
+<h4 id="示例-1">示例
+</h4><ul>
+<li>查看80端口情况</li>
+</ul>
+<p><img src="/p/linux%E7%AB%AF%E5%8F%A3%E7%AE%A1%E7%90%86/image-2.png"
+	width="720"
+	height="115"
+	srcset="/p/linux%E7%AB%AF%E5%8F%A3%E7%AE%A1%E7%90%86/image-2_hu_c546c4373a15cd04.png 480w, /p/linux%E7%AB%AF%E5%8F%A3%E7%AE%A1%E7%90%86/image-2_hu_619e6791bd1d3306.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="626"
+		data-flex-basis="1502px"
+	
+></p>
+<p>更多命令：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">netstat -ntlp   //查看当前所有tcp端口
+</span></span><span class="line"><span class="cl">netstat -ntulp | grep 80   //查看所有80端口使用情况
+</span></span><span class="line"><span class="cl">netstat -ntulp | grep 3306   //查看所有3306端口使用情况
+</span></span></code></pre></td></tr></table>
+</div>
+</div>
+</section>
+
+
+    <footer class="article-footer">
+    
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+<aside class="related-content--wrapper">
+    <h2 class="section-title">相关文章</h2>
+    <div class="related-content">
+        <div class="flex article-list--tile">
+            
+                
+<article class="">
+    <a href="/p/linux%E6%9C%8D%E5%8A%A1%E7%AE%A1%E7%90%86/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">Linux服务管理</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/linux%E8%BF%9B%E7%A8%8B%E7%AE%A1%E7%90%86/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">Linux进程管理</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/linux%E9%97%AE%E9%A2%98%E8%AE%B0%E5%BD%95/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">Linux问题记录</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/linux%E7%BD%91%E7%BB%9C%E9%85%8D%E7%BD%AE/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">Linux网络配置</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/linux%E7%A3%81%E7%9B%98%E7%AE%A1%E7%90%86/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">Linux磁盘管理</h2>
+        </div>
+    </a>
+</article>
+
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+        2025 リンボの個人ブログ
+    </section>
+    
+    <section class="powerby">
+         <br />
+        
+    </section>
+</footer>
+
+
+    
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+    
+    <div class="pswp__bg"></div>
+
+    
+    <div class="pswp__scroll-wrap">
+
+        
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+
+        
+        <div class="pswp__ui pswp__ui--hidden">
+
+            <div class="pswp__top-bar">
+
+                
+
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+
+                <button class="pswp__button pswp__button--share" title="Share"></button>
+
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+
+                
+                
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                        <div class="pswp__preloader__cut">
+                            <div class="pswp__preloader__donut"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div>
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.js"integrity="sha256-ePwmChbbvXbsO02lbM3HoHbSHTHFAeChekF1xKJdleo="crossorigin="anonymous"
+                defer
+                >
+            </script><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe-ui-default.min.js"integrity="sha256-UKkzOn/w1mBxRmLLGrSeyB4e1xbrp4xylgAWb3M42pU="crossorigin="anonymous"
+                defer
+                >
+            </script><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/default-skin/default-skin.min.css"crossorigin="anonymous"
+            ><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.css"crossorigin="anonymous"
+            >
+
+            </main>
+        </div>
+        <script 
+                src="https://cdn.jsdelivr.net/npm/node-vibrant@3.1.6/dist/vibrant.min.js"integrity="sha256-awcR2jno4kI5X0zL8ex0vi2z&#43;KMkF24hUW8WePSA9HM="crossorigin="anonymous"
+                
+                >
+            </script><script type="text/javascript" src="/ts/main.1e9a3bafd846ced4c345d084b355fb8c7bae75701c338f8a1f8a82c780137826.js" defer></script>
+<script>
+    (function () {
+        const customFont = document.createElement('link');
+        customFont.href = "https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap";
+
+        customFont.type = "text/css";
+        customFont.rel = "stylesheet";
+
+        document.head.appendChild(customFont);
+    }());
+</script>
+
+    </body>
+</html>
