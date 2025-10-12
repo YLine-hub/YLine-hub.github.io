@@ -1,0 +1,926 @@
+<!DOCTYPE html>
+<html lang="zh-cn" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="nginx安装配置 卸载nginx 安装前查看系统内是否有nginx 1 ps -ef | grep nginx 上图可以看出没有nginx服务启动\n关闭nginx服务（若有nginx） 1 kill 进程ID 查看是否有nginx相关文件 1 find / -name nginx 删除nginx有关文件（若有nginx相关文件） 1 rm -rf 文件名 安装nginx 安装nginx所需环境 安装nginx需要下载官网源码编译，编译依赖 gcc 环境 (gcc-c++) nginx的http模块使用pcre来解析正则表达式，所以需要pcre库 (pcre pcre-devel) nginx使用zlib对http包进行gzip，所以需要zlib库 (zlib zlib-devel) nginx不仅支持http协议，还支持https协议（即在ssl协议上传输http），所以需要OpenSSL库 (openssl openssl-devel) 1 yum -y install gcc-c++ pcre pcre-devel zlib zlib-devel openssl openssl-devel ">
+<title>[CentOS7.6]nginx安装配置</title>
+
+<link rel='canonical' href='https://YLine-hub.github.io/p/centos7.6nginx%E5%AE%89%E8%A3%85%E9%85%8D%E7%BD%AE/'>
+
+<link rel="stylesheet" href="/scss/style.min.6a692fd055deae459f2a9767f57f3855ba80cafd5041317f24f7360f6ca47cdf.css"><meta property='og:title' content="[CentOS7.6]nginx安装配置">
+<meta property='og:description' content="nginx安装配置 卸载nginx 安装前查看系统内是否有nginx 1 ps -ef | grep nginx 上图可以看出没有nginx服务启动\n关闭nginx服务（若有nginx） 1 kill 进程ID 查看是否有nginx相关文件 1 find / -name nginx 删除nginx有关文件（若有nginx相关文件） 1 rm -rf 文件名 安装nginx 安装nginx所需环境 安装nginx需要下载官网源码编译，编译依赖 gcc 环境 (gcc-c++) nginx的http模块使用pcre来解析正则表达式，所以需要pcre库 (pcre pcre-devel) nginx使用zlib对http包进行gzip，所以需要zlib库 (zlib zlib-devel) nginx不仅支持http协议，还支持https协议（即在ssl协议上传输http），所以需要OpenSSL库 (openssl openssl-devel) 1 yum -y install gcc-c++ pcre pcre-devel zlib zlib-devel openssl openssl-devel ">
+<meta property='og:url' content='https://YLine-hub.github.io/p/centos7.6nginx%E5%AE%89%E8%A3%85%E9%85%8D%E7%BD%AE/'>
+<meta property='og:site_name' content='リンボの個人ブログ'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:published_time' content='2025-10-12T20:46:14&#43;08:00'/><meta property='article:modified_time' content='2025-10-12T20:46:14&#43;08:00'/>
+<meta name="twitter:title" content="[CentOS7.6]nginx安装配置">
+<meta name="twitter:description" content="nginx安装配置 卸载nginx 安装前查看系统内是否有nginx 1 ps -ef | grep nginx 上图可以看出没有nginx服务启动\n关闭nginx服务（若有nginx） 1 kill 进程ID 查看是否有nginx相关文件 1 find / -name nginx 删除nginx有关文件（若有nginx相关文件） 1 rm -rf 文件名 安装nginx 安装nginx所需环境 安装nginx需要下载官网源码编译，编译依赖 gcc 环境 (gcc-c++) nginx的http模块使用pcre来解析正则表达式，所以需要pcre库 (pcre pcre-devel) nginx使用zlib对http包进行gzip，所以需要zlib库 (zlib zlib-devel) nginx不仅支持http协议，还支持https协议（即在ssl协议上传输http），所以需要OpenSSL库 (openssl openssl-devel) 1 yum -y install gcc-c++ pcre pcre-devel zlib zlib-devel openssl openssl-devel ">
+    <link rel="shortcut icon" href="/favicon.ico" />
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        
+            
+            <figure class="site-avatar">
+                <a href="/">
+                
+                    
+                    
+                    
+                        
+                        <img src="/img/avatar_hu_7f398a7818085507.png" width="300"
+                            height="300" class="site-logo" loading="lazy" alt="Avatar">
+                    
+                
+                </a>
+                
+                    <span class="emoji">🏖️</span>
+                
+            </figure>
+            
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">リンボの個人ブログ</a></h1>
+            <h2 class="site-description">努力不一定能获得回报，但不努力一定不会有回报。</h2>
+        </div>
+    </header><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-home" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <polyline points="5 12 3 12 12 3 21 12 19 12" />
+  <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7" />
+  <path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6" />
+</svg>
+
+
+
+                
+                <span>主页</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/%E5%85%B3%E4%BA%8E/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/archives/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/search/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-search" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="10" cy="10" r="7" />
+  <line x1="21" y1="21" x2="15" y2="15" />
+</svg>
+
+
+
+                
+                <span>搜索</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav id="TableOfContents">
+  <ol>
+    <li><a href="#卸载nginx">卸载nginx</a>
+      <ol>
+        <li><a href="#安装前查看系统内是否有nginx">安装前查看系统内是否有nginx</a></li>
+        <li><a href="#关闭nginx服务若有nginx">关闭nginx服务（若有nginx）</a></li>
+        <li><a href="#查看是否有nginx相关文件">查看是否有nginx相关文件</a></li>
+        <li><a href="#删除nginx有关文件若有nginx相关文件">删除nginx有关文件（若有nginx相关文件）</a></li>
+      </ol>
+    </li>
+    <li><a href="#安装nginx">安装nginx</a>
+      <ol>
+        <li><a href="#安装nginx所需环境">安装nginx所需环境</a></li>
+        <li><a href="#在usrlocal目录下创建nginx目录">在/usr/local目录下创建nginx目录</a></li>
+        <li><a href="#下载nginx解压包到opt目录下">下载nginx解压包到/opt目录下</a></li>
+        <li><a href="#解压安装包并配置编译安装nginx">解压安装包，并配置编译安装nginx</a></li>
+        <li><a href="#配置环境变量方便快速启动nginx">配置环境变量（方便快速启动nginx）</a></li>
+        <li><a href="#启动关闭nginx服务">启动关闭nginx服务</a></li>
+        <li><a href="#查询是否正在运行">查询是否正在运行</a></li>
+        <li><a href="#打开80端口">打开80端口</a></li>
+        <li><a href="#用浏览器访问">用浏览器访问</a></li>
+      </ol>
+    </li>
+  </ol>
+</nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            <a href="/categories/centos7.6/" >
+                CentOS7.6
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/p/centos7.6nginx%E5%AE%89%E8%A3%85%E9%85%8D%E7%BD%AE/">[CentOS7.6]nginx安装配置</a>
+        </h2>
+    
+        
+    </div>
+
+    
+    
+    
+    
+    <footer class="article-time">
+        
+            <div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                <time class="article-time--published">2025-10-12</time>
+            </div>
+        
+
+        
+    </footer>
+    
+
+    
+</div>
+
+</header>
+
+    <section class="article-content">
+    
+    
+    <h1 id="nginx安装配置">nginx安装配置
+</h1><h2 id="卸载nginx">卸载nginx
+</h2><h3 id="安装前查看系统内是否有nginx">安装前查看系统内是否有nginx
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">ps -ef | grep nginx
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/centos7.6nginx%E5%AE%89%E8%A3%85%E9%85%8D%E7%BD%AE/image.png"
+	width="592"
+	height="44"
+	srcset="/p/centos7.6nginx%E5%AE%89%E8%A3%85%E9%85%8D%E7%BD%AE/image_hu_465573ecd0ae6300.png 480w, /p/centos7.6nginx%E5%AE%89%E8%A3%85%E9%85%8D%E7%BD%AE/image_hu_c62e693402c15633.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="1345"
+		data-flex-basis="3229px"
+	
+></p>
+<p>上图可以看出没有nginx服务启动</p>
+<h3 id="关闭nginx服务若有nginx">关闭nginx服务（若有nginx）
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">kill 进程ID
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="查看是否有nginx相关文件">查看是否有nginx相关文件
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">find / -name nginx
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="删除nginx有关文件若有nginx相关文件">删除nginx有关文件（若有nginx相关文件）
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">rm -rf 文件名
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="安装nginx">安装nginx
+</h2><h3 id="安装nginx所需环境">安装nginx所需环境
+</h3><ul>
+<li>安装nginx需要下载官网源码编译，编译依赖 gcc 环境 (gcc-c++)</li>
+<li>nginx的http模块使用pcre来解析正则表达式，所以需要pcre库 (pcre pcre-devel)</li>
+<li>nginx使用zlib对http包进行gzip，所以需要zlib库 (zlib zlib-devel)</li>
+<li>nginx不仅支持http协议，还支持https协议（即在ssl协议上传输http），所以需要OpenSSL库 (openssl openssl-devel)</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">yum -y install gcc-c++ pcre pcre-devel zlib zlib-devel openssl openssl-devel
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/centos7.6nginx%E5%AE%89%E8%A3%85%E9%85%8D%E7%BD%AE/image-1.png"
+	width="912"
+	height="437"
+	srcset="/p/centos7.6nginx%E5%AE%89%E8%A3%85%E9%85%8D%E7%BD%AE/image-1_hu_2ef11f53b1698be5.png 480w, /p/centos7.6nginx%E5%AE%89%E8%A3%85%E9%85%8D%E7%BD%AE/image-1_hu_fdf748b1da056e41.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="208"
+		data-flex-basis="500px"
+	
+></p>
+<h3 id="在usrlocal目录下创建nginx目录">在/usr/local目录下创建nginx目录
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">mkdir /usr/local/nginx
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="下载nginx解压包到opt目录下">下载nginx解压包到/opt目录下
+</h3><p><strong>nginx下载地址：</strong><a class="link" href="https://nginx.org/download/"  target="_blank" rel="noopener"
+    >nginx download</a></p>
+<ul>
+<li>选择其中自己需要的版本，我这里选择1.22.1版本</li>
+</ul>
+<p><img src="/p/centos7.6nginx%E5%AE%89%E8%A3%85%E9%85%8D%E7%BD%AE/image-2.png"
+	width="1403"
+	height="904"
+	srcset="/p/centos7.6nginx%E5%AE%89%E8%A3%85%E9%85%8D%E7%BD%AE/image-2_hu_c5752479f4b4655.png 480w, /p/centos7.6nginx%E5%AE%89%E8%A3%85%E9%85%8D%E7%BD%AE/image-2_hu_1d02e3924be0bfdd.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="155"
+		data-flex-basis="372px"
+	
+></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-gdscript3" data-lang="gdscript3"><span class="line"><span class="cl"><span class="c1"># 到 /opt目录下</span>
+</span></span><span class="line"><span class="cl"><span class="n">cd</span> <span class="o">/</span><span class="n">opt</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># 下载nginx</span>
+</span></span><span class="line"><span class="cl"><span class="n">wget</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">nginx</span><span class="o">.</span><span class="n">org</span><span class="o">/</span><span class="n">download</span><span class="o">/</span><span class="n">nginx</span><span class="o">-</span><span class="mf">1.22</span><span class="o">.</span><span class="mf">1.</span><span class="n">tar</span><span class="o">.</span><span class="n">gz</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/centos7.6nginx%E5%AE%89%E8%A3%85%E9%85%8D%E7%BD%AE/image-3.png"
+	width="918"
+	height="183"
+	srcset="/p/centos7.6nginx%E5%AE%89%E8%A3%85%E9%85%8D%E7%BD%AE/image-3_hu_a6870f85f77d1c5e.png 480w, /p/centos7.6nginx%E5%AE%89%E8%A3%85%E9%85%8D%E7%BD%AE/image-3_hu_7a1095737edac1f0.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="501"
+		data-flex-basis="1203px"
+	
+></p>
+<p><img src="/p/centos7.6nginx%E5%AE%89%E8%A3%85%E9%85%8D%E7%BD%AE/image-4.png"
+	width="723"
+	height="81"
+	srcset="/p/centos7.6nginx%E5%AE%89%E8%A3%85%E9%85%8D%E7%BD%AE/image-4_hu_f911a8d8f256c73f.png 480w, /p/centos7.6nginx%E5%AE%89%E8%A3%85%E9%85%8D%E7%BD%AE/image-4_hu_5962d320e21e0b80.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="892"
+		data-flex-basis="2142px"
+	
+></p>
+<h3 id="解压安装包并配置编译安装nginx">解压安装包，并配置编译安装nginx
+</h3><ul>
+<li>解压安装包</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">tar -zxvf nginx-1.22.1.tar.gz
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/centos7.6nginx%E5%AE%89%E8%A3%85%E9%85%8D%E7%BD%AE/image-5.png"
+	width="730"
+	height="94"
+	srcset="/p/centos7.6nginx%E5%AE%89%E8%A3%85%E9%85%8D%E7%BD%AE/image-5_hu_b0033be1c86df6a7.png 480w, /p/centos7.6nginx%E5%AE%89%E8%A3%85%E9%85%8D%E7%BD%AE/image-5_hu_222b48401b5d9fe0.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="776"
+		data-flex-basis="1863px"
+	
+></p>
+<ul>
+<li>进入nginx-1.22.1目录中</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">cd nginx-1.22.1
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>配置</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">./configure --prefix=/usr/local/nginx --with-http_stub_status_module --with-http_ssl_module
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/centos7.6nginx%E5%AE%89%E8%A3%85%E9%85%8D%E7%BD%AE/image-8.png"
+	width="956"
+	height="519"
+	srcset="/p/centos7.6nginx%E5%AE%89%E8%A3%85%E9%85%8D%E7%BD%AE/image-8_hu_255955fecd5eeaf1.png 480w, /p/centos7.6nginx%E5%AE%89%E8%A3%85%E9%85%8D%E7%BD%AE/image-8_hu_7cd6a14c2e5fbdec.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="184"
+		data-flex-basis="442px"
+	
+></p>
+<ul>
+<li>编译和安装</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl"># 编译
+</span></span><span class="line"><span class="cl">make
+</span></span><span class="line"><span class="cl"># 安装
+</span></span><span class="line"><span class="cl">make install
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/centos7.6nginx%E5%AE%89%E8%A3%85%E9%85%8D%E7%BD%AE/image-9.png"
+	width="956"
+	height="519"
+	srcset="/p/centos7.6nginx%E5%AE%89%E8%A3%85%E9%85%8D%E7%BD%AE/image-9_hu_c5d25fabec1de778.png 480w, /p/centos7.6nginx%E5%AE%89%E8%A3%85%E9%85%8D%E7%BD%AE/image-9_hu_77abc8b440adb1c6.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="184"
+		data-flex-basis="442px"
+	
+></p>
+<blockquote>
+<p>注意：nginx配置的目标目录和配置编译安装的目录不能是同一个。比如这里配置的目标目录是<code>/usr/local/nginx</code>，用来配置编译安装的目录是<code>/opt/nginx-1.22.1</code></p></blockquote>
+<h3 id="配置环境变量方便快速启动nginx">配置环境变量（方便快速启动nginx）
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-gdscript3" data-lang="gdscript3"><span class="line"><span class="cl"><span class="n">echo</span> <span class="s2">&#34;export PATH=$PATH:/usr/local/nginx/sbin&#34;</span> <span class="o">&gt;&gt;</span> <span class="o">/</span><span class="n">etc</span><span class="o">/</span><span class="n">profile</span>
+</span></span><span class="line"><span class="cl"><span class="n">source</span> <span class="o">/</span><span class="n">etc</span><span class="o">/</span><span class="n">profile</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="启动关闭nginx服务">启动关闭nginx服务
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-gdscript3" data-lang="gdscript3"><span class="line"><span class="cl"><span class="c1"># 启动nginx服务</span>
+</span></span><span class="line"><span class="cl"><span class="o">./</span><span class="n">nginx</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># 修改配置后，重新加载配置</span>
+</span></span><span class="line"><span class="cl"><span class="o">./</span><span class="n">nginx</span> <span class="o">-</span><span class="n">s</span> <span class="n">reload</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># 关闭nginx服务</span>
+</span></span><span class="line"><span class="cl"><span class="o">./</span><span class="n">nginx</span> <span class="o">-</span><span class="n">s</span> <span class="n">stop</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="查询是否正在运行">查询是否正在运行
+</h3><ul>
+<li>用netstat查询是否正在运行</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">netstat -ntlp
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/centos7.6nginx%E5%AE%89%E8%A3%85%E9%85%8D%E7%BD%AE/image-10.png"
+	width="284"
+	height="29"
+	srcset="/p/centos7.6nginx%E5%AE%89%E8%A3%85%E9%85%8D%E7%BD%AE/image-10_hu_79832a90532dcda3.png 480w, /p/centos7.6nginx%E5%AE%89%E8%A3%85%E9%85%8D%E7%BD%AE/image-10_hu_3465c6017aafa671.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="979"
+		data-flex-basis="2350px"
+	
+></p>
+<p>没有netstat命令</p>
+<ul>
+<li>查询netstat命令在哪个包内</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">yum search netstat
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/centos7.6nginx%E5%AE%89%E8%A3%85%E9%85%8D%E7%BD%AE/image-11.png"
+	width="541"
+	height="147"
+	srcset="/p/centos7.6nginx%E5%AE%89%E8%A3%85%E9%85%8D%E7%BD%AE/image-11_hu_dbb533a81c40ab4.png 480w, /p/centos7.6nginx%E5%AE%89%E8%A3%85%E9%85%8D%E7%BD%AE/image-11_hu_4f17396a511ee03e.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="368"
+		data-flex-basis="883px"
+	
+></p>
+<ul>
+<li>下载net-tools包</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-gdscript3" data-lang="gdscript3"><span class="line"><span class="cl"><span class="n">yum</span> <span class="o">-</span><span class="n">y</span> <span class="n">install</span> <span class="n">net</span><span class="o">-</span><span class="n">tools</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/centos7.6nginx%E5%AE%89%E8%A3%85%E9%85%8D%E7%BD%AE/image-12.png"
+	width="951"
+	height="360"
+	srcset="/p/centos7.6nginx%E5%AE%89%E8%A3%85%E9%85%8D%E7%BD%AE/image-12_hu_12a45be9b1bc0b20.png 480w, /p/centos7.6nginx%E5%AE%89%E8%A3%85%E9%85%8D%E7%BD%AE/image-12_hu_92ded4c1f38bd009.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="264"
+		data-flex-basis="634px"
+	
+></p>
+<ul>
+<li>再次查询</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">netstat -ntlp
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/centos7.6nginx%E5%AE%89%E8%A3%85%E9%85%8D%E7%BD%AE/image-13.png"
+	width="814"
+	height="153"
+	srcset="/p/centos7.6nginx%E5%AE%89%E8%A3%85%E9%85%8D%E7%BD%AE/image-13_hu_4e93f281db6f1044.png 480w, /p/centos7.6nginx%E5%AE%89%E8%A3%85%E9%85%8D%E7%BD%AE/image-13_hu_3fd2cc471f0f0dd.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="532"
+		data-flex-basis="1276px"
+	
+></p>
+<p>说明启动成功</p>
+<h3 id="打开80端口">打开80端口
+</h3><ul>
+<li>nginx默认使用80端口，如果修改了，就需要开放相应的端口</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-gdscript3" data-lang="gdscript3"><span class="line"><span class="cl"><span class="c1"># 查看80端口是否开启</span>
+</span></span><span class="line"><span class="cl"><span class="n">firewall</span><span class="o">-</span><span class="n">cmd</span> <span class="o">--</span><span class="n">query</span><span class="o">-</span><span class="n">port</span><span class="o">=</span><span class="mi">80</span><span class="o">/</span><span class="n">tcp</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># 开启80端口</span>
+</span></span><span class="line"><span class="cl"><span class="n">firewall</span><span class="o">-</span><span class="n">cmd</span> <span class="o">--</span><span class="n">zone</span><span class="o">=</span><span class="n">public</span> <span class="o">--</span><span class="n">add</span><span class="o">-</span><span class="n">port</span><span class="o">=</span><span class="mi">80</span><span class="o">/</span><span class="n">tcp</span> <span class="o">--</span><span class="n">permanent</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># 重启防火墙</span>
+</span></span><span class="line"><span class="cl"><span class="n">firewall</span><span class="o">-</span><span class="n">cmd</span> <span class="o">--</span><span class="n">reload</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/centos7.6nginx%E5%AE%89%E8%A3%85%E9%85%8D%E7%BD%AE/image-14.png"
+	width="619"
+	height="108"
+	srcset="/p/centos7.6nginx%E5%AE%89%E8%A3%85%E9%85%8D%E7%BD%AE/image-14_hu_75d1270756d88b8.png 480w, /p/centos7.6nginx%E5%AE%89%E8%A3%85%E9%85%8D%E7%BD%AE/image-14_hu_5848fc6f2a1ac450.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="573"
+		data-flex-basis="1375px"
+	
+></p>
+<h3 id="用浏览器访问">用浏览器访问
+</h3><ul>
+<li>访问：http://192.168.172.136</li>
+</ul>
+<p><img src="/p/centos7.6nginx%E5%AE%89%E8%A3%85%E9%85%8D%E7%BD%AE/image-15.png"
+	width="1439"
+	height="953"
+	srcset="/p/centos7.6nginx%E5%AE%89%E8%A3%85%E9%85%8D%E7%BD%AE/image-15_hu_a2bef8bc4f30da27.png 480w, /p/centos7.6nginx%E5%AE%89%E8%A3%85%E9%85%8D%E7%BD%AE/image-15_hu_1506b416f635a309.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="150"
+		data-flex-basis="362px"
+	
+></p>
+
+</section>
+
+
+    <footer class="article-footer">
+    
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+<aside class="related-content--wrapper">
+    <h2 class="section-title">相关文章</h2>
+    <div class="related-content">
+        <div class="flex article-list--tile">
+            
+                
+<article class="">
+    <a href="/p/centos7.6%E5%AE%89%E8%A3%85%E9%85%8D%E7%BD%AEmysql5.7%E4%BC%98%E5%8C%96/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">【CentOS7.6】安装配置mysql5.7(优化)</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/centos7.6%E5%BD%BB%E5%BA%95%E5%8D%B8%E8%BD%BDmysqltar.gz/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">【CentOS7.6】彻底卸载mysql(tar.gz)</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/centos7.6mysql%E5%AE%89%E8%A3%85%E9%85%8D%E7%BD%AE/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">【CentOS7.6】MySQL安装配置</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/centos7.6jdk8%E5%AE%89%E8%A3%85%E9%85%8D%E7%BD%AE/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">【CentOS7.6】jdk8安装配置</h2>
+        </div>
+    </a>
+</article>
+
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+        2025 リンボの個人ブログ
+    </section>
+    
+    <section class="powerby">
+         <br />
+        
+    </section>
+</footer>
+
+
+    
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+    
+    <div class="pswp__bg"></div>
+
+    
+    <div class="pswp__scroll-wrap">
+
+        
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+
+        
+        <div class="pswp__ui pswp__ui--hidden">
+
+            <div class="pswp__top-bar">
+
+                
+
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+
+                <button class="pswp__button pswp__button--share" title="Share"></button>
+
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+
+                
+                
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                        <div class="pswp__preloader__cut">
+                            <div class="pswp__preloader__donut"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div>
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.js"integrity="sha256-ePwmChbbvXbsO02lbM3HoHbSHTHFAeChekF1xKJdleo="crossorigin="anonymous"
+                defer
+                >
+            </script><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe-ui-default.min.js"integrity="sha256-UKkzOn/w1mBxRmLLGrSeyB4e1xbrp4xylgAWb3M42pU="crossorigin="anonymous"
+                defer
+                >
+            </script><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/default-skin/default-skin.min.css"crossorigin="anonymous"
+            ><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.css"crossorigin="anonymous"
+            >
+
+            </main>
+        </div>
+        <script 
+                src="https://cdn.jsdelivr.net/npm/node-vibrant@3.1.6/dist/vibrant.min.js"integrity="sha256-awcR2jno4kI5X0zL8ex0vi2z&#43;KMkF24hUW8WePSA9HM="crossorigin="anonymous"
+                
+                >
+            </script><script type="text/javascript" src="/ts/main.1e9a3bafd846ced4c345d084b355fb8c7bae75701c338f8a1f8a82c780137826.js" defer></script>
+<script>
+    (function () {
+        const customFont = document.createElement('link');
+        customFont.href = "https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap";
+
+        customFont.type = "text/css";
+        customFont.rel = "stylesheet";
+
+        document.head.appendChild(customFont);
+    }());
+</script>
+
+    </body>
+</html>
