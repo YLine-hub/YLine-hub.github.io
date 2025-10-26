@@ -1,0 +1,877 @@
+<!DOCTYPE html>
+<html lang="zh-cn" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="学习链接 systemctl管理服务 开机启动 支持systemd的软件，安装时，会自动在/usr/lib/systemd/system目录添加一个配置文件 下面以mysql为例来说明如何设置开机启动 1 systemctl enable mysqld 执行上面的命令之后，在/etc/systemd/system/multi-user.target.wants目录下添加一个符号链接，这个链接指向/usr/lib/systemd/system里面的mysqld.service文件\n">
+<title>[Linux]使用systemctl来管理服务</title>
+
+<link rel='canonical' href='https://YLine-hub.github.io/p/linux%E4%BD%BF%E7%94%A8systemctl%E6%9D%A5%E7%AE%A1%E7%90%86%E6%9C%8D%E5%8A%A1/'>
+
+<link rel="stylesheet" href="/scss/style.min.6a692fd055deae459f2a9767f57f3855ba80cafd5041317f24f7360f6ca47cdf.css"><meta property='og:title' content="[Linux]使用systemctl来管理服务">
+<meta property='og:description' content="学习链接 systemctl管理服务 开机启动 支持systemd的软件，安装时，会自动在/usr/lib/systemd/system目录添加一个配置文件 下面以mysql为例来说明如何设置开机启动 1 systemctl enable mysqld 执行上面的命令之后，在/etc/systemd/system/multi-user.target.wants目录下添加一个符号链接，这个链接指向/usr/lib/systemd/system里面的mysqld.service文件\n">
+<meta property='og:url' content='https://YLine-hub.github.io/p/linux%E4%BD%BF%E7%94%A8systemctl%E6%9D%A5%E7%AE%A1%E7%90%86%E6%9C%8D%E5%8A%A1/'>
+<meta property='og:site_name' content='リンボの個人ブログ'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:published_time' content='2025-10-25T22:36:45&#43;08:00'/><meta property='article:modified_time' content='2025-10-25T22:36:45&#43;08:00'/>
+<meta name="twitter:title" content="[Linux]使用systemctl来管理服务">
+<meta name="twitter:description" content="学习链接 systemctl管理服务 开机启动 支持systemd的软件，安装时，会自动在/usr/lib/systemd/system目录添加一个配置文件 下面以mysql为例来说明如何设置开机启动 1 systemctl enable mysqld 执行上面的命令之后，在/etc/systemd/system/multi-user.target.wants目录下添加一个符号链接，这个链接指向/usr/lib/systemd/system里面的mysqld.service文件\n">
+    <link rel="shortcut icon" href="/favicon.ico" />
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        
+            
+            <figure class="site-avatar">
+                <a href="/">
+                
+                    
+                    
+                    
+                        
+                        <img src="/img/avatar_hu_7f398a7818085507.png" width="300"
+                            height="300" class="site-logo" loading="lazy" alt="Avatar">
+                    
+                
+                </a>
+                
+                    <span class="emoji">🏖️</span>
+                
+            </figure>
+            
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">リンボの個人ブログ</a></h1>
+            <h2 class="site-description">努力不一定能获得回报，但不努力一定不会有回报。</h2>
+        </div>
+    </header><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-home" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <polyline points="5 12 3 12 12 3 21 12 19 12" />
+  <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7" />
+  <path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6" />
+</svg>
+
+
+
+                
+                <span>主页</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/%E5%85%B3%E4%BA%8E/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/archives/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/search/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-search" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="10" cy="10" r="7" />
+  <line x1="21" y1="21" x2="15" y2="15" />
+</svg>
+
+
+
+                
+                <span>搜索</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav id="TableOfContents">
+  <ol>
+    <li><a href="#学习链接">学习链接</a></li>
+    <li><a href="#开机启动">开机启动</a></li>
+    <li><a href="#启动服务">启动服务</a></li>
+    <li><a href="#停止服务">停止服务</a></li>
+    <li><a href="#服务配置文件">服务配置文件</a></li>
+    <li><a href="#重新加载配置">重新加载配置</a></li>
+    <li><a href="#救援模式">救援模式</a></li>
+  </ol>
+</nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            <a href="/categories/linux/" >
+                Linux
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/p/linux%E4%BD%BF%E7%94%A8systemctl%E6%9D%A5%E7%AE%A1%E7%90%86%E6%9C%8D%E5%8A%A1/">[Linux]使用systemctl来管理服务</a>
+        </h2>
+    
+        
+    </div>
+
+    
+    
+    
+    
+    <footer class="article-time">
+        
+            <div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                <time class="article-time--published">2025-10-25</time>
+            </div>
+        
+
+        
+    </footer>
+    
+
+    
+</div>
+
+</header>
+
+    <section class="article-content">
+    
+    
+    <h2 id="学习链接">学习链接
+</h2><ul>
+<li><a class="link" href="https://www.cnblogs.com/wanng/p/how-to-use-systemctl.html"  target="_blank" rel="noopener"
+    >systemctl管理服务</a></li>
+</ul>
+<h2 id="开机启动">开机启动
+</h2><ul>
+<li>支持systemd的软件，安装时，会自动在<code>/usr/lib/systemd/system</code>目录添加一个配置文件</li>
+<li>下面以mysql为例来说明如何设置开机启动</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">systemctl enable mysqld
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>
+<p>执行上面的命令之后，在<code>/etc/systemd/system/multi-user.target.wants</code>目录下添加一个符号链接，这个链接指向<code>/usr/lib/systemd/system</code>里面的<code>mysqld.service</code>文件</p>
+</li>
+<li>
+<p>设置开机启动后，需要等下一次开机的时候，才会自动执行<code>/etc/systemd/system</code>目录中的文件</p>
+</li>
+<li>
+<p>如果忘记了一个服务有没有设置成开机启动，可以使用<code>systemctl is-enable 服务名</code>来查看</p>
+</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">systemctl is-enabled mysqld
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linux%E4%BD%BF%E7%94%A8systemctl%E6%9D%A5%E7%AE%A1%E7%90%86%E6%9C%8D%E5%8A%A1/image.png"
+	width="394"
+	height="55"
+	srcset="/p/linux%E4%BD%BF%E7%94%A8systemctl%E6%9D%A5%E7%AE%A1%E7%90%86%E6%9C%8D%E5%8A%A1/image_hu_628c438b886fe3e0.png 480w, /p/linux%E4%BD%BF%E7%94%A8systemctl%E6%9D%A5%E7%AE%A1%E7%90%86%E6%9C%8D%E5%8A%A1/image_hu_e8a5a2e8875e8a83.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="716"
+		data-flex-basis="1719px"
+	
+></p>
+<h2 id="启动服务">启动服务
+</h2><ul>
+<li>执行<code>systemctl start 服务名</code>可以启动服务，下面还是以mysql为例来说明</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">systemctl start mysqld
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>服务启动之后，可以执行<code>systemctl status 服务名</code>来检查服务是否启动成功</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">systemctl status mysqld
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linux%E4%BD%BF%E7%94%A8systemctl%E6%9D%A5%E7%AE%A1%E7%90%86%E6%9C%8D%E5%8A%A1/image-1.png"
+	width="1108"
+	height="251"
+	srcset="/p/linux%E4%BD%BF%E7%94%A8systemctl%E6%9D%A5%E7%AE%A1%E7%90%86%E6%9C%8D%E5%8A%A1/image-1_hu_9991b44cae09e51b.png 480w, /p/linux%E4%BD%BF%E7%94%A8systemctl%E6%9D%A5%E7%AE%A1%E7%90%86%E6%9C%8D%E5%8A%A1/image-1_hu_73868ab3b7aaddbc.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="441"
+		data-flex-basis="1059px"
+	
+></p>
+<p>上面结果中各个字段含义</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">Loaded: 配置文件的位置，这里是/usr/lib/systemd/system/mysqld.service
+</span></span><span class="line"><span class="cl">Active: 状态，active (running)表示启动，如果是inactive (dead)表示已关闭
+</span></span><span class="line"><span class="cl">Docs: 服务器文档
+</span></span><span class="line"><span class="cl">Main PID：主进程ID
+</span></span><span class="line"><span class="cl">CGroup：进程中所有子进程
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>除了使用<code>systemctl status 服务名</code>之外，还可以使用以下的命令来查看服务的状态</p>
+<ul>
+<li>查看mysql服务状态</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">systemctl is-active mysqld
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linux%E4%BD%BF%E7%94%A8systemctl%E6%9D%A5%E7%AE%A1%E7%90%86%E6%9C%8D%E5%8A%A1/image-2.png"
+	width="375"
+	height="50"
+	srcset="/p/linux%E4%BD%BF%E7%94%A8systemctl%E6%9D%A5%E7%AE%A1%E7%90%86%E6%9C%8D%E5%8A%A1/image-2_hu_e6d69dd5225d0023.png 480w, /p/linux%E4%BD%BF%E7%94%A8systemctl%E6%9D%A5%E7%AE%A1%E7%90%86%E6%9C%8D%E5%8A%A1/image-2_hu_1dbce033e7614a8d.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="750"
+		data-flex-basis="1800px"
+	
+></p>
+<ul>
+<li>关闭mysql，并查看服务状态</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">systemctl stop mysqld
+</span></span><span class="line"><span class="cl">systemctl is-active mysqld
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linux%E4%BD%BF%E7%94%A8systemctl%E6%9D%A5%E7%AE%A1%E7%90%86%E6%9C%8D%E5%8A%A1/image-3.png"
+	width="380"
+	height="65"
+	srcset="/p/linux%E4%BD%BF%E7%94%A8systemctl%E6%9D%A5%E7%AE%A1%E7%90%86%E6%9C%8D%E5%8A%A1/image-3_hu_b17b7b59b70222a6.png 480w, /p/linux%E4%BD%BF%E7%94%A8systemctl%E6%9D%A5%E7%AE%A1%E7%90%86%E6%9C%8D%E5%8A%A1/image-3_hu_aa4652fea1f4a5a8.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="584"
+		data-flex-basis="1403px"
+	
+></p>
+<p><code>active</code>表示mysql处于开启状态，<code>is-active</code>表示mysql处于关闭状态</p>
+<h2 id="停止服务">停止服务
+</h2><ul>
+<li>停止正在运行的mysql</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">systemctl stop mysqld
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>重启mysql服务</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">systemctl restart mysqld
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="服务配置文件">服务配置文件
+</h2><p>从上面mysql的例子可以看出，它的配置文件位于<code>/usr/lib/systemd/system/mysqld.service</code>，其他的服务文件也是位于此目录下，只不过具体的文件名不一样</p>
+<p>服务是根据它的配置来启动和停止的，我们使用编辑器或使用<code>systemctl cat 服务名</code>查看服务的配置文件，下面我们以sshd服务的配置文件来说明</p>
+<ul>
+<li>查看sshd服务的配置文件</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">systemctl cat sshd
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linux%E4%BD%BF%E7%94%A8systemctl%E6%9D%A5%E7%AE%A1%E7%90%86%E6%9C%8D%E5%8A%A1/image-4.png"
+	width="362"
+	height="319"
+	srcset="/p/linux%E4%BD%BF%E7%94%A8systemctl%E6%9D%A5%E7%AE%A1%E7%90%86%E6%9C%8D%E5%8A%A1/image-4_hu_4a857706b4b44676.png 480w, /p/linux%E4%BD%BF%E7%94%A8systemctl%E6%9D%A5%E7%AE%A1%E7%90%86%E6%9C%8D%E5%8A%A1/image-4_hu_ae0702af6ac6e213.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="113"
+		data-flex-basis="272px"
+	
+></p>
+<ul>
+<li><code>sshd.service</code></li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-gdscript3" data-lang="gdscript3"><span class="line"><span class="cl"><span class="c1"># /usr/lib/systemd/system/sshd.service</span>
+</span></span><span class="line"><span class="cl"><span class="p">[</span><span class="n">Unit</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl"><span class="n">Description</span><span class="o">=</span><span class="n">OpenSSH</span> <span class="n">server</span> <span class="n">daemon</span>
+</span></span><span class="line"><span class="cl"><span class="n">Documentation</span><span class="o">=</span><span class="n">man</span><span class="p">:</span><span class="n">sshd</span><span class="p">(</span><span class="mi">8</span><span class="p">)</span> <span class="n">man</span><span class="p">:</span><span class="n">sshd_config</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">After</span><span class="o">=</span><span class="n">network</span><span class="o">.</span><span class="n">target</span> <span class="n">sshd</span><span class="o">-</span><span class="n">keygen</span><span class="o">.</span><span class="n">service</span>
+</span></span><span class="line"><span class="cl"><span class="n">Wants</span><span class="o">=</span><span class="n">sshd</span><span class="o">-</span><span class="n">keygen</span><span class="o">.</span><span class="n">service</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="p">[</span><span class="n">Service</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl"><span class="n">Type</span><span class="o">=</span><span class="n">notify</span>
+</span></span><span class="line"><span class="cl"><span class="n">EnvironmentFile</span><span class="o">=/</span><span class="n">etc</span><span class="o">/</span><span class="n">sysconfig</span><span class="o">/</span><span class="n">sshd</span>
+</span></span><span class="line"><span class="cl"><span class="n">ExecStart</span><span class="o">=/</span><span class="n">usr</span><span class="o">/</span><span class="n">sbin</span><span class="o">/</span><span class="n">sshd</span> <span class="o">-</span><span class="n">D</span> <span class="o">$</span><span class="n">OPTIONS</span>
+</span></span><span class="line"><span class="cl"><span class="n">ExecReload</span><span class="o">=/</span><span class="n">bin</span><span class="o">/</span><span class="n">kill</span> <span class="o">-</span><span class="n">HUP</span> <span class="o">$</span><span class="n">MAINPID</span>
+</span></span><span class="line"><span class="cl"><span class="n">KillMode</span><span class="o">=</span><span class="n">process</span>
+</span></span><span class="line"><span class="cl"><span class="n">Restart</span><span class="o">=</span><span class="n">on</span><span class="o">-</span><span class="n">failure</span>
+</span></span><span class="line"><span class="cl"><span class="n">RestartSec</span><span class="o">=</span><span class="mi">42</span><span class="n">s</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="p">[</span><span class="n">Install</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl"><span class="n">WantedBy</span><span class="o">=</span><span class="n">multi</span><span class="o">-</span><span class="n">user</span><span class="o">.</span><span class="n">target</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>配置文件字段说明</p>
+<ul>
+<li>Unit：启动顺序单元的依赖关系</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">Description：服务描述，描述服务的一段文字
+</span></span><span class="line"><span class="cl">Documentation：服务的文档位置
+</span></span><span class="line"><span class="cl">After：当前服务在指定的服务之后启动，这里表示sshd服务需要在network和sshd-keygen服务启动之后再启动。
+</span></span><span class="line"><span class="cl">       如果sshd服务需要在指定服务之前启动的话，使用Before字段。
+</span></span><span class="line"><span class="cl">Wants：服务的依赖，这种依赖是一种弱依赖关系，在这里表示的是sshd和sshd-keygen存在依赖关系，但是它们之间是一种弱依赖。也就是说，如果sshd-keygen启动失败了，是不会影响sshd的。
+</span></span><span class="line"><span class="cl">       如果要表示强依赖关系，使用Requires字段，也即 如果sshd-keygen启动失败，或者退出了，sshd也必须退出。
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>Service：服务的启动命令以及启动参数</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-gdscript3" data-lang="gdscript3"><span class="line"><span class="cl"><span class="n">Type</span><span class="err">：启动类型，常用的值如下所示</span>
+</span></span><span class="line"><span class="cl">    <span class="o">-</span> <span class="n">simple</span>  <span class="err">默认值，</span><span class="n">ExecStart字段启动的进程为主进程</span>
+</span></span><span class="line"><span class="cl">    <span class="o">-</span> <span class="n">forking</span> <span class="n">ExecStart字段将以fork</span><span class="p">()</span><span class="err">方式启动，此时父进程将会退出，子进程将会成为主进程。</span>
+</span></span><span class="line"><span class="cl">    <span class="o">-</span> <span class="n">notify</span>  <span class="err">类似</span><span class="n">simple</span><span class="err">，启动结束后会发出通知信号，然后</span><span class="n">Systemd再启动其他服务</span><span class="err">。</span>
+</span></span><span class="line"><span class="cl"><span class="n">EnviromentFile</span><span class="err">：服务的环境变量文件，当前配置文件可以用</span><span class="o">$</span><span class="n">KEY的方式引用环境变量中的参数</span><span class="err">，上面的例子中，</span><span class="n">sshd的环境变量文件是</span><span class="o">/</span><span class="n">etc</span><span class="o">/</span><span class="n">sysconfig</span><span class="o">/</span><span class="n">sshd</span>
+</span></span><span class="line"><span class="cl"><span class="n">ExecStart</span><span class="err">：启动服务执行的命令</span>
+</span></span><span class="line"><span class="cl"><span class="n">ExecReload</span><span class="err">：重启服务执行的命令</span>
+</span></span><span class="line"><span class="cl"><span class="n">KillMode</span><span class="err">：如何停止服务，可能的值有</span>
+</span></span><span class="line"><span class="cl">    <span class="o">-</span> <span class="n">control</span><span class="o">-</span><span class="n">group</span> <span class="err">默认值，当前的控制组里面的所有进程都会被杀掉。</span>
+</span></span><span class="line"><span class="cl">    <span class="o">-</span> <span class="n">process</span>       <span class="err">只杀主进程</span>
+</span></span><span class="line"><span class="cl">    <span class="o">-</span> <span class="n">mixed</span>         <span class="err">主进程收到</span><span class="n">SIGTERM信号</span><span class="err">，子进程收到</span><span class="n">SIGKILL信号</span>
+</span></span><span class="line"><span class="cl">    <span class="o">-</span> <span class="err">没有进程会被杀掉，只执行服务的</span><span class="n">stop命令</span>
+</span></span><span class="line"><span class="cl"><span class="n">Restart</span><span class="err">：服务因为何种原因退出才会重启服务，可能的值有</span>
+</span></span><span class="line"><span class="cl">    <span class="o">-</span> <span class="n">always</span>        <span class="err">不论服务因为何种情况退出，总是重启。</span>
+</span></span><span class="line"><span class="cl">    <span class="o">-</span> <span class="n">on</span><span class="o">-</span><span class="n">succes</span>     <span class="err">正常退出时</span>
+</span></span><span class="line"><span class="cl">    <span class="o">-</span> <span class="n">on</span><span class="o">-</span><span class="n">failure</span>    <span class="err">非正常退出时</span>
+</span></span><span class="line"><span class="cl">    <span class="o">-</span> <span class="n">on</span><span class="o">-</span><span class="n">abnormal</span>   <span class="err">被信号终止和超时时，才重启</span>
+</span></span><span class="line"><span class="cl">    <span class="o">-</span> <span class="n">on</span><span class="o">-</span><span class="n">abort</span>      <span class="err">只有收到了没有捕捉的信号时，才重启</span>
+</span></span><span class="line"><span class="cl">    <span class="o">-</span> <span class="n">on</span><span class="o">-</span><span class="n">watchdog</span>   <span class="err">超时退出，才重启</span>
+</span></span><span class="line"><span class="cl">    <span class="err">大部分的情况下，设置为</span><span class="n">on</span><span class="o">-</span><span class="n">failure就可以了</span>
+</span></span><span class="line"><span class="cl"><span class="n">RestartSec</span><span class="err">：服务重启前需等待多少秒</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>Install：如何安装配置文件，也即定义如何做到开机启动</li>
+</ul>
+<p>WantedBy 字段表示服务所在的Target，这里的Target可以理解成一组服务
+WantedBy 的值时一个或多个Target，当前Unit（单元）激活时（enable）符号链接会放入 <code>/etc/systemd/system</code> 目录下面以 <code>Target 名</code> + <code>.wants</code> 后缀构成的子目录中
+比如：sshd的WantedBy 字段值是multi-user.target，执行 <code>systemctl enable sshd</code>之后相当于执行了
+<code>ln -s /usr/lib/systemd/system/sshd.service /etc/systemd/system/multi-user.target.wants/sshd.service</code>命令</p>
+<p><img src="/p/linux%E4%BD%BF%E7%94%A8systemctl%E6%9D%A5%E7%AE%A1%E7%90%86%E6%9C%8D%E5%8A%A1/image-5.png"
+	width="921"
+	height="263"
+	srcset="/p/linux%E4%BD%BF%E7%94%A8systemctl%E6%9D%A5%E7%AE%A1%E7%90%86%E6%9C%8D%E5%8A%A1/image-5_hu_4e38369abdb257a0.png 480w, /p/linux%E4%BD%BF%E7%94%A8systemctl%E6%9D%A5%E7%AE%A1%E7%90%86%E6%9C%8D%E5%8A%A1/image-5_hu_12030e7a4a029253.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="350"
+		data-flex-basis="840px"
+	
+></p>
+<p>与之相对的，当执行 <code>systemctl disable sshd</code>命令之后，会去掉上图中两个目录之间的符号链接，相当于开机不会启动sshd服务</p>
+<p>关于上图中配置文件名 <code>sshd.service</code> 的后缀 <code>.service</code> 表示Unit（单元）的种类，如果省略，默认的后缀是<code>.servicce</code> ，所以sshd会被当做<code>sshd.service</code></p>
+<h2 id="重新加载配置">重新加载配置
+</h2><p>如果修改了服务的配置i文件，需要重新加载配置文件，然后重启服务</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-gdscript3" data-lang="gdscript3"><span class="line"><span class="cl"><span class="n">systemctl</span> <span class="n">daemon</span><span class="o">-</span><span class="n">reload</span>
+</span></span><span class="line"><span class="cl"><span class="n">systemctl</span> <span class="n">restart</span> <span class="n">mysqld</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="救援模式">救援模式
+</h2><p>当出现系统无法正常引导的情况时，可以将系统置于救援模式。救援模式提供了用于修复系统问题的单用户界面。执行 <code>systemctl rescue</code> 命令可以进入救援模式</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">systemctl rescue
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linux%E4%BD%BF%E7%94%A8systemctl%E6%9D%A5%E7%AE%A1%E7%90%86%E6%9C%8D%E5%8A%A1/image-6.png"
+	width="745"
+	height="89"
+	srcset="/p/linux%E4%BD%BF%E7%94%A8systemctl%E6%9D%A5%E7%AE%A1%E7%90%86%E6%9C%8D%E5%8A%A1/image-6_hu_13246d0ea2f60363.png 480w, /p/linux%E4%BD%BF%E7%94%A8systemctl%E6%9D%A5%E7%AE%A1%E7%90%86%E6%9C%8D%E5%8A%A1/image-6_hu_aec4f40b298bacfb.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="837"
+		data-flex-basis="2008px"
+	
+></p>
+<p>进入救援模式后，当前登陆的其他用户会收到一套系统将进入救援模式的通知。</p>
+
+</section>
+
+
+    <footer class="article-footer">
+    
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+<aside class="related-content--wrapper">
+    <h2 class="section-title">相关文章</h2>
+    <div class="related-content">
+        <div class="flex article-list--tile">
+            
+                
+<article class="">
+    <a href="/p/linux%E5%90%8E%E5%8F%B0%E8%BF%9B%E7%A8%8B%E8%BF%90%E8%A1%8C%E6%8C%82%E8%B5%B7%E6%81%A2%E5%A4%8D%E6%9C%AA%E5%AE%8C%E6%88%90/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Linux]后台进程运行、挂起、恢复(未完成)</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/linux%E7%BD%91%E7%BB%9C%E7%AE%A1%E7%90%86%E5%91%BD%E4%BB%A4/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Linux]网络管理命令</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/linux%E9%83%A8%E7%BD%B2%E5%BC%80%E6%BA%90xiaojusurvey%E9%97%AE%E5%8D%B7%E7%B3%BB%E7%BB%9F/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Linux]部署开源XIAOJUSURVEY问卷系统</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/linux%E6%90%AD%E5%BB%BAnginx%E5%B9%B6%E9%83%A8%E7%BD%B2%E4%B8%A4%E4%B8%AA%E9%A1%B9%E7%9B%AE/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Linux]搭建nginx，并部署两个项目</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/linux%E5%B0%8F%E7%9F%A5%E8%AF%86%E5%AD%A6%E4%B9%A0-%E5%8E%8B%E7%BC%A9%E5%8C%85%E8%A7%A3%E5%8E%8B%E5%90%8E%E5%B1%9E%E4%B8%BB%E5%92%8C%E5%B1%9E%E7%BB%84%E4%B8%8D%E6%98%AF%E5%BD%93%E5%89%8D%E7%94%A8%E6%88%B7%E9%97%AE%E9%A2%98/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Linux]小知识学习-压缩包解压后属主和属组不是当前用户问题</h2>
+        </div>
+    </a>
+</article>
+
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+        2025 リンボの個人ブログ
+    </section>
+    
+    <section class="powerby">
+         <br />
+        
+    </section>
+</footer>
+
+
+    
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+    
+    <div class="pswp__bg"></div>
+
+    
+    <div class="pswp__scroll-wrap">
+
+        
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+
+        
+        <div class="pswp__ui pswp__ui--hidden">
+
+            <div class="pswp__top-bar">
+
+                
+
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+
+                <button class="pswp__button pswp__button--share" title="Share"></button>
+
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+
+                
+                
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                        <div class="pswp__preloader__cut">
+                            <div class="pswp__preloader__donut"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div>
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.js"integrity="sha256-ePwmChbbvXbsO02lbM3HoHbSHTHFAeChekF1xKJdleo="crossorigin="anonymous"
+                defer
+                >
+            </script><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe-ui-default.min.js"integrity="sha256-UKkzOn/w1mBxRmLLGrSeyB4e1xbrp4xylgAWb3M42pU="crossorigin="anonymous"
+                defer
+                >
+            </script><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/default-skin/default-skin.min.css"crossorigin="anonymous"
+            ><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.css"crossorigin="anonymous"
+            >
+
+            </main>
+        </div>
+        <script 
+                src="https://cdn.jsdelivr.net/npm/node-vibrant@3.1.6/dist/vibrant.min.js"integrity="sha256-awcR2jno4kI5X0zL8ex0vi2z&#43;KMkF24hUW8WePSA9HM="crossorigin="anonymous"
+                
+                >
+            </script><script type="text/javascript" src="/ts/main.1e9a3bafd846ced4c345d084b355fb8c7bae75701c338f8a1f8a82c780137826.js" defer></script>
+<script>
+    (function () {
+        const customFont = document.createElement('link');
+        customFont.href = "https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap";
+
+        customFont.type = "text/css";
+        customFont.rel = "stylesheet";
+
+        document.head.appendChild(customFont);
+    }());
+</script>
+
+    </body>
+</html>
