@@ -7,7 +7,146 @@
         <generator>Hugo -- gohugo.io</generator>
         <language>zh-cn</language>
         <copyright>リンボの個人ブログ</copyright>
-        <lastBuildDate>Wed, 05 Nov 2025 23:29:31 +0800</lastBuildDate><atom:link href="https://YLine-hub.github.io/post/index.xml" rel="self" type="application/rss+xml" /><item>
+        <lastBuildDate>Thu, 06 Nov 2025 16:09:43 +0800</lastBuildDate><atom:link href="https://YLine-hub.github.io/post/index.xml" rel="self" type="application/rss+xml" /><item>
+        <title>[MySQL]MySQL进阶-索引(未完成)</title>
+        <link>https://YLine-hub.github.io/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/</link>
+        <pubDate>Thu, 06 Nov 2025 16:09:43 +0800</pubDate>
+        
+        <guid>https://YLine-hub.github.io/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/</guid>
+        <description>&lt;h1 id=&#34;mysql进阶-索引&#34;&gt;MySQL进阶-索引
+&lt;/h1&gt;&lt;h2 id=&#34;索引概述&#34;&gt;索引概述
+&lt;/h2&gt;&lt;h3 id=&#34;介绍&#34;&gt;介绍
+&lt;/h3&gt;&lt;ul&gt;
+&lt;li&gt;索引(index)是帮助MySQL高效获取数据的数据结构(有序)。在数据之外，数据库系统还维护着满足特定查找算法的数据结构，这些数据结构以某种方式引用(指向)数据，这样就可以在这些数据结构上实现高级查找算法，这种数据结构就是索引。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;演示&#34;&gt;演示
+&lt;/h3&gt;&lt;p&gt;&lt;img src=&#34;https://YLine-hub.github.io/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image.png&#34;
+	width=&#34;1575&#34;
+	height=&#34;620&#34;
+	srcset=&#34;https://YLine-hub.github.io/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image_hu_131ce57939a72deb.png 480w, https://YLine-hub.github.io/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image_hu_627c5471a1a154ee.png 1024w&#34;
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;alt text&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;254&#34;
+		data-flex-basis=&#34;609px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;p&gt;&lt;font color=red&gt;备注：上述二叉树索引结构的只是一个示意图，并不是真是的索引结构。&lt;/font&gt;&lt;/p&gt;
+&lt;h3 id=&#34;优缺点&#34;&gt;优缺点
+&lt;/h3&gt;&lt;table&gt;
+  &lt;thead&gt;
+      &lt;tr&gt;
+          &lt;th&gt;优势&lt;/th&gt;
+          &lt;th&gt;劣势&lt;/th&gt;
+      &lt;/tr&gt;
+  &lt;/thead&gt;
+  &lt;tbody&gt;
+      &lt;tr&gt;
+          &lt;td&gt;提高数据检索的效率，降低数据库的IO成本&lt;/td&gt;
+          &lt;td&gt;索引列也是要占空间的。&lt;/td&gt;
+      &lt;/tr&gt;
+      &lt;tr&gt;
+          &lt;td&gt;通过索引列对数据进行排序，降低数据排序的成本，降低CPU的消耗。&lt;/td&gt;
+          &lt;td&gt;索引大大提高了查询效率，同时却也降低更新表的速度，如对表进行INSERT、UPDATE、DELETE时，效率降低。&lt;/td&gt;
+      &lt;/tr&gt;
+  &lt;/tbody&gt;
+&lt;/table&gt;
+&lt;h2 id=&#34;索引结构&#34;&gt;索引结构
+&lt;/h2&gt;&lt;h3 id=&#34;类型&#34;&gt;类型
+&lt;/h3&gt;&lt;ul&gt;
+&lt;li&gt;MySQL的索引是在存储引擎层实现的，不同的存储引擎有不同的结构，主要包含以下几种：&lt;/li&gt;
+&lt;/ul&gt;
+&lt;table&gt;
+  &lt;thead&gt;
+      &lt;tr&gt;
+          &lt;th&gt;索引结构&lt;/th&gt;
+          &lt;th&gt;描述&lt;/th&gt;
+      &lt;/tr&gt;
+  &lt;/thead&gt;
+  &lt;tbody&gt;
+      &lt;tr&gt;
+          &lt;td&gt;B+Tree索引&lt;/td&gt;
+          &lt;td&gt;最常见的索引类型，大部分引擎都支持B+树索引&lt;/td&gt;
+      &lt;/tr&gt;
+      &lt;tr&gt;
+          &lt;td&gt;Hash索引&lt;/td&gt;
+          &lt;td&gt;底层数据结构是用哈希表实现的，只有精确匹配索引列的查询才有效，不支持范围查询&lt;/td&gt;
+      &lt;/tr&gt;
+      &lt;tr&gt;
+          &lt;td&gt;R-tree(空间索引)&lt;/td&gt;
+          &lt;td&gt;空间索引是MyISAM引擎的一个特殊索引类型，主要用于地理空间数据类型，通常使用较少&lt;/td&gt;
+      &lt;/tr&gt;
+      &lt;tr&gt;
+          &lt;td&gt;Full-text(全文索引)&lt;/td&gt;
+          &lt;td&gt;是一种通过建立倒排索引，快速匹配文档的方式。类似与Lucene,Solr,ES&lt;/td&gt;
+      &lt;/tr&gt;
+  &lt;/tbody&gt;
+&lt;/table&gt;
+&lt;h3 id=&#34;支持情况&#34;&gt;支持情况
+&lt;/h3&gt;&lt;table&gt;
+  &lt;thead&gt;
+      &lt;tr&gt;
+          &lt;th&gt;索引&lt;/th&gt;
+          &lt;th&gt;InnoDB&lt;/th&gt;
+          &lt;th&gt;MyISAM&lt;/th&gt;
+          &lt;th&gt;Memory&lt;/th&gt;
+      &lt;/tr&gt;
+  &lt;/thead&gt;
+  &lt;tbody&gt;
+      &lt;tr&gt;
+          &lt;td&gt;B+tree索引&lt;/td&gt;
+          &lt;td&gt;支持&lt;/td&gt;
+          &lt;td&gt;支持&lt;/td&gt;
+          &lt;td&gt;支持&lt;/td&gt;
+      &lt;/tr&gt;
+      &lt;tr&gt;
+          &lt;td&gt;Hash索引&lt;/td&gt;
+          &lt;td&gt;不支持&lt;/td&gt;
+          &lt;td&gt;不支持&lt;/td&gt;
+          &lt;td&gt;支持&lt;/td&gt;
+      &lt;/tr&gt;
+      &lt;tr&gt;
+          &lt;td&gt;R-tree索引&lt;/td&gt;
+          &lt;td&gt;不支持&lt;/td&gt;
+          &lt;td&gt;支持&lt;/td&gt;
+          &lt;td&gt;不支持&lt;/td&gt;
+      &lt;/tr&gt;
+      &lt;tr&gt;
+          &lt;td&gt;Full-text索引&lt;/td&gt;
+          &lt;td&gt;5.6版本之后支持&lt;/td&gt;
+          &lt;td&gt;支持&lt;/td&gt;
+          &lt;td&gt;不支持&lt;/td&gt;
+      &lt;/tr&gt;
+  &lt;/tbody&gt;
+&lt;/table&gt;
+&lt;p&gt;&lt;font color=red&gt;我们平常所说的索引，如果没有特别指明，都是指B+树结构&lt;/font&gt;&lt;/p&gt;
+&lt;h3 id=&#34;二叉树&#34;&gt;二叉树
+&lt;/h3&gt;&lt;p&gt;&lt;img src=&#34;https://YLine-hub.github.io/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image-1.png&#34;
+	width=&#34;1022&#34;
+	height=&#34;496&#34;
+	srcset=&#34;https://YLine-hub.github.io/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image-1_hu_2f903c2a41e5be61.png 480w, https://YLine-hub.github.io/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image-1_hu_2c6bf2a8bc3a29ce.png 1024w&#34;
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;alt text&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;206&#34;
+		data-flex-basis=&#34;494px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;p&gt;&lt;font color=red&gt;二叉树缺点：顺序插入时，会形成一个链表，查询性能大大降低。而且每一层只有两个节点，在大数据情况下，层级较深，检索速度慢。&lt;/font&gt;&lt;/p&gt;
+&lt;h2 id=&#34;索引分类&#34;&gt;索引分类
+&lt;/h2&gt;&lt;h2 id=&#34;索引语法&#34;&gt;索引语法
+&lt;/h2&gt;&lt;h2 id=&#34;sql性能分析&#34;&gt;SQL性能分析
+&lt;/h2&gt;&lt;h2 id=&#34;索引使用&#34;&gt;索引使用
+&lt;/h2&gt;&lt;h2 id=&#34;索引设计原则&#34;&gt;索引设计原则
+&lt;/h2&gt;</description>
+        </item>
+        <item>
         <title>[Android]问题</title>
         <link>https://YLine-hub.github.io/p/android%E9%97%AE%E9%A2%98/</link>
         <pubDate>Wed, 05 Nov 2025 23:29:31 +0800</pubDate>
