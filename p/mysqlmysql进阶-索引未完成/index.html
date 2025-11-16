@@ -286,12 +286,45 @@
             <li><a href="#演示-3">演示</a></li>
           </ol>
         </li>
-        <li><a href="#范围查询">范围查询</a>
+        <li><a href="#索引失效情况">索引失效情况</a>
           <ol>
-            <li><a href="#演示-4">演示</a></li>
+            <li><a href="#范围查询">范围查询</a></li>
+            <li><a href="#索引列运算">索引列运算</a></li>
+            <li><a href="#字符串不加引号">字符串不加引号</a></li>
+            <li><a href="#模糊查询">模糊查询</a></li>
+            <li><a href="#or连接的条件">or连接的条件</a></li>
+            <li><a href="#数据分布影响">数据分布影响</a></li>
           </ol>
         </li>
-        <li><a href="#索引列运算">索引列运算</a></li>
+        <li><a href="#sql提示">SQL提示</a>
+          <ol>
+            <li><a href="#背景">背景</a></li>
+            <li><a href="#简介">简介</a></li>
+            <li><a href="#语法">语法</a></li>
+          </ol>
+        </li>
+        <li><a href="#覆盖索引重要">覆盖索引(重要)</a>
+          <ol>
+            <li><a href="#演示-10">演示</a></li>
+            <li><a href="#总结">总结</a></li>
+            <li><a href="#回表查询">回表查询</a></li>
+            <li><a href="#思考题-2">思考题</a></li>
+          </ol>
+        </li>
+        <li><a href="#前缀索引">前缀索引</a>
+          <ol>
+            <li><a href="#语法-1">语法</a></li>
+            <li><a href="#前缀长度">前缀长度</a></li>
+            <li><a href="#前缀索引的查询流程">前缀索引的查询流程</a></li>
+          </ol>
+        </li>
+        <li><a href="#单列索引联合索引">单列索引&amp;联合索引</a>
+          <ol>
+            <li><a href="#简介-1">简介</a></li>
+            <li><a href="#示例-1">示例</a></li>
+          </ol>
+        </li>
+        <li><a href="#索引设计原则-1">索引设计原则</a></li>
       </ol>
     </li>
   </ol>
@@ -2668,12 +2701,13 @@ B、高度为3的情况：
 <blockquote>
 <p>字段长度为54，所以三个索引都用上了，<font color=red>所以只要最左的字段存在，与它所在的位置无关，就符合最左前缀法则(与字段位置无关，字段存在即可)</font>。</p>
 </blockquote>
-<h3 id="范围查询">范围查询
-</h3><ul>
+<h3 id="索引失效情况">索引失效情况
+</h3><h4 id="范围查询">范围查询
+</h4><ul>
 <li>联合索引中，出现范围查询(&gt;，&lt;)，范围查询右侧的列索引失效。</li>
 </ul>
-<h4 id="演示-4">演示
-</h4><ul>
+<h5 id="演示-4">演示
+</h5><ul>
 <li>查询专业为软件工程，年龄大于30，状态为0的学生信息(执行计划)</li>
 </ul>
 <div class="highlight"><div class="chroma">
@@ -2724,10 +2758,997 @@ B、高度为3的情况：
 		data-flex-basis="2633px"
 	
 ></p>
-<h3 id="索引列运算">索引列运算
-</h3><ul>
+<h4 id="索引列运算">索引列运算
+</h4><ul>
 <li>不要在索引列上进行运算操作，索引将失效。</li>
 </ul>
+<h5 id="演示-5">演示
+</h5><ul>
+<li>查询手机号为17799990015的用户信息(执行计划)</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">explain select * from tb_user where phone = &#39;17799990015&#39;;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image-75.png"
+	width="1047"
+	height="114"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image-75_hu_7b0e9b68e6a878e5.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image-75_hu_f186a53c1154436a.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="918"
+		data-flex-basis="2204px"
+	
+></p>
+<ul>
+<li>查询手机号最后两位为15的用户信息(执行计划)</li>
+</ul>
+<p>从第10位解决手机号2个数等于15</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">explain select * from tb_user where substring(phone,10,2) = &#39;15&#39;;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image-76.png"
+	width="989"
+	height="113"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image-76_hu_84221bf614ce97be.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image-76_hu_815742cadae3fab2.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="875"
+		data-flex-basis="2100px"
+	
+></p>
+<h4 id="字符串不加引号">字符串不加引号
+</h4><ul>
+<li>字符串类型字段使用时，不加引号，索引将失效。</li>
+</ul>
+<h5 id="演示-6">演示
+</h5><ul>
+<li>查询手机号为17799990015(不加引号)的用户信息(执行计划)</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">explain select * from tb_user where phone = 17799990015;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image-77.png"
+	width="1007"
+	height="114"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image-77_hu_61b459b998a32b81.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image-77_hu_eb8587391308060b.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="883"
+		data-flex-basis="2120px"
+	
+></p>
+<ul>
+<li>查询专业为软件工程，年龄为31，状态为0(不加引号)的用户信息(执行计划)</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">explain select * from tb_user where profession = &#39;软件工程&#39; and age = 31 and status = 0;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image-78.png"
+	width="1314"
+	height="117"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image-78_hu_7de4e8a9bd551152.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image-78_hu_986c3e46c91dd8e3.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="1123"
+		data-flex-basis="2695px"
+	
+></p>
+<h4 id="模糊查询">模糊查询
+</h4><ul>
+<li>如果仅仅是尾部模糊匹配，索引不会失效。如果时头部模糊匹配，索引失效。</li>
+</ul>
+<h5 id="演示-7">演示
+</h5><ul>
+<li>查询专业开头为软件的用户信息(执行计划)</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">explain select * from tb_user where profession like &#39;软件%&#39;;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image-79.png"
+	width="1261"
+	height="116"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image-79_hu_8aea3138124e863c.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image-79_hu_7ce22442840759f0.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="1087"
+		data-flex-basis="2608px"
+	
+></p>
+<ul>
+<li>查询专业结尾为工程的用户信息(执行计划)</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">explain select * from tb_user where profession like &#39;%工程&#39;;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image-80.png"
+	width="989"
+	height="118"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image-80_hu_2baa3b788ed32c71.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image-80_hu_b2b6a77ec3a3955e.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="838"
+		data-flex-basis="2011px"
+	
+></p>
+<ul>
+<li>查询专业中间有工的用户信息(执行计划)</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">explain select * from tb_user where profession like &#39;%工%&#39;;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image-81.png"
+	width="995"
+	height="114"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image-81_hu_3494188af3dc4bb7.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image-81_hu_3620d9ee63c044b5.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="872"
+		data-flex-basis="2094px"
+	
+></p>
+<h4 id="or连接的条件">or连接的条件
+</h4><ul>
+<li>用or分割开的条件，如果or前的条件中的列有索引，而后面的列没有索引，那么涉及的索引都不会被用到。</li>
+</ul>
+<h5 id="演示-8">演示
+</h5><ul>
+<li>
+<p>查询id为10或者年龄为23的用户信息(执行计划)</p>
+</li>
+<li>
+<p>id有索引，age没有索引(age为复合索引，仅仅用到age，不会使用索引)</p>
+</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">explain select * from tb_user where id = 10 or age = 23;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image-82.png"
+	width="1001"
+	height="115"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image-82_hu_3becec9d78706b4b.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image-82_hu_9491bc562824b08a.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="870"
+		data-flex-basis="2089px"
+	
+></p>
+<ul>
+<li>查询手机号为17799990017或者年龄为23的用户信息(执行计划)</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">explain select * from tb_user where phone = &#39;17799990017&#39; or age = 23;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image-83.png"
+	width="996"
+	height="116"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image-83_hu_543d39032f4cee9.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image-83_hu_730b1f31fbea8b88.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="858"
+		data-flex-basis="2060px"
+	
+></p>
+<h5 id="解决方法">解决方法
+</h5><ul>
+<li>由于age没有索引，所以即使id、phone有索引，索引也会失效。所以需要针对age也要建立索引。</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">create index idx_user_age on tb_user(age);
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="数据分布影响">数据分布影响
+</h4><ul>
+<li>如果MySQL评估使用索引比全表更慢，则不适用索引。</li>
+</ul>
+<h5 id="演示-9">演示
+</h5><ul>
+<li>查询手机号大于等于17799990020的用户信息(执行计划)</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">explain select * from tb_user where phone &gt;= &#39;17799990020&#39;;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image-84.png"
+	width="1173"
+	height="122"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image-84_hu_caba205bd4658c6c.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image-84_hu_a1f9f8fc970ef345.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="961"
+		data-flex-basis="2307px"
+	
+></p>
+<ul>
+<li>查询手机号大于等于17799990000(所有用户手机号都是大于等于该手机号)的用户信息(执行计划)</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">explain select * from tb_user where phone &gt;= &#39;17799990000&#39;;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image-85.png"
+	width="1006"
+	height="113"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image-85_hu_14bd4cb65557bf42.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image-85_hu_1694f50608e1501a.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="890"
+		data-flex-basis="2136px"
+	
+></p>
+<ul>
+<li>查询手机号大于等于17799990010(绝大部分用户)的用户信息(执行计划)</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">explain select * from tb_user where phone &gt;= &#39;17799990010&#39;;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image-86.png"
+	width="1000"
+	height="116"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image-86_hu_3832909137aee240.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image-86_hu_21a9056fba46f145.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="862"
+		data-flex-basis="2068px"
+	
+></p>
+<ul>
+<li>查询手机号大于等于17799990013(少部分用户)的用户信息(执行计划)</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">explain select * from tb_user where phone &gt;= &#39;17799990013&#39;;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image-87.png"
+	width="1167"
+	height="114"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image-87_hu_3845863a71f91793.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image-87_hu_7734a2b1ad504f13.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="1023"
+		data-flex-basis="2456px"
+	
+></p>
+<h3 id="sql提示">SQL提示
+</h3><h4 id="背景">背景
+</h4><ul>
+<li>查询专业为软件工程的用户信息(执行计划)</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">explain select * from tb_user where profession = &#39;软件工程&#39;;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image-88.png"
+	width="1135"
+	height="116"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image-88_hu_6c3ac22fc2931a6f.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image-88_hu_5560feb85284bb1.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="978"
+		data-flex-basis="2348px"
+	
+></p>
+<blockquote>
+<p>思考：profession属于联合索引，并且单独使用它符合最左前缀法则，会走联合索引，那么给它加上单列索引，再次查询会走什么索引呢？</p>
+</blockquote>
+<ul>
+<li>创建profession的单列索引</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">create index idx_user_pro on tb_user(profession);
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image-89.png"
+	width="455"
+	height="57"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image-89_hu_1a1df2d265349d05.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image-89_hu_33dda135ff642591.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="798"
+		data-flex-basis="1915px"
+	
+></p>
+<ul>
+<li>查询专业为软件工程的用户信息(执行计划)</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">explain select * from tb_user where profession = &#39;软件工程&#39;;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image-90.png"
+	width="1236"
+	height="112"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image-90_hu_20281ce22a535827.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image-90_hu_df8d751382d1e69.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="1103"
+		data-flex-basis="2648px"
+	
+></p>
+<p>可以看到MySQL走了联合索引。</p>
+<p>那么多个索引的情况下，我能要求MySQL走我指定的索引吗？</p>
+<h4 id="简介">简介
+</h4><ul>
+<li>SQL提示，是优化数据库的一个重要手段，简单来说，就是SQL语句中加入一些人为的提示来达到优化操作的目录。</li>
+</ul>
+<h4 id="语法">语法
+</h4><ul>
+<li>use index(建议数据库用哪个索引)</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">explain select * from tb_user use index(idx_user_pro) where profession = &#39;软件工程&#39;;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image-91.png"
+	width="1017"
+	height="116"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image-91_hu_6d7e65571de74832.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image-91_hu_f57c3ff10ffb34b3.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="876"
+		data-flex-basis="2104px"
+	
+></p>
+<ul>
+<li>ignore index(建议数据库不要用哪个索引)</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">explain select * from tb_user ignore index(idx_user_pro) where profession = &#39;软件工程&#39;;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image-92.png"
+	width="1136"
+	height="117"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image-92_hu_f2a93442f01b0458.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image-92_hu_bdf1befcfd373f3c.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="970"
+		data-flex-basis="2330px"
+	
+></p>
+<ul>
+<li>force index(强制数据库必须使用哪个索引)</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">explain select * from tb_user force index(idx_user_pro) where profession = &#39;软件工程&#39;;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image-93.png"
+	width="1014"
+	height="113"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image-93_hu_95de329a01ac32de.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image-93_hu_4c470ae53dc3ea9c.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="897"
+		data-flex-basis="2153px"
+	
+></p>
+<h3 id="覆盖索引重要">覆盖索引(重要)
+</h3><ul>
+<li>尽量使用覆盖索引(查询使用了索引，并且需要返回的列，在该索引中已经全部能够找到),减少select *;</li>
+</ul>
+<h4 id="演示-10">演示
+</h4><ul>
+<li>删除影响演示的索引</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">drop index idx_user_age on tb_user;
+</span></span><span class="line"><span class="cl">drop index idx_user_email on tb_user;
+</span></span><span class="line"><span class="cl">drop index idx_user_pro on tb_user;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>A、查询专业为软件工程，年龄为31，状态为0的所有用户信息(执行计划)</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">explain select * from tb_user where profession = &#39;软件工程&#39; and age = 31 and status = &#39;0&#39;; 
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image-94.png"
+	width="1233"
+	height="110"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image-94_hu_a9a61aac9730ed49.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image-94_hu_1cf78401c439e8ab.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="1120"
+		data-flex-basis="2690px"
+	
+></p>
+<ul>
+<li>B、查询专业为软件工程，年龄为31，状态为0的id、profession信息(执行计划)</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">explain select id,profession from tb_user where profession = &#39;软件工程&#39; and age = 31 and status = &#39;0&#39;; 
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image-95.png"
+	width="1280"
+	height="105"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image-95_hu_69e46efae2dc0ec0.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image-95_hu_8f194da8596bcc29.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="1219"
+		data-flex-basis="2925px"
+	
+></p>
+<ul>
+<li>C、查询专业为软件工程，年龄为31，状态为0的id、profession、age、status信息(执行计划)</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">explain select id,profession,age,status from tb_user where profession = &#39;软件工程&#39; and age = 31 and status = &#39;0&#39;; 
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image-96.png"
+	width="1277"
+	height="114"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image-96_hu_c797bdc72fe57ddd.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image-96_hu_6923e817994591ed.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="1120"
+		data-flex-basis="2688px"
+	
+></p>
+<ul>
+<li>D、查询专业为软件工程，年龄为31，状态为0的id、profession、age、status、name信息(执行计划)</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">explain select id,profession,age,status,name from tb_user where profession = &#39;软件工程&#39; and age = 31 and status = &#39;0&#39;; 
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image-97.png"
+	width="1232"
+	height="116"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image-97_hu_d532c907c8c2d217.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image-97_hu_868b483aa9c36caf.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="1062"
+		data-flex-basis="2548px"
+	
+></p>
+<h4 id="总结">总结
+</h4><blockquote>
+<p>可以看到四条语句前面的内容全都相同，只有Extra有区别，A、D显示<code>NULL</code>，而B、C显示<code>Using index</code>，这里面的内容和MySQL版本有关。有些版本中A、D会显示<code>Using index condition</code>，B、C显示<code>Using where;Using index</code>。</p>
+</blockquote>
+<blockquote>
+<p>知识小贴士：<br><code>Using index condition</code> : 查找使用了索引，但是需要回表查询数据。(性能低)<br><code>Using where;Using index</code> : 查找使用了索引，但是需要的数据都在索引列中能找到，所以不需要回表查询数据。(性能高)</p>
+</blockquote>
+<h4 id="回表查询">回表查询
+</h4><p>为了大家更清楚的理解，什么是覆盖索引，什么是回表查询，我们一起再来看下面的这组SQL的执行过程。</p>
+<ul>
+<li>表结构及索引示意图:
+<img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image-98.png"
+	width="921"
+	height="408"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image-98_hu_636e4314f43c4fc7.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image-98_hu_ff3d4888a45c600f.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="225"
+		data-flex-basis="541px"
+	
+></li>
+</ul>
+<p>id是主键，是一个聚集索引。 name字段建立了普通索引，是一个二级索引（辅助索引）。</p>
+<ul>
+<li>执行SQL : select * from tb_user where id = 2;</li>
+</ul>
+<p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image-99.png"
+	width="921"
+	height="403"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image-99_hu_640e202adbb66bda.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image-99_hu_666a733d3e467cea.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="228"
+		data-flex-basis="548px"
+	
+></p>
+<p>根据id查询，直接走聚集索引查询，一次索引扫描，直接返回数据，性能高。</p>
+<ul>
+<li>执行SQL：selet id,name from tb_user where name = &lsquo;Arm&rsquo;;</li>
+</ul>
+<p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image-100.png"
+	width="921"
+	height="186"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image-100_hu_a74993b6e232116c.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image-100_hu_f261042e8fe2e80a.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="495"
+		data-flex-basis="1188px"
+	
+></p>
+<p>虽然是根据name字段查询，查询二级索引，但是由于查询返回在字段为 id，name，在name的二级索引中，这两个值都是可以直接获取到的，因为覆盖索引，所以不需要回表查询，性能高。</p>
+<ul>
+<li>执行SQL：selet id,name,gender from tb_user where name = &lsquo;Arm&rsquo;;</li>
+</ul>
+<p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image-101.png"
+	width="921"
+	height="399"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image-101_hu_1d4d1c0cebfd6465.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image-101_hu_76a960a0c7712744.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="230"
+		data-flex-basis="553px"
+	
+></p>
+<p>由于在name的二级索引中，不包含gender，所以，需要两次索引扫描，也就是需要回表查询，性能相对较差一点。</p>
+<h4 id="思考题-2">思考题
+</h4><blockquote>
+<p>一张表, 有四个字段(id, username, password, status), 由于数据量大, 需要对以下SQL语句进行优化, 该如何进行才是最优方案:</p>
+</blockquote>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">select id,username,password from tb_user where username = &#39;itcast&#39;;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><blockquote>
+<p>解：针对于 username, password建立联合索引, sql为: create index idx_user_name_pass on tb_user(username,password); 这样可以避免上述的SQL语句，在查询的过程中，出现回表查询。</p>
+</blockquote>
+<h3 id="前缀索引">前缀索引
+</h3><ul>
+<li>当字段类型为字符串（varchar，text，longtext等）时，有时候需要索引很长的字符串，这会让索引变得很大，查询时，浪费大量的磁盘IO， 影响查询效率。此时可以只将字符串的一部分前 ，建立索引，这样可以大大节约索引空间，从而提高索引效率。</li>
+</ul>
+<h4 id="语法-1">语法
+</h4><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">create index  idx_xxxx on table_name(column(n)) ;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h5 id="示例">示例
+</h5><ul>
+<li>为tb_user表的email字段，建立长度为5的前缀索引。</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">create index idx_email_5 on tb_user(email(5));
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image-105.png"
+	width="1547"
+	height="270"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image-105_hu_3a4daac1a041d9eb.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image-105_hu_b1fddc6670cd5025.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="572"
+		data-flex-basis="1375px"
+	
+></p>
+<h4 id="前缀长度">前缀长度
+</h4><ul>
+<li>可以根据索引的选择性来决定，而选择性是指不重复的索引值（基数）和数据表的记录总数的比值，
+索引选择性越高则查询效率越高， 唯一索引的选择性是1，这是最好的索引选择性，性能也是最好的。</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">select count(distinct email) / count(*) from tb_user ;
+</span></span><span class="line"><span class="cl">select count(distinct substring(email,1,5)) / count(*) from tb_user ;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image-103.png"
+	width="503"
+	height="120"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image-103_hu_d045b60b5400564e.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image-103_hu_c0d05c83a71bfb9.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="419"
+		data-flex-basis="1006px"
+	
+></p>
+<p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image-104.png"
+	width="620"
+	height="118"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image-104_hu_203876abe5394f79.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image-104_hu_6376d0da851c841e.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="525"
+		data-flex-basis="1261px"
+	
+></p>
+<h4 id="前缀索引的查询流程">前缀索引的查询流程
+</h4><p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image-102.png"
+	width="921"
+	height="455"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image-102_hu_63038525749608f0.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image-102_hu_33350528a36e99e1.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="202"
+		data-flex-basis="485px"
+	
+></p>
+<h3 id="单列索引联合索引">单列索引&amp;联合索引
+</h3><h4 id="简介-1">简介
+</h4><ul>
+<li>单列索引：即一个索引只包含单个列。</li>
+<li>联合索引：即一个索引包含了多个列。</li>
+</ul>
+<h4 id="示例-1">示例
+</h4><ul>
+<li>我们先来看看 tb_user 表中目前的索引情况:</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">show index from tb_user;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image-106.png"
+	width="1539"
+	height="208"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image-106_hu_18fd9df0b9628cdb.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image-106_hu_b2d337679386326b.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="739"
+		data-flex-basis="1775px"
+	
+></p>
+<p>在查询出来的索引中，既有单列索引，又有联合索引。</p>
+<ul>
+<li>查询手机号为17799990010，姓名为韩信的id,phone,name信息(执行计划)</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">explain select id,phone,name from tb_user where phone = &#39;17799990010&#39; and name = &#39;韩信&#39;;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image-107.png"
+	width="1179"
+	height="118"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image-107_hu_317a1607dc2298ee.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image-107_hu_fe2b970e530d10b2.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="999"
+		data-flex-basis="2397px"
+	
+></p>
+<p><font color=red>多条件联合查询时，MySQL优化器会评估哪个字段的索引效率更高，会选择该索引完成本次查询。</font></p>
+<p>通过上述执行计划我们可以看出来，在and连接的两个字段 phone、name上都是有单列索引的，但是
+最终mysql只会选择一个索引，也就是说，只能走一个字段的索引，此时是会回表查询的。</p>
+<ul>
+<li>创建一个phone和name字段的联合索引来查询一下执行计划。</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">create unique index idx_user_phone_name on tb_user(phone,name);
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image-108.png"
+	width="564"
+	height="58"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image-108_hu_805c2fd4217662c3.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image-108_hu_d1dd6e46b4b3be46.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="972"
+		data-flex-basis="2333px"
+	
+></p>
+<ul>
+<li>建议走联合索引查询手机号为17799990010，姓名为韩信的id,phone,name信息(执行计划)</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">explain select id,phone,name from tb_user use index(idx_user_phone_name) where phone = &#39;17799990010&#39; and name = &#39;韩信&#39;;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image-109.png"
+	width="1224"
+	height="117"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image-109_hu_c638f83b45761db8.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image-109_hu_fc833623111405e6.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="1046"
+		data-flex-basis="2510px"
+	
+></p>
+<p>此时，查询时，就走了联合索引，而在联合索引中包含 phone、name的信息，在叶子节点下挂的是对
+应的主键id，所以查询是无需回表查询的。</p>
+<blockquote>
+<p>在业务场景中，如果存在多个查询条件，考虑针对于查询字段建立索引时，建议建立联合索引，
+而非单列索引。</p>
+</blockquote>
+<ul>
+<li>如果查询使用的是联合索引，具体的结构示意图如下：</li>
+</ul>
+<p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image-110.png"
+	width="921"
+	height="359"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image-110_hu_3a338c6988ed3d98.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95%E6%9C%AA%E5%AE%8C%E6%88%90/image-110_hu_bdcc7deb94273a7b.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="256"
+		data-flex-basis="615px"
+	
+></p>
+<h3 id="索引设计原则-1">索引设计原则
+</h3><ol>
+<li>针对于数据量较大，且查询比较频繁的表建立索引。</li>
+<li>针对于常作为查询条件（where）、排序（order by）、分组（group by）操作的字段建立索
+引。</li>
+<li>尽量选择区分度高的列作为索引，尽量建立唯一索引，区分度越高，使用索引的效率越高。</li>
+<li>如果是字符串类型的字段，字段的长度较长，可以针对于字段的特点，建立前缀索引。</li>
+<li>尽量使用联合索引，减少单列索引，查询时，联合索引很多时候可以覆盖索引，节省存储空间，
+避免回表，提高查询效率。</li>
+<li>要控制索引的数量，索引并不是多多益善，索引越多，维护索引结构的代价也就越大，会影响增
+删改的效率。</li>
+<li>如果索引列不能存储NULL值，请在创建表时使用NOT NULL约束它。当优化器知道每列是否包含
+NULL值时，它可以更好地确定哪个索引最有效地用于查询。</li>
+</ol>
 
 </section>
 
