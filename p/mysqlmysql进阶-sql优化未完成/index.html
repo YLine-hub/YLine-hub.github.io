@@ -233,9 +233,14 @@
       <ol>
         <li><a href="#概述">概述</a></li>
         <li><a href="#count用法">count用法</a></li>
+        <li><a href="#演示-1">演示</a></li>
       </ol>
     </li>
-    <li><a href="#update优化">update优化</a></li>
+    <li><a href="#update优化">update优化</a>
+      <ol>
+        <li><a href="#演示-2">演示</a></li>
+      </ol>
+    </li>
   </ol>
 </nav>
         </div>
@@ -1742,6 +1747,7 @@
 <li>InnoDB引擎就麻烦了，它执行count(*)的时候，需要数据一行一行地从引擎里面读出来，然后累积计数。</li>
 </ul>
 <p>如果说要大幅度提升InnoDB表的count效率，主要的优化思路：自己计数(可以借助于redis这样的数据库进行，但是如果是带条件的count又比较麻烦了)。</p>
+<p><font color=red>InnoDB的行锁是针对索引加的锁，不是针对记录加的锁，并且该索引不能失效，否则会从行锁升级为表锁。</font></p>
 <h3 id="count用法">count用法
 </h3><p>count()是一个聚合函数，对于返回的结果集，一行行地判断，如果count函数不是NULL，累计值就加1，否则就不加，最后返回累计值。</p>
 <p>用法：count(*)、count(主键)、count(字段)、count(数字)</p>
@@ -1774,14 +1780,519 @@
 <blockquote>
 <p>按照效率排序的话，count(字段) &lt; count(主键 id) &lt; count(1) ≈ count(*)，所以尽量使用count(*)。</p>
 </blockquote>
+<h3 id="演示-1">演示
+</h3><ul>
+<li>count(*)</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">select count(*) from tb_user;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-sql%E4%BC%98%E5%8C%96%E6%9C%AA%E5%AE%8C%E6%88%90/image-58.png"
+	width="520"
+	height="244"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-sql%E4%BC%98%E5%8C%96%E6%9C%AA%E5%AE%8C%E6%88%90/image-58_hu_c772acfeecab087.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-sql%E4%BC%98%E5%8C%96%E6%9C%AA%E5%AE%8C%E6%88%90/image-58_hu_60e88dfc442c924f.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="213"
+		data-flex-basis="511px"
+	
+></p>
+<ul>
+<li>count(id)</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">select count(id) from tb_user;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-sql%E4%BC%98%E5%8C%96%E6%9C%AA%E5%AE%8C%E6%88%90/image-59.png"
+	width="546"
+	height="246"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-sql%E4%BC%98%E5%8C%96%E6%9C%AA%E5%AE%8C%E6%88%90/image-59_hu_2e0b649ab996a80.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-sql%E4%BC%98%E5%8C%96%E6%9C%AA%E5%AE%8C%E6%88%90/image-59_hu_35099ec23b34b681.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="221"
+		data-flex-basis="532px"
+	
+></p>
+<ul>
+<li>count(字段)</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl"># 设置id为24的用户，profession为null
+</span></span><span class="line"><span class="cl">update tb_user set profession = null where id = 24;
+</span></span><span class="line"><span class="cl">select count(profession) from tb_user;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-sql%E4%BC%98%E5%8C%96%E6%9C%AA%E5%AE%8C%E6%88%90/image-60.png"
+	width="650"
+	height="248"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-sql%E4%BC%98%E5%8C%96%E6%9C%AA%E5%AE%8C%E6%88%90/image-60_hu_1fb48c236a2830ff.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-sql%E4%BC%98%E5%8C%96%E6%9C%AA%E5%AE%8C%E6%88%90/image-60_hu_9f9feb574fa76e0f.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="262"
+		data-flex-basis="629px"
+	
+></p>
+<p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-sql%E4%BC%98%E5%8C%96%E6%9C%AA%E5%AE%8C%E6%88%90/image-61.png"
+	width="830"
+	height="384"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-sql%E4%BC%98%E5%8C%96%E6%9C%AA%E5%AE%8C%E6%88%90/image-61_hu_f7c01addb0dc3f31.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-sql%E4%BC%98%E5%8C%96%E6%9C%AA%E5%AE%8C%E6%88%90/image-61_hu_7798d45b3a16bbb6.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="216"
+		data-flex-basis="518px"
+	
+></p>
+<p>字段为null的话将不会被计数。</p>
+<ul>
+<li>count(null)</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">select count(null) from tb_user;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-sql%E4%BC%98%E5%8C%96%E6%9C%AA%E5%AE%8C%E6%88%90/image-62.png"
+	width="570"
+	height="242"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-sql%E4%BC%98%E5%8C%96%E6%9C%AA%E5%AE%8C%E6%88%90/image-62_hu_1e5c41febf1f3897.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-sql%E4%BC%98%E5%8C%96%E6%9C%AA%E5%AE%8C%E6%88%90/image-62_hu_2e345192fc90e19f.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="235"
+		data-flex-basis="565px"
+	
+></p>
+<ul>
+<li>count(1)，数字随意输入，比如 -1，0</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">select count(1) from tb_user;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-sql%E4%BC%98%E5%8C%96%E6%9C%AA%E5%AE%8C%E6%88%90/image-63.png"
+	width="528"
+	height="244"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-sql%E4%BC%98%E5%8C%96%E6%9C%AA%E5%AE%8C%E6%88%90/image-63_hu_6c1af0c3cc8bb3ff.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-sql%E4%BC%98%E5%8C%96%E6%9C%AA%E5%AE%8C%E6%88%90/image-63_hu_914dfada37cb096b.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="216"
+		data-flex-basis="519px"
+	
+></p>
 <h2 id="update优化">update优化
-</h2><p>我们主要注意一下update语句执行时的注意事项。</p>
+</h2><ul>
+<li>使用数据</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">select * from course;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-sql%E4%BC%98%E5%8C%96%E6%9C%AA%E5%AE%8C%E6%88%90/image-64.png"
+	width="418"
+	height="348"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-sql%E4%BC%98%E5%8C%96%E6%9C%AA%E5%AE%8C%E6%88%90/image-64_hu_a3f7bcd63f924827.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-sql%E4%BC%98%E5%8C%96%E6%9C%AA%E5%AE%8C%E6%88%90/image-64_hu_a5dfc2b594cb21e6.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="120"
+		data-flex-basis="288px"
+	
+></p>
+<h3 id="演示-2">演示
+</h3><p><strong>测试行锁：</strong></p>
+<p>&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;A电脑&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;-</p>
+<ul>
+<li>开启事务</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">begin;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;B电脑&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;-</p>
+<ul>
+<li>开启事务</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">begin;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;A电脑&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;-</p>
+<ul>
+<li>修改数据</li>
+</ul>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
 <pre tabindex="0" class="chroma"><code><span class="lnt">1
 </span></code></pre></td>
 <td class="lntd">
 <pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">update course set name = &#39;javaEE&#39; where id = 1;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-sql%E4%BC%98%E5%8C%96%E6%9C%AA%E5%AE%8C%E6%88%90/image-65.png"
+	width="778"
+	height="116"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-sql%E4%BC%98%E5%8C%96%E6%9C%AA%E5%AE%8C%E6%88%90/image-65_hu_59a7e1f409c585fc.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-sql%E4%BC%98%E5%8C%96%E6%9C%AA%E5%AE%8C%E6%88%90/image-65_hu_1365f1612440c576.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="670"
+		data-flex-basis="1609px"
+	
+></p>
+<p>此时MySQL会给该表添加id为1的行锁，将id为1这行数据锁起来。只要事务未提交，该行锁将不会解锁。</p>
+<p>&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;B电脑&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;-</p>
+<ul>
+<li>修改数据</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">update course set name = &#39;Kafka&#39; where id = 4;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-sql%E4%BC%98%E5%8C%96%E6%9C%AA%E5%AE%8C%E6%88%90/image-66.png"
+	width="760"
+	height="118"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-sql%E4%BC%98%E5%8C%96%E6%9C%AA%E5%AE%8C%E6%88%90/image-66_hu_7ded30b7a7a239de.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-sql%E4%BC%98%E5%8C%96%E6%9C%AA%E5%AE%8C%E6%88%90/image-66_hu_724ef198c115caf.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="644"
+		data-flex-basis="1545px"
+	
+></p>
+<p>因为加的是行锁，电脑A给id为1的数据添加了行锁，所以B电脑能够正常执行。</p>
+<p>&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;A电脑&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;-</p>
+<ul>
+<li>提交事务</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">commit;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;B电脑&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;-</p>
+<ul>
+<li>提交事务</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">commit;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>测试表锁：</strong></p>
+<p>&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;A电脑&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;-</p>
+<ul>
+<li>开启事务</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">begin;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>修改数据</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">update course set name = &#39;SpringBoot&#39; where name = &#39;PHP&#39;;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-sql%E4%BC%98%E5%8C%96%E6%9C%AA%E5%AE%8C%E6%88%90/image-67.png"
+	width="922"
+	height="116"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-sql%E4%BC%98%E5%8C%96%E6%9C%AA%E5%AE%8C%E6%88%90/image-67_hu_4af3fb625f362e7f.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-sql%E4%BC%98%E5%8C%96%E6%9C%AA%E5%AE%8C%E6%88%90/image-67_hu_a80e3dd8b4ad20f5.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="794"
+		data-flex-basis="1907px"
+	
+></p>
+<p>&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;B电脑&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;-</p>
+<ul>
+<li>开启事务</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">begin;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>修改数据</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">update course set name = &#39;redis&#39; where id = 4;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-sql%E4%BC%98%E5%8C%96%E6%9C%AA%E5%AE%8C%E6%88%90/image-68.png"
+	width="760"
+	height="80"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-sql%E4%BC%98%E5%8C%96%E6%9C%AA%E5%AE%8C%E6%88%90/image-68_hu_54b091b4dfab3acc.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-sql%E4%BC%98%E5%8C%96%E6%9C%AA%E5%AE%8C%E6%88%90/image-68_hu_24b1be4af348f072.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="950"
+		data-flex-basis="2280px"
+	
+></p>
+<p>此时MySQL在此处卡住，因为A电脑在执行update语句的时候，name字段没有索引，MySQL加的为表锁，而不是行锁</p>
+<p>&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;A电脑&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;-</p>
+<ul>
+<li>提交事务</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">commit
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>提交成功后，B电脑继续向下运行。</p>
+<p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-sql%E4%BC%98%E5%8C%96%E6%9C%AA%E5%AE%8C%E6%88%90/image-69.png"
+	width="784"
+	height="120"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-sql%E4%BC%98%E5%8C%96%E6%9C%AA%E5%AE%8C%E6%88%90/image-69_hu_bf4671ba2f9c2711.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-sql%E4%BC%98%E5%8C%96%E6%9C%AA%E5%AE%8C%E6%88%90/image-69_hu_3778dd0a373cdb82.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="653"
+		data-flex-basis="1568px"
+	
+></p>
+<p>&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;B电脑&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;-</p>
+<ul>
+<li>提交事务</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">commit
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>name字段添加索引后再次修改：</strong></p>
+<p>&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;A电脑&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;-</p>
+<ul>
+<li>创建索引</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">create index idx_course_name on course(name);
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-sql%E4%BC%98%E5%8C%96%E6%9C%AA%E5%AE%8C%E6%88%90/image-70.png"
+	width="744"
+	height="112"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-sql%E4%BC%98%E5%8C%96%E6%9C%AA%E5%AE%8C%E6%88%90/image-70_hu_5170aab9af6f121d.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-sql%E4%BC%98%E5%8C%96%E6%9C%AA%E5%AE%8C%E6%88%90/image-70_hu_7fb388c02c9e5dd0.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="664"
+		data-flex-basis="1594px"
+	
+></p>
+<ul>
+<li>开启事务</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">begin;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;B电脑&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;-</p>
+<ul>
+<li>开启事务</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">begin;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;A电脑&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;-</p>
+<ul>
+<li>修改数据</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">update course set name = &#39;Spring&#39; where name = &#39;SpringBoot&#39;;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-sql%E4%BC%98%E5%8C%96%E6%9C%AA%E5%AE%8C%E6%88%90/image-71.png"
+	width="956"
+	height="108"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-sql%E4%BC%98%E5%8C%96%E6%9C%AA%E5%AE%8C%E6%88%90/image-71_hu_725697b7e56e04c2.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-sql%E4%BC%98%E5%8C%96%E6%9C%AA%E5%AE%8C%E6%88%90/image-71_hu_9061c7576ce9aec6.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="885"
+		data-flex-basis="2124px"
+	
+></p>
+<p>&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;B电脑&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;-</p>
+<ul>
+<li>修改数据</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">update course set name = &#39;Cloud&#39; where id = 4;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-sql%E4%BC%98%E5%8C%96%E6%9C%AA%E5%AE%8C%E6%88%90/image-72.png"
+	width="762"
+	height="114"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-sql%E4%BC%98%E5%8C%96%E6%9C%AA%E5%AE%8C%E6%88%90/image-72_hu_3a995c6391b0d2d9.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-sql%E4%BC%98%E5%8C%96%E6%9C%AA%E5%AE%8C%E6%88%90/image-72_hu_d48d29edc3df8321.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="668"
+		data-flex-basis="1604px"
+	
+></p>
+<ul>
+<li>提交事务</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">commit;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;A电脑&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;-</p>
+<ul>
+<li>提交事务</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">commit;
 </span></span></code></pre></td></tr></table>
 </div>
 </div>

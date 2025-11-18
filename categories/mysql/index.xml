@@ -205,6 +205,32 @@
 &lt;/div&gt;&lt;p&gt;执行上诉SQL，发现，id为6和17的数据都是可以插入的，但是执行查询，查出来的数据，却没有id为17的记录。&lt;/p&gt;
 &lt;p&gt;因为在创建视图的时候，指定条件为id&amp;lt;=10，id为17的数据，是不符合条件的，所以没有查询出来，但是这条数据确实是已经成功的插入到了基表中。&lt;/p&gt;
 &lt;p&gt;如果我们定义视图时，如果指定了条件，然后我们在插入、修改、删除数据时，是否可以做到必须满足条件才能操作，否则不能够操作呢？答案是可以的，这就需要借助视图的检查选项了。&lt;/p&gt;
+&lt;h2 id=&#34;检查选项&#34;&gt;检查选项
+&lt;/h2&gt;&lt;blockquote&gt;
+&lt;p&gt;当使用WITH CHECK OPTION子句创建视图时，MySQL会通过视图检查正在更正的每个行，例如 插入，更新，删除，以使其符合视图的定义。MySQL允许基于另一个视图创建视图，它还会检查依赖视图中的规则以保持一致性。为了确定检查的范围，mysql提供了两个选项：CASCADED 和 LOCAL，默认值为CASCADED。&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;h3 id=&#34;cascaded级联&#34;&gt;CASCADED(级联)
+&lt;/h3&gt;&lt;ul&gt;
+&lt;li&gt;比如，v2视图是基于v1视图的，如果在v2视图创建的时候指定了检查选项为cascaded，但是v1视图未指定检查选项。则在检查时，不仅会检查v2，还会联级检查v2的关联视图v1。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;img src=&#34;https://YLine-hub.github.io/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E8%A7%86%E5%9B%BE/image.png&#34;
+	width=&#34;884&#34;
+	height=&#34;194&#34;
+	srcset=&#34;https://YLine-hub.github.io/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E8%A7%86%E5%9B%BE/image_hu_49519f7cb1f358b9.png 480w, https://YLine-hub.github.io/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E8%A7%86%E5%9B%BE/image_hu_5840ad70563575eb.png 1024w&#34;
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;alt text&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;455&#34;
+		data-flex-basis=&#34;1093px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;h3 id=&#34;local本地&#34;&gt;LOCAL(本地)
+&lt;/h3&gt;&lt;ul&gt;
+&lt;li&gt;比如，v2视图是基于v1视图的，如果v2视图创建的时候指定了检查选项为local，但是v1视图创建未指定检查选项。则在执行检查时，只会检查v2，不会检查v2的关联视图v1。&lt;/li&gt;
+&lt;/ul&gt;
 </description>
         </item>
         <item>
@@ -1654,6 +1680,7 @@
 &lt;li&gt;InnoDB引擎就麻烦了，它执行count(*)的时候，需要数据一行一行地从引擎里面读出来，然后累积计数。&lt;/li&gt;
 &lt;/ul&gt;
 &lt;p&gt;如果说要大幅度提升InnoDB表的count效率，主要的优化思路：自己计数(可以借助于redis这样的数据库进行，但是如果是带条件的count又比较麻烦了)。&lt;/p&gt;
+&lt;p&gt;&lt;font color=red&gt;InnoDB的行锁是针对索引加的锁，不是针对记录加的锁，并且该索引不能失效，否则会从行锁升级为表锁。&lt;/font&gt;&lt;/p&gt;
 &lt;h3 id=&#34;count用法&#34;&gt;count用法
 &lt;/h3&gt;&lt;p&gt;count()是一个聚合函数，对于返回的结果集，一行行地判断，如果count函数不是NULL，累计值就加1，否则就不加，最后返回累计值。&lt;/p&gt;
 &lt;p&gt;用法：count(*)、count(主键)、count(字段)、count(数字)&lt;/p&gt;
@@ -1686,14 +1713,519 @@
 &lt;blockquote&gt;
 &lt;p&gt;按照效率排序的话，count(字段) &amp;lt; count(主键 id) &amp;lt; count(1) ≈ count(*)，所以尽量使用count(*)。&lt;/p&gt;
 &lt;/blockquote&gt;
+&lt;h3 id=&#34;演示-1&#34;&gt;演示
+&lt;/h3&gt;&lt;ul&gt;
+&lt;li&gt;count(*)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-fallback&#34; data-lang=&#34;fallback&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;select count(*) from tb_user;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;&lt;img src=&#34;https://YLine-hub.github.io/p/mysqlmysql%E8%BF%9B%E9%98%B6-sql%E4%BC%98%E5%8C%96%E6%9C%AA%E5%AE%8C%E6%88%90/image-58.png&#34;
+	width=&#34;520&#34;
+	height=&#34;244&#34;
+	srcset=&#34;https://YLine-hub.github.io/p/mysqlmysql%E8%BF%9B%E9%98%B6-sql%E4%BC%98%E5%8C%96%E6%9C%AA%E5%AE%8C%E6%88%90/image-58_hu_c772acfeecab087.png 480w, https://YLine-hub.github.io/p/mysqlmysql%E8%BF%9B%E9%98%B6-sql%E4%BC%98%E5%8C%96%E6%9C%AA%E5%AE%8C%E6%88%90/image-58_hu_60e88dfc442c924f.png 1024w&#34;
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;alt text&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;213&#34;
+		data-flex-basis=&#34;511px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;count(id)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-fallback&#34; data-lang=&#34;fallback&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;select count(id) from tb_user;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;&lt;img src=&#34;https://YLine-hub.github.io/p/mysqlmysql%E8%BF%9B%E9%98%B6-sql%E4%BC%98%E5%8C%96%E6%9C%AA%E5%AE%8C%E6%88%90/image-59.png&#34;
+	width=&#34;546&#34;
+	height=&#34;246&#34;
+	srcset=&#34;https://YLine-hub.github.io/p/mysqlmysql%E8%BF%9B%E9%98%B6-sql%E4%BC%98%E5%8C%96%E6%9C%AA%E5%AE%8C%E6%88%90/image-59_hu_2e0b649ab996a80.png 480w, https://YLine-hub.github.io/p/mysqlmysql%E8%BF%9B%E9%98%B6-sql%E4%BC%98%E5%8C%96%E6%9C%AA%E5%AE%8C%E6%88%90/image-59_hu_35099ec23b34b681.png 1024w&#34;
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;alt text&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;221&#34;
+		data-flex-basis=&#34;532px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;count(字段)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;2
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;3
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-fallback&#34; data-lang=&#34;fallback&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;# 设置id为24的用户，profession为null
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;update tb_user set profession = null where id = 24;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;select count(profession) from tb_user;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;&lt;img src=&#34;https://YLine-hub.github.io/p/mysqlmysql%E8%BF%9B%E9%98%B6-sql%E4%BC%98%E5%8C%96%E6%9C%AA%E5%AE%8C%E6%88%90/image-60.png&#34;
+	width=&#34;650&#34;
+	height=&#34;248&#34;
+	srcset=&#34;https://YLine-hub.github.io/p/mysqlmysql%E8%BF%9B%E9%98%B6-sql%E4%BC%98%E5%8C%96%E6%9C%AA%E5%AE%8C%E6%88%90/image-60_hu_1fb48c236a2830ff.png 480w, https://YLine-hub.github.io/p/mysqlmysql%E8%BF%9B%E9%98%B6-sql%E4%BC%98%E5%8C%96%E6%9C%AA%E5%AE%8C%E6%88%90/image-60_hu_9f9feb574fa76e0f.png 1024w&#34;
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;alt text&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;262&#34;
+		data-flex-basis=&#34;629px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://YLine-hub.github.io/p/mysqlmysql%E8%BF%9B%E9%98%B6-sql%E4%BC%98%E5%8C%96%E6%9C%AA%E5%AE%8C%E6%88%90/image-61.png&#34;
+	width=&#34;830&#34;
+	height=&#34;384&#34;
+	srcset=&#34;https://YLine-hub.github.io/p/mysqlmysql%E8%BF%9B%E9%98%B6-sql%E4%BC%98%E5%8C%96%E6%9C%AA%E5%AE%8C%E6%88%90/image-61_hu_f7c01addb0dc3f31.png 480w, https://YLine-hub.github.io/p/mysqlmysql%E8%BF%9B%E9%98%B6-sql%E4%BC%98%E5%8C%96%E6%9C%AA%E5%AE%8C%E6%88%90/image-61_hu_7798d45b3a16bbb6.png 1024w&#34;
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;alt text&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;216&#34;
+		data-flex-basis=&#34;518px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;p&gt;字段为null的话将不会被计数。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;count(null)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-fallback&#34; data-lang=&#34;fallback&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;select count(null) from tb_user;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;&lt;img src=&#34;https://YLine-hub.github.io/p/mysqlmysql%E8%BF%9B%E9%98%B6-sql%E4%BC%98%E5%8C%96%E6%9C%AA%E5%AE%8C%E6%88%90/image-62.png&#34;
+	width=&#34;570&#34;
+	height=&#34;242&#34;
+	srcset=&#34;https://YLine-hub.github.io/p/mysqlmysql%E8%BF%9B%E9%98%B6-sql%E4%BC%98%E5%8C%96%E6%9C%AA%E5%AE%8C%E6%88%90/image-62_hu_1e5c41febf1f3897.png 480w, https://YLine-hub.github.io/p/mysqlmysql%E8%BF%9B%E9%98%B6-sql%E4%BC%98%E5%8C%96%E6%9C%AA%E5%AE%8C%E6%88%90/image-62_hu_2e345192fc90e19f.png 1024w&#34;
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;alt text&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;235&#34;
+		data-flex-basis=&#34;565px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;count(1)，数字随意输入，比如 -1，0&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-fallback&#34; data-lang=&#34;fallback&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;select count(1) from tb_user;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;&lt;img src=&#34;https://YLine-hub.github.io/p/mysqlmysql%E8%BF%9B%E9%98%B6-sql%E4%BC%98%E5%8C%96%E6%9C%AA%E5%AE%8C%E6%88%90/image-63.png&#34;
+	width=&#34;528&#34;
+	height=&#34;244&#34;
+	srcset=&#34;https://YLine-hub.github.io/p/mysqlmysql%E8%BF%9B%E9%98%B6-sql%E4%BC%98%E5%8C%96%E6%9C%AA%E5%AE%8C%E6%88%90/image-63_hu_6c1af0c3cc8bb3ff.png 480w, https://YLine-hub.github.io/p/mysqlmysql%E8%BF%9B%E9%98%B6-sql%E4%BC%98%E5%8C%96%E6%9C%AA%E5%AE%8C%E6%88%90/image-63_hu_914dfada37cb096b.png 1024w&#34;
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;alt text&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;216&#34;
+		data-flex-basis=&#34;519px&#34;
+	
+&gt;&lt;/p&gt;
 &lt;h2 id=&#34;update优化&#34;&gt;update优化
-&lt;/h2&gt;&lt;p&gt;我们主要注意一下update语句执行时的注意事项。&lt;/p&gt;
+&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;使用数据&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-fallback&#34; data-lang=&#34;fallback&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;select * from course;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;&lt;img src=&#34;https://YLine-hub.github.io/p/mysqlmysql%E8%BF%9B%E9%98%B6-sql%E4%BC%98%E5%8C%96%E6%9C%AA%E5%AE%8C%E6%88%90/image-64.png&#34;
+	width=&#34;418&#34;
+	height=&#34;348&#34;
+	srcset=&#34;https://YLine-hub.github.io/p/mysqlmysql%E8%BF%9B%E9%98%B6-sql%E4%BC%98%E5%8C%96%E6%9C%AA%E5%AE%8C%E6%88%90/image-64_hu_a3f7bcd63f924827.png 480w, https://YLine-hub.github.io/p/mysqlmysql%E8%BF%9B%E9%98%B6-sql%E4%BC%98%E5%8C%96%E6%9C%AA%E5%AE%8C%E6%88%90/image-64_hu_a5dfc2b594cb21e6.png 1024w&#34;
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;alt text&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;120&#34;
+		data-flex-basis=&#34;288px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;h3 id=&#34;演示-2&#34;&gt;演示
+&lt;/h3&gt;&lt;p&gt;&lt;strong&gt;测试行锁：&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;A电脑&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;-&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;开启事务&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-fallback&#34; data-lang=&#34;fallback&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;begin;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;B电脑&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;-&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;开启事务&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-fallback&#34; data-lang=&#34;fallback&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;begin;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;A电脑&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;-&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;修改数据&lt;/li&gt;
+&lt;/ul&gt;
 &lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
 &lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
 &lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
 &lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
 &lt;td class=&#34;lntd&#34;&gt;
 &lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-fallback&#34; data-lang=&#34;fallback&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;update course set name = &amp;#39;javaEE&amp;#39; where id = 1;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;&lt;img src=&#34;https://YLine-hub.github.io/p/mysqlmysql%E8%BF%9B%E9%98%B6-sql%E4%BC%98%E5%8C%96%E6%9C%AA%E5%AE%8C%E6%88%90/image-65.png&#34;
+	width=&#34;778&#34;
+	height=&#34;116&#34;
+	srcset=&#34;https://YLine-hub.github.io/p/mysqlmysql%E8%BF%9B%E9%98%B6-sql%E4%BC%98%E5%8C%96%E6%9C%AA%E5%AE%8C%E6%88%90/image-65_hu_59a7e1f409c585fc.png 480w, https://YLine-hub.github.io/p/mysqlmysql%E8%BF%9B%E9%98%B6-sql%E4%BC%98%E5%8C%96%E6%9C%AA%E5%AE%8C%E6%88%90/image-65_hu_1365f1612440c576.png 1024w&#34;
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;alt text&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;670&#34;
+		data-flex-basis=&#34;1609px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;p&gt;此时MySQL会给该表添加id为1的行锁，将id为1这行数据锁起来。只要事务未提交，该行锁将不会解锁。&lt;/p&gt;
+&lt;p&gt;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;B电脑&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;-&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;修改数据&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-fallback&#34; data-lang=&#34;fallback&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;update course set name = &amp;#39;Kafka&amp;#39; where id = 4;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;&lt;img src=&#34;https://YLine-hub.github.io/p/mysqlmysql%E8%BF%9B%E9%98%B6-sql%E4%BC%98%E5%8C%96%E6%9C%AA%E5%AE%8C%E6%88%90/image-66.png&#34;
+	width=&#34;760&#34;
+	height=&#34;118&#34;
+	srcset=&#34;https://YLine-hub.github.io/p/mysqlmysql%E8%BF%9B%E9%98%B6-sql%E4%BC%98%E5%8C%96%E6%9C%AA%E5%AE%8C%E6%88%90/image-66_hu_7ded30b7a7a239de.png 480w, https://YLine-hub.github.io/p/mysqlmysql%E8%BF%9B%E9%98%B6-sql%E4%BC%98%E5%8C%96%E6%9C%AA%E5%AE%8C%E6%88%90/image-66_hu_724ef198c115caf.png 1024w&#34;
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;alt text&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;644&#34;
+		data-flex-basis=&#34;1545px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;p&gt;因为加的是行锁，电脑A给id为1的数据添加了行锁，所以B电脑能够正常执行。&lt;/p&gt;
+&lt;p&gt;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;A电脑&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;-&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;提交事务&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-fallback&#34; data-lang=&#34;fallback&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;commit;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;B电脑&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;-&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;提交事务&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-fallback&#34; data-lang=&#34;fallback&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;commit;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;&lt;strong&gt;测试表锁：&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;A电脑&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;-&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;开启事务&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-fallback&#34; data-lang=&#34;fallback&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;begin;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;ul&gt;
+&lt;li&gt;修改数据&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-fallback&#34; data-lang=&#34;fallback&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;update course set name = &amp;#39;SpringBoot&amp;#39; where name = &amp;#39;PHP&amp;#39;;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;&lt;img src=&#34;https://YLine-hub.github.io/p/mysqlmysql%E8%BF%9B%E9%98%B6-sql%E4%BC%98%E5%8C%96%E6%9C%AA%E5%AE%8C%E6%88%90/image-67.png&#34;
+	width=&#34;922&#34;
+	height=&#34;116&#34;
+	srcset=&#34;https://YLine-hub.github.io/p/mysqlmysql%E8%BF%9B%E9%98%B6-sql%E4%BC%98%E5%8C%96%E6%9C%AA%E5%AE%8C%E6%88%90/image-67_hu_4af3fb625f362e7f.png 480w, https://YLine-hub.github.io/p/mysqlmysql%E8%BF%9B%E9%98%B6-sql%E4%BC%98%E5%8C%96%E6%9C%AA%E5%AE%8C%E6%88%90/image-67_hu_a80e3dd8b4ad20f5.png 1024w&#34;
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;alt text&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;794&#34;
+		data-flex-basis=&#34;1907px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;p&gt;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;B电脑&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;-&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;开启事务&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-fallback&#34; data-lang=&#34;fallback&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;begin;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;ul&gt;
+&lt;li&gt;修改数据&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-fallback&#34; data-lang=&#34;fallback&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;update course set name = &amp;#39;redis&amp;#39; where id = 4;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;&lt;img src=&#34;https://YLine-hub.github.io/p/mysqlmysql%E8%BF%9B%E9%98%B6-sql%E4%BC%98%E5%8C%96%E6%9C%AA%E5%AE%8C%E6%88%90/image-68.png&#34;
+	width=&#34;760&#34;
+	height=&#34;80&#34;
+	srcset=&#34;https://YLine-hub.github.io/p/mysqlmysql%E8%BF%9B%E9%98%B6-sql%E4%BC%98%E5%8C%96%E6%9C%AA%E5%AE%8C%E6%88%90/image-68_hu_54b091b4dfab3acc.png 480w, https://YLine-hub.github.io/p/mysqlmysql%E8%BF%9B%E9%98%B6-sql%E4%BC%98%E5%8C%96%E6%9C%AA%E5%AE%8C%E6%88%90/image-68_hu_24b1be4af348f072.png 1024w&#34;
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;alt text&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;950&#34;
+		data-flex-basis=&#34;2280px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;p&gt;此时MySQL在此处卡住，因为A电脑在执行update语句的时候，name字段没有索引，MySQL加的为表锁，而不是行锁&lt;/p&gt;
+&lt;p&gt;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;A电脑&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;-&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;提交事务&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-fallback&#34; data-lang=&#34;fallback&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;commit
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;提交成功后，B电脑继续向下运行。&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://YLine-hub.github.io/p/mysqlmysql%E8%BF%9B%E9%98%B6-sql%E4%BC%98%E5%8C%96%E6%9C%AA%E5%AE%8C%E6%88%90/image-69.png&#34;
+	width=&#34;784&#34;
+	height=&#34;120&#34;
+	srcset=&#34;https://YLine-hub.github.io/p/mysqlmysql%E8%BF%9B%E9%98%B6-sql%E4%BC%98%E5%8C%96%E6%9C%AA%E5%AE%8C%E6%88%90/image-69_hu_bf4671ba2f9c2711.png 480w, https://YLine-hub.github.io/p/mysqlmysql%E8%BF%9B%E9%98%B6-sql%E4%BC%98%E5%8C%96%E6%9C%AA%E5%AE%8C%E6%88%90/image-69_hu_3778dd0a373cdb82.png 1024w&#34;
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;alt text&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;653&#34;
+		data-flex-basis=&#34;1568px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;p&gt;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;B电脑&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;-&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;提交事务&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-fallback&#34; data-lang=&#34;fallback&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;commit
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;&lt;strong&gt;name字段添加索引后再次修改：&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;A电脑&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;-&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;创建索引&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-fallback&#34; data-lang=&#34;fallback&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;create index idx_course_name on course(name);
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;&lt;img src=&#34;https://YLine-hub.github.io/p/mysqlmysql%E8%BF%9B%E9%98%B6-sql%E4%BC%98%E5%8C%96%E6%9C%AA%E5%AE%8C%E6%88%90/image-70.png&#34;
+	width=&#34;744&#34;
+	height=&#34;112&#34;
+	srcset=&#34;https://YLine-hub.github.io/p/mysqlmysql%E8%BF%9B%E9%98%B6-sql%E4%BC%98%E5%8C%96%E6%9C%AA%E5%AE%8C%E6%88%90/image-70_hu_5170aab9af6f121d.png 480w, https://YLine-hub.github.io/p/mysqlmysql%E8%BF%9B%E9%98%B6-sql%E4%BC%98%E5%8C%96%E6%9C%AA%E5%AE%8C%E6%88%90/image-70_hu_7fb388c02c9e5dd0.png 1024w&#34;
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;alt text&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;664&#34;
+		data-flex-basis=&#34;1594px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;开启事务&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-fallback&#34; data-lang=&#34;fallback&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;begin;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;B电脑&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;-&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;开启事务&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-fallback&#34; data-lang=&#34;fallback&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;begin;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;A电脑&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;-&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;修改数据&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-fallback&#34; data-lang=&#34;fallback&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;update course set name = &amp;#39;Spring&amp;#39; where name = &amp;#39;SpringBoot&amp;#39;;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;&lt;img src=&#34;https://YLine-hub.github.io/p/mysqlmysql%E8%BF%9B%E9%98%B6-sql%E4%BC%98%E5%8C%96%E6%9C%AA%E5%AE%8C%E6%88%90/image-71.png&#34;
+	width=&#34;956&#34;
+	height=&#34;108&#34;
+	srcset=&#34;https://YLine-hub.github.io/p/mysqlmysql%E8%BF%9B%E9%98%B6-sql%E4%BC%98%E5%8C%96%E6%9C%AA%E5%AE%8C%E6%88%90/image-71_hu_725697b7e56e04c2.png 480w, https://YLine-hub.github.io/p/mysqlmysql%E8%BF%9B%E9%98%B6-sql%E4%BC%98%E5%8C%96%E6%9C%AA%E5%AE%8C%E6%88%90/image-71_hu_9061c7576ce9aec6.png 1024w&#34;
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;alt text&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;885&#34;
+		data-flex-basis=&#34;2124px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;p&gt;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;B电脑&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;-&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;修改数据&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-fallback&#34; data-lang=&#34;fallback&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;update course set name = &amp;#39;Cloud&amp;#39; where id = 4;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;&lt;img src=&#34;https://YLine-hub.github.io/p/mysqlmysql%E8%BF%9B%E9%98%B6-sql%E4%BC%98%E5%8C%96%E6%9C%AA%E5%AE%8C%E6%88%90/image-72.png&#34;
+	width=&#34;762&#34;
+	height=&#34;114&#34;
+	srcset=&#34;https://YLine-hub.github.io/p/mysqlmysql%E8%BF%9B%E9%98%B6-sql%E4%BC%98%E5%8C%96%E6%9C%AA%E5%AE%8C%E6%88%90/image-72_hu_3a995c6391b0d2d9.png 480w, https://YLine-hub.github.io/p/mysqlmysql%E8%BF%9B%E9%98%B6-sql%E4%BC%98%E5%8C%96%E6%9C%AA%E5%AE%8C%E6%88%90/image-72_hu_d48d29edc3df8321.png 1024w&#34;
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;alt text&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;668&#34;
+		data-flex-basis=&#34;1604px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;提交事务&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-fallback&#34; data-lang=&#34;fallback&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;commit;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;A电脑&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;-&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;提交事务&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-fallback&#34; data-lang=&#34;fallback&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;commit;
 &lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
 &lt;/div&gt;
 &lt;/div&gt;</description>
