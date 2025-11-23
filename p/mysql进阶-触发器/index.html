@@ -1,0 +1,914 @@
+<!DOCTYPE html>
+<html lang="zh-cn" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="MySQL进阶-触发器 介绍 触发器是与表有关的数据库对象，指在insert/update/delete之前(BEFORE)或之后(AFTER)，触发并执行触发器中定义的SQL语句集合。触发器的这种特性可以协助应用在数据库端确保数据的完整性，日志记录，数据校验等操作。\n">
+<title>[MySQL]进阶-触发器</title>
+
+<link rel='canonical' href='https://YLine-hub.github.io/p/mysql%E8%BF%9B%E9%98%B6-%E8%A7%A6%E5%8F%91%E5%99%A8/'>
+
+<link rel="stylesheet" href="/scss/style.min.6a692fd055deae459f2a9767f57f3855ba80cafd5041317f24f7360f6ca47cdf.css"><meta property='og:title' content="[MySQL]进阶-触发器">
+<meta property='og:description' content="MySQL进阶-触发器 介绍 触发器是与表有关的数据库对象，指在insert/update/delete之前(BEFORE)或之后(AFTER)，触发并执行触发器中定义的SQL语句集合。触发器的这种特性可以协助应用在数据库端确保数据的完整性，日志记录，数据校验等操作。\n">
+<meta property='og:url' content='https://YLine-hub.github.io/p/mysql%E8%BF%9B%E9%98%B6-%E8%A7%A6%E5%8F%91%E5%99%A8/'>
+<meta property='og:site_name' content='リンボの個人ブログ'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:published_time' content='2025-11-23T15:54:37&#43;08:00'/><meta property='article:modified_time' content='2025-11-23T15:54:37&#43;08:00'/>
+<meta name="twitter:title" content="[MySQL]进阶-触发器">
+<meta name="twitter:description" content="MySQL进阶-触发器 介绍 触发器是与表有关的数据库对象，指在insert/update/delete之前(BEFORE)或之后(AFTER)，触发并执行触发器中定义的SQL语句集合。触发器的这种特性可以协助应用在数据库端确保数据的完整性，日志记录，数据校验等操作。\n">
+    <link rel="shortcut icon" href="/favicon.ico" />
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        
+            
+            <figure class="site-avatar">
+                <a href="/">
+                
+                    
+                    
+                    
+                        
+                        <img src="/img/avatar_hu_7f398a7818085507.png" width="300"
+                            height="300" class="site-logo" loading="lazy" alt="Avatar">
+                    
+                
+                </a>
+                
+                    <span class="emoji">🏖️</span>
+                
+            </figure>
+            
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">リンボの個人ブログ</a></h1>
+            <h2 class="site-description">努力不一定能获得回报，但不努力一定不会有回报。</h2>
+        </div>
+    </header><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-home" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <polyline points="5 12 3 12 12 3 21 12 19 12" />
+  <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7" />
+  <path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6" />
+</svg>
+
+
+
+                
+                <span>主页</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/%E5%85%B3%E4%BA%8E/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/archives/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/search/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-search" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="10" cy="10" r="7" />
+  <line x1="21" y1="21" x2="15" y2="15" />
+</svg>
+
+
+
+                
+                <span>搜索</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav id="TableOfContents">
+  <ol>
+    <li><a href="#介绍">介绍</a></li>
+    <li><a href="#语法">语法</a>
+      <ol>
+        <li><a href="#创建">创建</a></li>
+        <li><a href="#查看">查看</a></li>
+        <li><a href="#删除">删除</a></li>
+        <li><a href="#生词">生词</a></li>
+      </ol>
+    </li>
+    <li><a href="#案例">案例</a>
+      <ol>
+        <li><a href="#表结构准备">表结构准备</a></li>
+        <li><a href="#插入数据触发器">插入数据触发器</a></li>
+        <li><a href="#修改数据触发器">修改数据触发器</a></li>
+        <li><a href="#删除数据触发器">删除数据触发器</a></li>
+      </ol>
+    </li>
+  </ol>
+</nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            <a href="/categories/mysql/" >
+                MySQL
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/p/mysql%E8%BF%9B%E9%98%B6-%E8%A7%A6%E5%8F%91%E5%99%A8/">[MySQL]进阶-触发器</a>
+        </h2>
+    
+        
+    </div>
+
+    
+    
+    
+    
+    <footer class="article-time">
+        
+            <div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                <time class="article-time--published">2025-11-23</time>
+            </div>
+        
+
+        
+    </footer>
+    
+
+    
+</div>
+
+</header>
+
+    <section class="article-content">
+    
+    
+    <h1 id="mysql进阶-触发器">MySQL进阶-触发器
+</h1><h2 id="介绍">介绍
+</h2><blockquote>
+<p>触发器是与表有关的数据库对象，指在insert/update/delete之前(BEFORE)或之后(AFTER)，触发并执行触发器中定义的SQL语句集合。触发器的这种特性可以协助应用在数据库端确保数据的完整性，日志记录，数据校验等操作。</p>
+</blockquote>
+<p>使用别名OLD和NEW来引用触发器中发生变化的记录内容，这与其他的数据库是相似的。现在触发器还只支持行级触发，不支持语句级触发。</p>
+<div class="table-wrapper"><table>
+  <thead>
+      <tr>
+          <th>触发器类型</th>
+          <th>NEW和OLD</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>INSERT 型触发器</td>
+          <td>NEW 表示将要或者已经新增的数据</td>
+      </tr>
+      <tr>
+          <td>UPDATE 型触发器</td>
+          <td>OLD 表示修改之前的数据，NEW 表示将要或已经修改后的数据</td>
+      </tr>
+      <tr>
+          <td>DELETE 型触发器</td>
+          <td>OLD 表示将要或者已经删除的数据</td>
+      </tr>
+  </tbody>
+</table></div>
+<h2 id="语法">语法
+</h2><h3 id="创建">创建
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-sql" data-lang="sql"><span class="line"><span class="cl"><span class="k">CREATE</span><span class="w"> </span><span class="k">TRIGGER</span><span class="w"> </span><span class="k">trigger_name</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">BEFORE</span><span class="o">/</span><span class="k">AFTER</span><span class="w"> </span><span class="k">INSERT</span><span class="o">/</span><span class="k">UPDATE</span><span class="o">/</span><span class="k">DELETE</span><span class="w"> </span><span class="k">ON</span><span class="w"> </span><span class="k">table_name</span><span class="w"> </span><span class="k">FOR</span><span class="w"> </span><span class="k">EACH</span><span class="w"> </span><span class="k">ROW</span><span class="w"> </span><span class="c1">-- 行级触发器
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">BEGIN</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="n">trigger_stmt</span><span class="p">;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="k">END</span><span class="p">;</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="查看">查看
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-sql" data-lang="sql"><span class="line"><span class="cl"><span class="k">SHOW</span><span class="w"> </span><span class="n">TRIGGERS</span><span class="p">;</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="删除">删除
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-sql" data-lang="sql"><span class="line"><span class="cl"><span class="c1">-- 如果没有指定 schema_name.默认为当前数据库
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">DROP</span><span class="w"> </span><span class="k">TRIGGER</span><span class="w"> </span><span class="p">[</span><span class="k">schema_name</span><span class="p">.]</span><span class="k">trigger_name</span><span class="p">;</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="生词">生词
+</h3><ul>
+<li>trigger / ˈtrɪɡər / v、引发；触发；引爆；n、（枪械的）扳机；（引发不良反应或发展的）起因；（炸弹的）引爆器；触发器</li>
+</ul>
+<h2 id="案例">案例
+</h2><blockquote>
+<p>通过触发器记录 tb_user 表的数据变更日志，将变更日志插入到日志表user_logs中, 包含增加, 修改 , 删除 ;</p>
+</blockquote>
+<h3 id="表结构准备">表结构准备
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span><span class="lnt">9
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-sql" data-lang="sql"><span class="line"><span class="cl"><span class="c1">-- 准备工作：日志表 user_logs
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">create</span><span class="w"> </span><span class="k">table</span><span class="w"> </span><span class="n">user_logs</span><span class="p">(</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="n">id</span><span class="w"> </span><span class="nb">int</span><span class="p">(</span><span class="mi">11</span><span class="p">)</span><span class="w"> </span><span class="k">not</span><span class="w"> </span><span class="k">null</span><span class="w"> </span><span class="n">auto_increment</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">operation</span><span class="w"> </span><span class="nb">varchar</span><span class="p">(</span><span class="mi">20</span><span class="p">)</span><span class="w"> </span><span class="k">not</span><span class="w"> </span><span class="k">null</span><span class="w"> </span><span class="k">comment</span><span class="w"> </span><span class="s1">&#39;操作类型，insert/update/delete&#39;</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="n">operate_time</span><span class="w"> </span><span class="n">datetime</span><span class="w"> </span><span class="k">not</span><span class="w"> </span><span class="k">null</span><span class="w"> </span><span class="k">comment</span><span class="w"> </span><span class="s1">&#39;操作时间&#39;</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="n">operate_id</span><span class="w"> </span><span class="nb">int</span><span class="p">(</span><span class="mi">11</span><span class="p">)</span><span class="w"> </span><span class="k">not</span><span class="w"> </span><span class="k">null</span><span class="w"> </span><span class="k">comment</span><span class="w"> </span><span class="s1">&#39;操作id&#39;</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="n">operate_params</span><span class="w"> </span><span class="nb">varchar</span><span class="p">(</span><span class="mi">500</span><span class="p">)</span><span class="w"> </span><span class="k">comment</span><span class="w"> </span><span class="s1">&#39;操作参数&#39;</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">primary</span><span class="w"> </span><span class="k">key</span><span class="p">(</span><span class="o">`</span><span class="n">id</span><span class="o">`</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">)</span><span class="n">engine</span><span class="o">=</span><span class="n">innodb</span><span class="w"> </span><span class="k">default</span><span class="w"> </span><span class="n">charset</span><span class="o">=</span><span class="n">utf8</span><span class="p">;</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/mysql%E8%BF%9B%E9%98%B6-%E8%A7%A6%E5%8F%91%E5%99%A8/image.png"
+	width="1186"
+	height="326"
+	srcset="/p/mysql%E8%BF%9B%E9%98%B6-%E8%A7%A6%E5%8F%91%E5%99%A8/image_hu_406905c7a2b6fcf1.png 480w, /p/mysql%E8%BF%9B%E9%98%B6-%E8%A7%A6%E5%8F%91%E5%99%A8/image_hu_b26cae73afcb7d7d.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="363"
+		data-flex-basis="873px"
+	
+></p>
+<h3 id="插入数据触发器">插入数据触发器
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-sql" data-lang="sql"><span class="line"><span class="cl"><span class="k">create</span><span class="w"> </span><span class="k">trigger</span><span class="w"> </span><span class="n">tb_user_insert_trigger</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">after</span><span class="w"> </span><span class="k">insert</span><span class="w"> </span><span class="k">on</span><span class="w"> </span><span class="n">tb_user</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="k">each</span><span class="w"> </span><span class="k">row</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="k">begin</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">insert</span><span class="w"> </span><span class="k">into</span><span class="w"> </span><span class="n">user_logs</span><span class="p">(</span><span class="n">id</span><span class="p">,</span><span class="w"> </span><span class="k">operation</span><span class="p">,</span><span class="w"> </span><span class="n">operate_time</span><span class="p">,</span><span class="w"> </span><span class="n">operate_id</span><span class="p">,</span><span class="w"> </span><span class="n">operate_params</span><span class="p">)</span><span class="w"> </span><span class="k">values</span><span class="w"> 
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">(</span><span class="k">null</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;insert&#39;</span><span class="p">,</span><span class="w"> </span><span class="n">now</span><span class="p">(),</span><span class="w"> </span><span class="k">new</span><span class="p">.</span><span class="n">id</span><span class="p">,</span><span class="w"> </span><span class="n">concat</span><span class="p">(</span><span class="s1">&#39;插入的数据内容为：id=&#39;</span><span class="p">,</span><span class="w"> </span><span class="k">new</span><span class="p">.</span><span class="n">id</span><span class="p">,</span><span class="s1">&#39;,name=&#39;</span><span class="p">,</span><span class="w"> </span><span class="k">new</span><span class="p">.</span><span class="n">name</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;, phone=&#39;</span><span class="p">,</span><span class="w"> </span><span class="k">new</span><span class="p">.</span><span class="n">phone</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;, email=&#39;</span><span class="p">,</span><span class="w"> </span><span class="k">new</span><span class="p">.</span><span class="n">email</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;, profession=&#39;</span><span class="p">,</span><span class="w"> </span><span class="k">new</span><span class="p">.</span><span class="n">profession</span><span class="p">));</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="k">end</span><span class="p">;</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/mysql%E8%BF%9B%E9%98%B6-%E8%A7%A6%E5%8F%91%E5%99%A8/image-1.png"
+	width="2588"
+	height="376"
+	srcset="/p/mysql%E8%BF%9B%E9%98%B6-%E8%A7%A6%E5%8F%91%E5%99%A8/image-1_hu_cf34b1c4cdc4274c.png 480w, /p/mysql%E8%BF%9B%E9%98%B6-%E8%A7%A6%E5%8F%91%E5%99%A8/image-1_hu_e0b22c7f12e8dac6.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="688"
+		data-flex-basis="1651px"
+	
+></p>
+<ul>
+<li>测试</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-sql" data-lang="sql"><span class="line"><span class="cl"><span class="c1">-- 查看
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">show</span><span class="w"> </span><span class="n">triggers</span><span class="p">;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="c1">-- 删除
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">drop</span><span class="w"> </span><span class="k">trigger</span><span class="w"> </span><span class="n">tb_user_insert_trigger</span><span class="p">;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="c1">-- 插入数据到tb_user
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">insert</span><span class="w"> </span><span class="k">into</span><span class="w"> </span><span class="n">tb_user</span><span class="p">(</span><span class="n">id</span><span class="p">,</span><span class="w"> </span><span class="n">name</span><span class="p">,</span><span class="w"> </span><span class="n">phone</span><span class="p">,</span><span class="w"> </span><span class="n">email</span><span class="p">,</span><span class="w"> </span><span class="n">profession</span><span class="p">,</span><span class="w"> </span><span class="n">age</span><span class="p">,</span><span class="w"> </span><span class="n">gender</span><span class="p">,</span><span class="w"> </span><span class="n">status</span><span class="p">,</span><span class="w"> </span><span class="n">createtime</span><span class="p">)</span><span class="w"> </span><span class="k">values</span><span class="w"> </span><span class="p">(</span><span class="mi">26</span><span class="p">,</span><span class="s1">&#39;三皇子&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;18809091212&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;erhuangzi@163.com&#39;</span><span class="p">,</span><span class="s1">&#39;软件工程&#39;</span><span class="p">,</span><span class="w"> </span><span class="mi">23</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;1&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;1&#39;</span><span class="p">,</span><span class="w"> </span><span class="n">now</span><span class="p">());</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>查看</li>
+</ul>
+<p><img src="/p/mysql%E8%BF%9B%E9%98%B6-%E8%A7%A6%E5%8F%91%E5%99%A8/image-2.png"
+	width="2792"
+	height="304"
+	srcset="/p/mysql%E8%BF%9B%E9%98%B6-%E8%A7%A6%E5%8F%91%E5%99%A8/image-2_hu_e3a92ca3b98fcd0e.png 480w, /p/mysql%E8%BF%9B%E9%98%B6-%E8%A7%A6%E5%8F%91%E5%99%A8/image-2_hu_e87e56144d7ea734.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="918"
+		data-flex-basis="2204px"
+	
+></p>
+<ul>
+<li>删除</li>
+</ul>
+<p><img src="/p/mysql%E8%BF%9B%E9%98%B6-%E8%A7%A6%E5%8F%91%E5%99%A8/image-3.png"
+	width="624"
+	height="78"
+	srcset="/p/mysql%E8%BF%9B%E9%98%B6-%E8%A7%A6%E5%8F%91%E5%99%A8/image-3_hu_d961704302f231bf.png 480w, /p/mysql%E8%BF%9B%E9%98%B6-%E8%A7%A6%E5%8F%91%E5%99%A8/image-3_hu_1322a744ece0c805.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="800"
+		data-flex-basis="1920px"
+	
+></p>
+<p><img src="/p/mysql%E8%BF%9B%E9%98%B6-%E8%A7%A6%E5%8F%91%E5%99%A8/image-4.png"
+	width="322"
+	height="78"
+	srcset="/p/mysql%E8%BF%9B%E9%98%B6-%E8%A7%A6%E5%8F%91%E5%99%A8/image-4_hu_deb304404fdb6e15.png 480w, /p/mysql%E8%BF%9B%E9%98%B6-%E8%A7%A6%E5%8F%91%E5%99%A8/image-4_hu_67079d2f5c02d8d5.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="412"
+		data-flex-basis="990px"
+	
+></p>
+<ul>
+<li>插入数据</li>
+</ul>
+<p><img src="/p/mysql%E8%BF%9B%E9%98%B6-%E8%A7%A6%E5%8F%91%E5%99%A8/image-5.png"
+	width="2622"
+	height="68"
+	srcset="/p/mysql%E8%BF%9B%E9%98%B6-%E8%A7%A6%E5%8F%91%E5%99%A8/image-5_hu_f3bbd09e6ddcac1c.png 480w, /p/mysql%E8%BF%9B%E9%98%B6-%E8%A7%A6%E5%8F%91%E5%99%A8/image-5_hu_61d8598532f27281.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="3855"
+		data-flex-basis="9254px"
+	
+></p>
+<p><img src="/p/mysql%E8%BF%9B%E9%98%B6-%E8%A7%A6%E5%8F%91%E5%99%A8/image-6.png"
+	width="2436"
+	height="246"
+	srcset="/p/mysql%E8%BF%9B%E9%98%B6-%E8%A7%A6%E5%8F%91%E5%99%A8/image-6_hu_87e1dee9a34e541e.png 480w, /p/mysql%E8%BF%9B%E9%98%B6-%E8%A7%A6%E5%8F%91%E5%99%A8/image-6_hu_c83880b942e827b0.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="990"
+		data-flex-basis="2376px"
+	
+></p>
+<p>测试完毕之后，检查日志表中的数据是否可以正常插入，以及插入数据的正确性。</p>
+<h3 id="修改数据触发器">修改数据触发器
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-sql" data-lang="sql"><span class="line"><span class="cl"><span class="k">create</span><span class="w"> </span><span class="k">trigger</span><span class="w"> </span><span class="n">tb_user_update_trigger</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">after</span><span class="w"> </span><span class="k">update</span><span class="w"> </span><span class="k">on</span><span class="w"> </span><span class="n">tb_user</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="k">each</span><span class="w"> </span><span class="k">row</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="k">begin</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">insert</span><span class="w"> </span><span class="k">into</span><span class="w"> </span><span class="n">user_logs</span><span class="p">(</span><span class="n">id</span><span class="p">,</span><span class="w"> </span><span class="k">operation</span><span class="p">,</span><span class="w"> </span><span class="n">operate_time</span><span class="p">,</span><span class="w"> </span><span class="n">operate_id</span><span class="p">,</span><span class="w"> </span><span class="n">operate_params</span><span class="p">)</span><span class="w"> </span><span class="k">values</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">(</span><span class="k">null</span><span class="p">,</span><span class="s1">&#39;update&#39;</span><span class="p">,</span><span class="n">now</span><span class="p">(),</span><span class="w"> </span><span class="k">new</span><span class="p">.</span><span class="n">id</span><span class="p">,</span><span class="w"> </span><span class="n">concat</span><span class="p">(</span><span class="s1">&#39;更新之前的数据：id=&#39;</span><span class="p">,</span><span class="k">old</span><span class="p">.</span><span class="n">id</span><span class="p">,</span><span class="s1">&#39;, name=&#39;</span><span class="p">,</span><span class="k">old</span><span class="p">.</span><span class="n">name</span><span class="p">,</span><span class="s1">&#39;, phone=&#39;</span><span class="p">,</span><span class="k">old</span><span class="p">.</span><span class="n">phone</span><span class="p">,</span><span class="s1">&#39;, email=&#39;</span><span class="p">,</span><span class="k">old</span><span class="p">.</span><span class="n">email</span><span class="p">,</span><span class="s1">&#39;, profession=&#39;</span><span class="p">,</span><span class="k">old</span><span class="p">.</span><span class="n">profession</span><span class="p">,</span><span class="s1">&#39; | 更新之后的数据：id=&#39;</span><span class="p">,</span><span class="k">new</span><span class="p">.</span><span class="n">id</span><span class="p">,</span><span class="s1">&#39;, name=&#39;</span><span class="p">,</span><span class="k">new</span><span class="p">.</span><span class="n">name</span><span class="p">,</span><span class="s1">&#39;, phone=&#39;</span><span class="p">,</span><span class="k">new</span><span class="p">.</span><span class="n">phone</span><span class="p">,</span><span class="s1">&#39;, email=&#39;</span><span class="p">,</span><span class="k">new</span><span class="p">.</span><span class="n">email</span><span class="p">,</span><span class="s1">&#39;, profession=&#39;</span><span class="p">,</span><span class="k">new</span><span class="p">.</span><span class="n">profession</span><span class="p">));</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="k">end</span><span class="p">;</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/mysql%E8%BF%9B%E9%98%B6-%E8%A7%A6%E5%8F%91%E5%99%A8/image-7.png"
+	width="2592"
+	height="372"
+	srcset="/p/mysql%E8%BF%9B%E9%98%B6-%E8%A7%A6%E5%8F%91%E5%99%A8/image-7_hu_9fb2d39a45bc8960.png 480w, /p/mysql%E8%BF%9B%E9%98%B6-%E8%A7%A6%E5%8F%91%E5%99%A8/image-7_hu_a8698ca4e97e510b.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="696"
+		data-flex-basis="1672px"
+	
+></p>
+<ul>
+<li>测试</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-sql" data-lang="sql"><span class="line"><span class="cl"><span class="c1">-- 查看
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">show</span><span class="w"> </span><span class="n">triggers</span><span class="p">;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="c1">-- 更新
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">update</span><span class="w"> </span><span class="n">tb_user</span><span class="w"> </span><span class="k">set</span><span class="w"> </span><span class="n">profession</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;会计&#39;</span><span class="w"> </span><span class="k">where</span><span class="w"> </span><span class="n">id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">23</span><span class="p">;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="k">update</span><span class="w"> </span><span class="n">tb_user</span><span class="w"> </span><span class="k">set</span><span class="w"> </span><span class="n">profession</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;会计&#39;</span><span class="w"> </span><span class="k">where</span><span class="w"> </span><span class="n">id</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">5</span><span class="p">;</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/mysql%E8%BF%9B%E9%98%B6-%E8%A7%A6%E5%8F%91%E5%99%A8/image-8.png"
+	width="878"
+	height="254"
+	srcset="/p/mysql%E8%BF%9B%E9%98%B6-%E8%A7%A6%E5%8F%91%E5%99%A8/image-8_hu_9fbc4a996118a908.png 480w, /p/mysql%E8%BF%9B%E9%98%B6-%E8%A7%A6%E5%8F%91%E5%99%A8/image-8_hu_17c24b82f90b4af2.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="345"
+		data-flex-basis="829px"
+	
+></p>
+<p><img src="/p/mysql%E8%BF%9B%E9%98%B6-%E8%A7%A6%E5%8F%91%E5%99%A8/image-9.png"
+	width="2880"
+	height="766"
+	srcset="/p/mysql%E8%BF%9B%E9%98%B6-%E8%A7%A6%E5%8F%91%E5%99%A8/image-9_hu_aac87a6683ab63fa.png 480w, /p/mysql%E8%BF%9B%E9%98%B6-%E8%A7%A6%E5%8F%91%E5%99%A8/image-9_hu_edbb2349d2ac13df.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="375"
+		data-flex-basis="902px"
+	
+></p>
+<p>测试完毕之后，检查日志表中的数据是否可以正常插入，以及插入数据的正确性。</p>
+<h3 id="删除数据触发器">删除数据触发器
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-sql" data-lang="sql"><span class="line"><span class="cl"><span class="k">create</span><span class="w"> </span><span class="k">trigger</span><span class="w"> </span><span class="n">tb_user_delete_trigger</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">after</span><span class="w"> </span><span class="k">delete</span><span class="w"> </span><span class="k">on</span><span class="w"> </span><span class="n">tb_user</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="k">each</span><span class="w"> </span><span class="k">row</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="k">begin</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">insert</span><span class="w"> </span><span class="k">into</span><span class="w"> </span><span class="n">user_logs</span><span class="p">(</span><span class="n">id</span><span class="p">,</span><span class="w"> </span><span class="k">operation</span><span class="p">,</span><span class="w"> </span><span class="n">operate_time</span><span class="p">,</span><span class="w"> </span><span class="n">operate_id</span><span class="p">,</span><span class="w"> </span><span class="n">operate_params</span><span class="p">)</span><span class="w"> </span><span class="k">values</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">(</span><span class="k">null</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;delete&#39;</span><span class="p">,</span><span class="w"> </span><span class="n">now</span><span class="p">(),</span><span class="w"> </span><span class="k">old</span><span class="p">.</span><span class="n">id</span><span class="p">,</span><span class="w"> </span><span class="n">concat</span><span class="p">(</span><span class="s1">&#39;删除之前的数据：id=&#39;</span><span class="p">,</span><span class="k">old</span><span class="p">.</span><span class="n">id</span><span class="p">,</span><span class="s1">&#39;, name=&#39;</span><span class="p">,</span><span class="k">old</span><span class="p">.</span><span class="n">name</span><span class="p">,</span><span class="s1">&#39;, phone=&#39;</span><span class="p">,</span><span class="k">old</span><span class="p">.</span><span class="n">phone</span><span class="p">,</span><span class="s1">&#39;, email=&#39;</span><span class="p">,</span><span class="k">old</span><span class="p">.</span><span class="n">email</span><span class="p">,</span><span class="s1">&#39;, profession=&#39;</span><span class="p">,</span><span class="k">old</span><span class="p">.</span><span class="n">profession</span><span class="p">));</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="k">end</span><span class="p">;</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/mysql%E8%BF%9B%E9%98%B6-%E8%A7%A6%E5%8F%91%E5%99%A8/image-10.png"
+	width="2446"
+	height="382"
+	srcset="/p/mysql%E8%BF%9B%E9%98%B6-%E8%A7%A6%E5%8F%91%E5%99%A8/image-10_hu_3cd2348922d37f75.png 480w, /p/mysql%E8%BF%9B%E9%98%B6-%E8%A7%A6%E5%8F%91%E5%99%A8/image-10_hu_39f4d00742a4a8f8.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="640"
+		data-flex-basis="1536px"
+	
+></p>
+<ul>
+<li>测试</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-sql" data-lang="sql"><span class="line"><span class="cl"><span class="c1">-- 查看
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">show</span><span class="w"> </span><span class="n">triggers</span><span class="p">;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="c1">-- 删除
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">delete</span><span class="w"> </span><span class="k">from</span><span class="w"> </span><span class="n">tb_user</span><span class="w"> </span><span class="k">where</span><span class="w"> </span><span class="n">id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">26</span><span class="p">;</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/mysql%E8%BF%9B%E9%98%B6-%E8%A7%A6%E5%8F%91%E5%99%A8/image-11.png"
+	width="600"
+	height="84"
+	srcset="/p/mysql%E8%BF%9B%E9%98%B6-%E8%A7%A6%E5%8F%91%E5%99%A8/image-11_hu_ed1b6fae175ae5f9.png 480w, /p/mysql%E8%BF%9B%E9%98%B6-%E8%A7%A6%E5%8F%91%E5%99%A8/image-11_hu_addacd2273073318.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="714"
+		data-flex-basis="1714px"
+	
+></p>
+<p><img src="/p/mysql%E8%BF%9B%E9%98%B6-%E8%A7%A6%E5%8F%91%E5%99%A8/image-12.png"
+	width="2880"
+	height="830"
+	srcset="/p/mysql%E8%BF%9B%E9%98%B6-%E8%A7%A6%E5%8F%91%E5%99%A8/image-12_hu_c9669a535f01139f.png 480w, /p/mysql%E8%BF%9B%E9%98%B6-%E8%A7%A6%E5%8F%91%E5%99%A8/image-12_hu_6491f65a46803971.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="346"
+		data-flex-basis="832px"
+	
+></p>
+<p>测试完毕之后，检查日志表中的数据是否可以正常插入，以及插入数据的正确性。</p>
+
+</section>
+
+
+    <footer class="article-footer">
+    
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+<aside class="related-content--wrapper">
+    <h2 class="section-title">相关文章</h2>
+    <div class="related-content">
+        <div class="flex article-list--tile">
+            
+                
+<article class="">
+    <a href="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E5%AD%98%E5%82%A8%E8%BF%87%E7%A8%8B/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[MySQL]MySQL进阶-存储过程</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E8%A7%86%E5%9B%BE/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[MySQL]MySQL进阶-视图</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/mysqlmysql%E8%BF%9B%E9%98%B6-sql%E4%BC%98%E5%8C%96/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[MySQL]MySQL进阶-SQL优化</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/mysql%E9%97%AE%E9%A2%98/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[MySQL]问题</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%B4%A2%E5%BC%95/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[MySQL]MySQL进阶-索引</h2>
+        </div>
+    </a>
+</article>
+
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+        2025 リンボの個人ブログ
+    </section>
+    
+    <section class="powerby">
+         <br />
+        
+    </section>
+</footer>
+
+
+    
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+    
+    <div class="pswp__bg"></div>
+
+    
+    <div class="pswp__scroll-wrap">
+
+        
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+
+        
+        <div class="pswp__ui pswp__ui--hidden">
+
+            <div class="pswp__top-bar">
+
+                
+
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+
+                <button class="pswp__button pswp__button--share" title="Share"></button>
+
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+
+                
+                
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                        <div class="pswp__preloader__cut">
+                            <div class="pswp__preloader__donut"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div>
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.js"integrity="sha256-ePwmChbbvXbsO02lbM3HoHbSHTHFAeChekF1xKJdleo="crossorigin="anonymous"
+                defer
+                >
+            </script><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe-ui-default.min.js"integrity="sha256-UKkzOn/w1mBxRmLLGrSeyB4e1xbrp4xylgAWb3M42pU="crossorigin="anonymous"
+                defer
+                >
+            </script><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/default-skin/default-skin.min.css"crossorigin="anonymous"
+            ><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.css"crossorigin="anonymous"
+            >
+
+            </main>
+        </div>
+        <script 
+                src="https://cdn.jsdelivr.net/npm/node-vibrant@3.1.6/dist/vibrant.min.js"integrity="sha256-awcR2jno4kI5X0zL8ex0vi2z&#43;KMkF24hUW8WePSA9HM="crossorigin="anonymous"
+                
+                >
+            </script><script type="text/javascript" src="/ts/main.1e9a3bafd846ced4c345d084b355fb8c7bae75701c338f8a1f8a82c780137826.js" defer></script>
+<script>
+    (function () {
+        const customFont = document.createElement('link');
+        customFont.href = "https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap";
+
+        customFont.type = "text/css";
+        customFont.rel = "stylesheet";
+
+        document.head.appendChild(customFont);
+    }());
+</script>
+
+    </body>
+</html>
