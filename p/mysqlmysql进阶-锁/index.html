@@ -245,6 +245,18 @@
     <li><a href="#行级锁">行级锁</a>
       <ol>
         <li><a href="#介绍-3">介绍</a></li>
+        <li><a href="#行锁">行锁</a>
+          <ol>
+            <li><a href="#介绍-4">介绍</a></li>
+            <li><a href="#演示-2">演示</a></li>
+            <li><a href="#示例演示">示例演示</a></li>
+          </ol>
+        </li>
+      </ol>
+    </li>
+    <li><a href="#间隙锁临键锁">间隙锁&amp;临键锁</a>
+      <ol>
+        <li><a href="#示例演示-1">示例演示</a></li>
       </ol>
     </li>
   </ol>
@@ -1151,6 +1163,356 @@ MDL加锁过程是系统自动控制，无需显式使用，在访问一张表�
 <ul>
 <li>行锁(Record Lock):锁定单个行记录的锁，防止其他事务对此行进行update和delete。在 RC、RR隔离级别下都支持。</li>
 </ul>
+<p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E9%94%81/image-29.png"
+	width="840"
+	height="90"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E9%94%81/image-29_hu_714d9f51f3393f29.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-%E9%94%81/image-29_hu_791ee0825fda8386.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="933"
+		data-flex-basis="2240px"
+	
+></p>
+<ul>
+<li>间隙锁(Gap Lock):锁定索引记录间隙(不含该记录)，确保索引记录间隙不变，防止其他事 务在这个间隙进行insert，产生幻读。在RR隔离级别下都支持。</li>
+</ul>
+<p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E9%94%81/image-30.png"
+	width="840"
+	height="106"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E9%94%81/image-30_hu_1cf2baceb261551b.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-%E9%94%81/image-30_hu_15c3bc75c3cd53a9.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="792"
+		data-flex-basis="1901px"
+	
+></p>
+<ul>
+<li>临键锁(Next-Key Lock):行锁和间隙锁组合，同时锁住数据，并锁住数据前面的间隙Gap。 在RR隔离级别下支持。</li>
+</ul>
+<p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E9%94%81/image-31.png"
+	width="840"
+	height="114"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E9%94%81/image-31_hu_b8a52f1fb4c59a6b.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-%E9%94%81/image-31_hu_ade91dcda5e967e5.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="736"
+		data-flex-basis="1768px"
+	
+></p>
+<h3 id="行锁">行锁
+</h3><h4 id="介绍-4">介绍
+</h4><p>InnoDB实现了以下两种类型的行锁:</p>
+<ul>
+<li>共享锁(S):允许一个事务去读一行，阻止其他事务获得相同数据集的排它锁。</li>
+<li>排他锁(X):允许获取排他锁的事务更新数据，阻止其他事务获得相同数据集的共享锁和排他锁。</li>
+</ul>
+<p>两种行锁的兼容情况如下:</p>
+<p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E9%94%81/image-32.png"
+	width="884"
+	height="204"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E9%94%81/image-32_hu_6093cafdc6cc1acf.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-%E9%94%81/image-32_hu_2244c972ef727db9.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="433"
+		data-flex-basis="1040px"
+	
+></p>
+<p>常见的SQL语句，在执行时，所加的行锁如下:</p>
+<div class="table-wrapper"><table>
+  <thead>
+      <tr>
+          <th>SQL</th>
+          <th>行锁类型</th>
+          <th>说明</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>INSERT &hellip;</td>
+          <td>排他锁</td>
+          <td>自动加锁</td>
+      </tr>
+      <tr>
+          <td>UPDATE &hellip;</td>
+          <td>排他锁</td>
+          <td>自动加锁</td>
+      </tr>
+      <tr>
+          <td>DELETE &hellip;</td>
+          <td>排他锁</td>
+          <td>自动加锁</td>
+      </tr>
+      <tr>
+          <td>SELECT(正常)</td>
+          <td>不加任何锁</td>
+          <td></td>
+      </tr>
+      <tr>
+          <td>SELECT &hellip; LOCK IN SHARED MODE</td>
+          <td>共享锁</td>
+          <td>需要手动在SELECT之后加LOCK IN SHARED MODE</td>
+      </tr>
+      <tr>
+          <td>SELECT &hellip; FOR UPDATE</td>
+          <td>排他锁</td>
+          <td>需要手动在SELECT之后加FOR UPDATE</td>
+      </tr>
+  </tbody>
+</table></div>
+<h4 id="演示-2">演示
+</h4><p>默认情况下，InnoDB在 REPEATABLE READ事务隔离级别运行，InnoDB使用 next-key 锁进行搜
+索和索引扫描，以防止幻读。</p>
+<ul>
+<li>针对唯一索引进行检索时，对已存在的记录进行等值匹配时，将会自动优化为行锁。</li>
+<li>InnoDB的行锁是针对于索引加的锁，不通过索引条件检索数据，那么InnoDB将对表中的所有记 录加锁，此时 就会升级为表锁。</li>
+</ul>
+<p>可以通过以下SQL，查看意向锁及行锁的加锁情况:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-sql" data-lang="sql"><span class="line"><span class="cl"><span class="k">select</span><span class="w"> </span><span class="n">object_schema</span><span class="p">,</span><span class="n">object_name</span><span class="p">,</span><span class="n">index_name</span><span class="p">,</span><span class="n">lock_type</span><span class="p">,</span><span class="n">lock_mode</span><span class="p">,</span><span class="n">lock_data</span><span class="w"> </span><span class="k">from</span><span class="w"> </span><span class="n">performance_schema</span><span class="p">.</span><span class="n">data_locks</span><span class="p">;</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="示例演示">示例演示
+</h4><ul>
+<li>数据准备</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-sql" data-lang="sql"><span class="line"><span class="cl"><span class="k">CREATE</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="o">`</span><span class="n">stu</span><span class="o">`</span><span class="w">  </span><span class="p">(</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="o">`</span><span class="n">id</span><span class="o">`</span><span class="w"> </span><span class="nb">int</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="w">  </span><span class="k">PRIMARY</span><span class="w"> </span><span class="k">KEY</span><span class="w"> </span><span class="n">AUTO_INCREMENT</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="o">`</span><span class="n">name</span><span class="o">`</span><span class="w"> </span><span class="nb">varchar</span><span class="p">(</span><span class="mi">255</span><span class="p">)</span><span class="w"> </span><span class="k">DEFAULT</span><span class="w"> </span><span class="k">NULL</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="o">`</span><span class="n">age</span><span class="o">`</span><span class="w"> </span><span class="nb">int</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">)</span><span class="w"> </span><span class="n">ENGINE</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">InnoDB</span><span class="w"> </span><span class="nb">CHARACTER</span><span class="w"> </span><span class="k">SET</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">utf8mb4</span><span class="p">;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="k">INSERT</span><span class="w"> </span><span class="k">INTO</span><span class="w"> </span><span class="o">`</span><span class="n">stu</span><span class="o">`</span><span class="w"> </span><span class="k">VALUES</span><span class="w"> </span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;tom&#39;</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">);</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="k">INSERT</span><span class="w"> </span><span class="k">INTO</span><span class="w"> </span><span class="o">`</span><span class="n">stu</span><span class="o">`</span><span class="w"> </span><span class="k">VALUES</span><span class="w"> </span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;cat&#39;</span><span class="p">,</span><span class="w"> </span><span class="mi">3</span><span class="p">);</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="k">INSERT</span><span class="w"> </span><span class="k">INTO</span><span class="w"> </span><span class="o">`</span><span class="n">stu</span><span class="o">`</span><span class="w"> </span><span class="k">VALUES</span><span class="w"> </span><span class="p">(</span><span class="mi">8</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;rose&#39;</span><span class="p">,</span><span class="w"> </span><span class="mi">8</span><span class="p">);</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="k">INSERT</span><span class="w"> </span><span class="k">INTO</span><span class="w"> </span><span class="o">`</span><span class="n">stu</span><span class="o">`</span><span class="w"> </span><span class="k">VALUES</span><span class="w"> </span><span class="p">(</span><span class="mi">11</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;jetty&#39;</span><span class="p">,</span><span class="w"> </span><span class="mi">11</span><span class="p">);</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="k">INSERT</span><span class="w"> </span><span class="k">INTO</span><span class="w"> </span><span class="o">`</span><span class="n">stu</span><span class="o">`</span><span class="w"> </span><span class="k">VALUES</span><span class="w"> </span><span class="p">(</span><span class="mi">19</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;lily&#39;</span><span class="p">,</span><span class="w"> </span><span class="mi">19</span><span class="p">);</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="k">INSERT</span><span class="w"> </span><span class="k">INTO</span><span class="w"> </span><span class="o">`</span><span class="n">stu</span><span class="o">`</span><span class="w"> </span><span class="k">VALUES</span><span class="w"> </span><span class="p">(</span><span class="mi">25</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;luci&#39;</span><span class="p">,</span><span class="w"> </span><span class="mi">25</span><span class="p">);</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><p>演示行锁的时候，我们就通过上面这张表来演示一下。</p>
+<p>A. 普通的select语句，执行时，不会加锁。</p>
+<p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E9%94%81/image-33.png"
+	width="2880"
+	height="498"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E9%94%81/image-33_hu_2d001e7ca6c73b45.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-%E9%94%81/image-33_hu_667e7bd9f14ec5b5.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="578"
+		data-flex-basis="1387px"
+	
+></p>
+<p>B. <code>select...lock in share mode</code>，加共享锁，共享锁与共享锁之间兼容。</p>
+<p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E9%94%81/image-34.png"
+	width="2880"
+	height="1266"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E9%94%81/image-34_hu_34c106eeea99c8dd.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-%E9%94%81/image-34_hu_a40182c4a01c135.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="227"
+		data-flex-basis="545px"
+	
+></p>
+<p>共享锁与排他锁之间互斥。</p>
+<p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E9%94%81/image-35.png"
+	width="2880"
+	height="770"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E9%94%81/image-35_hu_69875e8880aa0c6c.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-%E9%94%81/image-35_hu_7435724837662a76.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="374"
+		data-flex-basis="897px"
+	
+></p>
+<p>客户端一获取的是id为1这行的共享锁，客户端二是可以获取id为3这行的排它锁的，因为不是同一行 数据。 而如果客户端二想获取id为1这行的排他锁，会处于阻塞状态，因为共享锁与排他锁之间互斥。</p>
+<p>C. 排他锁与排他锁之间互斥</p>
+<p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E9%94%81/image-36.png"
+	width="2880"
+	height="696"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E9%94%81/image-36_hu_fc560e7d6fa9eb82.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-%E9%94%81/image-36_hu_bbfac1c9069c6406.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="413"
+		data-flex-basis="993px"
+	
+></p>
+<p>当客户端一，执行update语句，会为id为1的记录加排他锁; 客户端二，如果也执行update语句更 新id为1的数据，也要为id为1的数据加排他锁，但是客户端二会处于阻塞状态，因为排他锁之间是互 斥的。 直到客户端一，把事务提交了，才会把这一行的行锁释放，此时客户端二，解除阻塞。</p>
+<p>D. 无索引行锁升级为表锁</p>
+<p>stu表中数据如下:</p>
+<p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E9%94%81/image-37.png"
+	width="388"
+	height="412"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E9%94%81/image-37_hu_772dd0d67ed570f0.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-%E9%94%81/image-37_hu_23010bd50f42e21e.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="94"
+		data-flex-basis="226px"
+	
+></p>
+<p>我们在两个客户端中执行如下操作:</p>
+<p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E9%94%81/image-38.png"
+	width="2880"
+	height="396"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E9%94%81/image-38_hu_dbcb7f7341ef0eb6.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-%E9%94%81/image-38_hu_b7533f1d0aaa6cbe.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="727"
+		data-flex-basis="1745px"
+	
+></p>
+<p>在客户端一中，开启事务，并执行update语句，更新name为Lily的数据，也就是id为19的记录 。 然后在客户端二中更新id为3的记录，却不能直接执行，会处于阻塞状态，为什么呢?</p>
+<p>原因就是因为此时，客户端一，根据name字段进行更新时，name字段是没有索引的，如果没有索引， 此时行锁会升级为表锁(因为行锁是对索引项加的锁，而name没有索引)。</p>
+<p>接下来，我们再针对name字段建立索引，索引建立之后，再次做一个测试:</p>
+<p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E9%94%81/image-39.png"
+	width="2880"
+	height="516"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E9%94%81/image-39_hu_6f85cc6a5ed8b040.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-%E9%94%81/image-39_hu_d52891210b628449.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="558"
+		data-flex-basis="1339px"
+	
+></p>
+<p>此时我们可以看到，客户端一，开启事务，然后依然是根据name进行更新。而客户端二，在更新id为3 的数据时，更新成功，并未进入阻塞状态。 这样就说明，我们根据索引字段进行更新操作，就可以避免行锁升级为表锁的情况。</p>
+<h2 id="间隙锁临键锁">间隙锁&amp;临键锁
+</h2><p>默认情况下，InnoDB在 REPEATABLE READ事务隔离级别运行，InnoDB使用 next-key 锁进行搜索和索引扫描，以防止幻读。</p>
+<ul>
+<li>索引上的等值查询(唯一索引)，给不存在的记录加锁时, 优化为间隙锁。</li>
+<li>索引上的等值查询(非唯一普通索引)，向右遍历时最后一个值不满足查询需求时，next-key lock 退化为间隙锁。</li>
+<li>索引上的范围查询(唯一索引)&ndash;会访问到不满足条件的第一个值为止。</li>
+</ul>
+<blockquote>
+<p>注意:间隙锁唯一目的是防止其他事务插入间隙。间隙锁可以共存，一个事务采用的间隙锁不会
+阻止另一个事务在同一间隙上采用间隙锁。</p>
+</blockquote>
+<h3 id="示例演示-1">示例演示
+</h3><p>A. 索引上的等值查询(唯一索引)，给不存在的记录加锁时, 优化为间隙锁 。</p>
+<p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E9%94%81/image-40.png"
+	width="2880"
+	height="836"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E9%94%81/image-40_hu_6a9f44686a86f390.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-%E9%94%81/image-40_hu_75d3af41d11ce784.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="344"
+		data-flex-basis="826px"
+	
+></p>
+<p>B. 索引上的等值查询(非唯一普通索引)，向右遍历时最后一个值不满足查询需求时，next-key lock 退化为间隙锁。</p>
+<p>介绍分析一下:
+我们知道InnoDB的B+树索引，叶子节点是有序的双向链表。 假如，我们要根据这个二级索引查询值 为18的数据，并加上共享锁，我们是只锁定18这一行就可以了吗? 并不是，因为是非唯一索引，这个 结构中可能有多个18的存在，所以，在加锁时会继续往后找，找到一个不满足条件的值(当前案例中也 就是29)。此时会对18加临键锁，并对29之前的间隙加锁。</p>
+<p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E9%94%81/image-41.png"
+	width="884"
+	height="92"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E9%94%81/image-41_hu_ddaa6b40b117c2fe.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-%E9%94%81/image-41_hu_d1a654c2598ef42f.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="960"
+		data-flex-basis="2306px"
+	
+></p>
+<p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E9%94%81/image-42.png"
+	width="2880"
+	height="1090"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E9%94%81/image-42_hu_3a90a89c2da21309.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-%E9%94%81/image-42_hu_50c744b4ac2ba110.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="264"
+		data-flex-basis="634px"
+	
+></p>
+<p>C. 索引上的范围查询(唯一索引)&ndash;会访问到不满足条件的第一个值为止。</p>
+<p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E9%94%81/image-43.png"
+	width="2880"
+	height="1042"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E9%94%81/image-43_hu_a2ba41c11722ae6f.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-%E9%94%81/image-43_hu_156ac5a3e2f7c188.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="276"
+		data-flex-basis="663px"
+	
+></p>
+<p>查询的条件为id&gt;=19，并添加共享锁。此时我们可以根据数据库表中现有的数据，将数据分为三个部分:
+[19]
+(19,25]
+(25,+∞]
+所以数据库数据在加锁是，就是将19加了行锁，25的临键锁(包含25及25之前的间隙)，正无穷的临键锁(正无穷及之前的间隙)。</p>
 
 </section>
 
