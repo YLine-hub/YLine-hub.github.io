@@ -1,0 +1,1297 @@
+<!DOCTYPE html>
+<html lang="zh-cn" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="MySQL管理 系统数据库 Mysql数据库安装完成后，自带了一下四个数据库，具体作用如下:\n数据库 含义 mysql 存储MySQL服务器正常运行所需要的各种信息(时区、主从、用户、权限等) information_schema 提供了访问数据库元数据的各种表和视图，包含数据库、表、字段类型及访问权限等 performance_schema 为MySQL服务器运行时状态提供了一个底层监控功能，主要收集数据库服务器性能参数 sys 包含了一系列方便DBA和开发人员利用perforperformance_schema性能数据库进行性能调优和诊断的视图 常用工具 mysql 该mysql不是指mysql服务，而是指mysql的客户端工具。\n">
+<title>[MySQL]MySQL进阶-管理</title>
+
+<link rel='canonical' href='https://YLine-hub.github.io/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%AE%A1%E7%90%86/'>
+
+<link rel="stylesheet" href="/scss/style.min.6a692fd055deae459f2a9767f57f3855ba80cafd5041317f24f7360f6ca47cdf.css"><meta property='og:title' content="[MySQL]MySQL进阶-管理">
+<meta property='og:description' content="MySQL管理 系统数据库 Mysql数据库安装完成后，自带了一下四个数据库，具体作用如下:\n数据库 含义 mysql 存储MySQL服务器正常运行所需要的各种信息(时区、主从、用户、权限等) information_schema 提供了访问数据库元数据的各种表和视图，包含数据库、表、字段类型及访问权限等 performance_schema 为MySQL服务器运行时状态提供了一个底层监控功能，主要收集数据库服务器性能参数 sys 包含了一系列方便DBA和开发人员利用perforperformance_schema性能数据库进行性能调优和诊断的视图 常用工具 mysql 该mysql不是指mysql服务，而是指mysql的客户端工具。\n">
+<meta property='og:url' content='https://YLine-hub.github.io/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%AE%A1%E7%90%86/'>
+<meta property='og:site_name' content='リンボの個人ブログ'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:published_time' content='2025-11-26T20:53:28&#43;08:00'/><meta property='article:modified_time' content='2025-11-26T20:53:28&#43;08:00'/>
+<meta name="twitter:title" content="[MySQL]MySQL进阶-管理">
+<meta name="twitter:description" content="MySQL管理 系统数据库 Mysql数据库安装完成后，自带了一下四个数据库，具体作用如下:\n数据库 含义 mysql 存储MySQL服务器正常运行所需要的各种信息(时区、主从、用户、权限等) information_schema 提供了访问数据库元数据的各种表和视图，包含数据库、表、字段类型及访问权限等 performance_schema 为MySQL服务器运行时状态提供了一个底层监控功能，主要收集数据库服务器性能参数 sys 包含了一系列方便DBA和开发人员利用perforperformance_schema性能数据库进行性能调优和诊断的视图 常用工具 mysql 该mysql不是指mysql服务，而是指mysql的客户端工具。\n">
+    <link rel="shortcut icon" href="/favicon.ico" />
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        
+            
+            <figure class="site-avatar">
+                <a href="/">
+                
+                    
+                    
+                    
+                        
+                        <img src="/img/avatar_hu_7f398a7818085507.png" width="300"
+                            height="300" class="site-logo" loading="lazy" alt="Avatar">
+                    
+                
+                </a>
+                
+                    <span class="emoji">🏖️</span>
+                
+            </figure>
+            
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">リンボの個人ブログ</a></h1>
+            <h2 class="site-description">努力不一定能获得回报，但不努力一定不会有回报。</h2>
+        </div>
+    </header><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-home" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <polyline points="5 12 3 12 12 3 21 12 19 12" />
+  <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7" />
+  <path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6" />
+</svg>
+
+
+
+                
+                <span>主页</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/%E5%85%B3%E4%BA%8E/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/archives/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/search/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-search" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="10" cy="10" r="7" />
+  <line x1="21" y1="21" x2="15" y2="15" />
+</svg>
+
+
+
+                
+                <span>搜索</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav id="TableOfContents">
+  <ol>
+    <li><a href="#系统数据库">系统数据库</a></li>
+    <li><a href="#常用工具">常用工具</a>
+      <ol>
+        <li><a href="#mysql">mysql</a>
+          <ol>
+            <li><a href="#语法">语法</a></li>
+            <li><a href="#参数">参数</a></li>
+            <li><a href="#示例">示例</a></li>
+          </ol>
+        </li>
+        <li><a href="#mysqladmin">mysqladmin</a>
+          <ol>
+            <li><a href="#语法-1">语法</a></li>
+            <li><a href="#选项">选项</a></li>
+            <li><a href="#示例-1">示例</a></li>
+          </ol>
+        </li>
+        <li><a href="#mysqlbinlog">mysqlbinlog</a>
+          <ol>
+            <li><a href="#语法-2">语法</a></li>
+            <li><a href="#参数-1">参数</a></li>
+            <li><a href="#示例-2">示例</a></li>
+          </ol>
+        </li>
+        <li><a href="#mysqlshow">mysqlshow</a>
+          <ol>
+            <li><a href="#语法-3">语法</a></li>
+            <li><a href="#选项-1">选项</a></li>
+            <li><a href="#示例-3">示例</a></li>
+          </ol>
+        </li>
+        <li><a href="#mysqldump">mysqldump</a>
+          <ol>
+            <li><a href="#语法-4">语法</a></li>
+            <li><a href="#连接选项">连接选项</a></li>
+            <li><a href="#输出选项">输出选项</a></li>
+            <li><a href="#示例-4">示例</a></li>
+          </ol>
+        </li>
+        <li><a href="#mysqlimportsource">mysqlimport/source</a>
+          <ol>
+            <li><a href="#source">source</a></li>
+            <li><a href="#mysqlimport">mysqlimport</a></li>
+          </ol>
+        </li>
+      </ol>
+    </li>
+    <li><a href="#生词">生词</a></li>
+  </ol>
+</nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            <a href="/categories/mysql/" >
+                MySQL
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%AE%A1%E7%90%86/">[MySQL]MySQL进阶-管理</a>
+        </h2>
+    
+        
+    </div>
+
+    
+    
+    
+    
+    <footer class="article-time">
+        
+            <div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                <time class="article-time--published">2025-11-26</time>
+            </div>
+        
+
+        
+    </footer>
+    
+
+    
+</div>
+
+</header>
+
+    <section class="article-content">
+    
+    
+    <h1 id="mysql管理">MySQL管理
+</h1><h2 id="系统数据库">系统数据库
+</h2><p>Mysql数据库安装完成后，自带了一下四个数据库，具体作用如下:</p>
+<div class="table-wrapper"><table>
+  <thead>
+      <tr>
+          <th>数据库</th>
+          <th>含义</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>mysql</td>
+          <td>存储MySQL服务器正常运行所需要的各种信息(时区、主从、用户、权限等)</td>
+      </tr>
+      <tr>
+          <td>information_schema</td>
+          <td>提供了访问数据库元数据的各种表和视图，包含数据库、表、字段类型及访问权限等</td>
+      </tr>
+      <tr>
+          <td>performance_schema</td>
+          <td>为MySQL服务器运行时状态提供了一个底层监控功能，主要收集数据库服务器性能参数</td>
+      </tr>
+      <tr>
+          <td>sys</td>
+          <td>包含了一系列方便DBA和开发人员利用perforperformance_schema性能数据库进行性能调优和诊断的视图</td>
+      </tr>
+  </tbody>
+</table></div>
+<h2 id="常用工具">常用工具
+</h2><h3 id="mysql">mysql
+</h3><p>该mysql不是指mysql服务，而是指mysql的客户端工具。</p>
+<h4 id="语法">语法
+</h4><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">mysql [options] [database]
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="参数">参数
+</h4><ul>
+<li><code>-u</code>,&ndash;user=name          # 指定用户名</li>
+<li><code>-p</code>,&ndash;password[=name]    # 指定密码</li>
+<li><code>-h</code>,&ndash;host=name          # 指定服务器IP或域名</li>
+<li><code>-p</code>,&ndash;port=port          # 指定连接端口</li>
+<li><code>-e</code>,&ndash;execute=name       # 执行SQL语句并退出</li>
+</ul>
+<p><code>-e</code>选项可以在Mysql客户端执行SQL语句，而不用连接到MySQL数据库再执行，对于一些批处理脚本， 这种方式尤其方便。</p>
+<h4 id="示例">示例
+</h4><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">mysql -uroot –p123456 db01 -e &#34;select * from stu&#34;;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="mysqladmin">mysqladmin
+</h3><p>mysqladmin 是一个执行管理操作的客户端程序。可以用它来检查服务器的配置和当前状态、创建并 删除数据库等。</p>
+<ul>
+<li>通过帮助文档查看选项:</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">mysqladmin --help
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%AE%A1%E7%90%86/image.png"
+	width="1448"
+	height="1528"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%AE%A1%E7%90%86/image_hu_f9c5b09da7f32579.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%AE%A1%E7%90%86/image_hu_7f6d62415aa45c55.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="94"
+		data-flex-basis="227px"
+	
+></p>
+<h4 id="语法-1">语法
+</h4><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">mysqladmin [options] command ...
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="选项">选项
+</h4><ul>
+<li><code>-u</code>,&ndash;user=name          # 指定用户名</li>
+<li><code>-p</code>,&ndash;password[=name]    # 指定密码</li>
+<li><code>-h</code>,&ndash;host=name          # 指定服务器IP或域名</li>
+<li><code>-p</code>,&ndash;port=port          # 指定连接端口</li>
+</ul>
+<h4 id="示例-1">示例
+</h4><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">mysqladmin -uroot -p123456 version
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%AE%A1%E7%90%86/image-1.png"
+	width="1720"
+	height="542"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%AE%A1%E7%90%86/image-1_hu_97d807ad27a27471.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%AE%A1%E7%90%86/image-1_hu_394530318e26a03a.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="317"
+		data-flex-basis="761px"
+	
+></p>
+<h3 id="mysqlbinlog">mysqlbinlog
+</h3><p>由于服务器生成的二进制日志文件以二进制格式保存，所以如果想要检查这些文本的文本格式，就会使用到mysqlbinlog日志管理工具。</p>
+<h4 id="语法-2">语法
+</h4><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">mysqlbinlog [options]  log-files1 log-files2 ...
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="参数-1">参数
+</h4><ul>
+<li><code>-d</code>, &ndash;database=name</li>
+<li><code>-o</code>, &ndash;offset=#</li>
+<li><code>-r</code>,&ndash;result-file=name</li>
+<li><code>-s</code>, &ndash;short-form</li>
+<li><code>--start-datatime=date1 --stop-datetime=date2</code> 指定日期间隔内的所有日志。</li>
+<li><code>--start-position=pos1 --stop-position=pos2</code> 指定位置间隔内的所有日志。</li>
+</ul>
+<h4 id="示例-2">示例
+</h4><ul>
+<li>查看binlog.000008这个二进制文件中的数据信息</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">mysqlbinlog binlog.000008
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%AE%A1%E7%90%86/image-2.png"
+	width="1012"
+	height="66"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%AE%A1%E7%90%86/image-2_hu_c5da8572df5e0365.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%AE%A1%E7%90%86/image-2_hu_3e2f9238d7c69c45.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="1533"
+		data-flex-basis="3680px"
+	
+></p>
+<p><strong>发生报错</strong></p>
+<ul>
+<li>报错信息</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-gdscript3" data-lang="gdscript3"><span class="line"><span class="cl"><span class="n">mysqlbinlog</span><span class="p">:</span> <span class="p">[</span><span class="n">ERROR</span><span class="p">]</span> <span class="n">unknown</span> <span class="n">variable</span> <span class="s1">&#39;default-character-set=utf8mb4&#39;</span><span class="o">.</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>原因</li>
+</ul>
+<p>mysqlbinlog这个工具无法识别binlog中的配置中的default-character-set=utf8mb4这个指令。</p>
+<p><strong>解决方法</strong></p>
+<ul>
+<li>添加 <code>--no-defaults</code> 参数</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">mysqlbinlog --no-defaults binlog.000008
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%AE%A1%E7%90%86/image-3.png"
+	width="1448"
+	height="1528"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%AE%A1%E7%90%86/image-3_hu_86a31a04793c7679.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%AE%A1%E7%90%86/image-3_hu_4b5908f2cb983db.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="94"
+		data-flex-basis="227px"
+	
+></p>
+<p>上述查看到的二进制日志文件数据信息量太多了，不方便查询。我们可以加上一个参数 <code>-s</code> 来显示简单格式。</p>
+<ul>
+<li>查看binlog.000008这个二进制文件中的数据信息(简化)</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">mysqlbinlog --no-defaults -s binlog.000008
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%AE%A1%E7%90%86/image-4.png"
+	width="1448"
+	height="1580"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%AE%A1%E7%90%86/image-4_hu_508a9e1e30d6a9ab.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%AE%A1%E7%90%86/image-4_hu_be699a7fe2c87bca.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="91"
+		data-flex-basis="219px"
+	
+></p>
+<h3 id="mysqlshow">mysqlshow
+</h3><p>mysqlshow客户端对象查找工具，用来很快地查找存在哪些数据库、数据库中的表、表中的列或者索引。</p>
+<h4 id="语法-3">语法
+</h4><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">mysqlshow [options] [db_name [table_name [col_name]]]
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="选项-1">选项
+</h4><ul>
+<li><code>--count</code> 显示数据库及表的统计信息(数据库，表 均可以不指定)</li>
+<li><code>-i</code> 显示指定数据库或者指定表的状态信息</li>
+</ul>
+<h4 id="示例-3">示例
+</h4><ul>
+<li>查询每个数据库的表的数量及表中记录的数量</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">mysqlshow -uroot -p123456 --count
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%AE%A1%E7%90%86/image-7.png"
+	width="1200"
+	height="478"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%AE%A1%E7%90%86/image-7_hu_e6fa259c537a3765.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%AE%A1%E7%90%86/image-7_hu_89da3e688ac69ebf.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="251"
+		data-flex-basis="602px"
+	
+></p>
+<ul>
+<li>查询db01库中每个表中的字段数，及行数</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">mysqlshow -uroot -p123456 db01 --count
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%AE%A1%E7%90%86/image-5.png"
+	width="1194"
+	height="510"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%AE%A1%E7%90%86/image-5_hu_90258fb83609a18c.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%AE%A1%E7%90%86/image-5_hu_ca1573fcfc2fce6c.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="234"
+		data-flex-basis="561px"
+	
+></p>
+<ul>
+<li>查询db01库中stu表的详细情况</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">mysqlshow -uroot -p123456 db01 stu --count
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%AE%A1%E7%90%86/image-6.png"
+	width="1842"
+	height="348"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%AE%A1%E7%90%86/image-6_hu_bbaefb296685d239.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%AE%A1%E7%90%86/image-6_hu_5e3e9bf037dcce01.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="529"
+		data-flex-basis="1270px"
+	
+></p>
+<ul>
+<li>查询db01库中course表的信息</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">mysqlshow -uroot -p123456 db01 course --count
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%AE%A1%E7%90%86/image-8.png"
+	width="1904"
+	height="310"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%AE%A1%E7%90%86/image-8_hu_d3481a4fe1098b2c.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%AE%A1%E7%90%86/image-8_hu_d225c28199e0a106.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="614"
+		data-flex-basis="1474px"
+	
+></p>
+<ul>
+<li>查询db01库中course表的id字段的信息</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">mysqlshow -uroot -p123456 db01 course id --count
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%AE%A1%E7%90%86/image-9.png"
+	width="1626"
+	height="272"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%AE%A1%E7%90%86/image-9_hu_211c6d2fc24f1f79.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%AE%A1%E7%90%86/image-9_hu_8901a96360ed1ca1.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="597"
+		data-flex-basis="1434px"
+	
+></p>
+<h3 id="mysqldump">mysqldump
+</h3><p>mysqldump 客户端工具用来备份数据库或在不同数据库之间进行数据迁移。备份内容包含创建表，及插入表的SQL语句。</p>
+<h4 id="语法-4">语法
+</h4><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">mysqldump [options] db_name [tables]
+</span></span><span class="line"><span class="cl">mysqldump [options] --database/-B db1 [db2 db3...]
+</span></span><span class="line"><span class="cl">mysqldump [options] --all-databases/-A
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="连接选项">连接选项
+</h4><ul>
+<li><code>-u</code>, &ndash;user=name             # 指定用户名</li>
+<li><code>-p</code>, &ndash;password[=name]       # 指定密码</li>
+<li><code>-h</code>, &ndash;host=name             # 指定服务器IP或域名</li>
+<li><code>-P</code>, &ndash;port=port             # 指定连接端口</li>
+</ul>
+<h4 id="输出选项">输出选项
+</h4><ul>
+<li><code>--add-drop-database</code>         # 在每个数据库创建语句前加上 drop database 语句</li>
+<li><code>--add-drop-table</code>            # 在每个表创建语句前加上 drop table 语句 , 默认开启 ; 不开启 (&ndash;skip-add-drop-table)</li>
+<li><code>-n</code>, &ndash;no-create-db          # 不包含数据库的创建语句</li>
+<li><code>-t</code>, &ndash;no-create-info        # 不包含数据表的创建语句</li>
+<li><code>-d</code>, &ndash;no-data               # 不包含数据</li>
+<li><code>-T</code>, &ndash;tab=name              # 自动生成两个文件:一个.sql文件，创建表结构的语句;一个.txt文件，数据文件</li>
+</ul>
+<h4 id="示例-4">示例
+</h4><h5 id="备份db01数据库">备份db01数据库
+</h5><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">mysqldump -uroot -p123456 db01 &gt; /usr/backup/sql/db01.sql
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%AE%A1%E7%90%86/image-10.png"
+	width="1190"
+	height="216"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%AE%A1%E7%90%86/image-10_hu_e8333056318431d1.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%AE%A1%E7%90%86/image-10_hu_ab51774a35cbfdbb.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="550"
+		data-flex-basis="1322px"
+	
+></p>
+<p>打开db01.sql</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">vim /usr/backup/sql/db01.sql
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%AE%A1%E7%90%86/image-11.png"
+	width="1448"
+	height="1580"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%AE%A1%E7%90%86/image-11_hu_d732f1d8d9d403b4.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%AE%A1%E7%90%86/image-11_hu_fd614f4a1ca24a82.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="91"
+		data-flex-basis="219px"
+	
+></p>
+<p>备份出来的数据包含:</p>
+<ol>
+<li>删除表的语句</li>
+<li>创建表的语句</li>
+<li>数据插入语句</li>
+</ol>
+<p>如果我们在数据备份时，不需要创建表，或者不需要备份数据，只需要备份表结构，都可以通过对应的参数来实现。</p>
+<h5 id="备份db01数据库中的表数据不备份表结构-t">备份db01数据库中的表数据，不备份表结构(-t)
+</h5><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">mysqldump -uroot -p123456 -t db01 &gt; /usr/backup/sql/db02.sql
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%AE%A1%E7%90%86/image-12.png"
+	width="1210"
+	height="262"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%AE%A1%E7%90%86/image-12_hu_b33fc8cfc5b3c90a.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%AE%A1%E7%90%86/image-12_hu_fb51bb70cee7f773.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="461"
+		data-flex-basis="1108px"
+	
+></p>
+<p>打开 db02.sql ，来查看备份的数据，只有insert语句，没有备份表结构。</p>
+<p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%AE%A1%E7%90%86/image-13.png"
+	width="1448"
+	height="1580"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%AE%A1%E7%90%86/image-13_hu_66c407fa6248945c.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%AE%A1%E7%90%86/image-13_hu_baa121d12d8d4c80.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="91"
+		data-flex-basis="219px"
+	
+></p>
+<h5 id="将db01数据库的表的表结构与数据分开备份-t">将db01数据库的表的表结构与数据分开备份(-T)
+</h5><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">mysqldump -uroot -p123456 -T /usr/backup/sql db01 score
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%AE%A1%E7%90%86/image-14.png"
+	width="1442"
+	height="136"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%AE%A1%E7%90%86/image-14_hu_863076d96864641.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%AE%A1%E7%90%86/image-14_hu_713c9eeae58a83dd.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="1060"
+		data-flex-basis="2544px"
+	
+></p>
+<p>执行上述指令，会出错，数据不能完成备份，原因是因为我们所指定的数据存放目录/root，MySQL认 为是不安全的，需要存储在MySQL信任的目录下。那么，哪个目录才是MySQL信任的目录呢，可以查看 一下系统变量 secure_file_priv 。执行结果如下:</p>
+<p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%AE%A1%E7%90%86/image-15.png"
+	width="694"
+	height="246"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%AE%A1%E7%90%86/image-15_hu_208120bda3dde097.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%AE%A1%E7%90%86/image-15_hu_a52610fbdff231f2.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="282"
+		data-flex-basis="677px"
+	
+></p>
+<ul>
+<li>mysql配置secure_file_priv</li>
+</ul>
+<p><strong>my.cnf:</strong></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">[mysqld]
+</span></span><span class="line"><span class="cl">...
+</span></span><span class="line"><span class="cl">secure_file_priv=/usr/backup/sql
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>重启mysql</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">systemctl restart mysqld
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>查看secure_file_priv</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-gdscript3" data-lang="gdscript3"><span class="line"><span class="cl"><span class="n">show</span> <span class="n">variables</span> <span class="n">like</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">ecure_file_priv%&#39;</span><span class="p">;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%AE%A1%E7%90%86/image-16.png"
+	width="690"
+	height="250"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%AE%A1%E7%90%86/image-16_hu_774caeb50498d89.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%AE%A1%E7%90%86/image-16_hu_50a1c183da84e96a.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="276"
+		data-flex-basis="662px"
+	
+></p>
+<ul>
+<li>将db01数据库的表的表结构与数据分开备份(-T)</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">mysqldump -uroot -p123456 -T /usr/backup/sql db01 score
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>报错</strong></p>
+<p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%AE%A1%E7%90%86/image-17.png"
+	width="1446"
+	height="138"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%AE%A1%E7%90%86/image-17_hu_2609a6cdc87d9931.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%AE%A1%E7%90%86/image-17_hu_ec4217656d0c4ab3.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="1047"
+		data-flex-basis="2514px"
+	
+></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">mysqldump: Got error: 1: Can&#39;t create/write to file &#39;/usr/backup/sql/score.txt&#39; (OS errno 13 - Permission denied) when executing &#39;SELECT INTO OUTFILE&#39;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>
+<p>原因：没有写入权限</p>
+</li>
+<li>
+<p>解决方法：添加权限</p>
+</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">chmod 777 /usr/backup/sql
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%AE%A1%E7%90%86/image-19.png"
+	width="650"
+	height="142"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%AE%A1%E7%90%86/image-19_hu_464319436a10afcd.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%AE%A1%E7%90%86/image-19_hu_850f8a1bc0c6186b.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="457"
+		data-flex-basis="1098px"
+	
+></p>
+<ul>
+<li>将db01数据库的表的表结构与数据分开备份(-T)</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">mysqldump -uroot -p123456 -T /usr/backup/sql db01 score
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%AE%A1%E7%90%86/image-18.png"
+	width="1190"
+	height="308"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%AE%A1%E7%90%86/image-18_hu_a0bdafd46e112878.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%AE%A1%E7%90%86/image-18_hu_9c8d8d5a173bf98c.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="386"
+		data-flex-basis="927px"
+	
+></p>
+<p>上述的两个文件 score.sql 中记录的就是表结构文件，而 score.txt 就是表数据文件，但是需 要注意表数据文件，并不是记录一条条的insert语句，而是按照一定的格式记录表结构中的数据。如下:</p>
+<p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%AE%A1%E7%90%86/image-20.png"
+	width="522"
+	height="194"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%AE%A1%E7%90%86/image-20_hu_bf745825bd65b6b2.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%AE%A1%E7%90%86/image-20_hu_d22ed51c1eb6baa2.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="269"
+		data-flex-basis="645px"
+	
+></p>
+<h3 id="mysqlimportsource">mysqlimport/source
+</h3><h4 id="source">source
+</h4><p>如果需要导入sql文件,可以使用mysql中的source 指令</p>
+<h5 id="语法-5">语法
+</h5><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">source xxx.sql
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h5 id="示例-5">示例
+</h5><ul>
+<li>导入score表结构</li>
+</ul>
+<p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%AE%A1%E7%90%86/image-21.png"
+	width="578"
+	height="1436"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%AE%A1%E7%90%86/image-21_hu_b1247bab285d01e2.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%AE%A1%E7%90%86/image-21_hu_297314cd9ab6daa7.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="40"
+		data-flex-basis="96px"
+	
+></p>
+<h4 id="mysqlimport">mysqlimport
+</h4><p>mysqlimport 是客户端数据导入工具，用来导入mysqldump 加 -T 参数后导出的文本文件(txt)。</p>
+<h5 id="语法-6">语法
+</h5><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">mysqlimport [options]  db_name  textfile1  [textfile2...]
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h5 id="示例-6">示例
+</h5><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">mysqlimport -uroot -p123456 test /usr/backup/sql/score.txt
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%AE%A1%E7%90%86/image-22.png"
+	width="1238"
+	height="150"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%AE%A1%E7%90%86/image-22_hu_1c784e3c9b9a0476.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%AE%A1%E7%90%86/image-22_hu_ba7b6a7ba76400c9.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="825"
+		data-flex-basis="1980px"
+	
+></p>
+<h2 id="生词">生词
+</h2><ul>
+<li>schema / ˈskiːmə / n、(计划或理论的)纲要，图解</li>
+<li>execute / ˈeksɪkjuːt / v、执行，实施；处决；完成</li>
+</ul>
+
+</section>
+
+
+    <footer class="article-footer">
+    
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+<aside class="related-content--wrapper">
+    <h2 class="section-title">相关文章</h2>
+    <div class="related-content">
+        <div class="flex article-list--tile">
+            
+                
+<article class="">
+    <a href="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[MySQL]MySQL进阶-InnoDB引擎</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E9%94%81/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[MySQL]MySQL进阶-锁</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/mysql%E8%BF%9B%E9%98%B6-%E8%A7%A6%E5%8F%91%E5%99%A8/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[MySQL]进阶-触发器</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E5%AD%98%E5%82%A8%E8%BF%87%E7%A8%8B/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[MySQL]MySQL进阶-存储过程</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E8%A7%86%E5%9B%BE/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[MySQL]MySQL进阶-视图</h2>
+        </div>
+    </a>
+</article>
+
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+        2025 リンボの個人ブログ
+    </section>
+    
+    <section class="powerby">
+         <br />
+        
+    </section>
+</footer>
+
+
+    
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+    
+    <div class="pswp__bg"></div>
+
+    
+    <div class="pswp__scroll-wrap">
+
+        
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+
+        
+        <div class="pswp__ui pswp__ui--hidden">
+
+            <div class="pswp__top-bar">
+
+                
+
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+
+                <button class="pswp__button pswp__button--share" title="Share"></button>
+
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+
+                
+                
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                        <div class="pswp__preloader__cut">
+                            <div class="pswp__preloader__donut"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div>
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.js"integrity="sha256-ePwmChbbvXbsO02lbM3HoHbSHTHFAeChekF1xKJdleo="crossorigin="anonymous"
+                defer
+                >
+            </script><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe-ui-default.min.js"integrity="sha256-UKkzOn/w1mBxRmLLGrSeyB4e1xbrp4xylgAWb3M42pU="crossorigin="anonymous"
+                defer
+                >
+            </script><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/default-skin/default-skin.min.css"crossorigin="anonymous"
+            ><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.css"crossorigin="anonymous"
+            >
+
+            </main>
+        </div>
+        <script 
+                src="https://cdn.jsdelivr.net/npm/node-vibrant@3.1.6/dist/vibrant.min.js"integrity="sha256-awcR2jno4kI5X0zL8ex0vi2z&#43;KMkF24hUW8WePSA9HM="crossorigin="anonymous"
+                
+                >
+            </script><script type="text/javascript" src="/ts/main.1e9a3bafd846ced4c345d084b355fb8c7bae75701c338f8a1f8a82c780137826.js" defer></script>
+<script>
+    (function () {
+        const customFont = document.createElement('link');
+        customFont.href = "https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap";
+
+        customFont.type = "text/css";
+        customFont.rel = "stylesheet";
+
+        document.head.appendChild(customFont);
+    }());
+</script>
+
+    </body>
+</html>

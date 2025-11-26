@@ -1,0 +1,1837 @@
+<!DOCTYPE html>
+<html lang="zh-cn" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="MySQL进阶-InnoDB引擎 逻辑存储结构 InnoDB的逻辑存储结构如下图所示:\n表空间 表空间是InnoDB存储引擎逻辑结构的最高层， 如果用户启用了参数innodb_file_per_table(在 8.0版本中默认开启) ，则每张表都会有一个表空间(xxx.ibd)，一个mysql实例可以对应多个表空 间，用于存储记录、索引等数据。\n">
+<title>[MySQL]MySQL进阶-InnoDB引擎</title>
+
+<link rel='canonical' href='https://YLine-hub.github.io/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/'>
+
+<link rel="stylesheet" href="/scss/style.min.6a692fd055deae459f2a9767f57f3855ba80cafd5041317f24f7360f6ca47cdf.css"><meta property='og:title' content="[MySQL]MySQL进阶-InnoDB引擎">
+<meta property='og:description' content="MySQL进阶-InnoDB引擎 逻辑存储结构 InnoDB的逻辑存储结构如下图所示:\n表空间 表空间是InnoDB存储引擎逻辑结构的最高层， 如果用户启用了参数innodb_file_per_table(在 8.0版本中默认开启) ，则每张表都会有一个表空间(xxx.ibd)，一个mysql实例可以对应多个表空 间，用于存储记录、索引等数据。\n">
+<meta property='og:url' content='https://YLine-hub.github.io/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/'>
+<meta property='og:site_name' content='リンボの個人ブログ'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:published_time' content='2025-11-25T17:08:38&#43;08:00'/><meta property='article:modified_time' content='2025-11-25T17:08:38&#43;08:00'/>
+<meta name="twitter:title" content="[MySQL]MySQL进阶-InnoDB引擎">
+<meta name="twitter:description" content="MySQL进阶-InnoDB引擎 逻辑存储结构 InnoDB的逻辑存储结构如下图所示:\n表空间 表空间是InnoDB存储引擎逻辑结构的最高层， 如果用户启用了参数innodb_file_per_table(在 8.0版本中默认开启) ，则每张表都会有一个表空间(xxx.ibd)，一个mysql实例可以对应多个表空 间，用于存储记录、索引等数据。\n">
+    <link rel="shortcut icon" href="/favicon.ico" />
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        
+            
+            <figure class="site-avatar">
+                <a href="/">
+                
+                    
+                    
+                    
+                        
+                        <img src="/img/avatar_hu_7f398a7818085507.png" width="300"
+                            height="300" class="site-logo" loading="lazy" alt="Avatar">
+                    
+                
+                </a>
+                
+                    <span class="emoji">🏖️</span>
+                
+            </figure>
+            
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">リンボの個人ブログ</a></h1>
+            <h2 class="site-description">努力不一定能获得回报，但不努力一定不会有回报。</h2>
+        </div>
+    </header><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-home" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <polyline points="5 12 3 12 12 3 21 12 19 12" />
+  <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7" />
+  <path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6" />
+</svg>
+
+
+
+                
+                <span>主页</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/%E5%85%B3%E4%BA%8E/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/archives/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/search/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-search" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="10" cy="10" r="7" />
+  <line x1="21" y1="21" x2="15" y2="15" />
+</svg>
+
+
+
+                
+                <span>搜索</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav id="TableOfContents">
+  <ol>
+    <li><a href="#逻辑存储结构">逻辑存储结构</a>
+      <ol>
+        <li><a href="#表空间">表空间</a></li>
+        <li><a href="#段">段</a></li>
+        <li><a href="#区">区</a></li>
+        <li><a href="#页">页</a></li>
+        <li><a href="#行">行</a></li>
+      </ol>
+    </li>
+    <li><a href="#架构">架构</a>
+      <ol>
+        <li><a href="#概述">概述</a></li>
+        <li><a href="#内存结构">内存结构</a>
+          <ol>
+            <li><a href="#buffer-pool">Buffer Pool</a></li>
+            <li><a href="#change-buffer">Change Buffer</a></li>
+            <li><a href="#adaptive-hash-index">Adaptive Hash Index</a></li>
+            <li><a href="#log-buffer">Log Buffer</a></li>
+          </ol>
+        </li>
+        <li><a href="#磁盘结构">磁盘结构</a>
+          <ol>
+            <li><a href="#system-tablespace">System Tablespace</a></li>
+            <li><a href="#file-per-table-tablespaces">File-Per-Table Tablespaces</a></li>
+            <li><a href="#general-tablespaces">General Tablespaces</a></li>
+            <li><a href="#undo-tablespaces">Undo Tablespaces</a></li>
+            <li><a href="#temporary-tablespaces">Temporary Tablespaces</a></li>
+            <li><a href="#doublewrite-buffer-files">Doublewrite Buffer Files</a></li>
+            <li><a href="#redo-log">Redo Log</a></li>
+          </ol>
+        </li>
+        <li><a href="#后台线程">后台线程</a>
+          <ol>
+            <li><a href="#master-thread">Master Thread</a></li>
+            <li><a href="#io-thread">IO Thread</a></li>
+            <li><a href="#purge-thread">Purge Thread</a></li>
+            <li><a href="#page-cleaner-thread">Page Cleaner Thread</a></li>
+          </ol>
+        </li>
+      </ol>
+    </li>
+    <li><a href="#事务原理">事务原理</a>
+      <ol>
+        <li><a href="#事务基础">事务基础</a>
+          <ol>
+            <li><a href="#事务">事务</a></li>
+            <li><a href="#特性">特性</a></li>
+          </ol>
+        </li>
+        <li><a href="#redo-log-1">redo log</a></li>
+        <li><a href="#undo-log">undo log</a></li>
+      </ol>
+    </li>
+    <li><a href="#mvcc">MVCC</a>
+      <ol>
+        <li><a href="#基本概念">基本概念</a>
+          <ol>
+            <li><a href="#当前读">当前读</a></li>
+            <li><a href="#快照读">快照读</a></li>
+            <li><a href="#mvcc-1">MVCC</a></li>
+          </ol>
+        </li>
+        <li><a href="#隐藏字段">隐藏字段</a>
+          <ol>
+            <li><a href="#介绍">介绍</a></li>
+            <li><a href="#测试-2">测试</a></li>
+          </ol>
+        </li>
+        <li><a href="#undo-log-1">undo log</a>
+          <ol>
+            <li><a href="#介绍-1">介绍</a></li>
+            <li><a href="#版本链">版本链</a></li>
+          </ol>
+        </li>
+        <li><a href="#readview">readview</a></li>
+        <li><a href="#原理分析">原理分析</a>
+          <ol>
+            <li><a href="#rc隔离级别">RC隔离级别</a></li>
+            <li><a href="#rr隔离级别">RR隔离级别</a></li>
+          </ol>
+        </li>
+      </ol>
+    </li>
+  </ol>
+</nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            <a href="/categories/mysql/" >
+                MySQL
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/">[MySQL]MySQL进阶-InnoDB引擎</a>
+        </h2>
+    
+        
+    </div>
+
+    
+    
+    
+    
+    <footer class="article-time">
+        
+            <div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                <time class="article-time--published">2025-11-25</time>
+            </div>
+        
+
+        
+    </footer>
+    
+
+    
+</div>
+
+</header>
+
+    <section class="article-content">
+    
+    
+    <h1 id="mysql进阶-innodb引擎">MySQL进阶-InnoDB引擎
+</h1><h2 id="逻辑存储结构">逻辑存储结构
+</h2><p>InnoDB的逻辑存储结构如下图所示:</p>
+<p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image.png"
+	width="884"
+	height="450"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image_hu_20544b17f4227979.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image_hu_66d72f9e622c12c7.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="196"
+		data-flex-basis="471px"
+	
+></p>
+<h3 id="表空间">表空间
+</h3><blockquote>
+<p>表空间是InnoDB存储引擎逻辑结构的最高层， 如果用户启用了参数innodb_file_per_table(在 8.0版本中默认开启) ，则每张表都会有一个表空间(xxx.ibd)，一个mysql实例可以对应多个表空 间，用于存储记录、索引等数据。</p>
+</blockquote>
+<h3 id="段">段
+</h3><blockquote>
+<p>段，分为数据段(Leaf node segment)、索引段(Non-leaf node segment)、回滚段 (Rollback segment)，InnoDB是索引组织表，数据段就是B+树的叶子节点， 索引段即为B+树的 非叶子节点。段用来管理多个Extent(区)。</p>
+</blockquote>
+<h3 id="区">区
+</h3><blockquote>
+<p>区，表空间的单元结构，每个区的大小为1M。 默认情况下， InnoDB存储引擎页大小为16K， 即一个区中一共有64个连续的页。</p>
+</blockquote>
+<h3 id="页">页
+</h3><blockquote>
+<p>页，是InnoDB 存储引擎磁盘管理的最小单元，每个页的大小默认为 16KB。为了保证页的连续性， InnoDB 存储引擎每次从磁盘申请 4-5 个区。</p>
+</blockquote>
+<h3 id="行">行
+</h3><blockquote>
+<p>行，InnoDB 存储引擎数据是按行进行存放的。 在行中，默认有两个隐藏字段:</p>
+<ul>
+<li>Trx_id:每次对某条记录进行改动时，都会把对应的事务id赋值给trx_id隐藏列。</li>
+<li>Roll_pointer:每次对某条引记录进行改动时，都会把旧的版本写入到undo日志中，然后这个 隐藏列就相当于一个指针，可以通过它来找到该记录修改前的信息。</li>
+</ul>
+</blockquote>
+<h2 id="架构">架构
+</h2><h3 id="概述">概述
+</h3><p>MySQL5.5 版本开始，默认使用InnoDB存储引擎，它擅长事务处理，具有崩溃恢复特性，在日常开发 中使用非常广泛。下面是InnoDB架构图，左侧为内存结构，右侧为磁盘结构。</p>
+<p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-1.png"
+	width="884"
+	height="630"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-1_hu_c542661e0eddab52.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-1_hu_910cc12e0f6a724f.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="140"
+		data-flex-basis="336px"
+	
+></p>
+<h3 id="内存结构">内存结构
+</h3><p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-2.png"
+	width="298"
+	height="662"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-2_hu_5ffc7c8c79926d2f.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-2_hu_d3e00ef7ed445751.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="45"
+		data-flex-basis="108px"
+	
+></p>
+<p>在左侧的内存结构中，主要分为这么四大块儿: Buffer Pool、Change Buffer、Adaptive Hash Index、Log Buffer。 接下来介绍一下这四个部分。</p>
+<h4 id="buffer-pool">Buffer Pool
+</h4><p>InnoDB存储引擎基于磁盘文件存储，访问物理硬盘和在内存中进行访问，速度相差很大，为了尽可能 弥补这两者之间的I/O效率的差值，就需要把经常使用的数据加载到缓冲池中，避免每次访问都进行磁 盘I/O。</p>
+<p>在InnoDB的缓冲池中不仅缓存了索引页和数据页，还包含了undo页、插入缓存、自适应哈希索引以及 InnoDB的锁信息等等。</p>
+<p>缓冲池 Buffer Pool，是主内存中的一个区域，里面可以缓存磁盘上经常操作的真实数据，在执行增 删改查操作时，先操作缓冲池中的数据(若缓冲池没有数据，则从磁盘加载并缓存)，然后再以一定频 率刷新到磁盘，从而减少磁盘IO，加快处理速度。</p>
+<p>缓冲池以Page页为单位，底层采用链表数据结构管理Page。根据状态，将Page分为三种类型:</p>
+<ul>
+<li>free page:空闲page，未被使用。</li>
+<li>clean page:被使用page，数据没有被修改过。</li>
+<li>dirty page:脏页，被使用page，数据被修改过，也中数据与磁盘的数据产生了不一致。</li>
+</ul>
+<p>在专用服务器上，通常将多达80%的物理内存分配给缓冲池 。
+参数设置:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-gdscript3" data-lang="gdscript3"><span class="line"><span class="cl"><span class="n">show</span> <span class="n">variables</span> <span class="n">like</span> <span class="s1">&#39;innodb_buffer_pool_size&#39;</span><span class="p">;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-3.png"
+	width="770"
+	height="240"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-3_hu_47a97906bdef643c.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-3_hu_8821d9683175c211.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="320"
+		data-flex-basis="770px"
+	
+></p>
+<h4 id="change-buffer">Change Buffer
+</h4><p>Change Buffer，更改缓冲区(针对于非唯一二级索引页)，在执行DML语句时，如果这些数据Page 没有在Buffer Pool中，不会直接操作磁盘，而会将数据变更存在更改缓冲区 Change Buffer 中，在未来数据被读取时，再将数据合并恢复到Buffer Pool中，再将合并后的数据刷新到磁盘中。</p>
+<p><strong>Change Buffer的意义是什么呢?</strong></p>
+<p>先来看一幅图，这个是二级索引的结构图:</p>
+<p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-4.png"
+	width="884"
+	height="344"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-4_hu_d87563a203c58e05.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-4_hu_ccd384eef7a7a623.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="256"
+		data-flex-basis="616px"
+	
+></p>
+<p>与聚集索引不同，二级索引通常是非唯一的，并且以相对随机的顺序插入二级索引。同样，删除和更新 可能会影响索引树中不相邻的二级索引页，如果每一次都操作磁盘，会造成大量的磁盘IO。有了 ChangeBuffer之后，我们可以在缓冲池中进行合并处理，减少磁盘IO。</p>
+<h4 id="adaptive-hash-index">Adaptive Hash Index
+</h4><p>自适应hash索引，用于优化对Buffer Pool数据的查询。MySQL的innoDB引擎中虽然没有直接支持 hash索引，但是给我们提供了一个功能就是这个自适应hash索引。因为前面我们讲到过，hash索引在 进行等值匹配时，一般性能是要高于B+树的，因为hash索引一般只需要一次IO即可，而B+树，可能需 要几次匹配，所以hash索引的效率要高，但是hash索引又不适合做范围查询、模糊匹配等。</p>
+<p>InnoDB存储引擎会监控对表上各索引页的查询，如果观察到在特定的条件下hash索引可以提升速度， 则建立hash索引，称之为自适应hash索引。</p>
+<p><strong>自适应哈希索引，无需人工干预，是系统根据情况自动完成。</strong></p>
+<p>参数: adaptive_hash_index</p>
+<h4 id="log-buffer">Log Buffer
+</h4><p>Log Buffer:日志缓冲区，用来保存要写入到磁盘中的log日志数据(redo log 、undo log)， 默认大小为 16MB，日志缓冲区的日志会定期刷新到磁盘中。如果需要更新、插入或删除许多行的事 务，增加日志缓冲区的大小可以节省磁盘 I/O。</p>
+<p>参数:</p>
+<ul>
+<li><code>innodb_log_buffer_size</code>:缓冲区大小</li>
+<li><code>innodb_flush_log_at_trx_commit</code>:日志刷新到磁盘时机，取值主要包含以下三个:
+<ul>
+<li>1：日志在每次事务提交时写入并刷新到磁盘，默认值。</li>
+<li>2：每秒将日志写入并刷新到磁盘一次。</li>
+<li>3：日志在每次事务提交后写入，并每秒刷新到磁盘一次。</li>
+</ul>
+</li>
+</ul>
+<p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-5.png"
+	width="754"
+	height="244"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-5_hu_b1b06360ba8ae193.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-5_hu_eb46e68371a675db.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="309"
+		data-flex-basis="741px"
+	
+></p>
+<p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-6.png"
+	width="858"
+	height="256"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-6_hu_6f3d2620bb839baf.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-6_hu_4626752c42070abc.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="335"
+		data-flex-basis="804px"
+	
+></p>
+<h3 id="磁盘结构">磁盘结构
+</h3><p>接下来，再来看看InnoDB体系结构的右边部分，也就是磁盘结构:</p>
+<p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-7.png"
+	width="542"
+	height="660"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-7_hu_472b8116db052ad7.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-7_hu_4ef7b6342819a71d.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="82"
+		data-flex-basis="197px"
+	
+></p>
+<h4 id="system-tablespace">System Tablespace
+</h4><p>系统表空间是更改缓冲区的存储区域。如果表是在系统表空间而不是每个表文件或通用表空间中创建 的，它也可能包含表和索引数据。(在MySQL5.x版本中还包含InnoDB数据字典、undolog等)</p>
+<p>参数:<code>innodb_data_file_path</code></p>
+<p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-8.png"
+	width="740"
+	height="248"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-8_hu_7df43f8dbd2c8218.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-8_hu_e7b259d4541f4ee6.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="298"
+		data-flex-basis="716px"
+	
+></p>
+<p>系统表空间，默认的文件名叫 ibdata1。</p>
+<h4 id="file-per-table-tablespaces">File-Per-Table Tablespaces
+</h4><p>如果开启了innodb_file_per_table开关 ，则每个表的文件表空间包含单个InnoDB表的数据和索引 ，并存储在文件系统上的单个数据文件中。</p>
+<p>开关参数:<code>innodb_file_per_table</code> ，该参数默认开启。</p>
+<p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-9.png"
+	width="734"
+	height="244"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-9_hu_e6da632704ba5446.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-9_hu_218a20b153342b8.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="300"
+		data-flex-basis="721px"
+	
+></p>
+<p>那也就是说，我们每创建一个表，都会产生一个表空间文件，如图:</p>
+<p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-10.png"
+	width="918"
+	height="236"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-10_hu_1cf275488281d3b1.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-10_hu_912ccdde38d534fb.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="388"
+		data-flex-basis="933px"
+	
+></p>
+<h4 id="general-tablespaces">General Tablespaces
+</h4><p>通用表空间，需要通过 CREATE TABLESPACE 语法创建通用表空间，在创建表时，可以指定该表空间。</p>
+<ul>
+<li>创建表空间</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-sql" data-lang="sql"><span class="line"><span class="cl"><span class="k">CREATE</span><span class="w"> </span><span class="n">TABLESPACE</span><span class="w"> </span><span class="n">ts_name</span><span class="w"> </span><span class="k">ADD</span><span class="w"> </span><span class="n">DATAFILE</span><span class="w"> </span><span class="s1">&#39;file_name&#39;</span><span class="w"> </span><span class="n">ENGINE</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">engine_name</span><span class="p">;</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>创建表时指定表空间</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-sql" data-lang="sql"><span class="line"><span class="cl"><span class="k">CREATE</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">xxx</span><span class="w"> </span><span class="p">...</span><span class="w"> </span><span class="n">TABLESPACE</span><span class="w"> </span><span class="n">ts_name</span><span class="p">;</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><h5 id="演示">演示
+</h5><ul>
+<li>创建表空间</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">create tablespace ts_yline ADD datafile &#39;yline.ibd&#39; ENGINE = innodb;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-35.png"
+	width="1072"
+	height="84"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-35_hu_42be5123d5f1b42d.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-35_hu_ddc421f1de4fdfc2.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="1276"
+		data-flex-basis="3062px"
+	
+></p>
+<p>通用表空间文件会出现在 /usr/local/mysql/data 目录下</p>
+<p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-38.png"
+	width="1140"
+	height="1580"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-38_hu_a150a4a604718154.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-38_hu_6841a80d346842d7.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="72"
+		data-flex-basis="173px"
+	
+></p>
+<ul>
+<li>创建表a时，指定表空间(需要指定数据库)</li>
+</ul>
+<p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-36.png"
+	width="1544"
+	height="70"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-36_hu_acba9a5da8f3497f.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-36_hu_1a9f20ea1c309727.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="2205"
+		data-flex-basis="5293px"
+	
+></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-sql" data-lang="sql"><span class="line"><span class="cl"><span class="c1">-- 使用数据库itfox
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="n">use</span><span class="w"> </span><span class="n">itfox</span><span class="p">;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="c1">-- 创建表a，指定表空间
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">create</span><span class="w"> </span><span class="k">table</span><span class="w"> </span><span class="n">a</span><span class="p">(</span><span class="n">id</span><span class="w"> </span><span class="nb">int</span><span class="w"> </span><span class="k">primary</span><span class="w"> </span><span class="k">key</span><span class="w"> </span><span class="n">auto_increment</span><span class="p">,</span><span class="w"> </span><span class="n">name</span><span class="w"> </span><span class="nb">varchar</span><span class="p">(</span><span class="mi">10</span><span class="p">))</span><span class="w"> </span><span class="n">engine</span><span class="o">=</span><span class="n">innodb</span><span class="w"> </span><span class="n">tablespace</span><span class="w"> </span><span class="n">ts_yline</span><span class="p">;</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-37.png"
+	width="1546"
+	height="144"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-37_hu_2d8c0ec0516146a0.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-37_hu_5768656fa344a4c3.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="1073"
+		data-flex-basis="2576px"
+	
+></p>
+<h4 id="undo-tablespaces">Undo Tablespaces
+</h4><p>撤销表空间，MySQL实例在初始化时会自动创建两个默认的undo表空间(初始大小16M)，用于存储undo log日志。</p>
+<h4 id="temporary-tablespaces">Temporary Tablespaces
+</h4><p>InnoDB 使用会话临时表空间和全局临时表空间。存储用户创建的临时表等数据。</p>
+<h4 id="doublewrite-buffer-files">Doublewrite Buffer Files
+</h4><p>双写缓冲区，innoDB引擎将数据页从Buffer Pool刷新到磁盘前，先将数据页写入双写缓冲区文件 中，便于系统异常时恢复数据。</p>
+<p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-13.png"
+	width="976"
+	height="66"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-13_hu_a34f9006ff6b3538.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-13_hu_d4e938f191f1e106.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="1478"
+		data-flex-basis="3549px"
+	
+></p>
+<h4 id="redo-log">Redo Log
+</h4><p>重做日志，是用来实现事务的持久性。该日志文件由两部分组成:重做日志缓冲(redo log buffer)以及重做日志文件(redo log),前者是在内存中，后者在磁盘中。当事务提交之后会把所 有修改信息都会存到该日志中, 用于在刷新脏页到磁盘时,发生错误时, 进行数据恢复使用。</p>
+<p>以循环方式写入重做日志文件，涉及两个文件:</p>
+<p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-14.png"
+	width="212"
+	height="68"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-14_hu_bbc59aa14aef731.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-14_hu_7118b4c457d5e352.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="311"
+		data-flex-basis="748px"
+	
+></p>
+<blockquote>
+<p>注：MySQL8.0.30之后重做日志文件不同。</p>
+</blockquote>
+<p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-15.png"
+	width="902"
+	height="1156"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-15_hu_fede1fb9b2d045bb.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-15_hu_4db47e27fb5c9b4f.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="78"
+		data-flex-basis="187px"
+	
+></p>
+<ul>
+<li>查询显示活动重做日志文件的START_LSN和END_LSN值</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-sql" data-lang="sql"><span class="line"><span class="cl"><span class="k">SELECT</span><span class="w"> </span><span class="n">FILE_NAME</span><span class="p">,</span><span class="w"> </span><span class="n">START_LSN</span><span class="p">,</span><span class="w"> </span><span class="n">END_LSN</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">performance_schema</span><span class="p">.</span><span class="n">innodb_redo_log_files</span><span class="p">;</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-16.png"
+	width="1274"
+	height="250"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-16_hu_8bdda3d9884fbf50.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-16_hu_da85af9a6203503.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="509"
+		data-flex-basis="1223px"
+	
+></p>
+<p>前面我们介绍了InnoDB的内存结构，以及磁盘结构，那么内存中我们所更新的数据，又是如何到磁盘 中的呢? 此时，就涉及到一组后台线程，接下来，就来介绍一些InnoDB中涉及到的后台线程。</p>
+<p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-17.png"
+	width="884"
+	height="616"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-17_hu_51386aed9cfe3c48.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-17_hu_9cd7eda560463fe0.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="143"
+		data-flex-basis="344px"
+	
+></p>
+<h3 id="后台线程">后台线程
+</h3><p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-18.png"
+	width="692"
+	height="622"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-18_hu_8cb507a4ba295c44.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-18_hu_e6c2c50a1d2825ce.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="111"
+		data-flex-basis="267px"
+	
+></p>
+<p>在InnoDB的后台线程中，分为4类，分别是:Master Thread 、IO Thread、Purge Thread、 Page Cleaner Thread。</p>
+<h4 id="master-thread">Master Thread
+</h4><p>核心后台线程，负责调度其他线程，还负责将缓冲池中的数据异步刷新到磁盘中, 保持数据的一致性，还包括脏页的刷新、合并插入缓存、undo页的回收 。</p>
+<h4 id="io-thread">IO Thread
+</h4><p>在InnoDB存储引擎中大量使用了AIO来处理IO请求, 这样可以极大地提高数据库的性能，而IO Thread主要负责这些IO请求的回调。</p>
+<div class="table-wrapper"><table>
+  <thead>
+      <tr>
+          <th>线程类型</th>
+          <th>默认个数</th>
+          <th>职责</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>Read thread</td>
+          <td>4</td>
+          <td>负责读操作</td>
+      </tr>
+      <tr>
+          <td>Write thread</td>
+          <td>4</td>
+          <td>负责写操作</td>
+      </tr>
+      <tr>
+          <td>Log thread</td>
+          <td>1</td>
+          <td>负责将日志缓冲区刷新到磁盘</td>
+      </tr>
+      <tr>
+          <td>Insert buffer thread</td>
+          <td>1</td>
+          <td>负责将缓冲区内容刷新到磁盘</td>
+      </tr>
+  </tbody>
+</table></div>
+<p>我们可以通过以下的这条指令，查看到InnoDB的状态信息，其中就包含IO Thread信息。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-sql" data-lang="sql"><span class="line"><span class="cl"><span class="k">show</span><span class="w"> </span><span class="n">engine</span><span class="w"> </span><span class="n">innodb</span><span class="w"> </span><span class="n">status</span><span class="w"> </span><span class="err">\</span><span class="k">G</span><span class="p">;</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-19.png"
+	width="1364"
+	height="1528"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-19_hu_271ea0898827e282.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-19_hu_9472170b956471d1.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="89"
+		data-flex-basis="214px"
+	
+></p>
+<h4 id="purge-thread">Purge Thread
+</h4><p>主要用于回收事务已经提交了的undo log，在事务提交之后，undo log可能不用了，就用它来回收。</p>
+<h4 id="page-cleaner-thread">Page Cleaner Thread
+</h4><p>协助 Master Thread 刷新脏页到磁盘的线程，它可以减轻 Master Thread 的工作压力，减少阻塞。</p>
+<h2 id="事务原理">事务原理
+</h2><h3 id="事务基础">事务基础
+</h3><h4 id="事务">事务
+</h4><p>事务 是一组操作的集合，它是一个不可分割的工作单位，事务会把所有的操作作为一个整体一起向系 统提交或撤销操作请求，即这些操作要么同时成功，要么同时失败。</p>
+<h4 id="特性">特性
+</h4><ul>
+<li>原子性(Atomicity):事务是不可分割的最小操作单元，要么全部成功，要么全部失败。</li>
+<li>一致性(Consistency):事务完成时，必须使所有的数据都保持一致状态。</li>
+<li>隔离性(Isolation):数据库系统提供的隔离机制，保证事务在不受外部并发操作影响的独立环 境下运行。</li>
+<li>持久性(Durability):事务一旦提交或回滚，它对数据库中的数据的改变就是永久的。</li>
+</ul>
+<p>那实际上，我们研究事务的原理，就是研究MySQL的InnoDB引擎是如何保证事务的这四大特性的。</p>
+<p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-20.png"
+	width="884"
+	height="138"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-20_hu_2f316bf16c145ecb.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-20_hu_8da88450e361f435.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="640"
+		data-flex-basis="1537px"
+	
+></p>
+<p>而对于这四大特性，实际上分为两个部分。 其中的原子性、一致性、持久化，实际上是由InnoDB中的 两份日志来保证的，一份是redo log日志，一份是undo log日志。 而持久性是通过数据库的锁， 加上MVCC来保证的。</p>
+<p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-21.png"
+	width="884"
+	height="318"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-21_hu_79d081311f6b2e99.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-21_hu_edd07e0afce4a37a.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="277"
+		data-flex-basis="667px"
+	
+></p>
+<p>我们在讲解事务原理的时候，主要就是来研究一下redolog，undolog以及MVCC。</p>
+<h3 id="redo-log-1">redo log
+</h3><p>重做日志，记录的是事务提交时数据页的物理修改，是用来实现事务的持久性。</p>
+<p>该日志文件由两部分组成:<code>重做日志缓冲(redo log buffer)</code>以及<code>重做日志文件(redo log file)</code>,前者是在内存中，后者在磁盘中。当事务提交之后会把所有修改信息都存到该日志文件中, 用 于在刷新脏页到磁盘,发生错误时, 进行数据恢复使用。</p>
+<p>如果没有redo log，可能会存在什么问题的? 我们一起来分析一下。</p>
+<p>我们知道，在InnoDB引擎中的内存结构中，主要的内存区域就是缓冲池，在缓冲池中缓存了很多的数据页。 当我们在一个事务中，执行多个增删改的操作时，InnoDB引擎会先操作缓冲池中的数据，如果 缓冲区没有对应的数据，会通过后台线程将磁盘中的数据加载出来，存放在缓冲区中，然后将缓冲池中 的数据修改，修改后的数据页我们称为脏页。 而脏页则会在一定的时机，通过后台线程刷新到磁盘 中，从而保证缓冲区与磁盘的数据一致。 而缓冲区的脏页数据并不是实时刷新的，而是一段时间之后 将缓冲区的数据刷新到磁盘中，假如刷新到磁盘的过程出错了，而提示给用户事务提交成功，而数据却 没有持久化下来，这就出现问题了，没有保证事务的持久性。</p>
+<p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-22.png"
+	width="884"
+	height="336"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-22_hu_ba9bcbd3515e92e1.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-22_hu_d85eba76c74f6821.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="263"
+		data-flex-basis="631px"
+	
+></p>
+<p>那么，如何解决上述的问题呢? 在InnoDB中提供了一份日志 redo log，接下来我们再来分析一下，通过redolog如何解决这个问题。</p>
+<p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-23.png"
+	width="884"
+	height="332"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-23_hu_8da99c556dcaa9c9.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-23_hu_3ecd54a0b54af4c0.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="266"
+		data-flex-basis="639px"
+	
+></p>
+<p>有了redo log之后，当对缓冲区的数据进行增删改之后，会首先将操作的数据页的变化，记录在redo log buffer中。在事务提交时，会将redo log buffer中的数据刷新到redo log磁盘文件中。 过一段时间之后，如果刷新缓冲区的脏页到磁盘时，发生错误，此时就可以借助于redo log进行数据 恢复，这样就保证了事务的持久性。 而如果脏页成功刷新到磁盘 或 或者涉及到的数据已经落盘，此 时redolog就没有作用了，就可以删除了，所以存在的两个redolog文件是循环写的。</p>
+<p><strong>那为什么每一次提交事务，要刷新redo log到磁盘中呢，而不是直接将buffer pool中的脏页刷新到磁盘呢 ?</strong></p>
+<p>因为在业务操作中，我们操作数据一般都是随机读写磁盘的，而不是顺序读写磁盘。 而redo log在 往磁盘文件中写入数据，由于是日志文件，所以都是顺序写的。顺序写的效率，要远大于随机写。 这 种先写日志的方式，称之为 WAL(Write-Ahead Logging)。</p>
+<h3 id="undo-log">undo log
+</h3><p>回滚日志，用于记录数据被修改前的信息 , 作用包含两个 : 提供回滚(保证事务的原子性) 和 MVCC(多版本并发控制) 。</p>
+<p>undo log和redo log记录物理日志不一样，它是逻辑日志。可以认为当delete一条记录时，undo log中会记录一条对应的insert记录，反之亦然，当update一条记录时，它记录一条对应相反的 update记录。当执行rollback时，就可以从undo log中的逻辑记录读取到相应的内容并进行回滚。</p>
+<p>Undo log销毁:undo log在事务执行时产生，事务提交时，并不会立即删除undo log，因为这些 日志可能还用于MVCC。</p>
+<p>Undo log存储:undo log采用段的方式进行管理和记录，存放在前面介绍的 rollback segment 回滚段中，内部包含1024个undo log segment。</p>
+<h2 id="mvcc">MVCC
+</h2><h3 id="基本概念">基本概念
+</h3><h4 id="当前读">当前读
+</h4><p>读取的是记录的最新版本，读取时还要保证其他并发事务不能修改当前记录，会对读取的记录进行加 锁。对于我们日常的操作，如:select &hellip; lock in share mode(共享锁)，select &hellip; for update、update、insert、delete(排他锁)都是一种当前读。</p>
+<h5 id="测试">测试
+</h5><p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-24.png"
+	width="2880"
+	height="1182"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-24_hu_6866b4fc3ef6237e.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-24_hu_4d636a50e1f45bd6.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="243"
+		data-flex-basis="584px"
+	
+></p>
+<p>在测试中我们可以看到，即使是在默认的RR隔离级别下，事务A中依然可以读取到事务B最新提交的内 容，因为在查询语句后面加上了 lock in share mode 共享锁，此时是当前读操作。当然，当我们 加排他锁的时候，也是当前读操作。</p>
+<h4 id="快照读">快照读
+</h4><p>简单的select(不加锁)就是快照读，快照读，读取的是记录数据的可见版本，有可能是历史数据，
+不加锁，是非阻塞读。</p>
+<ul>
+<li>Read Committed:每次select，都生成一个快照读。</li>
+<li>Repeatable Read:开启事务后第一个select语句才是快照读的地方。</li>
+<li>Serializable:快照读会退化为当前读。</li>
+</ul>
+<h5 id="测试-1">测试
+</h5><p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-25.png"
+	width="2880"
+	height="1236"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-25_hu_8b3ac19ea5781b7b.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-25_hu_fcbfb665bb613c9e.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="233"
+		data-flex-basis="559px"
+	
+></p>
+<p>在测试中,我们看到即使事务B提交了数据,事务A中也查询不到。 原因就是因为普通的select是快照 读，而在当前默认的RR隔离级别下，开启事务后第一个select语句才是快照读的地方，后面执行相同 的select语句都是从快照中获取数据，可能不是当前的最新数据，这样也就保证了可重复读。</p>
+<h4 id="mvcc-1">MVCC
+</h4><blockquote>
+<p>全称 Multi-Version Concurrency Control，多版本并发控制。指维护一个数据的多个版本， 使得读写操作没有冲突，快照读为MySQL实现MVCC提供了一个非阻塞读功能。MVCC的具体实现，还需 要依赖于数据库记录中的三个隐式字段、undo log日志、readView。</p>
+</blockquote>
+<p>接下来，我们再来介绍一下InnoDB引擎的表中涉及到的隐藏字段 、undolog 以及 readview，从 而来介绍一下MVCC的原理。</p>
+<h3 id="隐藏字段">隐藏字段
+</h3><h4 id="介绍">介绍
+</h4><p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-26.png"
+	width="242"
+	height="132"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-26_hu_e3529c793e50ee3f.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-26_hu_32ef27e4c26f45da.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="183"
+		data-flex-basis="440px"
+	
+></p>
+<p>当我们创建了上面的这张表，我们在查看表结构的时候，就可以显式的看到这三个字段。 实际上除了 这三个字段以外，InnoDB还会自动的给我们添加三个隐藏字段及其含义分别是:</p>
+<div class="table-wrapper"><table>
+  <thead>
+      <tr>
+          <th>隐藏字段</th>
+          <th>含义</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>DB_TRX_ID</td>
+          <td>最近修改事务ID，记录插入这条记录或最后一次修改该记录的事务ID</td>
+      </tr>
+      <tr>
+          <td>DB_ROLL_PTR</td>
+          <td>回滚指针，指向这条记录的上一个版本，用于配合undo log，指向上一个版本。</td>
+      </tr>
+      <tr>
+          <td>DB_ROW_ID</td>
+          <td>隐藏主键，如果表结构没有指定主键，将会生成该隐藏字段</td>
+      </tr>
+  </tbody>
+</table></div>
+<p>而上述的前两个字段是肯定会添加的， 是否添加最后一个字段DB_ROW_ID，得看当前表有没有主键，如果有主键，则不会添加该隐藏字段。</p>
+<h4 id="测试-2">测试
+</h4><h5 id="查看有主键的表stu">查看有主键的表stu
+</h5><p>进入服务器中的 /usr/local/mysql/data/db01/ ，查看stu的表结构信息，通过如下指令：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">ibd2sdi stu.ibd
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>查看到的表结构信息中，有一栏 columns，在其中我们会看到处理我们建表时指定的字段以外，还有 额外的两个字段 分别是:DB_TRX_ID 、 DB_ROLL_PTR ，因为该表有主键，所以没有DB_ROW_ID 隐藏字段。</p>
+<p><strong>若没有ibdsdi命令</strong></p>
+<p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-27.png"
+	width="572"
+	height="64"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-27_hu_8da0053c33a48f87.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-27_hu_c17230f3666a602b.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="893"
+		data-flex-basis="2145px"
+	
+></p>
+<ul>
+<li>设置ibdsdi的软链接</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">ln -fs /usr/local/mysql/bin/ibdsdi /usr/bin
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-28.png"
+	width="944"
+	height="34"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-28_hu_db8b3f15aa02f9e.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-28_hu_6b1fc66ea24c1765.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="2776"
+		data-flex-basis="6663px"
+	
+></p>
+<ul>
+<li>查看是否设置成功</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">find /usr/bin -name &#39;ibd2sdi&#39;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-29.png"
+	width="736"
+	height="66"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-29_hu_3fbf4da5ec9cbf64.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-29_hu_1665d7635d3edc49.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="1115"
+		data-flex-basis="2676px"
+	
+></p>
+<ul>
+<li>查看stu表结构信息</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">ibd2sdi stu.ibd
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-30.png"
+	width="1140"
+	height="1580"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-30_hu_58492052de8f19f9.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-30_hu_c0b738e2de121935.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="72"
+		data-flex-basis="173px"
+	
+></p>
+<p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-31.png"
+	width="1140"
+	height="1150"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-31_hu_802230e874f96f8f.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-31_hu_4205960721bf76a3.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="99"
+		data-flex-basis="237px"
+	
+></p>
+<h5 id="查看没有主键的表employee">查看没有主键的表employee
+</h5><ul>
+<li>建表语句</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-sql" data-lang="sql"><span class="line"><span class="cl"><span class="k">create</span><span class="w"> </span><span class="k">table</span><span class="w"> </span><span class="n">employee</span><span class="w"> </span><span class="p">(</span><span class="n">id</span><span class="w"> </span><span class="nb">int</span><span class="w"> </span><span class="p">,</span><span class="w"> </span><span class="n">name</span><span class="w"> </span><span class="nb">varchar</span><span class="p">(</span><span class="mi">10</span><span class="p">));</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>查看表结构及其其中的字段信息</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">ibd2sdi employee.ibd
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>查看到的表结构信息中，有一栏 columns，在其中我们会看到处理我们建表时指定的字段以外，还有 额外的三个字段 分别是:DB_TRX_ID 、 DB_ROLL_PTR 、DB_ROW_ID，因为employee表是没有指定主键的。</p>
+<p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-32.png"
+	width="1140"
+	height="1580"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-32_hu_8fc2b041f7d7f598.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-32_hu_69cebbf761b52468.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="72"
+		data-flex-basis="173px"
+	
+></p>
+<p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-33.png"
+	width="1140"
+	height="1580"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-33_hu_491a405e637ed901.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-33_hu_2290ea32fe5005eb.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="72"
+		data-flex-basis="173px"
+	
+></p>
+<p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-34.png"
+	width="1140"
+	height="946"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-34_hu_b78407b4765981fd.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-34_hu_ffd5d37da859cd2e.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="120"
+		data-flex-basis="289px"
+	
+></p>
+<h3 id="undo-log-1">undo log
+</h3><h4 id="介绍-1">介绍
+</h4><p>回滚日志，在insert、update、delete的时候产生的便于数据回滚的日志。
+当insert的时候，产生的undo log日志只在回滚时需要，在事务提交后，可被立即删除。
+而update、delete的时候，产生的undo log日志不仅在回滚时需要，在快照读时也需要，不会立即被删除。</p>
+<h4 id="版本链">版本链
+</h4><p>有一张表原始数据为:</p>
+<p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-39.png"
+	width="690"
+	height="114"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-39_hu_2752e3ea451b83f.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-39_hu_8fc8c52fd09003f8.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="605"
+		data-flex-basis="1452px"
+	
+></p>
+<blockquote>
+<p>DB_TRX_ID : 代表最近修改事务ID，记录插入这条记录或最后一次修改该记录的事务ID，是自增的。<br>DB_ROLL_PTR : 由于这条数据是才插入的，没有被更新过，所以该字段值为null。</p>
+</blockquote>
+<p>然后，有四个并发事务同时在访问这张表。</p>
+<ul>
+<li>第一步</li>
+</ul>
+<p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-40.png"
+	width="884"
+	height="358"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-40_hu_b705c24377efa3fc.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-40_hu_77fdb1eca0b64154.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="246"
+		data-flex-basis="592px"
+	
+></p>
+<p>当事务2执行第一条修改语句时，会记录undo log日志，记录数据变更之前的样子; 然后更新记录， 并且记录本次操作的事务ID，回滚指针，回滚指针用来指定如果发生回滚，回滚到哪一个版本。</p>
+<p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-41.png"
+	width="884"
+	height="278"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-41_hu_e3aaf2100d2c29e8.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-41_hu_af44c7676afb35d2.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="317"
+		data-flex-basis="763px"
+	
+></p>
+<ul>
+<li>第二步</li>
+</ul>
+<p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-42.png"
+	width="884"
+	height="366"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-42_hu_31f8453b6e6ee9be.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-42_hu_2d915ecf0096281b.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="241"
+		data-flex-basis="579px"
+	
+></p>
+<p>当事务3执行第一条修改语句时，也会记录undo log日志，记录数据变更之前的样子; 然后更新记 录，并且记录本次操作的事务ID，回滚指针，回滚指针用来指定如果发生回滚，回滚到哪一个版本。</p>
+<p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-43.png"
+	width="884"
+	height="268"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-43_hu_ffa602cf837e5b81.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-43_hu_6010be5edc59f73f.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="329"
+		data-flex-basis="791px"
+	
+></p>
+<ul>
+<li>第三步</li>
+</ul>
+<p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-44.png"
+	width="884"
+	height="360"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-44_hu_e2cde71aab723e17.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-44_hu_af53bf8860851f31.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="245"
+		data-flex-basis="589px"
+	
+></p>
+<p>当事务4执行第一条修改语句时，也会记录undo log日志，记录数据变更之前的样子; 然后更新记录， 并且记录本次操作的事务 ID，回滚指针， 回滚指针用来指定如果发生回滚，回滚到哪一个版本 。</p>
+<p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-45.png"
+	width="884"
+	height="270"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-45_hu_d66a5bd6eec7d04f.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-45_hu_2f943845a4e9ba47.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="327"
+		data-flex-basis="785px"
+	
+></p>
+<blockquote>
+<p>最终我们发现，不同事务或相同事务对同一条记录进行修改，会导致该记录的undolog生成一条 记录版本链表，链表的头部是最新的旧记录，链表尾部是最早的旧记录。</p>
+</blockquote>
+<h3 id="readview">readview
+</h3><blockquote>
+<p>ReadView(读视图)是 快照读 SQL执行时MVCC提取数据的依据，记录并维护系统当前活跃的事务 (未提交的)id。</p>
+</blockquote>
+<p>ReadView中包含了四个核心字段:</p>
+<div class="table-wrapper"><table>
+  <thead>
+      <tr>
+          <th>字段</th>
+          <th>含义</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>m_ids</td>
+          <td>当前活跃的事务ID集合</td>
+      </tr>
+      <tr>
+          <td>min_trx_id</td>
+          <td>最小活跃事务ID</td>
+      </tr>
+      <tr>
+          <td>max_trx_id</td>
+          <td>预分配事务ID，当前最大事务ID+1(因为事务ID是自增的)</td>
+      </tr>
+      <tr>
+          <td>creator_trx_id</td>
+          <td>ReadView创建者的事务ID</td>
+      </tr>
+  </tbody>
+</table></div>
+<p>而在readview中就规定了版本链数据的访问规则:
+trx_id 代表当前undolog版本链对应事务ID。</p>
+<div class="table-wrapper"><table>
+  <thead>
+      <tr>
+          <th>条件</th>
+          <th>是否可以访问</th>
+          <th>说明</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>trx_id == creator_trx_id</td>
+          <td>可以访问该版本</td>
+          <td>成立，说明数据是当前这个事务更改的。</td>
+      </tr>
+      <tr>
+          <td>trx_id &lt; min_trx_id</td>
+          <td>可以访问该版本</td>
+          <td>成立，说明数据已经提交了。</td>
+      </tr>
+      <tr>
+          <td>trx_id &gt; max_trx_id</td>
+          <td>不可以访问该版本</td>
+          <td>成立，说明事务是在ReadView生成后才开启的。</td>
+      </tr>
+      <tr>
+          <td>min_trx_id &lt;= trx_id &lt;= max_trx_id</td>
+          <td>如果trx_id不在m_ids中，是可以访问该版本的</td>
+          <td>成立，说明数据已经提交</td>
+      </tr>
+  </tbody>
+</table></div>
+<p>不同的隔离级别，生成ReadView的时机不同:</p>
+<ul>
+<li>READ COMMITTED :在事务中每一次执行快照读时生成ReadView。</li>
+<li>REPEATABLE READ:仅在事务中第一次执行快照读时生成ReadView，后续复用该ReadView。</li>
+</ul>
+<h3 id="原理分析">原理分析
+</h3><h4 id="rc隔离级别">RC隔离级别
+</h4><p>RC隔离级别下，在事务中每一次执行快照读时生成ReadView。</p>
+<p>我们就来分析事务5中，两次快照读读取数据，是如何获取数据的?</p>
+<p>在事务5中，查询了两次id为30的记录，由于隔离级别为Read Committed，所以每一次进行快照读都会生成一个ReadView，那么两次生成的ReadView如下。</p>
+<p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-46.png"
+	width="884"
+	height="238"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-46_hu_4d630db3c58a555d.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-46_hu_5a8b1e3b099257d5.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="371"
+		data-flex-basis="891px"
+	
+></p>
+<p>那么这两次快照读在获取数据时，就需要根据所生成的ReadView以及ReadView的版本链访问规则，到undolog版本链中匹配数据，最终决定此次快照读返回的数据。</p>
+<p>A. 先来看第一次快照读具体的读取过程：</p>
+<p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-47.png"
+	width="884"
+	height="230"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-47_hu_c088a540e52e0460.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-47_hu_d47aaf20e8df9da4.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="384"
+		data-flex-basis="922px"
+	
+></p>
+<p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-48.png"
+	width="884"
+	height="198"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-48_hu_87028b3f2bc28387.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-48_hu_945c2837538afd24.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="446"
+		data-flex-basis="1071px"
+	
+></p>
+<p>在进行匹配时，会从undo log的版本链，从上到下进行挨个匹配:</p>
+<ol>
+<li>先匹配</li>
+</ol>
+<p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-49.png"
+	width="534"
+	height="102"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-49_hu_e691d47efcb2479a.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-49_hu_b359611df1487d43.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="523"
+		data-flex-basis="1256px"
+	
+></p>
+<p>这条记录，这条记录对应的trx_id为4，也就是将4带入右侧的匹配规则中。 ①不满足 ②不满足 ③不满足 ④也不满足 ， 都不满足，则继续匹配undo log版本链的下一条。</p>
+<ol start="2">
+<li>再匹配第二条</li>
+</ol>
+<p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-50.png"
+	width="626"
+	height="48"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-50_hu_3234a55f6fa43a56.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-50_hu_d68882192833fe69.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="1304"
+		data-flex-basis="3130px"
+	
+></p>
+<p>，这条 记录对应的trx_id为3，也就是将3带入右侧的匹配规则中。①不满足 ②不满足 ③不满足 ④也不满足 ，都不满足，则继续匹配undo log版本链的下一条。</p>
+<ol start="3">
+<li>再匹配第三条</li>
+</ol>
+<p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-51.png"
+	width="614"
+	height="44"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-51_hu_19c5b274af6454c3.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-51_hu_ae0fc21aade20799.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="1395"
+		data-flex-basis="3349px"
+	
+></p>
+<p>，这条记录对应的trx_id为2，也就是将2带入右侧的匹配规则中。①不满足 ②满足终止匹配，此次快照读，返回的数据就是版本链中记录的这条数据。</p>
+<p>B. 再来看第二次快照读具体的读取过程:</p>
+<p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-52.png"
+	width="886"
+	height="248"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-52_hu_34f540701281c7f7.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-52_hu_8d4a82d1d73d6f8b.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="357"
+		data-flex-basis="857px"
+	
+></p>
+<p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-53.png"
+	width="886"
+	height="204"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-53_hu_9551eac1551d4690.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-53_hu_bec368d1ef5360ad.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="434"
+		data-flex-basis="1042px"
+	
+></p>
+<p>在进行匹配时，会从undo log的版本链，从上到下进行挨个匹配:</p>
+<ol>
+<li>先匹配</li>
+</ol>
+<p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-54.png"
+	width="536"
+	height="104"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-54_hu_e8fe84ac203f4ca7.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-54_hu_9778c095653577bd.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="515"
+		data-flex-basis="1236px"
+	
+></p>
+<p>这条记录，这条记录对应的trx_id为4，也就是将4带入右侧的匹配规则中。 ①不满足 ②不满足 ③不满足 ④也不满足 ， 都不满足，则继续匹配undo log版本链的下一条。</p>
+<ol start="2">
+<li>再匹配第二条</li>
+</ol>
+<p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-55.png"
+	width="628"
+	height="50"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-55_hu_965940f4fa52eef0.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-55_hu_a474f76e4b54cf99.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="1256"
+		data-flex-basis="3014px"
+	
+></p>
+<p>，这条记录对应的trx_id为3，也就是将3带入右侧的匹配规则中。①不满足 ②满足 。终止匹配，此次快照读，返回的数据就是版本链中记录的这条数据。</p>
+<h4 id="rr隔离级别">RR隔离级别
+</h4><p>RR隔离级别下，仅在事务中第一次执行快照读时生成ReadView，后续复用该ReadView。 而RR 是可重复读，在一个事务中，执行两次相同的select语句，查询到的结果是一样的。</p>
+<p>那MySQL是如何做到可重复读的呢? 我们简单分析一下就知道了</p>
+<p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-56.png"
+	width="884"
+	height="286"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-56_hu_e92a9a69cba3c223.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-56_hu_bca167ce8e65fc42.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="309"
+		data-flex-basis="741px"
+	
+></p>
+<p>我们看到，在RR隔离级别下，只是在事务中第一次快照读时生成ReadView，后续都是复用该 ReadView，那么既然ReadView都一样， ReadView的版本链匹配规则也一样， 那么最终快照读返 回的结果也是一样的。</p>
+<p>所以呢，MVCC的实现原理就是通过 InnoDB表的隐藏字段、UndoLog 版本链、ReadView来实现的。 而MVCC + 锁，则实现了事务的隔离性。而一致性则是由redolog 与 undolog保证。</p>
+<p><img src="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-57.png"
+	width="884"
+	height="338"
+	srcset="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-57_hu_61f508d0e86b2a0.png 480w, /p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/image-57_hu_553ba8de54f4fa05.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="261"
+		data-flex-basis="627px"
+	
+></p>
+
+</section>
+
+
+    <footer class="article-footer">
+    
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+<aside class="related-content--wrapper">
+    <h2 class="section-title">相关文章</h2>
+    <div class="related-content">
+        <div class="flex article-list--tile">
+            
+                
+<article class="">
+    <a href="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%AE%A1%E7%90%86/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[MySQL]MySQL进阶-管理</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E9%94%81/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[MySQL]MySQL进阶-锁</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/mysql%E8%BF%9B%E9%98%B6-%E8%A7%A6%E5%8F%91%E5%99%A8/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[MySQL]进阶-触发器</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E5%AD%98%E5%82%A8%E8%BF%87%E7%A8%8B/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[MySQL]MySQL进阶-存储过程</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E8%A7%86%E5%9B%BE/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[MySQL]MySQL进阶-视图</h2>
+        </div>
+    </a>
+</article>
+
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+        2025 リンボの個人ブログ
+    </section>
+    
+    <section class="powerby">
+         <br />
+        
+    </section>
+</footer>
+
+
+    
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+    
+    <div class="pswp__bg"></div>
+
+    
+    <div class="pswp__scroll-wrap">
+
+        
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+
+        
+        <div class="pswp__ui pswp__ui--hidden">
+
+            <div class="pswp__top-bar">
+
+                
+
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+
+                <button class="pswp__button pswp__button--share" title="Share"></button>
+
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+
+                
+                
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                        <div class="pswp__preloader__cut">
+                            <div class="pswp__preloader__donut"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div>
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.js"integrity="sha256-ePwmChbbvXbsO02lbM3HoHbSHTHFAeChekF1xKJdleo="crossorigin="anonymous"
+                defer
+                >
+            </script><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe-ui-default.min.js"integrity="sha256-UKkzOn/w1mBxRmLLGrSeyB4e1xbrp4xylgAWb3M42pU="crossorigin="anonymous"
+                defer
+                >
+            </script><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/default-skin/default-skin.min.css"crossorigin="anonymous"
+            ><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.css"crossorigin="anonymous"
+            >
+
+            </main>
+        </div>
+        <script 
+                src="https://cdn.jsdelivr.net/npm/node-vibrant@3.1.6/dist/vibrant.min.js"integrity="sha256-awcR2jno4kI5X0zL8ex0vi2z&#43;KMkF24hUW8WePSA9HM="crossorigin="anonymous"
+                
+                >
+            </script><script type="text/javascript" src="/ts/main.1e9a3bafd846ced4c345d084b355fb8c7bae75701c338f8a1f8a82c780137826.js" defer></script>
+<script>
+    (function () {
+        const customFont = document.createElement('link');
+        customFont.href = "https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap";
+
+        customFont.type = "text/css";
+        customFont.rel = "stylesheet";
+
+        document.head.appendChild(customFont);
+    }());
+</script>
+
+    </body>
+</html>
