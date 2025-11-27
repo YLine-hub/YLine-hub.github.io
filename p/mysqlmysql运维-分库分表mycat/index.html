@@ -1,0 +1,1138 @@
+<!DOCTYPE html>
+<html lang="zh-cn" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="MySQL运维-分库分表 介绍 问题分析 随着互联网及移动互联网的发展，应用系统的数据量也是成指数式增长，若采用单数据库进行数据存储，存在以下性能瓶颈:\nIO瓶颈:热点数据太多，数据库缓存不足，产生大量磁盘IO，效率较低。 请求数据太多，带宽 不够，网络IO瓶颈。 CPU瓶颈:排序、分组、连接查询、聚合统计等SQL会耗费大量的CPU资源，请求数太多，CPU出 现瓶颈。 为了解决上述问题，我们需要对数据库进行分库分表处理。\n">
+<title>[MySQL]MySQL运维-分库分表(MyCat)</title>
+
+<link rel='canonical' href='https://YLine-hub.github.io/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/'>
+
+<link rel="stylesheet" href="/scss/style.min.6a692fd055deae459f2a9767f57f3855ba80cafd5041317f24f7360f6ca47cdf.css"><meta property='og:title' content="[MySQL]MySQL运维-分库分表(MyCat)">
+<meta property='og:description' content="MySQL运维-分库分表 介绍 问题分析 随着互联网及移动互联网的发展，应用系统的数据量也是成指数式增长，若采用单数据库进行数据存储，存在以下性能瓶颈:\nIO瓶颈:热点数据太多，数据库缓存不足，产生大量磁盘IO，效率较低。 请求数据太多，带宽 不够，网络IO瓶颈。 CPU瓶颈:排序、分组、连接查询、聚合统计等SQL会耗费大量的CPU资源，请求数太多，CPU出 现瓶颈。 为了解决上述问题，我们需要对数据库进行分库分表处理。\n">
+<meta property='og:url' content='https://YLine-hub.github.io/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/'>
+<meta property='og:site_name' content='リンボの個人ブログ'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:published_time' content='2025-11-27T20:00:28&#43;08:00'/><meta property='article:modified_time' content='2025-11-27T20:00:28&#43;08:00'/>
+<meta name="twitter:title" content="[MySQL]MySQL运维-分库分表(MyCat)">
+<meta name="twitter:description" content="MySQL运维-分库分表 介绍 问题分析 随着互联网及移动互联网的发展，应用系统的数据量也是成指数式增长，若采用单数据库进行数据存储，存在以下性能瓶颈:\nIO瓶颈:热点数据太多，数据库缓存不足，产生大量磁盘IO，效率较低。 请求数据太多，带宽 不够，网络IO瓶颈。 CPU瓶颈:排序、分组、连接查询、聚合统计等SQL会耗费大量的CPU资源，请求数太多，CPU出 现瓶颈。 为了解决上述问题，我们需要对数据库进行分库分表处理。\n">
+    <link rel="shortcut icon" href="/favicon.ico" />
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        
+            
+            <figure class="site-avatar">
+                <a href="/">
+                
+                    
+                    
+                    
+                        
+                        <img src="/img/avatar_hu_7f398a7818085507.png" width="300"
+                            height="300" class="site-logo" loading="lazy" alt="Avatar">
+                    
+                
+                </a>
+                
+                    <span class="emoji">🏖️</span>
+                
+            </figure>
+            
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">リンボの個人ブログ</a></h1>
+            <h2 class="site-description">努力不一定能获得回报，但不努力一定不会有回报。</h2>
+        </div>
+    </header><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-home" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <polyline points="5 12 3 12 12 3 21 12 19 12" />
+  <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7" />
+  <path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6" />
+</svg>
+
+
+
+                
+                <span>主页</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/%E5%85%B3%E4%BA%8E/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/archives/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/search/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-search" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="10" cy="10" r="7" />
+  <line x1="21" y1="21" x2="15" y2="15" />
+</svg>
+
+
+
+                
+                <span>搜索</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav id="TableOfContents">
+  <ol>
+    <li><a href="#介绍">介绍</a>
+      <ol>
+        <li><a href="#问题分析">问题分析</a></li>
+        <li><a href="#拆分策略">拆分策略</a></li>
+        <li><a href="#垂直拆分">垂直拆分</a></li>
+        <li><a href="#水平拆分">水平拆分</a></li>
+        <li><a href="#实现技术">实现技术</a></li>
+      </ol>
+    </li>
+    <li><a href="#mycat概述">MyCat概述</a>
+      <ol>
+        <li><a href="#介绍-1">介绍</a></li>
+        <li><a href="#下载">下载</a></li>
+        <li><a href="#安装">安装</a>
+          <ol>
+            <li><a href="#jdk安装">JDK安装</a></li>
+            <li><a href="#mycat安装">MyCat安装</a></li>
+          </ol>
+        </li>
+        <li><a href="#目录介绍">目录介绍</a></li>
+        <li><a href="#概念介绍">概念介绍</a></li>
+      </ol>
+    </li>
+    <li><a href="#mycat入门">MyCat入门</a>
+      <ol>
+        <li><a href="#需求">需求</a></li>
+        <li><a href="#环境准备">环境准备</a></li>
+        <li><a href="#配置">配置</a></li>
+      </ol>
+    </li>
+  </ol>
+</nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            <a href="/categories/mysql/" >
+                MySQL
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/">[MySQL]MySQL运维-分库分表(MyCat)</a>
+        </h2>
+    
+        
+    </div>
+
+    
+    
+    
+    
+    <footer class="article-time">
+        
+            <div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                <time class="article-time--published">2025-11-27</time>
+            </div>
+        
+
+        
+    </footer>
+    
+
+    
+</div>
+
+</header>
+
+    <section class="article-content">
+    
+    
+    <h1 id="mysql运维-分库分表">MySQL运维-分库分表
+</h1><h2 id="介绍">介绍
+</h2><h3 id="问题分析">问题分析
+</h3><p><img src="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image.png"
+	width="884"
+	height="234"
+	srcset="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image_hu_a0440314fc6b73cd.png 480w, /p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image_hu_7b6cf5897d1ed1a2.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="377"
+		data-flex-basis="906px"
+	
+></p>
+<p>随着互联网及移动互联网的发展，应用系统的数据量也是成指数式增长，若采用单数据库进行数据存储，存在以下性能瓶颈:</p>
+<ol>
+<li>IO瓶颈:热点数据太多，数据库缓存不足，产生大量磁盘IO，效率较低。 请求数据太多，带宽 不够，网络IO瓶颈。</li>
+<li>CPU瓶颈:排序、分组、连接查询、聚合统计等SQL会耗费大量的CPU资源，请求数太多，CPU出 现瓶颈。</li>
+</ol>
+<p>为了解决上述问题，我们需要对数据库进行分库分表处理。</p>
+<p><img src="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-1.png"
+	width="884"
+	height="272"
+	srcset="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-1_hu_c0c821939327ab89.png 480w, /p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-1_hu_67ac1a22876b205c.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="325"
+		data-flex-basis="780px"
+	
+></p>
+<p>分库分表的中心思想都是将数据分散存储，使得单一数据库/表的数据量变小来缓解单一数据库的性能 问题，从而达到提升数据库性能的目的。</p>
+<h3 id="拆分策略">拆分策略
+</h3><p>分库分表的形式，主要是两种:<strong>垂直拆分</strong>和<strong>水平拆分</strong>。而拆分的粒度，一般又分为分库和分表，所以组成的拆分策略最终如下:</p>
+<p><img src="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-2.png"
+	width="884"
+	height="402"
+	srcset="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-2_hu_b38a52a8f0898d13.png 480w, /p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-2_hu_b094208edb1e5c7.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="219"
+		data-flex-basis="527px"
+	
+></p>
+<h3 id="垂直拆分">垂直拆分
+</h3><ol>
+<li>垂直分库</li>
+</ol>
+<p><img src="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-3.png"
+	width="874"
+	height="444"
+	srcset="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-3_hu_f368d83d202381bc.png 480w, /p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-3_hu_4681e1a5170628b3.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="196"
+		data-flex-basis="472px"
+	
+></p>
+<p>垂直分库:以表为依据，根据业务将不同表拆分到不同库中。</p>
+<p>特点:</p>
+<ul>
+<li>每个库的表结构都不一样。</li>
+<li>每个库的数据也不一样。</li>
+<li>所有库的并集是全量数据。</li>
+</ul>
+<ol start="2">
+<li>垂直分表</li>
+</ol>
+<p><img src="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-4.png"
+	width="884"
+	height="480"
+	srcset="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-4_hu_397c19f158bcb78d.png 480w, /p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-4_hu_441abec7957a7c99.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="184"
+		data-flex-basis="442px"
+	
+></p>
+<p>垂直分表:以字段为依据，根据字段属性将不同字段拆分到不同表中。
+特点:</p>
+<ul>
+<li>每个表的结构都不一样。</li>
+<li>每个表的数据也不一样，一般通过一列(主键/外键)关联。</li>
+<li>所有表的并集是全量数据。</li>
+</ul>
+<h3 id="水平拆分">水平拆分
+</h3><ol>
+<li>水平分库</li>
+</ol>
+<p><img src="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-5.png"
+	width="832"
+	height="450"
+	srcset="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-5_hu_f3985d4bc19dffde.png 480w, /p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-5_hu_1dc0fde37e38517b.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="184"
+		data-flex-basis="443px"
+	
+></p>
+<p>水平分库:以字段为依据，按照一定策略，将一个库的数据拆分到多个库中。</p>
+<p>特点:</p>
+<ul>
+<li>每个库的表结构都一样。</li>
+<li>每个库的数据都不一样。</li>
+<li>所有库的并集是全量数据。</li>
+</ul>
+<ol start="2">
+<li>水平分表</li>
+</ol>
+<p><img src="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-6.png"
+	width="832"
+	height="450"
+	srcset="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-6_hu_f3985d4bc19dffde.png 480w, /p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-6_hu_1dc0fde37e38517b.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="184"
+		data-flex-basis="443px"
+	
+></p>
+<p>水平分表:以字段为依据，按照一定策略，将一个表的数据拆分到多个表中。</p>
+<p>特点:</p>
+<ul>
+<li>每个表的表结构都一样。</li>
+<li>每个表的数据都不一样。</li>
+<li>所有表的并集是全量数据。</li>
+</ul>
+<blockquote>
+<p>在业务系统中，为了缓解磁盘IO及CPU的性能瓶颈，到底是垂直拆分，还是水平拆分;具体是分库，还是分表，都需要根据具体的业务需求具体分析。</p>
+</blockquote>
+<h3 id="实现技术">实现技术
+</h3><ul>
+<li><code>shardingJDBC</code> : 基于AOP原理，在应用程序中对本地执行的SQL进行拦截，解析、改写、路由处理。需要自行编码配置实现，只支持java语言，性能较高。</li>
+<li><code>MyCat</code> : 数据库分库分表中间件，不用调整代码即可实现分库分表，支持多种语言，性能不及前者。</li>
+</ul>
+<p><img src="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-7.png"
+	width="884"
+	height="218"
+	srcset="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-7_hu_17da78dbd849f9c2.png 480w, /p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-7_hu_ad9ba25411f4dfb7.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="405"
+		data-flex-basis="973px"
+	
+></p>
+<p>本次课程，我们选择了是MyCat数据库中间件，通过MyCat中间件来完成分库分表操作。</p>
+<h2 id="mycat概述">MyCat概述
+</h2><h3 id="介绍-1">介绍
+</h3><p>Mycat是开源的、活跃的、基于Java语言编写的MySQL数据库中间件。可以像使用mysql一样来使用mycat，对于开发人员来说根本感觉不到mycat的存在。</p>
+<p>开发人员只需要连接MyCat即可，而具体底层用到几台数据库，每一台数据库服务器里面存储了什么数据，都无需关心。具体的分库分表的策略，只需要在MyCat中配置即可。</p>
+<p><img src="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-8.png"
+	width="660"
+	height="632"
+	srcset="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-8_hu_9a54bc107667c876.png 480w, /p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-8_hu_1aa144bd09ba9527.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="104"
+		data-flex-basis="250px"
+	
+></p>
+<p>优势:</p>
+<ul>
+<li>性能可靠稳定</li>
+<li>强大的技术团队</li>
+<li>体系完善</li>
+<li>社区活跃</li>
+</ul>
+<h3 id="下载">下载
+</h3><p>下载地址：<a class="link" href="http://www.mycat.org.cn/"  target="_blank" rel="noopener"
+    >MyCat</a></p>
+<h3 id="安装">安装
+</h3><p>Mycat是采用java语言开发的开源的数据库中间件，支持Windows和Linux运行环境，下面介绍MyCat的Linux中的环境搭建。我们需要在准备好的服务器中安装如下软件。</p>
+<ul>
+<li>MySQL</li>
+<li>JDK</li>
+<li>Mycat</li>
+</ul>
+<div class="table-wrapper"><table>
+  <thead>
+      <tr>
+          <th>服务器</th>
+          <th>安装软件</th>
+          <th>说明</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>172.16.140.111</td>
+          <td>JDK、MyCat</td>
+          <td>MyCat中间件服务器</td>
+      </tr>
+      <tr>
+          <td>172.16.140.111</td>
+          <td>MySQL</td>
+          <td>分片服务器</td>
+      </tr>
+      <tr>
+          <td>172.16.140.112</td>
+          <td>MySQL</td>
+          <td>分片服务器</td>
+      </tr>
+      <tr>
+          <td>172.16.140.113</td>
+          <td>MySQL</td>
+          <td>分片服务器</td>
+      </tr>
+  </tbody>
+</table></div>
+<h4 id="jdk安装">JDK安装
+</h4><ol>
+<li>上传安装包</li>
+</ol>
+<p>使用ssh自带的上传工具将jdk的二进制发布包上传到Linux</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">scp jdk-8u461-linux-aarch64.tar.gz root@172.16.140.111:/opt
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-9.png"
+	width="1150"
+	height="136"
+	srcset="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-9_hu_e2fe930271322da0.png 480w, /p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-9_hu_cb910739f28becba.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="845"
+		data-flex-basis="2029px"
+	
+></p>
+<p>由于上述在进行文件上传时，选择的上传目录为根目录 /opt，上传完毕后，我们执行指令 cd /opt 切换到根目录下，查看上传的安装包。</p>
+<p><img src="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-10.png"
+	width="1094"
+	height="140"
+	srcset="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-10_hu_4bef7fcb9cef26c1.png 480w, /p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-10_hu_7b092a5ab5603ca3.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="781"
+		data-flex-basis="1875px"
+	
+></p>
+<ol start="2">
+<li>解压安装包</li>
+</ol>
+<p>执行如下指令，将上传上来的压缩包进行解压，并通过-C参数指定解压文件存放目录为 /usr/local。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">tar -zxvf jdk-8u461-linux-aarch64.tar.gz -C /usr/local/
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-11.png"
+	width="772"
+	height="482"
+	srcset="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-11_hu_f7d961aab9779e2c.png 480w, /p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-11_hu_c7196663d5827eb0.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="160"
+		data-flex-basis="384px"
+	
+></p>
+<ol start="3">
+<li>配置环境变量</li>
+</ol>
+<p>使用vim命令修改/etc/profile文件，在文件末尾加入如下配置</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">JAVA_HOME=/usr/local/jdk1.8.0_461
+</span></span><span class="line"><span class="cl">PATH=$JAVA_HOME/bin:$PATH
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-12.png"
+	width="874"
+	height="698"
+	srcset="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-12_hu_9ec178c85e20cee6.png 480w, /p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-12_hu_3001d42c2b21d9e5.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="125"
+		data-flex-basis="300px"
+	
+></p>
+<p>具体操作指令如下:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-gdscript3" data-lang="gdscript3"><span class="line"><span class="cl"><span class="mi">1</span><span class="p">)</span><span class="o">.</span> <span class="err">编辑</span><span class="o">/</span><span class="n">etc</span><span class="o">/</span><span class="n">profile文件</span><span class="err">，进入命令模式</span>
+</span></span><span class="line"><span class="cl">	<span class="n">vim</span> <span class="o">/</span><span class="n">etc</span><span class="o">/</span><span class="n">profile</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="mi">2</span><span class="p">)</span><span class="o">.</span> <span class="err">在命令模式中，输入指令</span> <span class="n">G</span> <span class="err">，</span> <span class="err">切换到文件最后</span>
+</span></span><span class="line"><span class="cl">	<span class="n">G</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="mi">3</span><span class="p">)</span><span class="o">.</span> <span class="err">在命令模式中输入</span> <span class="n">i</span><span class="o">/</span><span class="n">a</span><span class="o">/</span><span class="n">o</span> <span class="err">进入插入模式，然后切换到文件最后一行</span>
+</span></span><span class="line"><span class="cl">	<span class="n">i</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="mi">4</span><span class="p">)</span><span class="o">.</span> <span class="err">将上述的配置拷贝到文件中</span>
+</span></span><span class="line"><span class="cl">	<span class="k">export</span> <span class="n">JAVA_HOME</span><span class="o">=/</span><span class="n">usr</span><span class="o">/</span><span class="n">local</span><span class="o">/</span><span class="n">jdk1</span><span class="o">.</span><span class="mf">8.0</span><span class="n">_171</span>
+</span></span><span class="line"><span class="cl">	<span class="k">export</span> <span class="n">PATH</span><span class="o">=$</span><span class="n">JAVA_HOME</span><span class="o">/</span><span class="n">bin</span><span class="p">:</span><span class="o">$</span><span class="n">PATH</span>
+</span></span><span class="line"><span class="cl">	
+</span></span><span class="line"><span class="cl"><span class="mi">5</span><span class="p">)</span><span class="o">.</span> <span class="err">从插入模式，切换到指令模式</span>
+</span></span><span class="line"><span class="cl">	<span class="n">ESC</span>
+</span></span><span class="line"><span class="cl">	
+</span></span><span class="line"><span class="cl"><span class="mi">6</span><span class="p">)</span><span class="o">.</span> <span class="err">按</span><span class="p">:</span><span class="err">进入底行模式，然后输入</span><span class="n">wq</span><span class="err">，回车保存</span>
+</span></span><span class="line"><span class="cl">	<span class="p">:</span><span class="n">wq</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="4">
+<li>重新加载profile文件</li>
+</ol>
+<p>为了使更改的配置立即生效，需要重新加载profile文件，执行命令:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">source /etc/profile
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="5">
+<li>检查安装是否成功</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">java -version
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-13.png"
+	width="928"
+	height="134"
+	srcset="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-13_hu_ae492c0d2e558a2a.png 480w, /p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-13_hu_7d8a0097caa07d5c.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="692"
+		data-flex-basis="1662px"
+	
+></p>
+<h4 id="mycat安装">MyCat安装
+</h4><ol>
+<li>上传Mycat压缩包到服务器</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">scp Mycat-server-1.6.7.3-release-20210913163959-linux.tar.gz root@172.16.140.1
+</span></span><span class="line"><span class="cl">11:/opt
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-21.png"
+	width="1208"
+	height="136"
+	srcset="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-21_hu_6b8f619c8b8a2e01.png 480w, /p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-21_hu_cfe6e5f9d8417564.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="888"
+		data-flex-basis="2131px"
+	
+></p>
+<p><img src="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-22.png"
+	width="1462"
+	height="174"
+	srcset="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-22_hu_f61cb37452390049.png 480w, /p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-22_hu_152a7307466b25a8.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="840"
+		data-flex-basis="2016px"
+	
+></p>
+<ol start="2">
+<li>解压MyCat的压缩包</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">tar -zxvf Mycat-server-1.6.7.3-release-20210913163959-linux.tar.gz -C /usr/local/
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-16.png"
+	width="780"
+	height="522"
+	srcset="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-16_hu_2cf7aa216fadb1c4.png 480w, /p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-16_hu_299ed147e694af6d.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="149"
+		data-flex-basis="358px"
+	
+></p>
+<ol start="3">
+<li>进入 /usr/local/mycat/lib 目录</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">cd /usr/local/mycat/lib
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="4">
+<li>将 mysql-connector-java-5.1.35.jar 替换成 mysql-connector-java-8.0+ 版本</li>
+</ol>
+<p><img src="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-24.png"
+	width="1566"
+	height="1570"
+	srcset="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-24_hu_dab0d013d0be8884.png 480w, /p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-24_hu_40a935ee6e4b0011.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="99"
+		data-flex-basis="239px"
+	
+></p>
+<p><img src="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-25.png"
+	width="1180"
+	height="210"
+	srcset="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-25_hu_c7bf810e50d1adbe.png 480w, /p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-25_hu_d20706ec58d8ea1.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="561"
+		data-flex-basis="1348px"
+	
+></p>
+<ol start="5">
+<li>设置权限</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">chmod 777 mysql-connector-java-8.0.22.jar
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-26.png"
+	width="1214"
+	height="204"
+	srcset="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-26_hu_27ba86c20ec35458.png 480w, /p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-26_hu_67ce18192eb8f0b0.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="595"
+		data-flex-basis="1428px"
+	
+></p>
+<h3 id="目录介绍">目录介绍
+</h3><p><img src="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-23.png"
+	width="786"
+	height="268"
+	srcset="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-23_hu_333e9388b8b07d35.png 480w, /p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-23_hu_6b0624c68d7b7579.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="293"
+		data-flex-basis="703px"
+	
+></p>
+<ul>
+<li><code>bin</code> : 存放可执行文件，用于启动停止mycat</li>
+<li><code>conf</code> : 存放mycat的配置文件</li>
+<li><code>lib</code> : 存放mycat的项目依赖包(jar)</li>
+<li><code>logs</code> : 存放mycat的日志文件</li>
+</ul>
+<h3 id="概念介绍">概念介绍
+</h3><p>在MyCat的整体结构中，分为两个部分:上面的逻辑结构、下面的物理结构。</p>
+<p><img src="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-18.png"
+	width="884"
+	height="406"
+	srcset="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-18_hu_3d43fdf31ab36000.png 480w, /p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-18_hu_b305f4d9d20fe59.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="217"
+		data-flex-basis="522px"
+	
+></p>
+<p>在MyCat的逻辑结构主要负责逻辑库、逻辑表、分片规则、分片节点等逻辑结构的处理，而具体的数据 存储还是在物理结构，也就是数据库服务器中存储的。</p>
+<p>在后面讲解MyCat入门以及MyCat分片时，还会讲到上面所提到的概念。</p>
+<h2 id="mycat入门">MyCat入门
+</h2><h3 id="需求">需求
+</h3><p>由于 tb_order 表中数据量很大，磁盘IO及容量都到达了瓶颈，现在需要对 tb_order 表进行数 据分片，分为三个数据节点，每一个节点主机位于不同的服务器上, 具体的结构，参考下图:</p>
+<p><img src="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-19.png"
+	width="878"
+	height="570"
+	srcset="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-19_hu_7c3f7bb4bc404e89.png 480w, /p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-19_hu_ce81b468790d70a7.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="154"
+		data-flex-basis="369px"
+	
+></p>
+<h3 id="环境准备">环境准备
+</h3><p><strong>准备3台服务器:</strong></p>
+<ul>
+<li><code>172.16.140.111</code>:MyCat中间件服务器，同时也是第一个分片服务器。</li>
+<li><code>172.16.140.112</code>:第二个分片服务器。</li>
+<li><code>172.16.140.114</code>:第三个分片服务器。</li>
+</ul>
+<p><img src="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-20.png"
+	width="884"
+	height="650"
+	srcset="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-20_hu_21e5e884eb4e7922.png 480w, /p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-20_hu_4ec1cb843b40c950.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="136"
+		data-flex-basis="326px"
+	
+></p>
+<p>并且在上述3台数据库中创建数据库 db01 。</p>
+<h3 id="配置">配置
+</h3><p>1). schema.xml</p>
+<p>在schema.xml中配置逻辑库、逻辑表、数据节点、节点主机等相关信息。具体的配置如下:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-xml" data-lang="xml"><span class="line"><span class="cl"><span class="cp">&lt;?xml version=&#34;1.0&#34;?&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="cp">&lt;!DOCTYPE mycat:schema SYSTEM &#34;schema.dtd&#34;&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="nt">&lt;mycat:schema</span> <span class="na">xmlns:mycat=</span><span class="s">&#34;http://io.mycat/&#34;</span><span class="nt">&gt;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nt">&lt;schema</span> <span class="na">name=</span><span class="s">&#34;DB01&#34;</span> <span class="na">checkSQLschema=</span><span class="s">&#34;true&#34;</span> <span class="na">sqlMaxLimit=</span><span class="s">&#34;100&#34;</span><span class="nt">&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;table</span> <span class="na">name=</span><span class="s">&#34;TB_ORDER&#34;</span> <span class="na">dataNode=</span><span class="s">&#34;dn1,dn2,dn3&#34;</span> <span class="na">rule=</span><span class="s">&#34;auto-sharding-long&#34;</span> <span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;/schema&gt;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;dataNode</span> <span class="na">name=</span><span class="s">&#34;dn1&#34;</span> <span class="na">dataHost=</span><span class="s">&#34;dhost1&#34;</span> <span class="na">database=</span><span class="s">&#34;db01&#34;</span> <span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;dataNode</span> <span class="na">name=</span><span class="s">&#34;dn2&#34;</span> <span class="na">dataHost=</span><span class="s">&#34;dhost2&#34;</span> <span class="na">database=</span><span class="s">&#34;db01&#34;</span> <span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;dataNode</span> <span class="na">name=</span><span class="s">&#34;dn3&#34;</span> <span class="na">dataHost=</span><span class="s">&#34;dhost3&#34;</span> <span class="na">database=</span><span class="s">&#34;db01&#34;</span> <span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;dataHost</span> <span class="na">name=</span><span class="s">&#34;dhost1&#34;</span> <span class="na">maxCon=</span><span class="s">&#34;1000&#34;</span> <span class="na">minCon=</span><span class="s">&#34;10&#34;</span> <span class="na">balance=</span><span class="s">&#34;0&#34;</span> <span class="na">writeType=</span><span class="s">&#34;0&#34;</span> <span class="na">dbType=</span><span class="s">&#34;mysql&#34;</span> <span class="na">dbDriver=</span><span class="s">&#34;jdbc&#34;</span> <span class="na">switchType=</span><span class="s">&#34;1&#34;</span> <span class="na">slaveThreshold=</span><span class="s">&#34;100&#34;</span><span class="nt">&gt;</span>
+</span></span><span class="line"><span class="cl">        <span class="nt">&lt;heartbeat&gt;</span>select user()<span class="nt">&lt;/heartbeat&gt;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="nt">&lt;writeHost</span> <span class="na">host=</span><span class="s">&#34;master&#34;</span> <span class="na">url=</span><span class="s">&#34;jdbc:mysql://172.16.140.111:3306?useSSL=false&amp;amp;serverTimezone=Asia/Shanghai&amp;amp;characterEncoding=utf8&#34;</span> <span class="na">user=</span><span class="s">&#34;root&#34;</span> <span class="na">password=</span><span class="s">&#34;123456&#34;</span> <span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;/dataHost&gt;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;dataHost</span> <span class="na">name=</span><span class="s">&#34;dhost2&#34;</span> <span class="na">maxCon=</span><span class="s">&#34;1000&#34;</span> <span class="na">minCon=</span><span class="s">&#34;10&#34;</span> <span class="na">balance=</span><span class="s">&#34;0&#34;</span> <span class="na">writeType=</span><span class="s">&#34;0&#34;</span> <span class="na">dbType=</span><span class="s">&#34;mysql&#34;</span> <span class="na">dbDriver=</span><span class="s">&#34;jdbc&#34;</span> <span class="na">switchType=</span><span class="s">&#34;1&#34;</span> <span class="na">slaveThreshold=</span><span class="s">&#34;100&#34;</span><span class="nt">&gt;</span>
+</span></span><span class="line"><span class="cl">        <span class="nt">&lt;heartbeat&gt;</span>select user()<span class="nt">&lt;/heartbeat&gt;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="nt">&lt;writeHost</span> <span class="na">host=</span><span class="s">&#34;master&#34;</span> <span class="na">url=</span><span class="s">&#34;jdbc:mysql://172.16.140.112:3306?useSSL=false&amp;amp;serverTimezone=Asia/Shanghai&amp;amp;characterEncoding=utf8&#34;</span> <span class="na">user=</span><span class="s">&#34;root&#34;</span> <span class="na">password=</span><span class="s">&#34;123456&#34;</span> <span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;/dataHost&gt;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;dataHost</span> <span class="na">name=</span><span class="s">&#34;dhost3&#34;</span> <span class="na">maxCon=</span><span class="s">&#34;1000&#34;</span> <span class="na">minCon=</span><span class="s">&#34;10&#34;</span> <span class="na">balance=</span><span class="s">&#34;0&#34;</span> <span class="na">writeType=</span><span class="s">&#34;0&#34;</span> <span class="na">dbType=</span><span class="s">&#34;mysql&#34;</span> <span class="na">dbDriver=</span><span class="s">&#34;jdbc&#34;</span> <span class="na">switchType=</span><span class="s">&#34;1&#34;</span> <span class="na">slaveThreshold=</span><span class="s">&#34;100&#34;</span><span class="nt">&gt;</span>
+</span></span><span class="line"><span class="cl">        <span class="nt">&lt;heartbeat&gt;</span>select user()<span class="nt">&lt;/heartbeat&gt;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="nt">&lt;writeHost</span> <span class="na">host=</span><span class="s">&#34;master&#34;</span> <span class="na">url=</span><span class="s">&#34;jdbc:mysql://172.16.140.113:3306?useSSL=false&amp;amp;serverTimezone=Asia/Shanghai&amp;amp;characterEncoding=utf8&#34;</span> <span class="na">user=</span><span class="s">&#34;root&#34;</span> <span class="na">password=</span><span class="s">&#34;123456&#34;</span> <span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;/dataHost&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="nt">&lt;/mycat:schema&gt;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div>
+</section>
+
+
+    <footer class="article-footer">
+    
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+     
+    
+        
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+        2025 リンボの個人ブログ
+    </section>
+    
+    <section class="powerby">
+         <br />
+        
+    </section>
+</footer>
+
+
+    
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+    
+    <div class="pswp__bg"></div>
+
+    
+    <div class="pswp__scroll-wrap">
+
+        
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+
+        
+        <div class="pswp__ui pswp__ui--hidden">
+
+            <div class="pswp__top-bar">
+
+                
+
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+
+                <button class="pswp__button pswp__button--share" title="Share"></button>
+
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+
+                
+                
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                        <div class="pswp__preloader__cut">
+                            <div class="pswp__preloader__donut"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div>
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.js"integrity="sha256-ePwmChbbvXbsO02lbM3HoHbSHTHFAeChekF1xKJdleo="crossorigin="anonymous"
+                defer
+                >
+            </script><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe-ui-default.min.js"integrity="sha256-UKkzOn/w1mBxRmLLGrSeyB4e1xbrp4xylgAWb3M42pU="crossorigin="anonymous"
+                defer
+                >
+            </script><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/default-skin/default-skin.min.css"crossorigin="anonymous"
+            ><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.css"crossorigin="anonymous"
+            >
+
+            </main>
+        </div>
+        <script 
+                src="https://cdn.jsdelivr.net/npm/node-vibrant@3.1.6/dist/vibrant.min.js"integrity="sha256-awcR2jno4kI5X0zL8ex0vi2z&#43;KMkF24hUW8WePSA9HM="crossorigin="anonymous"
+                
+                >
+            </script><script type="text/javascript" src="/ts/main.1e9a3bafd846ced4c345d084b355fb8c7bae75701c338f8a1f8a82c780137826.js" defer></script>
+<script>
+    (function () {
+        const customFont = document.createElement('link');
+        customFont.href = "https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap";
+
+        customFont.type = "text/css";
+        customFont.rel = "stylesheet";
+
+        document.head.appendChild(customFont);
+    }());
+</script>
+
+    </body>
+</html>
