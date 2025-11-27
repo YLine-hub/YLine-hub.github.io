@@ -1,0 +1,852 @@
+<!DOCTYPE html>
+<html lang="zh-cn" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="MySQL运维-主从复制 概述 主从复制是指将主数据库的 DDL 和 DML 操作通过二进制日志传到从库服务器中，然后在从库上对这 些日志重新执行(也叫重做)，从而使得从库和主库的数据保持同步。\n">
+<title>[MySQL]MySQL运维-主从复制</title>
+
+<link rel='canonical' href='https://YLine-hub.github.io/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E4%B8%BB%E4%BB%8E%E5%A4%8D%E5%88%B6/'>
+
+<link rel="stylesheet" href="/scss/style.min.6a692fd055deae459f2a9767f57f3855ba80cafd5041317f24f7360f6ca47cdf.css"><meta property='og:title' content="[MySQL]MySQL运维-主从复制">
+<meta property='og:description' content="MySQL运维-主从复制 概述 主从复制是指将主数据库的 DDL 和 DML 操作通过二进制日志传到从库服务器中，然后在从库上对这 些日志重新执行(也叫重做)，从而使得从库和主库的数据保持同步。\n">
+<meta property='og:url' content='https://YLine-hub.github.io/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E4%B8%BB%E4%BB%8E%E5%A4%8D%E5%88%B6/'>
+<meta property='og:site_name' content='リンボの個人ブログ'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:published_time' content='2025-11-27T14:48:17&#43;08:00'/><meta property='article:modified_time' content='2025-11-27T14:48:17&#43;08:00'/>
+<meta name="twitter:title" content="[MySQL]MySQL运维-主从复制">
+<meta name="twitter:description" content="MySQL运维-主从复制 概述 主从复制是指将主数据库的 DDL 和 DML 操作通过二进制日志传到从库服务器中，然后在从库上对这 些日志重新执行(也叫重做)，从而使得从库和主库的数据保持同步。\n">
+    <link rel="shortcut icon" href="/favicon.ico" />
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        
+            
+            <figure class="site-avatar">
+                <a href="/">
+                
+                    
+                    
+                    
+                        
+                        <img src="/img/avatar_hu_7f398a7818085507.png" width="300"
+                            height="300" class="site-logo" loading="lazy" alt="Avatar">
+                    
+                
+                </a>
+                
+                    <span class="emoji">🏖️</span>
+                
+            </figure>
+            
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">リンボの個人ブログ</a></h1>
+            <h2 class="site-description">努力不一定能获得回报，但不努力一定不会有回报。</h2>
+        </div>
+    </header><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-home" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <polyline points="5 12 3 12 12 3 21 12 19 12" />
+  <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7" />
+  <path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6" />
+</svg>
+
+
+
+                
+                <span>主页</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/%E5%85%B3%E4%BA%8E/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/archives/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/search/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-search" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="10" cy="10" r="7" />
+  <line x1="21" y1="21" x2="15" y2="15" />
+</svg>
+
+
+
+                
+                <span>搜索</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav id="TableOfContents">
+  <ol>
+    <li><a href="#概述">概述</a></li>
+    <li><a href="#原理">原理</a></li>
+    <li><a href="#搭建">搭建</a>
+      <ol>
+        <li><a href="#准备">准备</a></li>
+        <li><a href="#主库配置">主库配置</a></li>
+        <li><a href="#从库配置">从库配置</a></li>
+        <li><a href="#测试">测试</a></li>
+      </ol>
+    </li>
+  </ol>
+</nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            <a href="/categories/mysql/" >
+                MySQL
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E4%B8%BB%E4%BB%8E%E5%A4%8D%E5%88%B6/">[MySQL]MySQL运维-主从复制</a>
+        </h2>
+    
+        
+    </div>
+
+    
+    
+    
+    
+    <footer class="article-time">
+        
+            <div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                <time class="article-time--published">2025-11-27</time>
+            </div>
+        
+
+        
+    </footer>
+    
+
+    
+</div>
+
+</header>
+
+    <section class="article-content">
+    
+    
+    <h1 id="mysql运维-主从复制">MySQL运维-主从复制
+</h1><h2 id="概述">概述
+</h2><p>主从复制是指将主数据库的 DDL 和 DML 操作通过二进制日志传到从库服务器中，然后在从库上对这 些日志重新执行(也叫重做)，从而使得从库和主库的数据保持同步。</p>
+<p>MySQL支持一台主库同时向多台从库进行复制， 从库同时也可以作为其他从服务器的主库，实现链状复制。</p>
+<p><img src="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E4%B8%BB%E4%BB%8E%E5%A4%8D%E5%88%B6/image.png"
+	width="884"
+	height="378"
+	srcset="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E4%B8%BB%E4%BB%8E%E5%A4%8D%E5%88%B6/image_hu_4bc552403597130b.png 480w, /p/mysqlmysql%E8%BF%90%E7%BB%B4-%E4%B8%BB%E4%BB%8E%E5%A4%8D%E5%88%B6/image_hu_5ec7c6cd1a305caa.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="233"
+		data-flex-basis="561px"
+	
+></p>
+<p>MySQL 复制的优点主要包含以下三个方面:</p>
+<ul>
+<li>主库出现问题，可以快速切换到从库提供服务。</li>
+<li>实现读写分离，降低主库的访问压力。</li>
+<li>可以在从库中执行备份，以避免备份期间影响主库服务。</li>
+</ul>
+<h2 id="原理">原理
+</h2><p>MySQL主从复制的核心就是二进制日志，具体的过程如下:</p>
+<p><img src="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E4%B8%BB%E4%BB%8E%E5%A4%8D%E5%88%B6/image-1.png"
+	width="884"
+	height="414"
+	srcset="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E4%B8%BB%E4%BB%8E%E5%A4%8D%E5%88%B6/image-1_hu_c4b8bdf549cfc47c.png 480w, /p/mysqlmysql%E8%BF%90%E7%BB%B4-%E4%B8%BB%E4%BB%8E%E5%A4%8D%E5%88%B6/image-1_hu_70b6cc215936ff9a.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="213"
+		data-flex-basis="512px"
+	
+></p>
+<p>从上图来看，复制分成三步:</p>
+<ol>
+<li>Master 主库在事务提交时，会把数据变更记录在二进制日志文件 Binlog 中。</li>
+<li>从库读取主库的二进制日志文件 Binlog ，写入到从库的中继日志 Relay Log 。</li>
+<li>slave重做中继日志中的事件，将改变反映它自己的数据。</li>
+</ol>
+<h2 id="搭建">搭建
+</h2><h3 id="准备">准备
+</h3><p><img src="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E4%B8%BB%E4%BB%8E%E5%A4%8D%E5%88%B6/image-2.png"
+	width="884"
+	height="228"
+	srcset="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E4%B8%BB%E4%BB%8E%E5%A4%8D%E5%88%B6/image-2_hu_e92d4b1814d0da7d.png 480w, /p/mysqlmysql%E8%BF%90%E7%BB%B4-%E4%B8%BB%E4%BB%8E%E5%A4%8D%E5%88%B6/image-2_hu_f86e00db5029732d.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="387"
+		data-flex-basis="930px"
+	
+></p>
+<p>准备好两台服务器之后，在上述的两台服务器中分别安装好MySQL，并完成基础的初始化准备(安装、 密码配置等操作)工作。 其中:</p>
+<ul>
+<li>172.16.140.101 作为主服务器master</li>
+<li>172.16.140.102 作为从服务器slave</li>
+</ul>
+<h3 id="主库配置">主库配置
+</h3><ol>
+<li>修改配置文件 /etc/my.cnf</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">#mysql 服务ID，保证整个集群环境中唯一，取值范围:1 – 232-1，默认为1 
+</span></span><span class="line"><span class="cl">server-id=1
+</span></span><span class="line"><span class="cl">#是否只读,1 代表只读, 0 代表读写
+</span></span><span class="line"><span class="cl">read-only=0
+</span></span><span class="line"><span class="cl">#忽略的数据, 指不需要同步的数据库 
+</span></span><span class="line"><span class="cl">#binlog-ignore-db=mysql 
+</span></span><span class="line"><span class="cl">#指定同步的数据库 
+</span></span><span class="line"><span class="cl">#binlog-do-db=db01
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="2">
+<li>重启MySQL服务器</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">systemctl restart mysqld
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="3">
+<li>登录mysql，创建远程连接的账号，并授予主从复制权限</li>
+</ol>
+<ul>
+<li>创建itcast用户，并设置密码，该用户可在任意主机连接该MySQL服务</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">CREATE USER &#39;itcast&#39;@&#39;%&#39; IDENTIFIED WITH mysql_native_password BY &#39;Root@123456&#39; ;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>为&rsquo;itcast&rsquo;@&rsquo;%&rsquo; 用户分配主从复制权限</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">GRANT REPLICATION SLAVE ON *.* TO &#39;itcast&#39;@&#39;%&#39;;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="4">
+<li>通过指令，查看二进制日志坐标</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">show master status;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E4%B8%BB%E4%BB%8E%E5%A4%8D%E5%88%B6/image-3.png"
+	width="1192"
+	height="254"
+	srcset="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E4%B8%BB%E4%BB%8E%E5%A4%8D%E5%88%B6/image-3_hu_4944b50f1863a252.png 480w, /p/mysqlmysql%E8%BF%90%E7%BB%B4-%E4%B8%BB%E4%BB%8E%E5%A4%8D%E5%88%B6/image-3_hu_a05f29af24683974.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="469"
+		data-flex-basis="1126px"
+	
+></p>
+<p>字段含义说明:</p>
+<ul>
+<li>file : 从哪个日志文件开始推送日志文件</li>
+<li>position : 从哪个位置开始推送日志</li>
+<li>binlog_ignore_db : 指定不需要同步的数据库</li>
+</ul>
+<h3 id="从库配置">从库配置
+</h3><ol>
+<li>修改配置文件 /etc/my.cnf</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">#mysql 服务ID，保证整个集群环境中唯一，取值范围:1 – 2^32-1，和主库不一样即可 
+</span></span><span class="line"><span class="cl">server-id=2
+</span></span><span class="line"><span class="cl">#是否只读,1 代表只读, 0 代表读写
+</span></span><span class="line"><span class="cl">read-only=1
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="2">
+<li>重新启动MySQL服务</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">systemctl restart mysqld
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="3">
+<li>登录mysql，设置主库配置</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">CHANGE REPLICATION SOURCE TO SOURCE_HOST=&#39;172.16.140.101&#39;, SOURCE_USER=&#39;itcast&#39;, SOURCE_PASSWORD=&#39;Root@123456&#39;, SOURCE_LOG_FILE=&#39;binlog.000019&#39;, SOURCE_LOG_POS=656;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>上述是8.0.23中的语法。如果mysql是 8.0.23 之前的版本，执行如下SQL:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">CHANGE MASTER TO MASTER_HOST=&#39;172.16.140.101&#39;, MASTER_USER=&#39;itcast&#39;, MASTER_PASSWORD=&#39;Root@123456&#39;, MASTER_LOG_FILE=&#39;binlog.000019&#39;, MASTER_LOG_POS=656;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><div class="table-wrapper"><table>
+  <thead>
+      <tr>
+          <th>参数</th>
+          <th>含义</th>
+          <th>8.0.23之前</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>SOURCE_HOST</td>
+          <td>主库IP地址</td>
+          <td>MASTER_HOST</td>
+      </tr>
+      <tr>
+          <td>SOURCE_USER</td>
+          <td>连接主库的用户名</td>
+          <td>MASTER_USER</td>
+      </tr>
+      <tr>
+          <td>SOURCE_PASSWORD</td>
+          <td>连接主库的密码</td>
+          <td>MASTER_PASSWORD</td>
+      </tr>
+      <tr>
+          <td>SOURCE_LOG_FILE</td>
+          <td>binlog日志文件名</td>
+          <td>MASTER_LOG_FILE</td>
+      </tr>
+      <tr>
+          <td>SOURCE_LOG_POS</td>
+          <td>binlog日志文件位置</td>
+          <td>MASTER_LOG_POS</td>
+      </tr>
+  </tbody>
+</table></div>
+<ol start="4">
+<li>开启同步操作</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">start replica ; #8.0.22之后 
+</span></span><span class="line"><span class="cl">start slave ;   #8.0.22之前
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="5">
+<li>查看主从同步状态</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">show replica status\G ; #8.0.22之后 
+</span></span><span class="line"><span class="cl">show slave status\G ; #8.0.22之前
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E4%B8%BB%E4%BB%8E%E5%A4%8D%E5%88%B6/image-4.png"
+	width="970"
+	height="1588"
+	srcset="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E4%B8%BB%E4%BB%8E%E5%A4%8D%E5%88%B6/image-4_hu_4616ed8404574cad.png 480w, /p/mysqlmysql%E8%BF%90%E7%BB%B4-%E4%B8%BB%E4%BB%8E%E5%A4%8D%E5%88%B6/image-4_hu_5c2435c0555b4164.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="61"
+		data-flex-basis="146px"
+	
+></p>
+<p>只有当两个都为yes，才表示主从配置成功</p>
+<h3 id="测试">测试
+</h3><ol>
+<li>在主库 172.16.140.101 上创建数据库、表，并插入数据</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span><span class="lnt">9
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-gdscript3" data-lang="gdscript3"><span class="line"><span class="cl"><span class="n">create</span> <span class="n">database</span> <span class="n">db02</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="n">use</span> <span class="n">db02</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="n">create</span> <span class="n">table</span> <span class="n">tb_user</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">    <span class="n">id</span> <span class="ne">int</span><span class="p">(</span><span class="mi">11</span><span class="p">)</span> <span class="n">primary</span> <span class="n">key</span> <span class="ow">not</span> <span class="n">null</span> <span class="n">auto_increment</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="n">name</span> <span class="n">varchar</span><span class="p">(</span><span class="mi">50</span><span class="p">)</span> <span class="ow">not</span> <span class="n">null</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="n">sex</span> <span class="n">varchar</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="p">)</span><span class="n">engine</span><span class="o">=</span><span class="n">innodb</span> <span class="n">default</span> <span class="n">charset</span><span class="o">=</span><span class="n">utf8mb4</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="n">insert</span> <span class="n">into</span> <span class="n">tb_user</span><span class="p">(</span><span class="n">id</span><span class="p">,</span><span class="n">name</span><span class="p">,</span><span class="n">sex</span><span class="p">)</span> <span class="n">values</span><span class="p">(</span><span class="n">null</span><span class="p">,</span><span class="s1">&#39;Tom&#39;</span><span class="p">,</span> <span class="s1">&#39;1&#39;</span><span class="p">),(</span><span class="n">null</span><span class="p">,</span><span class="s1">&#39;Trigger&#39;</span><span class="p">,</span><span class="s1">&#39;0&#39;</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl"><span class="p">(</span><span class="n">null</span><span class="p">,</span><span class="s1">&#39;Dawn&#39;</span><span class="p">,</span><span class="s1">&#39;1&#39;</span><span class="p">);</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="2">
+<li>在从库 172.16.140.102 中查询数据，验证主从是否同步</li>
+</ol>
+<p><img src="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E4%B8%BB%E4%BB%8E%E5%A4%8D%E5%88%B6/image-5.png"
+	width="368"
+	height="386"
+	srcset="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E4%B8%BB%E4%BB%8E%E5%A4%8D%E5%88%B6/image-5_hu_bcac29096aa79a72.png 480w, /p/mysqlmysql%E8%BF%90%E7%BB%B4-%E4%B8%BB%E4%BB%8E%E5%A4%8D%E5%88%B6/image-5_hu_41ba19b0d19afaca.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="95"
+		data-flex-basis="228px"
+	
+></p>
+<p><img src="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E4%B8%BB%E4%BB%8E%E5%A4%8D%E5%88%B6/image-6.png"
+	width="352"
+	height="248"
+	srcset="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E4%B8%BB%E4%BB%8E%E5%A4%8D%E5%88%B6/image-6_hu_4798e7125a3be130.png 480w, /p/mysqlmysql%E8%BF%90%E7%BB%B4-%E4%B8%BB%E4%BB%8E%E5%A4%8D%E5%88%B6/image-6_hu_579a9c3cb303b1ed.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="141"
+		data-flex-basis="340px"
+	
+></p>
+<p><img src="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E4%B8%BB%E4%BB%8E%E5%A4%8D%E5%88%B6/image-7.png"
+	width="448"
+	height="312"
+	srcset="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E4%B8%BB%E4%BB%8E%E5%A4%8D%E5%88%B6/image-7_hu_9ef1fc9600d9b2a1.png 480w, /p/mysqlmysql%E8%BF%90%E7%BB%B4-%E4%B8%BB%E4%BB%8E%E5%A4%8D%E5%88%B6/image-7_hu_94a8f68f182d185.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="143"
+		data-flex-basis="344px"
+	
+></p>
+<p>可以看到主库创建的数据，从库同时能获取到。</p>
+
+</section>
+
+
+    <footer class="article-footer">
+    
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+<aside class="related-content--wrapper">
+    <h2 class="section-title">相关文章</h2>
+    <div class="related-content">
+        <div class="flex article-list--tile">
+            
+                
+<article class="">
+    <a href="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E6%97%A5%E5%BF%97/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[MySQL]MySQL运维-日志</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%AE%A1%E7%90%86/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[MySQL]MySQL进阶-管理</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[MySQL]MySQL进阶-InnoDB引擎</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E9%94%81/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[MySQL]MySQL进阶-锁</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/mysql%E8%BF%9B%E9%98%B6-%E8%A7%A6%E5%8F%91%E5%99%A8/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[MySQL]进阶-触发器</h2>
+        </div>
+    </a>
+</article>
+
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+        2025 リンボの個人ブログ
+    </section>
+    
+    <section class="powerby">
+         <br />
+        
+    </section>
+</footer>
+
+
+    
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+    
+    <div class="pswp__bg"></div>
+
+    
+    <div class="pswp__scroll-wrap">
+
+        
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+
+        
+        <div class="pswp__ui pswp__ui--hidden">
+
+            <div class="pswp__top-bar">
+
+                
+
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+
+                <button class="pswp__button pswp__button--share" title="Share"></button>
+
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+
+                
+                
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                        <div class="pswp__preloader__cut">
+                            <div class="pswp__preloader__donut"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div>
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.js"integrity="sha256-ePwmChbbvXbsO02lbM3HoHbSHTHFAeChekF1xKJdleo="crossorigin="anonymous"
+                defer
+                >
+            </script><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe-ui-default.min.js"integrity="sha256-UKkzOn/w1mBxRmLLGrSeyB4e1xbrp4xylgAWb3M42pU="crossorigin="anonymous"
+                defer
+                >
+            </script><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/default-skin/default-skin.min.css"crossorigin="anonymous"
+            ><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.css"crossorigin="anonymous"
+            >
+
+            </main>
+        </div>
+        <script 
+                src="https://cdn.jsdelivr.net/npm/node-vibrant@3.1.6/dist/vibrant.min.js"integrity="sha256-awcR2jno4kI5X0zL8ex0vi2z&#43;KMkF24hUW8WePSA9HM="crossorigin="anonymous"
+                
+                >
+            </script><script type="text/javascript" src="/ts/main.1e9a3bafd846ced4c345d084b355fb8c7bae75701c338f8a1f8a82c780137826.js" defer></script>
+<script>
+    (function () {
+        const customFont = document.createElement('link');
+        customFont.href = "https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap";
+
+        customFont.type = "text/css";
+        customFont.rel = "stylesheet";
+
+        document.head.appendChild(customFont);
+    }());
+</script>
+
+    </body>
+</html>
