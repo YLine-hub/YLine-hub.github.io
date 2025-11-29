@@ -232,8 +232,51 @@
     <li><a href="#mycat入门">MyCat入门</a>
       <ol>
         <li><a href="#需求">需求</a></li>
-        <li><a href="#环境准备">环境准备</a></li>
+        <li><a href="#环境准备">环境准备</a>
+          <ol>
+            <li><a href="#测试环境">测试环境</a></li>
+            <li><a href="#3台服务器">3台服务器</a></li>
+          </ol>
+        </li>
         <li><a href="#配置">配置</a></li>
+        <li><a href="#测试">测试</a>
+          <ol>
+            <li><a href="#启动">启动</a></li>
+            <li><a href="#测试-1">测试</a></li>
+            <li><a href="#总结">总结</a></li>
+          </ol>
+        </li>
+      </ol>
+    </li>
+    <li><a href="#mycat配置">MyCat配置</a>
+      <ol>
+        <li><a href="#schemaxml">schema.xml</a>
+          <ol>
+            <li><a href="#schema标签">schema标签</a></li>
+            <li><a href="#datanode标签">datanode标签</a></li>
+            <li><a href="#datahost标签">datahost标签</a></li>
+          </ol>
+        </li>
+        <li><a href="#rulexml">rule.xml</a></li>
+        <li><a href="#serverxml">server.xml</a>
+          <ol>
+            <li><a href="#system-标签">system 标签</a></li>
+            <li><a href="#user-标签">user 标签</a></li>
+          </ol>
+        </li>
+      </ol>
+    </li>
+    <li><a href="#mycat-分片">MyCat 分片</a>
+      <ol>
+        <li><a href="#垂直拆分-1">垂直拆分</a>
+          <ol>
+            <li><a href="#场景">场景</a></li>
+            <li><a href="#准备">准备</a></li>
+            <li><a href="#配置-1">配置</a></li>
+            <li><a href="#测试-3">测试</a></li>
+            <li><a href="#全局表">全局表</a></li>
+          </ol>
+        </li>
       </ol>
     </li>
   </ol>
@@ -909,8 +952,27 @@
 	
 ></p>
 <h3 id="环境准备">环境准备
-</h3><p><strong>准备3台服务器:</strong></p>
-<ul>
+</h3><h4 id="测试环境">测试环境
+</h4><ul>
+<li>arm64 centos7 虚拟机：3台</li>
+<li>mysql：mysql-8.0.26-1.el7.aarch64.rpm-bundle.tar</li>
+<li>jdk：jdk-8u171-linux-arm64-vfp-hflt.tar.gz</li>
+<li>Mycat：Mycat-server-1.6.7.3-release-20210913163959-linux.tar.gz</li>
+<li>wrapper：wrapper-linux-armhf-64-3.5.40.tar.gz</li>
+</ul>
+<h5 id="相关下载直链">相关下载直链
+</h5><ul>
+<li>mysql：<a class="link" href="https://downloads.mysql.com/archives/community/"  target="_blank" rel="noopener"
+    >mysql-download</a></li>
+<li>jdk：<a class="link" href="https://repo.huaweicloud.com/java/jdk/8u171-b11/"  target="_blank" rel="noopener"
+    >jdk1.8_171</a></li>
+<li>Mycat：<a class="link" href="https://github.com/MyCATApache/Mycat-Server/releases"  target="_blank" rel="noopener"
+    >Mycat-Server-releases</a></li>
+<li>wrapper：<a class="link" href="https://download.tanukisoftware.com/wrapper/3.5.40/"  target="_blank" rel="noopener"
+    >wrapper-3.5.40</a></li>
+</ul>
+<h4 id="3台服务器">3台服务器
+</h4><ul>
 <li><code>172.16.140.111</code>:MyCat中间件服务器，同时也是第一个分片服务器。</li>
 <li><code>172.16.140.112</code>:第二个分片服务器。</li>
 <li><code>172.16.140.114</code>:第三个分片服务器。</li>
@@ -930,8 +992,16 @@
 	
 ></p>
 <p>并且在上述3台数据库中创建数据库 db01 。</p>
-<h3 id="配置">配置
-</h3><p>1). schema.xml</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">create database db01;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="配置">配置
+</h3><p>1). <code>mycat/conf/schema.xml </code></p>
 <p>在schema.xml中配置逻辑库、逻辑表、数据节点、节点主机等相关信息。具体的配置如下:</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
@@ -965,7 +1035,6 @@
 </span><span class="lnt">28
 </span><span class="lnt">29
 </span><span class="lnt">30
-</span><span class="lnt">31
 </span></code></pre></td>
 <td class="lntd">
 <pre tabindex="0" class="chroma"><code class="language-xml" data-lang="xml"><span class="line"><span class="cl"><span class="cp">&lt;?xml version=&#34;1.0&#34;?&gt;</span>
@@ -974,8 +1043,7 @@
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="nt">&lt;schema</span> <span class="na">name=</span><span class="s">&#34;DB01&#34;</span> <span class="na">checkSQLschema=</span><span class="s">&#34;true&#34;</span> <span class="na">sqlMaxLimit=</span><span class="s">&#34;100&#34;</span><span class="nt">&gt;</span>
 </span></span><span class="line"><span class="cl">    <span class="nt">&lt;table</span> <span class="na">name=</span><span class="s">&#34;TB_ORDER&#34;</span> <span class="na">dataNode=</span><span class="s">&#34;dn1,dn2,dn3&#34;</span> <span class="na">rule=</span><span class="s">&#34;auto-sharding-long&#34;</span> <span class="nt">/&gt;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="nt">&lt;/schema&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="nt">&lt;/schema&gt;</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">    <span class="nt">&lt;dataNode</span> <span class="na">name=</span><span class="s">&#34;dn1&#34;</span> <span class="na">dataHost=</span><span class="s">&#34;dhost1&#34;</span> <span class="na">database=</span><span class="s">&#34;db01&#34;</span> <span class="nt">/&gt;</span>
 </span></span><span class="line"><span class="cl">    <span class="nt">&lt;dataNode</span> <span class="na">name=</span><span class="s">&#34;dn2&#34;</span> <span class="na">dataHost=</span><span class="s">&#34;dhost2&#34;</span> <span class="na">database=</span><span class="s">&#34;db01&#34;</span> <span class="nt">/&gt;</span>
@@ -984,24 +1052,1692 @@
 </span></span><span class="line"><span class="cl">    <span class="nt">&lt;dataHost</span> <span class="na">name=</span><span class="s">&#34;dhost1&#34;</span> <span class="na">maxCon=</span><span class="s">&#34;1000&#34;</span> <span class="na">minCon=</span><span class="s">&#34;10&#34;</span> <span class="na">balance=</span><span class="s">&#34;0&#34;</span> <span class="na">writeType=</span><span class="s">&#34;0&#34;</span> <span class="na">dbType=</span><span class="s">&#34;mysql&#34;</span> <span class="na">dbDriver=</span><span class="s">&#34;jdbc&#34;</span> <span class="na">switchType=</span><span class="s">&#34;1&#34;</span> <span class="na">slaveThreshold=</span><span class="s">&#34;100&#34;</span><span class="nt">&gt;</span>
 </span></span><span class="line"><span class="cl">        <span class="nt">&lt;heartbeat&gt;</span>select user()<span class="nt">&lt;/heartbeat&gt;</span>
 </span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">        <span class="nt">&lt;writeHost</span> <span class="na">host=</span><span class="s">&#34;master&#34;</span> <span class="na">url=</span><span class="s">&#34;jdbc:mysql://172.16.140.111:3306?useSSL=false&amp;amp;serverTimezone=Asia/Shanghai&amp;amp;characterEncoding=utf8&#34;</span> <span class="na">user=</span><span class="s">&#34;root&#34;</span> <span class="na">password=</span><span class="s">&#34;123456&#34;</span> <span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">        <span class="nt">&lt;writeHost</span> <span class="na">host=</span><span class="s">&#34;master&#34;</span> <span class="na">url=</span><span class="s">&#34;jdbc:mysql://172.16.140.111:3306?allowPublicKeyRetrieval=true&amp;amp;useSSL=false&amp;amp;serverTimezone=Asia/Shanghai&amp;amp;characterEncoding=utf8&#34;</span> <span class="na">user=</span><span class="s">&#34;root&#34;</span> <span class="na">password=</span><span class="s">&#34;123456&#34;</span> <span class="nt">/&gt;</span>
 </span></span><span class="line"><span class="cl">    <span class="nt">&lt;/dataHost&gt;</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">    <span class="nt">&lt;dataHost</span> <span class="na">name=</span><span class="s">&#34;dhost2&#34;</span> <span class="na">maxCon=</span><span class="s">&#34;1000&#34;</span> <span class="na">minCon=</span><span class="s">&#34;10&#34;</span> <span class="na">balance=</span><span class="s">&#34;0&#34;</span> <span class="na">writeType=</span><span class="s">&#34;0&#34;</span> <span class="na">dbType=</span><span class="s">&#34;mysql&#34;</span> <span class="na">dbDriver=</span><span class="s">&#34;jdbc&#34;</span> <span class="na">switchType=</span><span class="s">&#34;1&#34;</span> <span class="na">slaveThreshold=</span><span class="s">&#34;100&#34;</span><span class="nt">&gt;</span>
 </span></span><span class="line"><span class="cl">        <span class="nt">&lt;heartbeat&gt;</span>select user()<span class="nt">&lt;/heartbeat&gt;</span>
 </span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">        <span class="nt">&lt;writeHost</span> <span class="na">host=</span><span class="s">&#34;master&#34;</span> <span class="na">url=</span><span class="s">&#34;jdbc:mysql://172.16.140.112:3306?useSSL=false&amp;amp;serverTimezone=Asia/Shanghai&amp;amp;characterEncoding=utf8&#34;</span> <span class="na">user=</span><span class="s">&#34;root&#34;</span> <span class="na">password=</span><span class="s">&#34;123456&#34;</span> <span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">        <span class="nt">&lt;writeHost</span> <span class="na">host=</span><span class="s">&#34;master&#34;</span> <span class="na">url=</span><span class="s">&#34;jdbc:mysql://172.16.140.112:3306?allowPublicKeyRetrieval=true&amp;amp;useSSL=false&amp;amp;serverTimezone=Asia/Shanghai&amp;amp;characterEncoding=utf8&#34;</span> <span class="na">user=</span><span class="s">&#34;root&#34;</span> <span class="na">password=</span><span class="s">&#34;123456&#34;</span> <span class="nt">/&gt;</span>
 </span></span><span class="line"><span class="cl">    <span class="nt">&lt;/dataHost&gt;</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">    <span class="nt">&lt;dataHost</span> <span class="na">name=</span><span class="s">&#34;dhost3&#34;</span> <span class="na">maxCon=</span><span class="s">&#34;1000&#34;</span> <span class="na">minCon=</span><span class="s">&#34;10&#34;</span> <span class="na">balance=</span><span class="s">&#34;0&#34;</span> <span class="na">writeType=</span><span class="s">&#34;0&#34;</span> <span class="na">dbType=</span><span class="s">&#34;mysql&#34;</span> <span class="na">dbDriver=</span><span class="s">&#34;jdbc&#34;</span> <span class="na">switchType=</span><span class="s">&#34;1&#34;</span> <span class="na">slaveThreshold=</span><span class="s">&#34;100&#34;</span><span class="nt">&gt;</span>
 </span></span><span class="line"><span class="cl">        <span class="nt">&lt;heartbeat&gt;</span>select user()<span class="nt">&lt;/heartbeat&gt;</span>
 </span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">        <span class="nt">&lt;writeHost</span> <span class="na">host=</span><span class="s">&#34;master&#34;</span> <span class="na">url=</span><span class="s">&#34;jdbc:mysql://172.16.140.113:3306?useSSL=false&amp;amp;serverTimezone=Asia/Shanghai&amp;amp;characterEncoding=utf8&#34;</span> <span class="na">user=</span><span class="s">&#34;root&#34;</span> <span class="na">password=</span><span class="s">&#34;123456&#34;</span> <span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">        <span class="nt">&lt;writeHost</span> <span class="na">host=</span><span class="s">&#34;master&#34;</span> <span class="na">url=</span><span class="s">&#34;jdbc:mysql://172.16.140.113:3306?allowPublicKeyRetrieval=true&amp;amp;useSSL=false&amp;amp;serverTimezone=Asia/Shanghai&amp;amp;characterEncoding=utf8&#34;</span> <span class="na">user=</span><span class="s">&#34;root&#34;</span> <span class="na">password=</span><span class="s">&#34;123456&#34;</span> <span class="nt">/&gt;</span>
 </span></span><span class="line"><span class="cl">    <span class="nt">&lt;/dataHost&gt;</span>
 </span></span><span class="line"><span class="cl"><span class="nt">&lt;/mycat:schema&gt;</span>
 </span></span></code></pre></td></tr></table>
 </div>
+</div><p>1). <code>mycat/conf/server.xml </code></p>
+<p>需要在server.xml中配置用户名、密码，以及用户的访问权限信息，具体的配置如下:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-xml" data-lang="xml"><span class="line"><span class="cl"><span class="nt">&lt;user</span> <span class="na">name=</span><span class="s">&#34;root&#34;</span> <span class="na">defaultAccount=</span><span class="s">&#34;true&#34;</span><span class="nt">&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;property</span> <span class="na">name=</span><span class="s">&#34;password&#34;</span><span class="nt">&gt;</span>123456<span class="nt">&lt;/property&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;property</span> <span class="na">name=</span><span class="s">&#34;schemas&#34;</span><span class="nt">&gt;</span>DB01<span class="nt">&lt;/property&gt;</span>
+</span></span><span class="line"><span class="cl">    
+</span></span><span class="line"><span class="cl">    <span class="c">&lt;!-- 表级 DML 权限设置 --&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="c">&lt;!-- 		
+</span></span></span><span class="line"><span class="cl"><span class="c">    &lt;privileges check=&#34;false&#34;&gt;
+</span></span></span><span class="line"><span class="cl"><span class="c">        &lt;schema name=&#34;TESTDB&#34; dml=&#34;0110&#34; &gt;
+</span></span></span><span class="line"><span class="cl"><span class="c">            &lt;table name=&#34;tb01&#34; dml=&#34;0000&#34;&gt;&lt;/table&gt;
+</span></span></span><span class="line"><span class="cl"><span class="c">            &lt;table name=&#34;tb02&#34; dml=&#34;1111&#34;&gt;&lt;/table&gt;
+</span></span></span><span class="line"><span class="cl"><span class="c">        &lt;/schema&gt;
+</span></span></span><span class="line"><span class="cl"><span class="c">    &lt;/privileges&gt;		
+</span></span></span><span class="line"><span class="cl"><span class="c">        --&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="nt">&lt;/user&gt;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nt">&lt;user</span> <span class="na">name=</span><span class="s">&#34;user&#34;</span><span class="nt">&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;property</span> <span class="na">name=</span><span class="s">&#34;password&#34;</span><span class="nt">&gt;</span>123456<span class="nt">&lt;/property&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;property</span> <span class="na">name=</span><span class="s">&#34;schemas&#34;</span><span class="nt">&gt;</span>DB01<span class="nt">&lt;/property&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;property</span> <span class="na">name=</span><span class="s">&#34;readOnly&#34;</span><span class="nt">&gt;</span>true<span class="nt">&lt;/property&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="nt">&lt;/user&gt;</span>
+</span></span></code></pre></td></tr></table>
 </div>
+</div><p>上述的配置表示，定义了两个用户 root 和 user ，这两个用户都可以访问 DB01 这个逻辑库，访 问密码都是123456，但是root用户访问DB01逻辑库，既可以读，又可以写，但是 user用户访问 DB01逻辑库是只读的。</p>
+<h3 id="测试">测试
+</h3><h4 id="启动">启动
+</h4><p>配置完毕后，先启动涉及到的3台分片服务器，然后启动MyCat服务器。切换到Mycat的安装目录，执行如下指令，启动Mycat:</p>
+<ul>
+<li>启动</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">bin/mycat start
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>停止</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">bin/mycat stop
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><font color=red>Mycat启动之后，占用端口 8066</font></p>
+<p><strong>启动报错：</strong></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">[root@localhost mycat]# bin/mycat start
+</span></span><span class="line"><span class="cl">Unable to locate any of the following operational binaries:
+</span></span><span class="line"><span class="cl">  /usr/local/mycat/bin/./wrapper-linux-aarch64-64
+</span></span><span class="line"><span class="cl">  /usr/local/mycat/bin/./wrapper-linux-aarch64-32
+</span></span><span class="line"><span class="cl">  /usr/local/mycat/bin/./wrapper
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>原因：</li>
+</ul>
+<p>缺少wrapper-linux-aarch64-64、wrapper-linux-aarch64-32、wrapper</p>
+<ul>
+<li>下载地址：<a class="link" href="https://download.tanukisoftware.com/wrapper/3.5.40/"  target="_blank" rel="noopener"
+    >wrapper</a></li>
+</ul>
+<p><img src="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-27.png"
+	width="704"
+	height="116"
+	srcset="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-27_hu_804a0ac0fc85fd54.png 480w, /p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-27_hu_86fe50ae190c8b67.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="606"
+		data-flex-basis="1456px"
+	
+></p>
+<ul>
+<li>解决</li>
+</ul>
+<ol>
+<li>下载wrapper</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-gdscript3" data-lang="gdscript3"><span class="line"><span class="cl"><span class="n">wget</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">download</span><span class="o">.</span><span class="n">tanukisoftware</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">wrapper</span><span class="o">/</span><span class="mf">3.5</span><span class="o">.</span><span class="mi">40</span><span class="o">/</span><span class="n">wrapper</span><span class="o">-</span><span class="n">linux</span><span class="o">-</span><span class="n">armhf</span><span class="o">-</span><span class="mi">64</span><span class="o">-</span><span class="mf">3.5</span><span class="o">.</span><span class="mf">40.</span><span class="n">tar</span><span class="o">.</span><span class="n">gz</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="2">
+<li>解压wrapper，并将其复制到mycat/bin目录下</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">tar -zxvf wrapper-linux-armhf-64-3.5.40.tar.gz
+</span></span><span class="line"><span class="cl">cd wrapper-linux-armhf-64-3.5.40/bin
+</span></span><span class="line"><span class="cl">cp wrapper /usr/local/mycat/bin
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="3">
+<li>重新启动 mycat</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">/usr/local/mycat/bin/mycat start
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>启动完毕之后，可以查看logs目录下的启动日志，查看Mycat是否启动完成。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">tail -f logs/wrapper.log
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>启动报错：</strong></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-gdscript3" data-lang="gdscript3"><span class="line"><span class="cl"><span class="p">[</span><span class="n">root</span><span class="err">@</span><span class="n">localhost</span> <span class="n">mycat</span><span class="p">]</span><span class="c1"># tail -f logs/wrapper.log</span>
+</span></span><span class="line"><span class="cl"><span class="n">STATUS</span> <span class="o">|</span> <span class="n">wrapper</span>  <span class="o">|</span> <span class="mi">2025</span><span class="o">/</span><span class="mi">11</span><span class="o">/</span><span class="mi">29</span> <span class="mi">04</span><span class="p">:</span><span class="mi">33</span><span class="p">:</span><span class="mi">08</span> <span class="o">|</span> <span class="o">--&gt;</span> <span class="n">Wrapper</span> <span class="n">Started</span> <span class="n">as</span> <span class="n">Daemon</span>
+</span></span><span class="line"><span class="cl"><span class="n">STATUS</span> <span class="o">|</span> <span class="n">wrapper</span>  <span class="o">|</span> <span class="mi">2025</span><span class="o">/</span><span class="mi">11</span><span class="o">/</span><span class="mi">29</span> <span class="mi">04</span><span class="p">:</span><span class="mi">33</span><span class="p">:</span><span class="mi">08</span> <span class="o">|</span> <span class="n">Java</span> <span class="n">Service</span> <span class="n">Wrapper</span> <span class="n">Community</span> <span class="n">Edition</span> <span class="mi">64</span><span class="o">-</span><span class="n">bit</span> <span class="mf">3.5</span><span class="o">.</span><span class="mi">40</span>
+</span></span><span class="line"><span class="cl"><span class="n">STATUS</span> <span class="o">|</span> <span class="n">wrapper</span>  <span class="o">|</span> <span class="mi">2025</span><span class="o">/</span><span class="mi">11</span><span class="o">/</span><span class="mi">29</span> <span class="mi">04</span><span class="p">:</span><span class="mi">33</span><span class="p">:</span><span class="mi">08</span> <span class="o">|</span>   <span class="n">Copyright</span> <span class="p">(</span><span class="n">C</span><span class="p">)</span> <span class="mi">1999</span><span class="o">-</span><span class="mi">2019</span> <span class="n">Tanuki</span> <span class="n">Software</span><span class="p">,</span> <span class="n">Ltd</span><span class="o">.</span> <span class="n">All</span> <span class="n">Rights</span> <span class="n">Reserved</span><span class="o">.</span>
+</span></span><span class="line"><span class="cl"><span class="n">STATUS</span> <span class="o">|</span> <span class="n">wrapper</span>  <span class="o">|</span> <span class="mi">2025</span><span class="o">/</span><span class="mi">11</span><span class="o">/</span><span class="mi">29</span> <span class="mi">04</span><span class="p">:</span><span class="mi">33</span><span class="p">:</span><span class="mi">08</span> <span class="o">|</span>     <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">wrapper</span><span class="o">.</span><span class="n">tanukisoftware</span><span class="o">.</span><span class="n">com</span>
+</span></span><span class="line"><span class="cl"><span class="n">STATUS</span> <span class="o">|</span> <span class="n">wrapper</span>  <span class="o">|</span> <span class="mi">2025</span><span class="o">/</span><span class="mi">11</span><span class="o">/</span><span class="mi">29</span> <span class="mi">04</span><span class="p">:</span><span class="mi">33</span><span class="p">:</span><span class="mi">08</span> <span class="o">|</span>
+</span></span><span class="line"><span class="cl"><span class="n">STATUS</span> <span class="o">|</span> <span class="n">wrapper</span>  <span class="o">|</span> <span class="mi">2025</span><span class="o">/</span><span class="mi">11</span><span class="o">/</span><span class="mi">29</span> <span class="mi">04</span><span class="p">:</span><span class="mi">33</span><span class="p">:</span><span class="mi">08</span> <span class="o">|</span> <span class="n">Launching</span> <span class="n">a</span> <span class="n">JVM</span><span class="o">...</span>
+</span></span><span class="line"><span class="cl"><span class="n">INFO</span>   <span class="o">|</span> <span class="n">jvm</span> <span class="mi">1</span>    <span class="o">|</span> <span class="mi">2025</span><span class="o">/</span><span class="mi">11</span><span class="o">/</span><span class="mi">29</span> <span class="mi">04</span><span class="p">:</span><span class="mi">33</span><span class="p">:</span><span class="mi">08</span> <span class="o">|</span> <span class="n">Java</span> <span class="n">HotSpot</span><span class="p">(</span><span class="n">TM</span><span class="p">)</span> <span class="mi">64</span><span class="o">-</span><span class="n">Bit</span> <span class="n">Server</span> <span class="n">VM</span> <span class="n">warning</span><span class="p">:</span> <span class="n">ignoring</span> <span class="n">option</span> <span class="n">MaxPermSize</span><span class="o">=</span><span class="mi">64</span><span class="n">M</span><span class="p">;</span> <span class="n">support</span> <span class="n">was</span> <span class="n">removed</span> <span class="ow">in</span> <span class="mf">8.0</span>
+</span></span><span class="line"><span class="cl"><span class="n">ERROR</span>  <span class="o">|</span> <span class="n">wrapper</span>  <span class="o">|</span> <span class="mi">2025</span><span class="o">/</span><span class="mi">11</span><span class="o">/</span><span class="mi">29</span> <span class="mi">04</span><span class="p">:</span><span class="mi">33</span><span class="p">:</span><span class="mi">38</span> <span class="o">|</span> <span class="n">Startup</span> <span class="n">failed</span><span class="p">:</span> <span class="n">Timed</span> <span class="n">out</span> <span class="n">waiting</span> <span class="k">for</span> <span class="n">a</span> <span class="k">signal</span> <span class="n">from</span> <span class="n">the</span> <span class="n">JVM</span><span class="o">.</span>
+</span></span><span class="line"><span class="cl"><span class="n">ERROR</span>  <span class="o">|</span> <span class="n">wrapper</span>  <span class="o">|</span> <span class="mi">2025</span><span class="o">/</span><span class="mi">11</span><span class="o">/</span><span class="mi">29</span> <span class="mi">04</span><span class="p">:</span><span class="mi">33</span><span class="p">:</span><span class="mi">38</span> <span class="o">|</span> <span class="n">JVM</span> <span class="n">did</span> <span class="ow">not</span> <span class="n">exit</span> <span class="n">on</span> <span class="n">request</span><span class="p">,</span> <span class="n">termination</span> <span class="n">requested</span><span class="o">.</span>
+</span></span><span class="line"><span class="cl"><span class="n">STATUS</span> <span class="o">|</span> <span class="n">wrapper</span>  <span class="o">|</span> <span class="mi">2025</span><span class="o">/</span><span class="mi">11</span><span class="o">/</span><span class="mi">29</span> <span class="mi">04</span><span class="p">:</span><span class="mi">33</span><span class="p">:</span><span class="mi">38</span> <span class="o">|</span> <span class="n">JVM</span> <span class="n">received</span> <span class="n">a</span> <span class="k">signal</span> <span class="n">SIGKILL</span> <span class="p">(</span><span class="mi">9</span><span class="p">)</span><span class="o">.</span>
+</span></span><span class="line"><span class="cl"><span class="n">STATUS</span> <span class="o">|</span> <span class="n">wrapper</span>  <span class="o">|</span> <span class="mi">2025</span><span class="o">/</span><span class="mi">11</span><span class="o">/</span><span class="mi">29</span> <span class="mi">04</span><span class="p">:</span><span class="mi">33</span><span class="p">:</span><span class="mi">38</span> <span class="o">|</span> <span class="n">JVM</span> <span class="n">process</span> <span class="n">is</span> <span class="n">gone</span><span class="o">.</span>
+</span></span><span class="line"><span class="cl"><span class="n">STATUS</span> <span class="o">|</span> <span class="n">wrapper</span>  <span class="o">|</span> <span class="mi">2025</span><span class="o">/</span><span class="mi">11</span><span class="o">/</span><span class="mi">29</span> <span class="mi">04</span><span class="p">:</span><span class="mi">33</span><span class="p">:</span><span class="mi">38</span> <span class="o">|</span> <span class="n">JVM</span> <span class="n">exited</span> <span class="n">after</span> <span class="n">being</span> <span class="n">requested</span> <span class="n">to</span> <span class="n">terminate</span><span class="o">.</span>
+</span></span><span class="line"><span class="cl"><span class="n">STATUS</span> <span class="o">|</span> <span class="n">wrapper</span>  <span class="o">|</span> <span class="mi">2025</span><span class="o">/</span><span class="mi">11</span><span class="o">/</span><span class="mi">29</span> <span class="mi">04</span><span class="p">:</span><span class="mi">33</span><span class="p">:</span><span class="mi">44</span> <span class="o">|</span> <span class="n">JVM</span> <span class="n">process</span> <span class="n">is</span> <span class="n">gone</span><span class="o">.</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>原因：</li>
+</ul>
+<p>JVM 启动时间过长。</p>
+<ul>
+<li>解决；</li>
+</ul>
+<p>延长JVM启动时间</p>
+<ol>
+<li>编辑wrapper.conf文件</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">vim /usr/local/mycat/conf/wrapper.conf
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="2">
+<li>添加以下配置</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl"># 增加超时时间
+</span></span><span class="line"><span class="cl">wrapper.startup.timeout=300
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-28.png"
+	width="1646"
+	height="1202"
+	srcset="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-28_hu_f6da9ed253c708ff.png 480w, /p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-28_hu_5f0961ad5b2e3eca.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="136"
+		data-flex-basis="328px"
+	
+></p>
+<p>启动成功</p>
+<h4 id="测试-1">测试
+</h4><ol>
+<li>连接MyCat</li>
+</ol>
+<p>通过如下指令，就可以连接并登陆MyCat。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">mysql -h 172.16.140.111 -P 8066 -uroot -p123456
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-29.png"
+	width="1242"
+	height="518"
+	srcset="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-29_hu_127551169a521564.png 480w, /p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-29_hu_e2b60716bc34b9d2.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="239"
+		data-flex-basis="575px"
+	
+></p>
+<p>我们看到我们是通过MySQL的指令来连接的MyCat，因为MyCat在底层实际上是模拟了MySQL的协议。</p>
+<ul>
+<li>查看MyCat中的数据库</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">show databases;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-30.png"
+	width="366"
+	height="262"
+	srcset="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-30_hu_24bce6172ff21a4b.png 480w, /p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-30_hu_805fe440416998b6.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="139"
+		data-flex-basis="335px"
+	
+></p>
+<ul>
+<li>查看DB01中的表</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">use DB01;
+</span></span><span class="line"><span class="cl">show tables;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-31.png"
+	width="344"
+	height="320"
+	srcset="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-31_hu_83c87b6a88593db2.png 480w, /p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-31_hu_731cf335f3f1b6dd.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="107"
+		data-flex-basis="258px"
+	
+></p>
+<p>但是这张表目前在三个mysql数据库中不存在，只是逻辑存在于MyCat中</p>
+<ol start="2">
+<li>数据测试</li>
+</ol>
+<p>然后就可以在MyCat中来创建表，并往表结构中插入数据，查看数据在MySQL中的分布情况。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-sql" data-lang="sql"><span class="line"><span class="cl"><span class="k">CREATE</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">TB_ORDER</span><span class="w"> </span><span class="p">(</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="n">id</span><span class="w"> </span><span class="nb">BIGINT</span><span class="p">(</span><span class="mi">20</span><span class="p">)</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="n">title</span><span class="w"> </span><span class="nb">VARCHAR</span><span class="p">(</span><span class="mi">100</span><span class="p">)</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="w"> </span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">PRIMARY</span><span class="w"> </span><span class="k">KEY</span><span class="w"> </span><span class="p">(</span><span class="n">id</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">)</span><span class="w"> </span><span class="n">ENGINE</span><span class="o">=</span><span class="n">INNODB</span><span class="w"> </span><span class="k">DEFAULT</span><span class="w"> </span><span class="n">CHARSET</span><span class="o">=</span><span class="n">utf8</span><span class="w"> </span><span class="p">;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="k">INSERT</span><span class="w"> </span><span class="k">INTO</span><span class="w"> </span><span class="n">TB_ORDER</span><span class="p">(</span><span class="n">id</span><span class="p">,</span><span class="n">title</span><span class="p">)</span><span class="w"> </span><span class="k">VALUES</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="s1">&#39;goods1&#39;</span><span class="p">);</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="k">INSERT</span><span class="w"> </span><span class="k">INTO</span><span class="w"> </span><span class="n">TB_ORDER</span><span class="p">(</span><span class="n">id</span><span class="p">,</span><span class="n">title</span><span class="p">)</span><span class="w"> </span><span class="k">VALUES</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span><span class="s1">&#39;goods2&#39;</span><span class="p">);</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="k">INSERT</span><span class="w"> </span><span class="k">INTO</span><span class="w"> </span><span class="n">TB_ORDER</span><span class="p">(</span><span class="n">id</span><span class="p">,</span><span class="n">title</span><span class="p">)</span><span class="w"> </span><span class="k">VALUES</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="s1">&#39;goods3&#39;</span><span class="p">);</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="k">INSERT</span><span class="w"> </span><span class="k">INTO</span><span class="w"> </span><span class="n">TB_ORDER</span><span class="p">(</span><span class="n">id</span><span class="p">,</span><span class="n">title</span><span class="p">)</span><span class="w"> </span><span class="k">VALUES</span><span class="p">(</span><span class="mi">5000000</span><span class="p">,</span><span class="s1">&#39;goods5000000&#39;</span><span class="p">);</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="k">INSERT</span><span class="w"> </span><span class="k">INTO</span><span class="w"> </span><span class="n">TB_ORDER</span><span class="p">(</span><span class="n">id</span><span class="p">,</span><span class="n">title</span><span class="p">)</span><span class="w"> </span><span class="k">VALUES</span><span class="p">(</span><span class="mi">10000000</span><span class="p">,</span><span class="s1">&#39;goods10000000&#39;</span><span class="p">);</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="k">INSERT</span><span class="w"> </span><span class="k">INTO</span><span class="w"> </span><span class="n">TB_ORDER</span><span class="p">(</span><span class="n">id</span><span class="p">,</span><span class="n">title</span><span class="p">)</span><span class="w"> </span><span class="k">VALUES</span><span class="p">(</span><span class="mi">10000001</span><span class="p">,</span><span class="s1">&#39;goods10000001&#39;</span><span class="p">);</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="k">INSERT</span><span class="w"> </span><span class="k">INTO</span><span class="w"> </span><span class="n">TB_ORDER</span><span class="p">(</span><span class="n">id</span><span class="p">,</span><span class="n">title</span><span class="p">)</span><span class="w"> </span><span class="k">VALUES</span><span class="p">(</span><span class="mi">15000000</span><span class="p">,</span><span class="s1">&#39;goods15000000&#39;</span><span class="p">);</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="k">INSERT</span><span class="w"> </span><span class="k">INTO</span><span class="w"> </span><span class="n">TB_ORDER</span><span class="p">(</span><span class="n">id</span><span class="p">,</span><span class="n">title</span><span class="p">)</span><span class="w"> </span><span class="k">VALUES</span><span class="p">(</span><span class="mi">15000001</span><span class="p">,</span><span class="s1">&#39;goods15000001&#39;</span><span class="p">);</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>创建TB_ORDER表</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-sql" data-lang="sql"><span class="line"><span class="cl"><span class="k">CREATE</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">TB_ORDER</span><span class="w"> </span><span class="p">(</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="n">id</span><span class="w"> </span><span class="nb">BIGINT</span><span class="p">(</span><span class="mi">20</span><span class="p">)</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="n">title</span><span class="w"> </span><span class="nb">VARCHAR</span><span class="p">(</span><span class="mi">100</span><span class="p">)</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="w"> </span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">PRIMARY</span><span class="w"> </span><span class="k">KEY</span><span class="w"> </span><span class="p">(</span><span class="n">id</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">)</span><span class="w"> </span><span class="n">ENGINE</span><span class="o">=</span><span class="n">INNODB</span><span class="w"> </span><span class="k">DEFAULT</span><span class="w"> </span><span class="n">CHARSET</span><span class="o">=</span><span class="n">utf8</span><span class="w"> </span><span class="p">;</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-33.png"
+	width="940"
+	height="414"
+	srcset="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-33_hu_d2edfeca8583834b.png 480w, /p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-33_hu_a06564ddf0fe50d0.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="227"
+		data-flex-basis="544px"
+	
+></p>
+<p><img src="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-32.png"
+	width="552"
+	height="1018"
+	srcset="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-32_hu_b4a9257d65f60949.png 480w, /p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-32_hu_de9ae5bcf07e1fa1.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="54"
+		data-flex-basis="130px"
+	
+></p>
+<p>此时可以看到三个数据库中同时创建出了tb_order表</p>
+<ul>
+<li>插入数据</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">INSERT INTO TB_ORDER(id,title) VALUES(1,&#39;goods1&#39;);
+</span></span><span class="line"><span class="cl">INSERT INTO TB_ORDER(id,title) VALUES(2,&#39;goods2&#39;);
+</span></span><span class="line"><span class="cl">INSERT INTO TB_ORDER(id,title) VALUES(3,&#39;goods3&#39;);
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-34.png"
+	width="834"
+	height="380"
+	srcset="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-34_hu_44817566fd950c2d.png 480w, /p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-34_hu_33dac2b3a29a8a4c.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="219"
+		data-flex-basis="526px"
+	
+></p>
+<p><img src="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-35.png"
+	width="598"
+	height="428"
+	srcset="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-35_hu_476f8390399aaae6.png 480w, /p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-35_hu_bba7c8eab4c07042.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="139"
+		data-flex-basis="335px"
+	
+></p>
+<p><img src="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-36.png"
+	width="582"
+	height="482"
+	srcset="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-36_hu_b673ae2dc1c20d4f.png 480w, /p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-36_hu_c65728fcb48ed5f8.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="120"
+		data-flex-basis="289px"
+	
+></p>
+<p><img src="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-37.png"
+	width="604"
+	height="518"
+	srcset="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-37_hu_2d6d45b40828f793.png 480w, /p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-37_hu_7105b327590e4e8e.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="116"
+		data-flex-basis="279px"
+	
+></p>
+<p>可以看到数据只保存在第一个MySQL数据库中</p>
+<p><strong>那么，为什么数据这样分布呢？</strong></p>
+<p>这就与<code>数据分片规则</code>有关</p>
+<p><img src="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-38.png"
+	width="1156"
+	height="446"
+	srcset="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-38_hu_3714d6e71960a6ad.png 480w, /p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-38_hu_b5550f762171bfd5.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="259"
+		data-flex-basis="622px"
+	
+></p>
+<p>该规则配置在conf/rule.xml中</p>
+<p><img src="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-39.png"
+	width="1202"
+	height="596"
+	srcset="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-39_hu_53e1e0faa2adf35f.png 480w, /p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-39_hu_7508a53f59cf1aff.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="201"
+		data-flex-basis="484px"
+	
+></p>
+<p><img src="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-40.png"
+	width="776"
+	height="602"
+	srcset="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-40_hu_c2849f5e252420e5.png 480w, /p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-40_hu_7695c6659275878a.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="128"
+		data-flex-basis="309px"
+	
+></p>
+<p><img src="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-41.png"
+	width="1140"
+	height="836"
+	srcset="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-41_hu_9725fb812c41a8fa.png 480w, /p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-41_hu_84a9d172e5f56bfa.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="136"
+		data-flex-basis="327px"
+	
+></p>
+<p>可以看到这个规则是根据id字段进行分配数据，引用rang-long函数进行分配，函数rang-long映射了文件autopartition-long.txt，该文件就在con目录下</p>
+<ul>
+<li><code>autopartition-long.txt</code></li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl"># 上面两行前面有#的为注释
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"># range start-end ,data node index 
+</span></span><span class="line"><span class="cl"># 说明范围为0(start)-500M(end)=0(data node index：数据节点的索引)
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"># K=1000,M=10000. # K的值为1000，M的值为10000
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">0-500M=0 # 0到500万的数据存放在第一个节点
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">500M-1000M=1 # 500万到1000万的数据存放在第二个节点
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">1000M-1500M=2 # 1000万到1500万的数据存放在第三个节点
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-42.png"
+	width="536"
+	height="232"
+	srcset="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-42_hu_8760f8cf90bd406.png 480w, /p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-42_hu_27015142d0941b17.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="231"
+		data-flex-basis="554px"
+	
+></p>
+<ul>
+<li>分别插入id为5000000、5000001、10000000、10000001、15000000的数据</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">INSERT INTO TB_ORDER(id,title) VALUES(5000000,&#39;goods5000000&#39;);
+</span></span><span class="line"><span class="cl">INSERT INTO TB_ORDER(id,title) VALUES(5000001,&#39;goods5000001&#39;);
+</span></span><span class="line"><span class="cl">INSERT INTO TB_ORDER(id,title) VALUES(10000000,&#39;goods10000000&#39;);
+</span></span><span class="line"><span class="cl">INSERT INTO TB_ORDER(id,title) VALUES(10000001,&#39;goods10000001&#39;);
+</span></span><span class="line"><span class="cl">INSERT INTO TB_ORDER(id,title) VALUES(15000000,&#39;goods15000000&#39;);
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-43.png"
+	width="1022"
+	height="1066"
+	srcset="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-43_hu_ad3453240859876c.png 480w, /p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-43_hu_3c9d02013ff5c34d.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="95"
+		data-flex-basis="230px"
+	
+></p>
+<p><img src="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-45.png"
+	width="602"
+	height="484"
+	srcset="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-45_hu_3c9aebaa7e7aee8c.png 480w, /p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-45_hu_e599978d1e773680.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="124"
+		data-flex-basis="298px"
+	
+></p>
+<p>可以看到id为5000000的数据存放在第一个节点数据库</p>
+<p><img src="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-46.png"
+	width="600"
+	height="420"
+	srcset="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-46_hu_fb9c6653f35bb898.png 480w, /p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-46_hu_1772159b301d9cea.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="142"
+		data-flex-basis="342px"
+	
+></p>
+<p>id为5000001、10000000的数据存放在第二个节点数据库</p>
+<p><img src="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-47.png"
+	width="604"
+	height="394"
+	srcset="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-47_hu_4dc9f3f71dba793.png 480w, /p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-47_hu_88307710fcf36119.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="153"
+		data-flex-basis="367px"
+	
+></p>
+<p>id为10000001、15000000的数据存放在第三个节点数据库</p>
+<p><strong>那么插入id为15000001会存放在哪个数据库呢？</strong></p>
+<ul>
+<li>插入id为15000001的数据</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">INSERT INTO TB_ORDER(id,title) VALUES(15000001,&#39;goods15000001&#39;);
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-44.png"
+	width="1112"
+	height="114"
+	srcset="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-44_hu_60512e9e572e0e2e.png 480w, /p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-44_hu_907e868e16a4bcc3.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="975"
+		data-flex-basis="2341px"
+	
+></p>
+<p>可以看到当存放id为15000001的数据时，出现报错，没有节点数据库给id为15000001的数据存放。</p>
+<h4 id="总结">总结
+</h4><p>经过测试，我们发现，在往 TB_ORDER 表中插入数据时:</p>
+<ul>
+<li>如果id的值在1-500w之间，数据将会存储在第一个分片数据库中。</li>
+<li>如果id的值在500w-1000w之间，数据将会存储在第二个分片数据库中。</li>
+<li>如果id的值在1000w-1500w之间，数据将会存储在第三个分片数据库中。</li>
+<li>如果id的值超出1500w，在插入数据时，将会报错。</li>
+</ul>
+<p>为什么会出现这种现象，数据到底落在哪一个分片服务器到底是如何决定的呢? 这是由逻辑表配置时 的一个参数 rule 决定的，而这个参数配置的就是分片规则，关于分片规则的配置，在后面会详细讲解。</p>
+<h2 id="mycat配置">MyCat配置
+</h2><h3 id="schemaxml">schema.xml
+</h3><p>schema.xml 作为MyCat中最重要的配置文件之一 , 涵盖了MyCat的逻辑库、逻辑表、分片规则、分片节点及数据源的配置。</p>
+<p><img src="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-48.png"
+	width="884"
+	height="364"
+	srcset="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-48_hu_ddfdf34253b64e89.png 480w, /p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-48_hu_3941c42dcc067ec7.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="242"
+		data-flex-basis="582px"
+	
+></p>
+<p>主要包含以下三组标签:</p>
+<ul>
+<li>schema标签</li>
+<li>datanode标签</li>
+<li>datahost标签</li>
+</ul>
+<h4 id="schema标签">schema标签
+</h4><ol>
+<li>schema 定义逻辑库</li>
+</ol>
+<p><img src="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-49.png"
+	width="884"
+	height="82"
+	srcset="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-49_hu_a3f47265293c3598.png 480w, /p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-49_hu_af563fe433e1fe7b.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="1078"
+		data-flex-basis="2587px"
+	
+></p>
+<p>schema 标签用于定义 MyCat实例中的逻辑库 , 一个MyCat实例中, 可以有多个逻辑库 , 可以通 过 schema 标签来划分不同的逻辑库。MyCat中的逻辑库的概念，等同于MySQL中的database概念 , 需要操作某个逻辑库下的表时, 也需要切换逻辑库(use xxx)。</p>
+<p>核心属性:</p>
+<ul>
+<li><code>name</code> : 指定自定义的逻辑库库名</li>
+<li><code>checkSQLschema</code> : 在SQL语句操作时指定了数据库名称，执行时是否自动去除;true:自动去除，false:不自动去除</li>
+<li><code>sqlMaxLimit</code> : 如果未指定limit进行查询，列表查询模式查询会自动加上对应的值。（比如上图，当sql查询语句没有加limit条件时，只会查询100条数据。）</li>
+</ul>
+<p>当<code>checkSQLschema</code>设置为true时，执行以下语句能正常查询出来，会自动去除DB01这个名称</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">select * from DB01.TB_ORDER;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-51.png"
+	width="518"
+	height="498"
+	srcset="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-51_hu_924bc6f71cdb0266.png 480w, /p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-51_hu_f81aa2f8cee638a7.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="104"
+		data-flex-basis="249px"
+	
+></p>
+<p>但是<code>checkSQLschema</code>设置为true时，将会报错，只能执行以下语句查询。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">use DB01;
+</span></span><span class="line"><span class="cl">select * from TB_ORDER;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="2">
+<li>schema 中的table定义逻辑表</li>
+</ol>
+<p><img src="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-50.png"
+	width="884"
+	height="64"
+	srcset="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-50_hu_ea043197edbe08da.png 480w, /p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-50_hu_281789eea02330c3.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="1381"
+		data-flex-basis="3315px"
+	
+></p>
+<p>table 标签定义了MyCat中逻辑库schema下的逻辑表 , 所有需要拆分的表都需要在table标签中定义。</p>
+<p>核心属性:</p>
+<ul>
+<li><code>name</code> : 定义逻辑表表名，在该逻辑库下唯一</li>
+<li><code>dataNode</code> : 定义逻辑表所属的dataNode，该属性需要与dataNode标签中name对应;多个dataNode逗号分隔</li>
+<li><code>rule</code> : 分片规则的名字，分片规则名字是在rule.xml中定义的</li>
+<li><code>primaryKey</code> : 逻辑表对应真实表的主键</li>
+<li><code>type</code> : 逻辑表的类型，目前逻辑表只有全局表和普通表，如果未配置，就是普通表;全局表配置为global</li>
+</ul>
+<h4 id="datanode标签">datanode标签
+</h4><p><img src="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-52.png"
+	width="884"
+	height="96"
+	srcset="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-52_hu_9efec5a598a30828.png 480w, /p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-52_hu_1a7ce859d041fcfc.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="920"
+		data-flex-basis="2210px"
+	
+></p>
+<p>核心属性:</p>
+<ul>
+<li><code>name</code> : 定义数据节点名称</li>
+<li><code>dataHost</code> : 数据库实例主机名称，引用自 dataHost 标签中name属性</li>
+<li><code>database</code> : 定义分片所属数据库</li>
+</ul>
+<h4 id="datahost标签">datahost标签
+</h4><p><img src="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-53.png"
+	width="884"
+	height="92"
+	srcset="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-53_hu_9f824bbed143a3c1.png 480w, /p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-53_hu_e44bca329be035a5.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="960"
+		data-flex-basis="2306px"
+	
+></p>
+<p>该标签在MyCat逻辑库中作为底层标签存在, 直接定义了具体的数据库实例、读写分离、心跳语句。</p>
+<p>核心属性:</p>
+<ul>
+<li><code>name</code> : 唯一标识，供上层标签使用</li>
+<li><code>maxCon/minCon</code> : 最大连接数/最小连接数</li>
+<li><code>balance</code> : 负载均衡策略，取值 0,1,2,3</li>
+<li><code>writeType</code> : 写操作分发方式(0:写操作转发到第一个writeHost，第一个挂了，切换到第二 个;1:写操作随机分发到配置的writeHost)</li>
+<li><code>dbDriver</code> : 数据库驱动，支持 native、jdbc</li>
+</ul>
+<h3 id="rulexml">rule.xml
+</h3><p>rule.xml 中定义所有拆分表的规则, 在使用过程中可以灵活的使用分片算法, 或者对同一个分片算法使用不同的参数, 它让分片过程可配置化。主要包含两类标签: tableRule、Function。</p>
+<p><img src="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-54.png"
+	width="884"
+	height="304"
+	srcset="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-54_hu_2d161cfc0a52764.png 480w, /p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-54_hu_dc45258522809243.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="290"
+		data-flex-basis="697px"
+	
+></p>
+<h3 id="serverxml">server.xml
+</h3><p>server.xml 配置文件包含了MyCat的系统配置信息，主要有两个重要的标签: system、user。</p>
+<h4 id="system-标签">system 标签
+</h4><p><img src="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-55.png"
+	width="844"
+	height="172"
+	srcset="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-55_hu_247aa249023f52ee.png 480w, /p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-55_hu_c9b85fa1db18befc.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="490"
+		data-flex-basis="1177px"
+	
+></p>
+<p>主要配置MyCat中的系统配置信息，对应的系统配置项及其含义，如下:</p>
+<div class="table-wrapper"><table>
+  <thead>
+      <tr>
+          <th>属性</th>
+          <th>取值</th>
+          <th>含义</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>charset</td>
+          <td>utf8</td>
+          <td>设置Mycat的字符集, 字符集需要与MySQL的 字符集保持一致</td>
+      </tr>
+      <tr>
+          <td>nonePasswordLogin</td>
+          <td>0,1</td>
+          <td>0为需要密码登陆、1为不需要密码登陆 ,默认 为0，设置为1则需要指定默认账户</td>
+      </tr>
+      <tr>
+          <td>useHandshakeV10</td>
+          <td>0,1</td>
+          <td>使用该选项主要的目的是为了能够兼容高版本 的jdbc驱动, 是否采用 HandshakeV10Packet来与client进行通 信, 1:是, 0:否</td>
+      </tr>
+      <tr>
+          <td>useSqlStat</td>
+          <td>0,1</td>
+          <td>开启SQL实时统计, 1 为开启 , 0 为关闭 ; 开启之后, MyCat会自动统计SQL语句的执行 情况 ; mysql -h 127.0.0.1 -P 9066 -u root -p 查看MyCat执行的SQL, 执行 效率比较低的SQL , SQL的整体执行情况、读 写比例等 ; show @@sql ; show @@sql.slow ; show @@sql.sum ;</td>
+      </tr>
+      <tr>
+          <td>useGlobleTableCheck</td>
+          <td>0,1</td>
+          <td>是否开启全局表的一致性检测。1为开启，0为关闭。</td>
+      </tr>
+      <tr>
+          <td>sqlExecuteTimeout</td>
+          <td>1000</td>
+          <td>SQL语句执行的超时时间 , 单位为s;</td>
+      </tr>
+      <tr>
+          <td>sequnceHandlerType</td>
+          <td>0,1,2</td>
+          <td>用来指定Mycat全局序列类型，0 为本地文件，1为数据库方式，2为时间戳列方式，默认使用本地文件方式，文件方式主要用于测试</td>
+      </tr>
+      <tr>
+          <td>sequnceHandlerPattern</td>
+          <td>正则表达式</td>
+          <td>必须带有MYCATSEQ或者 mycatseq进入序列匹配流程注意MYCATSEQ_有空格的情况</td>
+      </tr>
+      <tr>
+          <td>subqueryRelationshipCheck</td>
+          <td>true,false</td>
+          <td>子查询中存在关联查询的情况下,检查关联字段中是否有分片字段。默认false</td>
+      </tr>
+      <tr>
+          <td>useCompression</td>
+          <td>0,1</td>
+          <td>开启mysql压缩协议 , 0 : 关闭, 1 : 开启</td>
+      </tr>
+      <tr>
+          <td>fakeMySQLVersion</td>
+          <td>5.5,5.6</td>
+          <td>设置模拟的MySQL版本号</td>
+      </tr>
+      <tr>
+          <td>defaultSqlParser</td>
+          <td></td>
+          <td>由于MyCat的最初版本使用了FoundationDB 的SQL解析器, 在MyCat1.3后增加了Druid 解析器, 所以要设置defaultSqlParser属 性来指定默认的解析器; 解析器有两个 : druidparser 和 fdbparser, 在 MyCat1.4之后,默认是druidparser, fdbparser已经废除了</td>
+      </tr>
+      <tr>
+          <td>processors</td>
+          <td>1,2&hellip;.</td>
+          <td>指定系统可用的线程数量, 默认值为CPU核心 x 每个核心运行线程数量; processors 会 影响processorBufferPool, processorBufferLocalPercent, processorExecutor属性, 所有, 在性能 调优时, 可以适当地修改processors值</td>
+      </tr>
+      <tr>
+          <td>processorBufferChunk</td>
+          <td></td>
+          <td>指定每次分配Socket Direct Buffer默认 值为4096字节, 也会影响BufferPool长度, 如果一次性获取字节过多而导致buffer不够 用, 则会出现警告, 可以调大该值</td>
+      </tr>
+      <tr>
+          <td>processorExecutor</td>
+          <td></td>
+          <td>指定NIOProcessor上共享 businessExecutor固定线程池的大小; MyCat把异步任务交给 businessExecutor 线程池中, 在新版本的MyCat中这个连接池使 用频次不高, 可以适当地把该值调小</td>
+      </tr>
+      <tr>
+          <td>packetHeaderSize</td>
+          <td></td>
+          <td>指定MySQL协议中的报文头长度, 默认4个字节</td>
+      </tr>
+      <tr>
+          <td>maxPacketSize</td>
+          <td></td>
+          <td>指定MySQL协议可以携带的数据最大大小, 默认值为16M</td>
+      </tr>
+      <tr>
+          <td>idleTimeout</td>
+          <td>30</td>
+          <td>指定连接的空闲时间的超时长度;如果超时,将关闭资源并回收, 默认30分钟</td>
+      </tr>
+      <tr>
+          <td>txIsolation</td>
+          <td>1,2,3,4</td>
+          <td>初始化前端连接的事务隔离级别,默认为 REPEATED_READ , 对应数字为3 READ_UNCOMMITED=1; READ_COMMITTED=2; REPEATED_READ=3; SERIALIZABLE=4;</td>
+      </tr>
+      <tr>
+          <td>sqlExecuteTimeout</td>
+          <td>300</td>
+          <td>执行SQL的超时时间, 如果SQL语句执行超时, 将关闭连接; 默认300秒;</td>
+      </tr>
+      <tr>
+          <td>serverPort</td>
+          <td>8066</td>
+          <td>定义MyCat的使用端口, 默认8066</td>
+      </tr>
+      <tr>
+          <td>managerPort</td>
+          <td>9066</td>
+          <td>定义MyCat的管理端口, 默认9066</td>
+      </tr>
+  </tbody>
+</table></div>
+<h4 id="user-标签">user 标签
+</h4><p>配置MyCat中的用户、访问密码，以及用户针对于逻辑库、逻辑表的权限信息，具体的权限描述方式及配置说明如下:</p>
+<p><img src="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-56.png"
+	width="884"
+	height="370"
+	srcset="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-56_hu_6233bd5aff2567ea.png 480w, /p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-56_hu_f9a8532dcf2969e9.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="238"
+		data-flex-basis="573px"
+	
+></p>
+<p>在测试权限操作时，我们只需要将 privileges 标签的注释放开。 在 privileges 下的schema 标签中配置的dml属性配置的是逻辑库的权限。 在privileges的schema下的table标签的dml属性 中配置逻辑表的权限。</p>
+<h5 id="测试-2">测试
+</h5><ol>
+<li>设置 DML 权限配置(没有开启的话默认权限全开，即check=&ldquo;false&rdquo;)</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-xml" data-lang="xml"><span class="line"><span class="cl"><span class="c">&lt;!-- 表级 DML 权限设置 --&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="nt">&lt;privileges</span> <span class="na">check=</span><span class="s">&#34;false&#34;</span><span class="nt">&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;schema</span> <span class="na">name=</span><span class="s">&#34;DB01&#34;</span> <span class="na">dml=</span><span class="s">&#34;0110&#34;</span> <span class="nt">&gt;</span>    <span class="c">&lt;!-- 修改，查询 --&gt;</span>
+</span></span><span class="line"><span class="cl">        <span class="nt">&lt;table</span> <span class="na">name=</span><span class="s">&#34;TB_ORDER&#34;</span> <span class="na">dml=</span><span class="s">&#34;1110&#34;</span><span class="nt">&gt;&lt;/table&gt;</span>  <span class="c">&lt;!-- 增加，修改，查询。--&gt;</span>
+</span></span><span class="line"><span class="cl">        <span class="c">&lt;!-- 当逻辑库与逻辑表的权限不同时，因为就近原则，使用逻辑表的权限 --&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;/schema&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="nt">&lt;/privileges&gt;</span>	
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="2">
+<li>重启mycat</li>
+</ol>
+<ul>
+<li>停止</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">bin/mycat stop
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>启动</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">bin/mycat start
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="3">
+<li>在mycat中查询TB_ORDER表全部数据</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-sql" data-lang="sql"><span class="line"><span class="cl"><span class="k">select</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">from</span><span class="w"> </span><span class="n">TB_ORDER</span><span class="p">:</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-57.png"
+	width="444"
+	height="478"
+	srcset="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-57_hu_a25b8ed762feaa9a.png 480w, /p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-57_hu_aac593af014cd5f6.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="92"
+		data-flex-basis="222px"
+	
+></p>
+<ol start="4">
+<li>在mycat中插入数据</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-sql" data-lang="sql"><span class="line"><span class="cl"><span class="k">insert</span><span class="w"> </span><span class="k">into</span><span class="w"> </span><span class="n">TB_ORDER</span><span class="p">(</span><span class="n">id</span><span class="p">,</span><span class="n">title</span><span class="p">)</span><span class="w"> </span><span class="k">values</span><span class="w"> </span><span class="p">(</span><span class="mi">4</span><span class="p">,</span><span class="s1">&#39;goods4&#39;</span><span class="p">);</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-58.png"
+	width="820"
+	height="108"
+	srcset="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-58_hu_9af05929581ce47c.png 480w, /p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-58_hu_d97477fbe1b53ac0.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="759"
+		data-flex-basis="1822px"
+	
+></p>
+<p><img src="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-59.png"
+	width="442"
+	height="512"
+	srcset="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-59_hu_51b85cd2f3b7f69a.png 480w, /p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-59_hu_f1de1225ed356c6e.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="86"
+		data-flex-basis="207px"
+	
+></p>
+<ol start="5">
+<li>在mycat中修改数据</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-sql" data-lang="sql"><span class="line"><span class="cl"><span class="k">update</span><span class="w"> </span><span class="n">TB_ORDER</span><span class="w"> </span><span class="k">set</span><span class="w"> </span><span class="n">title</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;4&#39;</span><span class="w"> </span><span class="k">where</span><span class="w"> </span><span class="n">id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">4</span><span class="p">;</span><span class="w"> 
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-60.png"
+	width="752"
+	height="104"
+	srcset="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-60_hu_7119722c7b2ce215.png 480w, /p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-60_hu_213509cdcb85735a.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="723"
+		data-flex-basis="1735px"
+	
+></p>
+<p><img src="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-61.png"
+	width="458"
+	height="522"
+	srcset="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-61_hu_fd801f6008f27025.png 480w, /p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-61_hu_bcff680a191a1b73.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="87"
+		data-flex-basis="210px"
+	
+></p>
+<ol start="6">
+<li>在mycat中删除数据</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-sql" data-lang="sql"><span class="line"><span class="cl"><span class="k">delete</span><span class="w"> </span><span class="k">from</span><span class="w"> </span><span class="n">TB_ORDER</span><span class="w"> </span><span class="k">where</span><span class="w"> </span><span class="n">id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">4</span><span class="p">;</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-62.png"
+	width="1296"
+	height="110"
+	srcset="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-62_hu_8a59b8571d3a037a.png 480w, /p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-62_hu_4e09b0b6083e08e.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="1178"
+		data-flex-basis="2827px"
+	
+></p>
+<p>可以看到root用户没有删除权限。</p>
+<h2 id="mycat-分片">MyCat 分片
+</h2><h3 id="垂直拆分-1">垂直拆分
+</h3><h4 id="场景">场景
+</h4><p>在业务系统中, 涉及以下表结构 ,但是由于用户与订单每天都会产生大量的数据, 单台服务器的数据存储及处理能力是有限的, 可以对数据库表进行拆分, 原有的数据库表如下。</p>
+<p><img src="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-63.png"
+	width="650"
+	height="466"
+	srcset="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-63_hu_2d4189b8ec546052.png 480w, /p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-63_hu_cac9922aac7436e1.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="139"
+		data-flex-basis="334px"
+	
+></p>
+<p>现在考虑将其进行垂直分库操作，将商品相关的表拆分到一个数据库服务器，订单表拆分的一个数据库服务器，用户及省市区表拆分到一个服务器。最终结构如下:</p>
+<p><img src="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-64.png"
+	width="696"
+	height="664"
+	srcset="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-64_hu_a1cdc57c424e506d.png 480w, /p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-64_hu_326172b3cfb1f95b.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="104"
+		data-flex-basis="251px"
+	
+></p>
+<h4 id="准备">准备
+</h4><p>准备三台服务器：</p>
+<ul>
+<li><code>172.16.140.111</code>:MyCat中间件服务器，同时也是第一个分片服务器。</li>
+<li><code>172.16.140.112</code>:第二个分片服务器。</li>
+<li><code>172.16.140.114</code>:第三个分片服务器。</li>
+</ul>
+<p><img src="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-65.png"
+	width="860"
+	height="630"
+	srcset="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-65_hu_42c07046cd76f9a4.png 480w, /p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-65_hu_a4003ea4fd9fa1df.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="136"
+		data-flex-basis="327px"
+	
+></p>
+<p>并且在172.16.140.111，172.16.140.112, 172.16.140.113上面创建数据库 shopping。</p>
+<h4 id="配置-1">配置
+</h4><ol>
+<li>schema.xml</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-xml" data-lang="xml"><span class="line"><span class="cl"><span class="nt">&lt;schema</span> <span class="na">name=</span><span class="s">&#34;SHOPPING&#34;</span> <span class="na">checkSQLschema=</span><span class="s">&#34;true&#34;</span> <span class="na">sqlMaxLimit=</span><span class="s">&#34;100&#34;</span><span class="nt">&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;table</span> <span class="na">name=</span><span class="s">&#34;tb_goods_base&#34;</span> <span class="na">dataNode=</span><span class="s">&#34;dn1&#34;</span> <span class="na">primaryKey=</span><span class="s">&#34;id&#34;</span> <span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;table</span> <span class="na">name=</span><span class="s">&#34;tb_goods_brand&#34;</span> <span class="na">dataNode=</span><span class="s">&#34;dn1&#34;</span> <span class="na">primaryKey=</span><span class="s">&#34;id&#34;</span> <span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;table</span> <span class="na">name=</span><span class="s">&#34;tb_goods_cat&#34;</span> <span class="na">dataNode=</span><span class="s">&#34;dn1&#34;</span> <span class="na">primaryKey=</span><span class="s">&#34;id&#34;</span> <span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;table</span> <span class="na">name=</span><span class="s">&#34;tb_goods_desc&#34;</span> <span class="na">dataNode=</span><span class="s">&#34;dn1&#34;</span> <span class="na">primaryKey=</span><span class="s">&#34;goods_id&#34;</span> <span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;table</span> <span class="na">name=</span><span class="s">&#34;tb_goods_item&#34;</span> <span class="na">dataNode=</span><span class="s">&#34;dn1&#34;</span> <span class="na">primaryKey=</span><span class="s">&#34;id&#34;</span> <span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;table</span> <span class="na">name=</span><span class="s">&#34;tb_order_item&#34;</span> <span class="na">dataNode=</span><span class="s">&#34;dn2&#34;</span> <span class="na">primaryKey=</span><span class="s">&#34;id&#34;</span> <span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;table</span> <span class="na">name=</span><span class="s">&#34;tb_order_master&#34;</span> <span class="na">dataNode=</span><span class="s">&#34;dn2&#34;</span> <span class="na">primaryKey=</span><span class="s">&#34;order_id&#34;</span> <span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;table</span> <span class="na">name=</span><span class="s">&#34;tb_order_pay_log&#34;</span> <span class="na">dataNode=</span><span class="s">&#34;dn2&#34;</span> <span class="na">primaryKey=</span><span class="s">&#34;out_trade_no&#34;</span> <span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;table</span> <span class="na">name=</span><span class="s">&#34;tb_user&#34;</span> <span class="na">dataNode=</span><span class="s">&#34;dn3&#34;</span> <span class="na">primaryKey=</span><span class="s">&#34;id&#34;</span> <span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;table</span> <span class="na">name=</span><span class="s">&#34;tb_user_address&#34;</span> <span class="na">dataNode=</span><span class="s">&#34;dn3&#34;</span> <span class="na">primaryKey=</span><span class="s">&#34;id&#34;</span> <span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;table</span> <span class="na">name=</span><span class="s">&#34;tb_areas_provinces&#34;</span> <span class="na">dataNode=</span><span class="s">&#34;dn3&#34;</span> <span class="na">primaryKey=</span><span class="s">&#34;id&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;table</span> <span class="na">name=</span><span class="s">&#34;tb_areas_city&#34;</span> <span class="na">dataNode=</span><span class="s">&#34;dn3&#34;</span> <span class="na">primaryKey=</span><span class="s">&#34;id&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;table</span> <span class="na">name=</span><span class="s">&#34;tb_areas_region&#34;</span> <span class="na">dataNode=</span><span class="s">&#34;dn3&#34;</span> <span class="na">primaryKey=</span><span class="s">&#34;id&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="nt">&lt;/schema&gt;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nt">&lt;dataNode</span> <span class="na">name=</span><span class="s">&#34;dn1&#34;</span> <span class="na">dataHost=</span><span class="s">&#34;dhost1&#34;</span> <span class="na">database=</span><span class="s">&#34;shopping&#34;</span> <span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="nt">&lt;dataNode</span> <span class="na">name=</span><span class="s">&#34;dn2&#34;</span> <span class="na">dataHost=</span><span class="s">&#34;dhost2&#34;</span> <span class="na">database=</span><span class="s">&#34;shopping&#34;</span> <span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="nt">&lt;dataNode</span> <span class="na">name=</span><span class="s">&#34;dn3&#34;</span> <span class="na">dataHost=</span><span class="s">&#34;dhost3&#34;</span> <span class="na">database=</span><span class="s">&#34;shopping&#34;</span> <span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nt">&lt;dataHost</span> <span class="na">name=</span><span class="s">&#34;dhost1&#34;</span> <span class="na">maxCon=</span><span class="s">&#34;1000&#34;</span> <span class="na">minCon=</span><span class="s">&#34;10&#34;</span> <span class="na">balance=</span><span class="s">&#34;0&#34;</span> <span class="na">writeType=</span><span class="s">&#34;0&#34;</span> <span class="na">dbType=</span><span class="s">&#34;mysql&#34;</span> <span class="na">dbDriver=</span><span class="s">&#34;jdbc&#34;</span> <span class="na">switchType=</span><span class="s">&#34;1&#34;</span> <span class="na">slaveThreshold=</span><span class="s">&#34;100&#34;</span><span class="nt">&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;heartbeat&gt;</span>select user()<span class="nt">&lt;/heartbeat&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;writeHost</span> <span class="na">host=</span><span class="s">&#34;master&#34;</span> <span class="na">url=</span><span class="s">&#34;jdbc:mysql://172.16.140.111:3306?allowPublicKeyRetrieval=true&amp;amp;useSSL=false&amp;amp;serverTimezone=Asia/Shanghai&amp;amp;characterEncoding=utf8&#34;</span> <span class="na">user=</span><span class="s">&#34;root&#34;</span> <span class="na">password=</span><span class="s">&#34;123456&#34;</span> <span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="nt">&lt;/dataHost&gt;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nt">&lt;dataHost</span> <span class="na">name=</span><span class="s">&#34;dhost2&#34;</span> <span class="na">maxCon=</span><span class="s">&#34;1000&#34;</span> <span class="na">minCon=</span><span class="s">&#34;10&#34;</span> <span class="na">balance=</span><span class="s">&#34;0&#34;</span> <span class="na">writeType=</span><span class="s">&#34;0&#34;</span> <span class="na">dbType=</span><span class="s">&#34;mysql&#34;</span> <span class="na">dbDriver=</span><span class="s">&#34;jdbc&#34;</span> <span class="na">switchType=</span><span class="s">&#34;1&#34;</span> <span class="na">slaveThreshold=</span><span class="s">&#34;100&#34;</span><span class="nt">&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;heartbeat&gt;</span>select user()<span class="nt">&lt;/heartbeat&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;writeHost</span> <span class="na">host=</span><span class="s">&#34;master&#34;</span> <span class="na">url=</span><span class="s">&#34;jdbc:mysql://172.16.140.112:3306?allowPublicKeyRetrieval=true&amp;amp;useSSL=false&amp;amp;serverTimezone=Asia/Shanghai&amp;amp;characterEncoding=utf8&#34;</span> <span class="na">user=</span><span class="s">&#34;root&#34;</span> <span class="na">password=</span><span class="s">&#34;123456&#34;</span> <span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="nt">&lt;/dataHost&gt;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nt">&lt;dataHost</span> <span class="na">name=</span><span class="s">&#34;dhost3&#34;</span> <span class="na">maxCon=</span><span class="s">&#34;1000&#34;</span> <span class="na">minCon=</span><span class="s">&#34;10&#34;</span> <span class="na">balance=</span><span class="s">&#34;0&#34;</span> <span class="na">writeType=</span><span class="s">&#34;0&#34;</span> <span class="na">dbType=</span><span class="s">&#34;mysql&#34;</span> <span class="na">dbDriver=</span><span class="s">&#34;jdbc&#34;</span> <span class="na">switchType=</span><span class="s">&#34;1&#34;</span> <span class="na">slaveThreshold=</span><span class="s">&#34;100&#34;</span><span class="nt">&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;heartbeat&gt;</span>select user()<span class="nt">&lt;/heartbeat&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;writeHost</span> <span class="na">host=</span><span class="s">&#34;master&#34;</span> <span class="na">url=</span><span class="s">&#34;jdbc:mysql://172.16.140.113:3306?allowPublicKeyRetrieval=true&amp;amp;useSSL=false&amp;amp;serverTimezone=Asia/Shanghai&amp;amp;characterEncoding=utf8&#34;</span> <span class="na">user=</span><span class="s">&#34;root&#34;</span> <span class="na">password=</span><span class="s">&#34;123456&#34;</span> <span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="nt">&lt;/dataHost&gt;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="2">
+<li>server.xml</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-xml" data-lang="xml"><span class="line"><span class="cl"><span class="nt">&lt;user</span> <span class="na">name=</span><span class="s">&#34;root&#34;</span> <span class="na">defaultAccount=</span><span class="s">&#34;true&#34;</span><span class="nt">&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;property</span> <span class="na">name=</span><span class="s">&#34;password&#34;</span><span class="nt">&gt;</span>123456<span class="nt">&lt;/property&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;property</span> <span class="na">name=</span><span class="s">&#34;schemas&#34;</span><span class="nt">&gt;</span>SHOPPING<span class="nt">&lt;/property&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="c">&lt;!-- 表级 DML 权限设置 --&gt;</span> <span class="c">&lt;!--
+</span></span></span><span class="line"><span class="cl"><span class="c">    &lt;privileges check=&#34;true&#34;&gt;
+</span></span></span><span class="line"><span class="cl"><span class="c">            &lt;schema name=&#34;DB01&#34; dml=&#34;0110&#34; &gt;
+</span></span></span><span class="line"><span class="cl"><span class="c">                &lt;table name=&#34;TB_ORDER&#34; dml=&#34;1110&#34;&gt;&lt;/table&gt;
+</span></span></span><span class="line"><span class="cl"><span class="c">            &lt;/schema&gt;
+</span></span></span><span class="line"><span class="cl"><span class="c">        &lt;/privileges&gt;
+</span></span></span><span class="line"><span class="cl"><span class="c">    --&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="nt">&lt;/user&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="nt">&lt;user</span> <span class="na">name=</span><span class="s">&#34;user&#34;</span><span class="nt">&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;property</span> <span class="na">name=</span><span class="s">&#34;password&#34;</span><span class="nt">&gt;</span>123456<span class="nt">&lt;/property&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;property</span> <span class="na">name=</span><span class="s">&#34;schemas&#34;</span><span class="nt">&gt;</span>SHOPPING<span class="nt">&lt;/property&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;property</span> <span class="na">name=</span><span class="s">&#34;readOnly&#34;</span><span class="nt">&gt;</span>true<span class="nt">&lt;/property&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="nt">&lt;/user&gt;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="测试-3">测试
+</h4><ol>
+<li>上传测试SQL脚本到服务器的/root/sql目录</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">scp shopping-insert.sql root@172.16.140.111:/root/sql
+</span></span><span class="line"><span class="cl">scp shopping-table.sql root@172.16.140.111:/root/sql
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-66.png"
+	width="1336"
+	height="202"
+	srcset="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-66_hu_9dd4f0da626776ce.png 480w, /p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-66_hu_ae520b33b61ad70d.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="661"
+		data-flex-basis="1587px"
+	
+></p>
+<p><img src="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-67.png"
+	width="952"
+	height="134"
+	srcset="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-67_hu_e7f53fc5f25a2ef0.png 480w, /p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-67_hu_a0151d60c34edadd.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="710"
+		data-flex-basis="1705px"
+	
+></p>
+<ol start="2">
+<li>执行指令导入测试数据</li>
+</ol>
+<p>重新启动MyCat后，在mycat的命令行中，通过source指令导入表结构，以及对应的数据，查看数据分布情况。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-sh" data-lang="sh"><span class="line"><span class="cl"><span class="nb">source</span> /root/sql/shopping-table.sql
+</span></span><span class="line"><span class="cl"><span class="nb">source</span> /root/sql/shopping-insert.sql
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>将表结构及对应的测试数据导入之后，可以检查一下各个数据库服务器中的表结构分布情况。 检查是否和我们准备工作中规划的服务器一致。</p>
+<p><img src="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-68.png"
+	width="552"
+	height="1460"
+	srcset="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-68_hu_d17509524dc073d4.png 480w, /p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-68_hu_85f7428f8ce453ce.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="37"
+		data-flex-basis="90px"
+	
+></p>
+<ol start="3">
+<li>查询用户的收件人及收件人地址信息(包含省、市、区)。</li>
+</ol>
+<p>在MyCat的命令行中，当我们执行以下多表联查的SQL语句时，可以正常查询出数据。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-sql" data-lang="sql"><span class="line"><span class="cl"><span class="k">select</span><span class="w"> </span><span class="n">ua</span><span class="p">.</span><span class="n">user_id</span><span class="p">,</span><span class="w"> </span><span class="n">ua</span><span class="p">.</span><span class="n">contact</span><span class="p">,</span><span class="w"> </span><span class="n">p</span><span class="p">.</span><span class="n">province</span><span class="p">,</span><span class="w"> </span><span class="k">c</span><span class="p">.</span><span class="n">city</span><span class="p">,</span><span class="w"> </span><span class="n">r</span><span class="p">.</span><span class="n">area</span><span class="w"> </span><span class="p">,</span><span class="w"> </span><span class="n">ua</span><span class="p">.</span><span class="n">address</span><span class="w"> </span><span class="k">from</span><span class="w"> </span><span class="n">tb_user_address</span><span class="w"> </span><span class="n">ua</span><span class="w"> </span><span class="p">,</span><span class="n">tb_areas_city</span><span class="w"> </span><span class="k">c</span><span class="w"> </span><span class="p">,</span><span class="w"> </span><span class="n">tb_areas_provinces</span><span class="w"> </span><span class="n">p</span><span class="w"> </span><span class="p">,</span><span class="n">tb_areas_region</span><span class="w"> </span><span class="n">r</span><span class="w"> </span><span class="k">where</span><span class="w"> </span><span class="n">ua</span><span class="p">.</span><span class="n">province_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">p</span><span class="p">.</span><span class="n">provinceid</span><span class="w"> </span><span class="k">and</span><span class="w"> </span><span class="n">ua</span><span class="p">.</span><span class="n">city_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">c</span><span class="p">.</span><span class="n">cityid</span><span class="w"> </span><span class="k">and</span><span class="w"> </span><span class="n">ua</span><span class="p">.</span><span class="n">town_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">r</span><span class="p">.</span><span class="n">areaid</span><span class="w"> </span><span class="p">;</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-69.png"
+	width="1330"
+	height="594"
+	srcset="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-69_hu_bc615d1563a9ae91.png 480w, /p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-69_hu_937ee2b1433c0748.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="223"
+		data-flex-basis="537px"
+	
+></p>
+<ol start="4">
+<li>查询每一笔订单及订单的收件地址信息(包含省、市、区)。</li>
+</ol>
+<p>实现该需求对应的SQL语句如下:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-sql" data-lang="sql"><span class="line"><span class="cl"><span class="k">SELECT</span><span class="w"> </span><span class="n">order_id</span><span class="w"> </span><span class="p">,</span><span class="w"> </span><span class="n">payment</span><span class="w"> </span><span class="p">,</span><span class="n">receiver</span><span class="p">,</span><span class="w"> </span><span class="n">province</span><span class="w"> </span><span class="p">,</span><span class="w"> </span><span class="n">city</span><span class="w"> </span><span class="p">,</span><span class="w"> </span><span class="n">area</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">tb_order_master</span><span class="w"> </span><span class="n">o</span><span class="w"> </span><span class="p">,</span><span class="w"> </span><span class="n">tb_areas_provinces</span><span class="w"> </span><span class="n">p</span><span class="w"> </span><span class="p">,</span><span class="w"> </span><span class="n">tb_areas_city</span><span class="w"> </span><span class="k">c</span><span class="w"> </span><span class="p">,</span><span class="w"> </span><span class="n">tb_areas_region</span><span class="w"> </span><span class="n">r</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">o</span><span class="p">.</span><span class="n">receiver_province</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">p</span><span class="p">.</span><span class="n">provinceid</span><span class="w"> </span><span class="k">AND</span><span class="w"> </span><span class="n">o</span><span class="p">.</span><span class="n">receiver_city</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">c</span><span class="p">.</span><span class="n">cityid</span><span class="w"> </span><span class="k">AND</span><span class="w"> </span><span class="n">o</span><span class="p">.</span><span class="n">receiver_region</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">r</span><span class="p">.</span><span class="n">areaid</span><span class="w"> </span><span class="p">;</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><p>但是现在存在一个问题，订单相关的表结构是在 172.16.140.112 数据库服务器中，而省市区的数 据库表是在 172.16.140.113 数据库服务器中。那么在MyCat中执行是否可以成功呢?</p>
+<p><img src="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-70.png"
+	width="1586"
+	height="454"
+	srcset="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-70_hu_93793014718364e.png 480w, /p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-70_hu_bc3f7d3a34188640.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="349"
+		data-flex-basis="838px"
+	
+></p>
+<p>经过测试，我们看到，SQL语句执行报错。原因就是因为MyCat在执行该SQL语句时，需要往具体的数 据库服务器中路由，而当前没有一个数据库服务器完全包含了订单以及省市区的表结构，造成SQL语句 失败，报错。</p>
+<p>对于上述的这种现象，我们如何来解决呢? 下面我们介绍的全局表，就可以轻松解决这个问题。</p>
+<h4 id="全局表">全局表
+</h4><p>对于省、市、区/县表tb_areas_provinces , tb_areas_city , tb_areas_region，是属于
+数据字典表，在多个业务模块中都可能会遇到，可以将其设置为全局表，利于业务操作。</p>
+<p>修改schema.xml中的逻辑表的配置，修改 tb_areas_provinces、tb_areas_city、 tb_areas_region 三个逻辑表，增加 type 属性，配置为global，就代表该表是全局表，就会在 所涉及到的dataNode中创建给表。对于当前配置来说，也就意味着所有的节点中都有该表了。</p>
+<ul>
+<li>修改schema.xml中的逻辑表的配置</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-xml" data-lang="xml"><span class="line"><span class="cl"><span class="nt">&lt;table</span> <span class="na">name=</span><span class="s">&#34;tb_areas_provinces&#34;</span> <span class="na">dataNode=</span><span class="s">&#34;dn1,dn2,dn3&#34;</span> <span class="na">primaryKey=</span><span class="s">&#34;id&#34;</span> <span class="na">type=</span><span class="s">&#34;global&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="nt">&lt;table</span> <span class="na">name=</span><span class="s">&#34;tb_areas_city&#34;</span> <span class="na">dataNode=</span><span class="s">&#34;dn1,dn2,dn3&#34;</span> <span class="na">primaryKey=</span><span class="s">&#34;id&#34;</span> <span class="na">type=</span><span class="s">&#34;global&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="nt">&lt;table</span> <span class="na">name=</span><span class="s">&#34;tb_areas_region&#34;</span> <span class="na">dataNode=</span><span class="s">&#34;dn1,dn2,dn3&#34;</span> <span class="na">primaryKey=</span><span class="s">&#34;id&#34;</span> <span class="na">type=</span><span class="s">&#34;global&#34;</span><span class="nt">/&gt;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-71.png"
+	width="884"
+	height="914"
+	srcset="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-71_hu_7b2d52b6ec124a8c.png 480w, /p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-71_hu_755d081f3f793053.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="96"
+		data-flex-basis="232px"
+	
+></p>
+<p>修改逻辑表配置：</p>
+<ol>
+<li>修改逻辑表配置</li>
+<li>停止mycat</li>
+<li>删除原来每一个数据库服务器中的所有表结构</li>
+<li>启动mycat</li>
+<li>通过source指令，导入表及数据</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">source /root/shopping-table.sql
+</span></span><span class="line"><span class="cl">source /root/shopping-insert.sql
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="6">
+<li>检查每一个数据库服务器中的表及数据分布，看到三个节点中都有这三张全局表</li>
+</ol>
+<p><img src="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-72.png"
+	width="552"
+	height="574"
+	srcset="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-72_hu_fa2c59d5b8b2f9.png 480w, /p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-72_hu_7dc8644410d9e494.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="96"
+		data-flex-basis="230px"
+	
+></p>
+<p><img src="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-73.png"
+	width="550"
+	height="478"
+	srcset="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-73_hu_60ecb420810cf9f.png 480w, /p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-73_hu_938077d85bba347f.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="115"
+		data-flex-basis="276px"
+	
+></p>
+<p><img src="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-74.png"
+	width="550"
+	height="434"
+	srcset="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-74_hu_427690532af9a16d.png 480w, /p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-74_hu_aef522ec9b4f17cf.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="126"
+		data-flex-basis="304px"
+	
+></p>
+<ol start="7">
+<li>然后再次执行上面的多表联查的SQL语句</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-sql" data-lang="sql"><span class="line"><span class="cl"><span class="k">SELECT</span><span class="w"> 
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="n">order_id</span><span class="w"> </span><span class="p">,</span><span class="w"> </span><span class="n">payment</span><span class="w"> </span><span class="p">,</span><span class="n">receiver</span><span class="p">,</span><span class="w"> </span><span class="n">province</span><span class="w"> </span><span class="p">,</span><span class="w"> </span><span class="n">city</span><span class="w"> </span><span class="p">,</span><span class="w"> </span><span class="n">area</span><span class="w"> 
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="k">FROM</span><span class="w"> 
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="n">tb_order_master</span><span class="w"> </span><span class="n">o</span><span class="w"> </span><span class="p">,</span><span class="w"> </span><span class="n">tb_areas_provinces</span><span class="w"> </span><span class="n">p</span><span class="w"> </span><span class="p">,</span><span class="w"> </span><span class="n">tb_areas_city</span><span class="w"> </span><span class="k">c</span><span class="w"> </span><span class="p">,</span><span class="w"> </span><span class="n">tb_areas_region</span><span class="w"> </span><span class="n">r</span><span class="w"> 
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="k">WHERE</span><span class="w"> 
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="n">o</span><span class="p">.</span><span class="n">receiver_province</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">p</span><span class="p">.</span><span class="n">provinceid</span><span class="w"> </span><span class="k">AND</span><span class="w"> </span><span class="n">o</span><span class="p">.</span><span class="n">receiver_city</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">c</span><span class="p">.</span><span class="n">cityid</span><span class="w"> </span><span class="k">AND</span><span class="w"> </span><span class="n">o</span><span class="p">.</span><span class="n">receiver_region</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">r</span><span class="p">.</span><span class="n">areaid</span><span class="w"> </span><span class="p">;</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-75.png"
+	width="1572"
+	height="1244"
+	srcset="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-75_hu_3fdfceb44f7cd48f.png 480w, /p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-75_hu_d84098c24ff1949f.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="126"
+		data-flex-basis="303px"
+	
+></p>
+<p>是可以正常执行成功的。</p>
+<ol start="8">
+<li>在MyCat中更新全局表</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-sql" data-lang="sql"><span class="line"><span class="cl"><span class="k">update</span><span class="w"> </span><span class="n">tb_areas_provinces</span><span class="w"> </span><span class="k">set</span><span class="w"> </span><span class="n">province</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;北京&#39;</span><span class="w"> </span><span class="k">where</span><span class="w"> </span><span class="n">id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-76.png"
+	width="970"
+	height="112"
+	srcset="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-76_hu_b30d038a26695144.png 480w, /p/mysqlmysql%E8%BF%90%E7%BB%B4-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8mycat/image-76_hu_1c26a782e19cc7b8.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="866"
+		data-flex-basis="2078px"
+	
+></p>
+<p>当在MyCat中更新全局表的时候，我们可以看到，所有分片节点中的数据都发生了变化，每个节点的全局表数据时刻保持一致。</p>
+
 </section>
 
 
