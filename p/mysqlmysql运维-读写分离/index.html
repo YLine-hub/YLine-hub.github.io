@@ -1,0 +1,1270 @@
+<!DOCTYPE html>
+<html lang="zh-cn" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="MySQL运维-读写分离 介绍 读写分离,简单地说是把对数据库的读和写操作分开,以对应不同的数据库服务器。主数据库提供写操 作，从数据库提供读操作，这样能有效地减轻单台数据库的压力。\n">
+<title>[MySQL]MySQL运维-读写分离</title>
+
+<link rel='canonical' href='https://YLine-hub.github.io/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E8%AF%BB%E5%86%99%E5%88%86%E7%A6%BB/'>
+
+<link rel="stylesheet" href="/scss/style.min.6a692fd055deae459f2a9767f57f3855ba80cafd5041317f24f7360f6ca47cdf.css"><meta property='og:title' content="[MySQL]MySQL运维-读写分离">
+<meta property='og:description' content="MySQL运维-读写分离 介绍 读写分离,简单地说是把对数据库的读和写操作分开,以对应不同的数据库服务器。主数据库提供写操 作，从数据库提供读操作，这样能有效地减轻单台数据库的压力。\n">
+<meta property='og:url' content='https://YLine-hub.github.io/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E8%AF%BB%E5%86%99%E5%88%86%E7%A6%BB/'>
+<meta property='og:site_name' content='リンボの個人ブログ'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:published_time' content='2025-12-02T08:56:09&#43;08:00'/><meta property='article:modified_time' content='2025-12-02T08:56:09&#43;08:00'/>
+<meta name="twitter:title" content="[MySQL]MySQL运维-读写分离">
+<meta name="twitter:description" content="MySQL运维-读写分离 介绍 读写分离,简单地说是把对数据库的读和写操作分开,以对应不同的数据库服务器。主数据库提供写操 作，从数据库提供读操作，这样能有效地减轻单台数据库的压力。\n">
+    <link rel="shortcut icon" href="/favicon.ico" />
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        
+            
+            <figure class="site-avatar">
+                <a href="/">
+                
+                    
+                    
+                    
+                        
+                        <img src="/img/avatar_hu_7f398a7818085507.png" width="300"
+                            height="300" class="site-logo" loading="lazy" alt="Avatar">
+                    
+                
+                </a>
+                
+                    <span class="emoji">🏖️</span>
+                
+            </figure>
+            
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">リンボの個人ブログ</a></h1>
+            <h2 class="site-description">努力不一定能获得回报，但不努力一定不会有回报。</h2>
+        </div>
+    </header><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-home" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <polyline points="5 12 3 12 12 3 21 12 19 12" />
+  <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7" />
+  <path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6" />
+</svg>
+
+
+
+                
+                <span>主页</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/%E5%85%B3%E4%BA%8E/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/archives/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/search/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-search" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="10" cy="10" r="7" />
+  <line x1="21" y1="21" x2="15" y2="15" />
+</svg>
+
+
+
+                
+                <span>搜索</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav id="TableOfContents">
+  <ol>
+    <li><a href="#介绍">介绍</a></li>
+    <li><a href="#一主一从">一主一从</a>
+      <ol>
+        <li><a href="#原理">原理</a></li>
+        <li><a href="#准备">准备</a></li>
+      </ol>
+    </li>
+    <li><a href="#一主一从读写分离">一主一从读写分离</a>
+      <ol>
+        <li><a href="#schemaxml配置">schema.xml配置</a></li>
+        <li><a href="#serverxml配置">server.xml配置</a></li>
+        <li><a href="#测试">测试</a></li>
+      </ol>
+    </li>
+    <li><a href="#双主双从">双主双从</a>
+      <ol>
+        <li><a href="#介绍-1">介绍</a></li>
+        <li><a href="#准备-1">准备</a></li>
+        <li><a href="#搭建">搭建</a>
+          <ol>
+            <li><a href="#主库配置">主库配置</a></li>
+            <li><a href="#从库配置">从库配置</a></li>
+          </ol>
+        </li>
+        <li><a href="#测试-1">测试</a></li>
+      </ol>
+    </li>
+    <li><a href="#双主双从读写分离">双主双从读写分离</a>
+      <ol>
+        <li><a href="#配置">配置</a></li>
+        <li><a href="#测试-2">测试</a></li>
+      </ol>
+    </li>
+  </ol>
+</nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            <a href="/categories/mysql/" >
+                MySQL
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E8%AF%BB%E5%86%99%E5%88%86%E7%A6%BB/">[MySQL]MySQL运维-读写分离</a>
+        </h2>
+    
+        
+    </div>
+
+    
+    
+    
+    
+    <footer class="article-time">
+        
+            <div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                <time class="article-time--published">2025-12-02</time>
+            </div>
+        
+
+        
+    </footer>
+    
+
+    
+</div>
+
+</header>
+
+    <section class="article-content">
+    
+    
+    <h1 id="mysql运维-读写分离">MySQL运维-读写分离
+</h1><h2 id="介绍">介绍
+</h2><p>读写分离,简单地说是把对数据库的读和写操作分开,以对应不同的数据库服务器。主数据库提供写操 作，从数据库提供读操作，这样能有效地减轻单台数据库的压力。</p>
+<p>通过MyCat即可轻易实现上述功能，不仅可以支持MySQL，也可以支持Oracle和SQL Server。</p>
+<p><img src="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E8%AF%BB%E5%86%99%E5%88%86%E7%A6%BB/image.png"
+	width="884"
+	height="358"
+	srcset="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E8%AF%BB%E5%86%99%E5%88%86%E7%A6%BB/image_hu_454ca1e0f2822c85.png 480w, /p/mysqlmysql%E8%BF%90%E7%BB%B4-%E8%AF%BB%E5%86%99%E5%88%86%E7%A6%BB/image_hu_6897dae48870917.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="246"
+		data-flex-basis="592px"
+	
+></p>
+<h2 id="一主一从">一主一从
+</h2><h3 id="原理">原理
+</h3><p>MySQL的主从复制，是基于二进制日志(binlog)实现的。</p>
+<p><img src="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E8%AF%BB%E5%86%99%E5%88%86%E7%A6%BB/image-1.png"
+	width="884"
+	height="430"
+	srcset="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E8%AF%BB%E5%86%99%E5%88%86%E7%A6%BB/image-1_hu_675805164c00917c.png 480w, /p/mysqlmysql%E8%BF%90%E7%BB%B4-%E8%AF%BB%E5%86%99%E5%88%86%E7%A6%BB/image-1_hu_2c79f811d411078.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="205"
+		data-flex-basis="493px"
+	
+></p>
+<h3 id="准备">准备
+</h3><div class="table-wrapper"><table>
+  <thead>
+      <tr>
+          <th>主机</th>
+          <th>角色</th>
+          <th>用户名</th>
+          <th>密码</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>172.16.140.121</td>
+          <td>master</td>
+          <td>root</td>
+          <td>123456</td>
+      </tr>
+      <tr>
+          <td>172.16.140.122</td>
+          <td>slave</td>
+          <td>root</td>
+          <td>123456</td>
+      </tr>
+  </tbody>
+</table></div>
+<blockquote>
+<p>备注：主从复制的搭建，可以参考前面课程中 主从复制 章节讲解的步骤操作。</p>
+</blockquote>
+<h2 id="一主一从读写分离">一主一从读写分离
+</h2><p>MyCat控制后台数据库的读写分离和负载均衡由schema.xml文件datahost标签的balance属性控制。</p>
+<h3 id="schemaxml配置">schema.xml配置
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-xml" data-lang="xml"><span class="line"><span class="cl"><span class="c">&lt;!-- 配置逻辑库 --&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="nt">&lt;schema</span> <span class="na">name=</span><span class="s">&#34;ITCAST_RW&#34;</span> <span class="na">checkSQLschema=</span><span class="s">&#34;true&#34;</span> <span class="na">sqlMaxLimit=</span><span class="s">&#34;100&#34;</span> <span class="na">dataNode=</span><span class="s">&#34;dn7&#34;</span><span class="nt">&gt;</span> <span class="nt">&lt;/schema&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="nt">&lt;dataNode</span> <span class="na">name=</span><span class="s">&#34;dn7&#34;</span> <span class="na">dataHost=</span><span class="s">&#34;dhost7&#34;</span> <span class="na">database=</span><span class="s">&#34;itcast&#34;</span> <span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="nt">&lt;dataHost</span> <span class="na">name=</span><span class="s">&#34;dhost7&#34;</span> <span class="na">maxCon=</span><span class="s">&#34;1000&#34;</span> <span class="na">minCon=</span><span class="s">&#34;10&#34;</span> <span class="na">balance=</span><span class="s">&#34;1&#34;</span> <span class="na">writeType=</span><span class="s">&#34;0&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="na">dbType=</span><span class="s">&#34;mysql&#34;</span> <span class="na">dbDriver=</span><span class="s">&#34;jdbc&#34;</span> <span class="na">switchType=</span><span class="s">&#34;1&#34;</span>  <span class="na">slaveThreshold=</span><span class="s">&#34;100&#34;</span><span class="nt">&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;heartbeat&gt;</span>select user()<span class="nt">&lt;/heartbeat&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;writeHost</span> <span class="na">host=</span><span class="s">&#34;master1&#34;</span> <span class="na">url=</span><span class="s">&#34;jdbc:mysql://172.16.140.121:3306?
+</span></span></span><span class="line"><span class="cl"><span class="s">useSSL=false&amp;amp;serverTimezone=Asia/Shanghai&amp;amp;characterEncoding=utf8&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="na">user=</span><span class="s">&#34;root&#34;</span> <span class="na">password=</span><span class="s">&#34;123456&#34;</span> <span class="nt">&gt;</span>
+</span></span><span class="line"><span class="cl">        <span class="nt">&lt;readHost</span> <span class="na">host=</span><span class="s">&#34;slave1&#34;</span> <span class="na">url=</span><span class="s">&#34;jdbc:mysql://172.16.140.122:3306?
+</span></span></span><span class="line"><span class="cl"><span class="s">useSSL=false&amp;amp;serverTimezone=Asia/Shanghai&amp;amp;characterEncoding=utf8&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="na">user=</span><span class="s">&#34;root&#34;</span> <span class="na">password=</span><span class="s">&#34;123456&#34;</span> <span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;/writeHost&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="nt">&lt;/dataHost&gt;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>上述配置的具体关联对应情况如下:</p>
+<p><img src="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E8%AF%BB%E5%86%99%E5%88%86%E7%A6%BB/image-2.png"
+	width="884"
+	height="220"
+	srcset="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E8%AF%BB%E5%86%99%E5%88%86%E7%A6%BB/image-2_hu_2e0599b75d86a913.png 480w, /p/mysqlmysql%E8%BF%90%E7%BB%B4-%E8%AF%BB%E5%86%99%E5%88%86%E7%A6%BB/image-2_hu_2d83146f2e9f009a.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="401"
+		data-flex-basis="964px"
+	
+></p>
+<p>writeHost代表的是写操作对应的数据库，readHost代表的是读操作对应的数据库。 所以我们要想 实现读写分离，就得配置writeHost关联的是主库，readHost关联的是从库。</p>
+<p>而仅仅配置好了writeHost以及readHost还不能完成读写分离，还需要配置一个非常重要的负责均衡 的参数 balance，取值有4种，具体含义如下:</p>
+<div class="table-wrapper"><table>
+  <thead>
+      <tr>
+          <th>参数值</th>
+          <th>含义</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>0</td>
+          <td>不开启读写分离机制,所有读操作都发送到当前可用的writeHost上</td>
+      </tr>
+      <tr>
+          <td>1</td>
+          <td>全部的readHost 与 备用的writeHost 都参与select 语句的负载均衡(主要针对于双主双从模式)</td>
+      </tr>
+      <tr>
+          <td>2</td>
+          <td>所有的读写操作都随机在writeHost , readHost上分发</td>
+      </tr>
+      <tr>
+          <td>3</td>
+          <td>所有的读请求随机分发到writeHost对应的readHost上执行, writeHost不负担读压力</td>
+      </tr>
+  </tbody>
+</table></div>
+<p>所以，在一主一从模式的读写分离中，balance配置1或3都是可以完成读写分离的。</p>
+<h3 id="serverxml配置">server.xml配置
+</h3><p>配置root用户可以访问SHOPPING、ITCAST 以及 ITCAST_RW逻辑库。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-xml" data-lang="xml"><span class="line"><span class="cl"><span class="nt">&lt;user</span> <span class="na">name=</span><span class="s">&#34;root&#34;</span> <span class="na">defaultAccount=</span><span class="s">&#34;true&#34;</span><span class="nt">&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;property</span> <span class="na">name=</span><span class="s">&#34;password&#34;</span><span class="nt">&gt;</span>123456<span class="nt">&lt;/property&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;property</span> <span class="na">name=</span><span class="s">&#34;schemas&#34;</span><span class="nt">&gt;</span>SHOPPING,ITCAST,ITCAST_RW<span class="nt">&lt;/property&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="c">&lt;!-- 表级 DML 权限设置 --&gt;</span> <span class="c">&lt;!--
+</span></span></span><span class="line"><span class="cl"><span class="c">&lt;privileges check=&#34;true&#34;&gt;
+</span></span></span><span class="line"><span class="cl"><span class="c">        &lt;schema name=&#34;DB01&#34; dml=&#34;0110&#34; &gt;
+</span></span></span><span class="line"><span class="cl"><span class="c">            &lt;table name=&#34;TB_ORDER&#34; dml=&#34;1110&#34;&gt;&lt;/table&gt;
+</span></span></span><span class="line"><span class="cl"><span class="c">        &lt;/schema&gt;
+</span></span></span><span class="line"><span class="cl"><span class="c">    &lt;/privileges&gt;
+</span></span></span><span class="line"><span class="cl"><span class="c">--&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="nt">&lt;/user&gt;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="测试">测试
+</h3><p>配置完毕MyCat后，重新启动MyCat。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-sh" data-lang="sh"><span class="line"><span class="cl">bin/mycat stop
+</span></span><span class="line"><span class="cl">bin/mycat start
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>然后观察，在执行增删改操作时，对应的主库及从库的数据变化。 在执行查询操作时，检查主库及从 库对应的数据变化。</p>
+<p>在测试中，我们可以发现当主节点Master宕机之后，业务系统就只能够读，而不能写入数据了。</p>
+<p>那如何解决这个问题呢?这个时候我们就得通过另外一种主从复制结构来解决了，也就是我们接下来讲解的双主双从。</p>
+<h2 id="双主双从">双主双从
+</h2><h3 id="介绍-1">介绍
+</h3><p>一个主机 Master1 用于处理所有写请求，它的从机 Slave1 和另一台主机 Master2 还有它的从 机 Slave2 负责所有读请求。当 Master1 主机宕机后，Master2 主机负责写请求，Master1 、 Master2 互为备机。架构图如下:</p>
+<p><img src="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E8%AF%BB%E5%86%99%E5%88%86%E7%A6%BB/image-3.png"
+	width="884"
+	height="340"
+	srcset="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E8%AF%BB%E5%86%99%E5%88%86%E7%A6%BB/image-3_hu_3504ce0c9f8511f7.png 480w, /p/mysqlmysql%E8%BF%90%E7%BB%B4-%E8%AF%BB%E5%86%99%E5%88%86%E7%A6%BB/image-3_hu_1990d7bbbd325584.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="260"
+		data-flex-basis="624px"
+	
+></p>
+<h3 id="准备-1">准备
+</h3><p>我们需要准备5台服务器，具体的服务器及软件安装情况如下:</p>
+<p>|编号|IP|预装软件|角色|
+|1|172.16.140.210|MyCat、MySQL|MyCat中间件服务器|
+|2|172.16.140.211|MySQL|M1|
+|3|172.16.140.212|MySQL|S1|
+|4|172.16.140.213|MySQL|M2|
+|5|172.16.140.214|MySQL|S2|</p>
+<ul>
+<li>关闭以上所有服务器的防火墙:</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">systemctl stop firewalld 
+</span></span><span class="line"><span class="cl">systemctl disable firewalld
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="搭建">搭建
+</h3><h4 id="主库配置">主库配置
+</h4><ol>
+<li>Master1(172.16.140.211)</li>
+</ol>
+<p><img src="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E8%AF%BB%E5%86%99%E5%88%86%E7%A6%BB/image-4.png"
+	width="526"
+	height="614"
+	srcset="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E8%AF%BB%E5%86%99%E5%88%86%E7%A6%BB/image-4_hu_f5d7dcf5e5c8f959.png 480w, /p/mysqlmysql%E8%BF%90%E7%BB%B4-%E8%AF%BB%E5%86%99%E5%88%86%E7%A6%BB/image-4_hu_23de961fabc279e7.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="85"
+		data-flex-basis="205px"
+	
+></p>
+<ul>
+<li>修改配置文件 /etc/my.cnf</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">#mysql 服务ID，保证整个集群环境中唯一，取值范围:1 – 2^32-1，默认为1 server-id=1
+</span></span><span class="line"><span class="cl">#指定同步的数据库
+</span></span><span class="line"><span class="cl">binlog-do-db=db01
+</span></span><span class="line"><span class="cl">binlog-do-db=db02
+</span></span><span class="line"><span class="cl">binlog-do-db=db03
+</span></span><span class="line"><span class="cl"># 在作为从数据库的时候，有写入操作也要更新二进制日志文件 log-slave-updates
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>重启MySQL服务器</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-sh" data-lang="sh"><span class="line"><span class="cl">systemctl restart mysqld
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>创建账户并授权</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-sql" data-lang="sql"><span class="line"><span class="cl"><span class="o">#</span><span class="w"> </span><span class="err">创建</span><span class="n">itcast用户</span><span class="err">，并设置密码，该用户可在任意主机连接该</span><span class="n">MySQL服务</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="k">CREATE</span><span class="w"> </span><span class="k">USER</span><span class="w"> </span><span class="s1">&#39;itcast&#39;</span><span class="o">@</span><span class="s1">&#39;%&#39;</span><span class="w"> </span><span class="n">IDENTIFIED</span><span class="w"> </span><span class="k">WITH</span><span class="w"> </span><span class="n">mysql_native_password</span><span class="w"> </span><span class="k">BY</span><span class="w"> </span><span class="s1">&#39;Root@123456&#39;</span><span class="p">;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="o">#</span><span class="w"> </span><span class="err">为</span><span class="s1">&#39;itcast&#39;</span><span class="o">@</span><span class="s1">&#39;%&#39;</span><span class="w"> </span><span class="err">用户分配主从复制权限</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="k">GRANT</span><span class="w"> </span><span class="n">REPLICATION</span><span class="w"> </span><span class="n">SLAVE</span><span class="w"> </span><span class="k">ON</span><span class="w"> </span><span class="o">*</span><span class="p">.</span><span class="o">*</span><span class="w"> </span><span class="k">TO</span><span class="w"> </span><span class="s1">&#39;itcast&#39;</span><span class="o">@</span><span class="s1">&#39;%&#39;</span><span class="p">;</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>通过指令，查看两台主库的二进制日志坐标</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">show master status ;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="2">
+<li>Master2(172.16.140.213)</li>
+</ol>
+<p><img src="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E8%AF%BB%E5%86%99%E5%88%86%E7%A6%BB/image-5.png"
+	width="520"
+	height="588"
+	srcset="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E8%AF%BB%E5%86%99%E5%88%86%E7%A6%BB/image-5_hu_77fd9a164733de33.png 480w, /p/mysqlmysql%E8%BF%90%E7%BB%B4-%E8%AF%BB%E5%86%99%E5%88%86%E7%A6%BB/image-5_hu_76ad471663218ab3.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="88"
+		data-flex-basis="212px"
+	
+></p>
+<ul>
+<li>修改配置文件 /etc/my.cnf</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl"># mysql 服务ID，保证整个集群环境中唯一，取值范围:1 – 2^32-1，默认为1 server-id=3
+</span></span><span class="line"><span class="cl">#指定同步的数据库
+</span></span><span class="line"><span class="cl">binlog-do-db=db01
+</span></span><span class="line"><span class="cl">binlog-do-db=db02
+</span></span><span class="line"><span class="cl">binlog-do-db=db03
+</span></span><span class="line"><span class="cl"># 在作为从数据库的时候，有写入操作也要更新二进制日志文件 log-slave-updates
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>重启MySQL服务器</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-sh" data-lang="sh"><span class="line"><span class="cl">systemctl restart mysqld
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>创建账户并授权</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-sql" data-lang="sql"><span class="line"><span class="cl"><span class="o">#</span><span class="w"> </span><span class="err">创建</span><span class="n">itcast用户</span><span class="err">，并设置密码，该用户可在任意主机连接该</span><span class="n">MySQL服务</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="k">CREATE</span><span class="w"> </span><span class="k">USER</span><span class="w"> </span><span class="s1">&#39;itcast&#39;</span><span class="o">@</span><span class="s1">&#39;%&#39;</span><span class="w"> </span><span class="n">IDENTIFIED</span><span class="w"> </span><span class="k">WITH</span><span class="w"> </span><span class="n">mysql_native_password</span><span class="w"> </span><span class="k">BY</span><span class="w"> </span><span class="s1">&#39;Root@123456&#39;</span><span class="p">;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="o">#</span><span class="w"> </span><span class="err">为</span><span class="s1">&#39;itcast&#39;</span><span class="o">@</span><span class="s1">&#39;%&#39;</span><span class="w"> </span><span class="err">用户分配主从复制权限</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="k">GRANT</span><span class="w"> </span><span class="n">REPLICATION</span><span class="w"> </span><span class="n">SLAVE</span><span class="w"> </span><span class="k">ON</span><span class="w"> </span><span class="o">*</span><span class="p">.</span><span class="o">*</span><span class="w"> </span><span class="k">TO</span><span class="w"> </span><span class="s1">&#39;itcast&#39;</span><span class="o">@</span><span class="s1">&#39;%&#39;</span><span class="p">;</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>通过指令，查看两台主库的二进制日志坐标</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">show master status ;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="从库配置">从库配置
+</h4><ol>
+<li>Slave1(172.16.140.212)</li>
+</ol>
+<p><img src="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E8%AF%BB%E5%86%99%E5%88%86%E7%A6%BB/image-6.png"
+	width="510"
+	height="612"
+	srcset="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E8%AF%BB%E5%86%99%E5%88%86%E7%A6%BB/image-6_hu_e06343e22b0eda80.png 480w, /p/mysqlmysql%E8%BF%90%E7%BB%B4-%E8%AF%BB%E5%86%99%E5%88%86%E7%A6%BB/image-6_hu_68d2bad1a622aa47.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="83"
+		data-flex-basis="200px"
+	
+></p>
+<ul>
+<li>修改配置文件 /etc/my.cnf</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl"># mysql 服务ID，保证整个集群环境中唯一，取值范围:1 – 232-1，默认为1 
+</span></span><span class="line"><span class="cl">server-id=2
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>重新启动MySQL服务器</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-sh" data-lang="sh"><span class="line"><span class="cl">systemctl restart mysqld
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="2">
+<li>Slave2(172.16.140.214)</li>
+</ol>
+<p><img src="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E8%AF%BB%E5%86%99%E5%88%86%E7%A6%BB/image-7.png"
+	width="532"
+	height="596"
+	srcset="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E8%AF%BB%E5%86%99%E5%88%86%E7%A6%BB/image-7_hu_b0e18db6a3d4cfcc.png 480w, /p/mysqlmysql%E8%BF%90%E7%BB%B4-%E8%AF%BB%E5%86%99%E5%88%86%E7%A6%BB/image-7_hu_65290d040daff3ad.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="89"
+		data-flex-basis="214px"
+	
+></p>
+<ul>
+<li>修改配置文件 /etc/my.cnf</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl"># mysql 服务ID，保证整个集群环境中唯一，取值范围:1 – 232-1，默认为1 
+</span></span><span class="line"><span class="cl">server-id=4
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>重新启动MySQL服务器</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-sh" data-lang="sh"><span class="line"><span class="cl">systemctl restart mysqld
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h5 id="从库关联主库">从库关联主库
+</h5><ol>
+<li>两台从库配置关联的主库</li>
+</ol>
+<p><img src="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E8%AF%BB%E5%86%99%E5%88%86%E7%A6%BB/image-8.png"
+	width="542"
+	height="606"
+	srcset="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E8%AF%BB%E5%86%99%E5%88%86%E7%A6%BB/image-8_hu_28d1647e14e97abc.png 480w, /p/mysqlmysql%E8%BF%90%E7%BB%B4-%E8%AF%BB%E5%86%99%E5%88%86%E7%A6%BB/image-8_hu_d00005e25bdf8e61.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="89"
+		data-flex-basis="214px"
+	
+></p>
+<blockquote>
+<p>需要注意slave1对应的是master1，slave2对应的是master2。</p>
+</blockquote>
+<ul>
+<li>在 slave1(172.16.140.212)上执行</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-sql" data-lang="sql"><span class="line"><span class="cl"><span class="n">CHANGE</span><span class="w"> </span><span class="n">MASTER</span><span class="w"> </span><span class="k">TO</span><span class="w"> </span><span class="n">MASTER_HOST</span><span class="o">=</span><span class="s1">&#39;192.168.200.211&#39;</span><span class="p">,</span><span class="w"> </span><span class="n">MASTER_USER</span><span class="o">=</span><span class="s1">&#39;itcast&#39;</span><span class="p">,</span><span class="w"> </span><span class="n">MASTER_PASSWORD</span><span class="o">=</span><span class="s1">&#39;Root@123456&#39;</span><span class="p">,</span><span class="w"> </span><span class="n">MASTER_LOG_FILE</span><span class="o">=</span><span class="s1">&#39;binlog.000002&#39;</span><span class="p">,</span><span class="w"> </span><span class="n">MASTER_LOG_POS</span><span class="o">=</span><span class="mi">663</span><span class="p">;</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>在 slave2(172.16.140.214)上执行</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-sql" data-lang="sql"><span class="line"><span class="cl"><span class="n">CHANGE</span><span class="w"> </span><span class="n">MASTER</span><span class="w"> </span><span class="k">TO</span><span class="w"> </span><span class="n">MASTER_HOST</span><span class="o">=</span><span class="s1">&#39;192.168.200.213&#39;</span><span class="p">,</span><span class="w"> </span><span class="n">MASTER_USER</span><span class="o">=</span><span class="s1">&#39;itcast&#39;</span><span class="p">,</span><span class="w"> </span><span class="n">MASTER_PASSWORD</span><span class="o">=</span><span class="s1">&#39;Root@123456&#39;</span><span class="p">,</span><span class="w"> </span><span class="n">MASTER_LOG_FILE</span><span class="o">=</span><span class="s1">&#39;binlog.000002&#39;</span><span class="p">,</span><span class="w"> </span><span class="n">MASTER_LOG_POS</span><span class="o">=</span><span class="mi">663</span><span class="p">;</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>启动两台从库主从复制，查看从库状态</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">start slave;
+</span></span><span class="line"><span class="cl">show  slave  status \G;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="2">
+<li>两台主库相互复制</li>
+</ol>
+<p><img src="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E8%AF%BB%E5%86%99%E5%88%86%E7%A6%BB/image-9.png"
+	width="528"
+	height="594"
+	srcset="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E8%AF%BB%E5%86%99%E5%88%86%E7%A6%BB/image-9_hu_e1b155f62ee971d9.png 480w, /p/mysqlmysql%E8%BF%90%E7%BB%B4-%E8%AF%BB%E5%86%99%E5%88%86%E7%A6%BB/image-9_hu_d9e065677bb845f3.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="88"
+		data-flex-basis="213px"
+	
+></p>
+<p>Master2 复制 Master1，Master1 复制 Master2。</p>
+<ul>
+<li>在 Master1(172.16.140.211)上执行</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-sql" data-lang="sql"><span class="line"><span class="cl"><span class="n">CHANGE</span><span class="w"> </span><span class="n">MASTER</span><span class="w"> </span><span class="k">TO</span><span class="w"> </span><span class="n">MASTER_HOST</span><span class="o">=</span><span class="s1">&#39;192.168.200.213&#39;</span><span class="p">,</span><span class="w"> </span><span class="n">MASTER_USER</span><span class="o">=</span><span class="s1">&#39;itcast&#39;</span><span class="p">,</span><span class="w"> </span><span class="n">MASTER_PASSWORD</span><span class="o">=</span><span class="s1">&#39;Root@123456&#39;</span><span class="p">,</span><span class="w"> </span><span class="n">MASTER_LOG_FILE</span><span class="o">=</span><span class="s1">&#39;binlog.000002&#39;</span><span class="p">,</span><span class="w"> </span><span class="n">MASTER_LOG_POS</span><span class="o">=</span><span class="mi">663</span><span class="p">;</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>在 Master2(172.16.140.213)上执行</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-sql" data-lang="sql"><span class="line"><span class="cl"><span class="n">CHANGE</span><span class="w"> </span><span class="n">MASTER</span><span class="w"> </span><span class="k">TO</span><span class="w"> </span><span class="n">MASTER_HOST</span><span class="o">=</span><span class="s1">&#39;192.168.200.211&#39;</span><span class="p">,</span><span class="w"> </span><span class="n">MASTER_USER</span><span class="o">=</span><span class="s1">&#39;itcast&#39;</span><span class="p">,</span><span class="w"> </span><span class="n">MASTER_PASSWORD</span><span class="o">=</span><span class="s1">&#39;Root@123456&#39;</span><span class="p">,</span><span class="w"> </span><span class="n">MASTER_LOG_FILE</span><span class="o">=</span><span class="s1">&#39;binlog.000002&#39;</span><span class="p">,</span><span class="w"> </span><span class="n">MASTER_LOG_POS</span><span class="o">=</span><span class="mi">663</span><span class="p">;</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>启动两台从库主从复制，查看从库状态</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">start slave;
+</span></span><span class="line"><span class="cl">show  slave  status \G;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>经过上述的三步配置之后，双主双从的复制结构就已经搭建完成了。 接下来，我们可以来测试验证一下。</p>
+<h3 id="测试-1">测试
+</h3><p>分别在两台主库Master1、Master2上执行DDL、DML语句，查看涉及到的数据库服务器的数据同步情况。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-sql" data-lang="sql"><span class="line"><span class="cl"><span class="k">create</span><span class="w"> </span><span class="k">database</span><span class="w"> </span><span class="n">db01</span><span class="p">;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="n">use</span><span class="w"> </span><span class="n">db01</span><span class="p">;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="k">create</span><span class="w"> </span><span class="k">table</span><span class="w"> </span><span class="n">tb_user</span><span class="p">(</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="n">id</span><span class="w"> </span><span class="nb">int</span><span class="p">(</span><span class="mi">11</span><span class="p">)</span><span class="w"> </span><span class="k">not</span><span class="w"> </span><span class="k">null</span><span class="w"> </span><span class="k">primary</span><span class="w"> </span><span class="k">key</span><span class="w">  </span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="n">name</span><span class="w"> </span><span class="nb">varchar</span><span class="p">(</span><span class="mi">50</span><span class="p">)</span><span class="w"> </span><span class="k">not</span><span class="w"> </span><span class="k">null</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="n">sex</span><span class="w"> </span><span class="nb">varchar</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">)</span><span class="n">engine</span><span class="o">=</span><span class="n">innodb</span><span class="w"> </span><span class="k">default</span><span class="w"> </span><span class="n">charset</span><span class="o">=</span><span class="n">utf8mb4</span><span class="p">;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="k">insert</span><span class="w"> </span><span class="k">into</span><span class="w"> </span><span class="n">tb_user</span><span class="p">(</span><span class="n">id</span><span class="p">,</span><span class="n">name</span><span class="p">,</span><span class="n">sex</span><span class="p">)</span><span class="w"> </span><span class="k">values</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="s1">&#39;Tom&#39;</span><span class="p">,</span><span class="s1">&#39;1&#39;</span><span class="p">);</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="k">insert</span><span class="w"> </span><span class="k">into</span><span class="w"> </span><span class="n">tb_user</span><span class="p">(</span><span class="n">id</span><span class="p">,</span><span class="n">name</span><span class="p">,</span><span class="n">sex</span><span class="p">)</span><span class="w"> </span><span class="k">values</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span><span class="s1">&#39;Trigger&#39;</span><span class="p">,</span><span class="s1">&#39;0&#39;</span><span class="p">);</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="k">insert</span><span class="w"> </span><span class="k">into</span><span class="w"> </span><span class="n">tb_user</span><span class="p">(</span><span class="n">id</span><span class="p">,</span><span class="n">name</span><span class="p">,</span><span class="n">sex</span><span class="p">)</span><span class="w"> </span><span class="k">values</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="s1">&#39;Dawn&#39;</span><span class="p">,</span><span class="s1">&#39;1&#39;</span><span class="p">);</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="k">insert</span><span class="w"> </span><span class="k">into</span><span class="w"> </span><span class="n">tb_user</span><span class="p">(</span><span class="n">id</span><span class="p">,</span><span class="n">name</span><span class="p">,</span><span class="n">sex</span><span class="p">)</span><span class="w"> </span><span class="k">values</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span><span class="s1">&#39;Jack Ma&#39;</span><span class="p">,</span><span class="s1">&#39;1&#39;</span><span class="p">);</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="k">insert</span><span class="w"> </span><span class="k">into</span><span class="w"> </span><span class="n">tb_user</span><span class="p">(</span><span class="n">id</span><span class="p">,</span><span class="n">name</span><span class="p">,</span><span class="n">sex</span><span class="p">)</span><span class="w"> </span><span class="k">values</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span><span class="s1">&#39;Coco&#39;</span><span class="p">,</span><span class="s1">&#39;0&#39;</span><span class="p">);</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="k">insert</span><span class="w"> </span><span class="k">into</span><span class="w"> </span><span class="n">tb_user</span><span class="p">(</span><span class="n">id</span><span class="p">,</span><span class="n">name</span><span class="p">,</span><span class="n">sex</span><span class="p">)</span><span class="w"> </span><span class="k">values</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span><span class="s1">&#39;Jerry&#39;</span><span class="p">,</span><span class="s1">&#39;1&#39;</span><span class="p">);</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>在Master1中执行DML、DDL操作，看看数据是否可以同步到另外的三台数据库中。</li>
+<li>在Master2中执行DML、DDL操作，看看数据是否可以同步到另外的三台数据库中。</li>
+</ul>
+<p>完成了上述双主双从的结构搭建之后，接下来，我们再来看看如何完成这种双主双从的读写分离。</p>
+<h2 id="双主双从读写分离">双主双从读写分离
+</h2><h3 id="配置">配置
+</h3><p>MyCat控制后台数据库的读写分离和负载均衡由schema.xml文件datahost标签的balance属性控 制，通过writeType及switchType来完成失败自动切换的。</p>
+<ol>
+<li>schema.xml</li>
+</ol>
+<ul>
+<li>配置逻辑库:</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">&lt;schema name=&#34;ITCAST_RW2&#34; checkSQLschema=&#34;true&#34; sqlMaxLimit=&#34;100&#34; dataNode=&#34;dn7&#34;&gt;&lt;/schema&gt;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>配置数据节点:</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">&lt;dataNode name=&#34;dn7&#34; dataHost=&#34;dhost7&#34; database=&#34;db01&#34; /&gt;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>配置节点主机:</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-xml" data-lang="xml"><span class="line"><span class="cl"><span class="nt">&lt;dataHost</span> <span class="na">name=</span><span class="s">&#34;dhost7&#34;</span> <span class="na">maxCon=</span><span class="s">&#34;1000&#34;</span> <span class="na">minCon=</span><span class="s">&#34;10&#34;</span> <span class="na">balance=</span><span class="s">&#34;1&#34;</span> <span class="na">writeType=</span><span class="s">&#34;0&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="na">dbType=</span><span class="s">&#34;mysql&#34;</span> <span class="na">dbDriver=</span><span class="s">&#34;jdbc&#34;</span> <span class="na">switchType=</span><span class="s">&#34;1&#34;</span>  <span class="na">slaveThreshold=</span><span class="s">&#34;100&#34;</span><span class="nt">&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;heartbeat&gt;</span>select user()<span class="nt">&lt;/heartbeat&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;writeHost</span> <span class="na">host=</span><span class="s">&#34;master1&#34;</span> <span class="na">url=</span><span class="s">&#34;jdbc:mysql://192.168.200.211:3306?
+</span></span></span><span class="line"><span class="cl"><span class="s">useSSL=false&amp;amp;serverTimezone=Asia/Shanghai&amp;amp;characterEncoding=utf8&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="na">user=</span><span class="s">&#34;root&#34;</span> <span class="na">password=</span><span class="s">&#34;1234&#34;</span> <span class="nt">&gt;</span>
+</span></span><span class="line"><span class="cl">       <span class="nt">&lt;readHost</span> <span class="na">host=</span><span class="s">&#34;slave1&#34;</span> <span class="na">url=</span><span class="s">&#34;jdbc:mysql://192.168.200.212:3306?
+</span></span></span><span class="line"><span class="cl"><span class="s">useSSL=false&amp;amp;serverTimezone=Asia/Shanghai&amp;amp;characterEncoding=utf8&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="na">user=</span><span class="s">&#34;root&#34;</span> <span class="na">password=</span><span class="s">&#34;1234&#34;</span> <span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;/writeHost&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;writeHost</span> <span class="na">host=</span><span class="s">&#34;master2&#34;</span> <span class="na">url=</span><span class="s">&#34;jdbc:mysql://192.168.200.213:3306?
+</span></span></span><span class="line"><span class="cl"><span class="s">useSSL=false&amp;amp;serverTimezone=Asia/Shanghai&amp;amp;characterEncoding=utf8&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="na">user=</span><span class="s">&#34;root&#34;</span> <span class="na">password=</span><span class="s">&#34;1234&#34;</span> <span class="nt">&gt;</span>
+</span></span><span class="line"><span class="cl">       <span class="nt">&lt;readHost</span> <span class="na">host=</span><span class="s">&#34;slave2&#34;</span> <span class="na">url=</span><span class="s">&#34;jdbc:mysql://192.168.200.214:3306?
+</span></span></span><span class="line"><span class="cl"><span class="s">useSSL=false&amp;amp;serverTimezone=Asia/Shanghai&amp;amp;characterEncoding=utf8&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="na">user=</span><span class="s">&#34;root&#34;</span> <span class="na">password=</span><span class="s">&#34;1234&#34;</span> <span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;/writeHost&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="nt">&lt;/dataHost&gt;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>具体的对应情况如下:</li>
+</ul>
+<p><img src="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E8%AF%BB%E5%86%99%E5%88%86%E7%A6%BB/image-10.png"
+	width="884"
+	height="216"
+	srcset="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E8%AF%BB%E5%86%99%E5%88%86%E7%A6%BB/image-10_hu_f4588e6b52f4f76d.png 480w, /p/mysqlmysql%E8%BF%90%E7%BB%B4-%E8%AF%BB%E5%86%99%E5%88%86%E7%A6%BB/image-10_hu_821a9d3b41d3837d.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="409"
+		data-flex-basis="982px"
+	
+></p>
+<ul>
+<li>属性说明:</li>
+</ul>
+<blockquote>
+<p>balance=&ldquo;1&rdquo;
+    代表全部的 readHost 与 stand by writeHost 参与 select 语句的负载均衡，简 单的说，当双主双从模式(M1-&gt;S1，M2-&gt;S2，并且 M1 与 M2 互为主备)，正常情况下， M2,S1,S2 都参与 select 语句的负载均衡 ;
+writeType
+     0 : 写操作都转发到第1台writeHost, writeHost1挂了, 会切换到writeHost2上;
+     1 : 所有的写操作都随机地发送到配置的writeHost上 ;
+switchType
+    -1 : 不自动切换
+    1 : 自动切换</p>
+</blockquote>
+<ol start="2">
+<li>user.xml</li>
+</ol>
+<p>配置root用户也可以访问到逻辑库 ITCAST_RW2。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-xml" data-lang="xml"><span class="line"><span class="cl"><span class="nt">&lt;user</span> <span class="na">name=</span><span class="s">&#34;root&#34;</span> <span class="na">defaultAccount=</span><span class="s">&#34;true&#34;</span><span class="nt">&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;property</span> <span class="na">name=</span><span class="s">&#34;password&#34;</span><span class="nt">&gt;</span>123456<span class="nt">&lt;/property&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;property</span> <span class="na">name=</span><span class="s">&#34;schemas&#34;</span><span class="nt">&gt;</span>SHOPPING,ITCAST,ITCAST_RW2<span class="nt">&lt;/property&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="c">&lt;!-- 表级 DML 权限设置 --&gt;</span> <span class="c">&lt;!--
+</span></span></span><span class="line"><span class="cl"><span class="c">&lt;privileges check=&#34;true&#34;&gt;
+</span></span></span><span class="line"><span class="cl"><span class="c">        &lt;schema name=&#34;DB01&#34; dml=&#34;0110&#34; &gt;
+</span></span></span><span class="line"><span class="cl"><span class="c">            &lt;table name=&#34;TB_ORDER&#34; dml=&#34;1110&#34;&gt;&lt;/table&gt;
+</span></span></span><span class="line"><span class="cl"><span class="c">        &lt;/schema&gt;
+</span></span></span><span class="line"><span class="cl"><span class="c">    &lt;/privileges&gt;
+</span></span></span><span class="line"><span class="cl"><span class="c">--&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="nt">&lt;/user&gt;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="测试-2">测试
+</h3><p>登录MyCat，测试查询及更新操作，判定是否能够进行读写分离，以及读写分离的策略是否正确。</p>
+<p>当主库挂掉一个之后，是否能够自动切换。</p>
+
+</section>
+
+
+    <footer class="article-footer">
+    
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+<aside class="related-content--wrapper">
+    <h2 class="section-title">相关文章</h2>
+    <div class="related-content">
+        <div class="flex article-list--tile">
+            
+                
+<article class="">
+    <a href="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E4%B8%BB%E4%BB%8E%E5%A4%8D%E5%88%B6/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[MySQL]MySQL运维-主从复制</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/mysqlmysql%E8%BF%90%E7%BB%B4-%E6%97%A5%E5%BF%97/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[MySQL]MySQL运维-日志</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E7%AE%A1%E7%90%86/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[MySQL]MySQL进阶-管理</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/mysqlmysql%E8%BF%9B%E9%98%B6-innodb%E5%BC%95%E6%93%8E/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[MySQL]MySQL进阶-InnoDB引擎</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/mysqlmysql%E8%BF%9B%E9%98%B6-%E9%94%81/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[MySQL]MySQL进阶-锁</h2>
+        </div>
+    </a>
+</article>
+
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+        2025 リンボの個人ブログ
+    </section>
+    
+    <section class="powerby">
+         <br />
+        
+    </section>
+</footer>
+
+
+    
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+    
+    <div class="pswp__bg"></div>
+
+    
+    <div class="pswp__scroll-wrap">
+
+        
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+
+        
+        <div class="pswp__ui pswp__ui--hidden">
+
+            <div class="pswp__top-bar">
+
+                
+
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+
+                <button class="pswp__button pswp__button--share" title="Share"></button>
+
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+
+                
+                
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                        <div class="pswp__preloader__cut">
+                            <div class="pswp__preloader__donut"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div>
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.js"integrity="sha256-ePwmChbbvXbsO02lbM3HoHbSHTHFAeChekF1xKJdleo="crossorigin="anonymous"
+                defer
+                >
+            </script><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe-ui-default.min.js"integrity="sha256-UKkzOn/w1mBxRmLLGrSeyB4e1xbrp4xylgAWb3M42pU="crossorigin="anonymous"
+                defer
+                >
+            </script><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/default-skin/default-skin.min.css"crossorigin="anonymous"
+            ><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.css"crossorigin="anonymous"
+            >
+
+            </main>
+        </div>
+        <script 
+                src="https://cdn.jsdelivr.net/npm/node-vibrant@3.1.6/dist/vibrant.min.js"integrity="sha256-awcR2jno4kI5X0zL8ex0vi2z&#43;KMkF24hUW8WePSA9HM="crossorigin="anonymous"
+                
+                >
+            </script><script type="text/javascript" src="/ts/main.1e9a3bafd846ced4c345d084b355fb8c7bae75701c338f8a1f8a82c780137826.js" defer></script>
+<script>
+    (function () {
+        const customFont = document.createElement('link');
+        customFont.href = "https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap";
+
+        customFont.type = "text/css";
+        customFont.rel = "stylesheet";
+
+        document.head.appendChild(customFont);
+    }());
+</script>
+
+    </body>
+</html>

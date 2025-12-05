@@ -1,18 +1,18 @@
 <!DOCTYPE html>
 <html lang="zh-cn" dir="ltr">
     <head><meta charset='utf-8'>
-<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="nginx 基础 nginx基础配置 最小配置文件 文件位置 默认位置 1 /usr/local/nginx/conf/nginx.conf 文件内容 nginx.conf 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 55 56 57 58 59 60 61 62 63 64 65 66 67 68 69 70 71 72 73 74 75 76 77 78 79 80 81 82 83 84 85 86 87 88 89 90 91 92 93 94 95 96 97 98 99 100 101 102 103 104 105 106 107 108 109 110 111 112 113 114 115 116 worker_processes 1; #error_log logs/error.log; #error_log logs/error.log notice; #error_log logs/error.log info; #pid logs/nginx.pid; events { worker_connections 1024; } http { include mime.types; default_type application/octet-stream; #log_format main &#39;$remote_addr - $remote_user [$time_local] &#34;$request&#34; &#39; # &#39;$status $body_bytes_sent &#34;$http_referer&#34; &#39; # &#39;&#34;$http_user_agent&#34; &#34;$http_x_forwarded_for&#34;&#39;; #access_log logs/access.log main; sendfile on; #tcp_nopush on; #keepalive_timeout 0; keepalive_timeout 65; #gzip on; server { listen 80; server_name localhost; #charset koi8-r; #access_log logs/host.access.log main; location / { root html; index index.html index.htm; } #error_page 404 /404.html; # redirect server error pages to the static page /50x.html # error_page 500 502 503 504 /50x.html; location = /50x.html { root html; } # proxy the PHP scripts to Apache listening on 127.0.0.1:80 # #location ~ \\.php$ { # proxy_pass http://127.0.0.1; #} # pass the PHP scripts to FastCGI server listening on 127.0.0.1:9000 # #location ~ \\.php$ { # root html; # fastcgi_pass 127.0.0.1:9000; # fastcgi_index index.php; # fastcgi_param SCRIPT_FILENAME /scripts$fastcgi_script_name; # include fastcgi_params; #} # deny access to .htaccess files, if Apache&#39;s document root # concurs with nginx&#39;s one # #location ~ /\\.ht { # deny all; #} } # another virtual host using mix of IP-, name-, and port-based configuration # #server { # listen 8000; # listen somename:8080; # server_name somename alias another.alias; # location / { # root html; # index index.html index.htm; # } #} # HTTPS server # #server { # listen 443 ssl; # server_name localhost; # ssl_certificate cert.pem; # ssl_certificate_key cert.key; # ssl_session_cache shared:SSL:1m; # ssl_session_timeout 5m; # ssl_ciphers HIGH:!aNULL:!MD5; # ssl_prefer_server_ciphers on; # location / { # root html; # index index.html index.htm; # } #} } 简化文件（去掉所有注释） 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 # 工作进程个数 为1 worker_processes 1; events { # 每个worker进程能创建1024个连接 worker_connections 1024; } http { # 引入配置文件mime.types # mime.types 解析文件类型并以相应的方式去读取文件 # 作用：告诉浏览器以什么方式去打开什么文件 include mime.types; # default_type表示默认类型，及如果这种类型不包含在mime.types 里面，就以application/octet-stream传输给我们的客户端（浏览器） default_type application/octet-stream; # sendfile：数据零拷贝 # 数据零拷贝：不需要复制和拷贝 # off : nginx复制一份文件，并读到应用程序内存中，再把数据复制给网络接口，最后发送出去 # on ： nginx推送给网络接口sendfile信号，网络接口直接读取文件，再发送出去 sendfile on; # 保持连接超时 keepalive_timeout 65; # 虚拟主机 vhost server { # 端口号 listen 80; # 域名、主机名 server_name localhost; # http://location/index.html location / { # 匹配页面的根目录 root html; # 默认页 index index.html index.htm; } # 发生服务器端错误时：500 502 503 504 # 跳转到 http://location/50x.html error_page 500 502 503 504 /50x.html; location = /50x.html { root html; } } } 虚拟主机与域名解析 使用ip访问虚拟机的nginx ">
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="nginx 基础 nginx目录结构 主要目录 conf：用来存放配置文件相关 html：用来存放静态文件的默认目录 html、css等 sbin：nginx的主程序 临时目录 其中这几个文件夹在刚安装后是没有的，主要用来存放运行过程中的临时文件：\n">
 <title>[Nginx]nginx基础</title>
 
 <link rel='canonical' href='https://YLine-hub.github.io/p/nginxnginx%E5%9F%BA%E7%A1%80/'>
 
 <link rel="stylesheet" href="/scss/style.min.6a692fd055deae459f2a9767f57f3855ba80cafd5041317f24f7360f6ca47cdf.css"><meta property='og:title' content="[Nginx]nginx基础">
-<meta property='og:description' content="nginx 基础 nginx基础配置 最小配置文件 文件位置 默认位置 1 /usr/local/nginx/conf/nginx.conf 文件内容 nginx.conf 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 55 56 57 58 59 60 61 62 63 64 65 66 67 68 69 70 71 72 73 74 75 76 77 78 79 80 81 82 83 84 85 86 87 88 89 90 91 92 93 94 95 96 97 98 99 100 101 102 103 104 105 106 107 108 109 110 111 112 113 114 115 116 worker_processes 1; #error_log logs/error.log; #error_log logs/error.log notice; #error_log logs/error.log info; #pid logs/nginx.pid; events { worker_connections 1024; } http { include mime.types; default_type application/octet-stream; #log_format main &#39;$remote_addr - $remote_user [$time_local] &#34;$request&#34; &#39; # &#39;$status $body_bytes_sent &#34;$http_referer&#34; &#39; # &#39;&#34;$http_user_agent&#34; &#34;$http_x_forwarded_for&#34;&#39;; #access_log logs/access.log main; sendfile on; #tcp_nopush on; #keepalive_timeout 0; keepalive_timeout 65; #gzip on; server { listen 80; server_name localhost; #charset koi8-r; #access_log logs/host.access.log main; location / { root html; index index.html index.htm; } #error_page 404 /404.html; # redirect server error pages to the static page /50x.html # error_page 500 502 503 504 /50x.html; location = /50x.html { root html; } # proxy the PHP scripts to Apache listening on 127.0.0.1:80 # #location ~ \\.php$ { # proxy_pass http://127.0.0.1; #} # pass the PHP scripts to FastCGI server listening on 127.0.0.1:9000 # #location ~ \\.php$ { # root html; # fastcgi_pass 127.0.0.1:9000; # fastcgi_index index.php; # fastcgi_param SCRIPT_FILENAME /scripts$fastcgi_script_name; # include fastcgi_params; #} # deny access to .htaccess files, if Apache&#39;s document root # concurs with nginx&#39;s one # #location ~ /\\.ht { # deny all; #} } # another virtual host using mix of IP-, name-, and port-based configuration # #server { # listen 8000; # listen somename:8080; # server_name somename alias another.alias; # location / { # root html; # index index.html index.htm; # } #} # HTTPS server # #server { # listen 443 ssl; # server_name localhost; # ssl_certificate cert.pem; # ssl_certificate_key cert.key; # ssl_session_cache shared:SSL:1m; # ssl_session_timeout 5m; # ssl_ciphers HIGH:!aNULL:!MD5; # ssl_prefer_server_ciphers on; # location / { # root html; # index index.html index.htm; # } #} } 简化文件（去掉所有注释） 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 # 工作进程个数 为1 worker_processes 1; events { # 每个worker进程能创建1024个连接 worker_connections 1024; } http { # 引入配置文件mime.types # mime.types 解析文件类型并以相应的方式去读取文件 # 作用：告诉浏览器以什么方式去打开什么文件 include mime.types; # default_type表示默认类型，及如果这种类型不包含在mime.types 里面，就以application/octet-stream传输给我们的客户端（浏览器） default_type application/octet-stream; # sendfile：数据零拷贝 # 数据零拷贝：不需要复制和拷贝 # off : nginx复制一份文件，并读到应用程序内存中，再把数据复制给网络接口，最后发送出去 # on ： nginx推送给网络接口sendfile信号，网络接口直接读取文件，再发送出去 sendfile on; # 保持连接超时 keepalive_timeout 65; # 虚拟主机 vhost server { # 端口号 listen 80; # 域名、主机名 server_name localhost; # http://location/index.html location / { # 匹配页面的根目录 root html; # 默认页 index index.html index.htm; } # 发生服务器端错误时：500 502 503 504 # 跳转到 http://location/50x.html error_page 500 502 503 504 /50x.html; location = /50x.html { root html; } } } 虚拟主机与域名解析 使用ip访问虚拟机的nginx ">
+<meta property='og:description' content="nginx 基础 nginx目录结构 主要目录 conf：用来存放配置文件相关 html：用来存放静态文件的默认目录 html、css等 sbin：nginx的主程序 临时目录 其中这几个文件夹在刚安装后是没有的，主要用来存放运行过程中的临时文件：\n">
 <meta property='og:url' content='https://YLine-hub.github.io/p/nginxnginx%E5%9F%BA%E7%A1%80/'>
 <meta property='og:site_name' content='リンボの個人ブログ'>
 <meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:published_time' content='2025-10-22T21:27:31&#43;08:00'/><meta property='article:modified_time' content='2025-10-22T21:27:31&#43;08:00'/>
 <meta name="twitter:title" content="[Nginx]nginx基础">
-<meta name="twitter:description" content="nginx 基础 nginx基础配置 最小配置文件 文件位置 默认位置 1 /usr/local/nginx/conf/nginx.conf 文件内容 nginx.conf 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 55 56 57 58 59 60 61 62 63 64 65 66 67 68 69 70 71 72 73 74 75 76 77 78 79 80 81 82 83 84 85 86 87 88 89 90 91 92 93 94 95 96 97 98 99 100 101 102 103 104 105 106 107 108 109 110 111 112 113 114 115 116 worker_processes 1; #error_log logs/error.log; #error_log logs/error.log notice; #error_log logs/error.log info; #pid logs/nginx.pid; events { worker_connections 1024; } http { include mime.types; default_type application/octet-stream; #log_format main &#39;$remote_addr - $remote_user [$time_local] &#34;$request&#34; &#39; # &#39;$status $body_bytes_sent &#34;$http_referer&#34; &#39; # &#39;&#34;$http_user_agent&#34; &#34;$http_x_forwarded_for&#34;&#39;; #access_log logs/access.log main; sendfile on; #tcp_nopush on; #keepalive_timeout 0; keepalive_timeout 65; #gzip on; server { listen 80; server_name localhost; #charset koi8-r; #access_log logs/host.access.log main; location / { root html; index index.html index.htm; } #error_page 404 /404.html; # redirect server error pages to the static page /50x.html # error_page 500 502 503 504 /50x.html; location = /50x.html { root html; } # proxy the PHP scripts to Apache listening on 127.0.0.1:80 # #location ~ \\.php$ { # proxy_pass http://127.0.0.1; #} # pass the PHP scripts to FastCGI server listening on 127.0.0.1:9000 # #location ~ \\.php$ { # root html; # fastcgi_pass 127.0.0.1:9000; # fastcgi_index index.php; # fastcgi_param SCRIPT_FILENAME /scripts$fastcgi_script_name; # include fastcgi_params; #} # deny access to .htaccess files, if Apache&#39;s document root # concurs with nginx&#39;s one # #location ~ /\\.ht { # deny all; #} } # another virtual host using mix of IP-, name-, and port-based configuration # #server { # listen 8000; # listen somename:8080; # server_name somename alias another.alias; # location / { # root html; # index index.html index.htm; # } #} # HTTPS server # #server { # listen 443 ssl; # server_name localhost; # ssl_certificate cert.pem; # ssl_certificate_key cert.key; # ssl_session_cache shared:SSL:1m; # ssl_session_timeout 5m; # ssl_ciphers HIGH:!aNULL:!MD5; # ssl_prefer_server_ciphers on; # location / { # root html; # index index.html index.htm; # } #} } 简化文件（去掉所有注释） 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 # 工作进程个数 为1 worker_processes 1; events { # 每个worker进程能创建1024个连接 worker_connections 1024; } http { # 引入配置文件mime.types # mime.types 解析文件类型并以相应的方式去读取文件 # 作用：告诉浏览器以什么方式去打开什么文件 include mime.types; # default_type表示默认类型，及如果这种类型不包含在mime.types 里面，就以application/octet-stream传输给我们的客户端（浏览器） default_type application/octet-stream; # sendfile：数据零拷贝 # 数据零拷贝：不需要复制和拷贝 # off : nginx复制一份文件，并读到应用程序内存中，再把数据复制给网络接口，最后发送出去 # on ： nginx推送给网络接口sendfile信号，网络接口直接读取文件，再发送出去 sendfile on; # 保持连接超时 keepalive_timeout 65; # 虚拟主机 vhost server { # 端口号 listen 80; # 域名、主机名 server_name localhost; # http://location/index.html location / { # 匹配页面的根目录 root html; # 默认页 index index.html index.htm; } # 发生服务器端错误时：500 502 503 504 # 跳转到 http://location/50x.html error_page 500 502 503 504 /50x.html; location = /50x.html { root html; } } } 虚拟主机与域名解析 使用ip访问虚拟机的nginx ">
+<meta name="twitter:description" content="nginx 基础 nginx目录结构 主要目录 conf：用来存放配置文件相关 html：用来存放静态文件的默认目录 html、css等 sbin：nginx的主程序 临时目录 其中这几个文件夹在刚安装后是没有的，主要用来存放运行过程中的临时文件：\n">
     <link rel="shortcut icon" href="/favicon.ico" />
 
     </head>
@@ -206,18 +206,29 @@
         <div class="widget--toc">
             <nav id="TableOfContents">
   <ol>
+    <li><a href="#nginx目录结构">nginx目录结构</a>
+      <ol>
+        <li><a href="#主要目录">主要目录</a></li>
+        <li><a href="#临时目录">临时目录</a></li>
+      </ol>
+    </li>
+    <li><a href="#基本运行原理">基本运行原理</a></li>
     <li><a href="#nginx基础配置">nginx基础配置</a>
       <ol>
         <li><a href="#最小配置文件">最小配置文件</a>
           <ol>
             <li><a href="#文件位置">文件位置</a></li>
             <li><a href="#文件内容">文件内容</a></li>
+            <li><a href="#最小配置文件去掉所有注释">最小配置文件（去掉所有注释）</a></li>
+            <li><a href="#sendfile-on">sendfile on;</a></li>
           </ol>
         </li>
       </ol>
     </li>
     <li><a href="#虚拟主机与域名解析">虚拟主机与域名解析</a>
       <ol>
+        <li><a href="#域名dnsip地址的关系">域名、dns、ip地址的关系</a></li>
+        <li><a href="#虚拟主机">虚拟主机</a></li>
         <li><a href="#使用hosts文件解析域名">使用hosts文件解析域名</a>
           <ol>
             <li><a href="#hosts文件位置mac">hosts文件位置[mac]</a></li>
@@ -237,6 +248,7 @@
         <li><a href="#配置多个域名">配置多个域名</a></li>
         <li><a href="#通配符匹配">通配符匹配</a></li>
         <li><a href="#通配符结束匹配">通配符结束匹配</a></li>
+        <li><a href="#正则匹配">正则匹配</a></li>
       </ol>
     </li>
   </ol>
@@ -305,7 +317,67 @@
     
     
     <h1 id="nginx-基础">nginx 基础
-</h1><h2 id="nginx基础配置">nginx基础配置
+</h1><h2 id="nginx目录结构">nginx目录结构
+</h2><p><img src="/p/nginxnginx%E5%9F%BA%E7%A1%80/image-8.png"
+	width="872"
+	height="304"
+	srcset="/p/nginxnginx%E5%9F%BA%E7%A1%80/image-8_hu_8ff7ab05a7866cc5.png 480w, /p/nginxnginx%E5%9F%BA%E7%A1%80/image-8_hu_6761d6f2f3b76c3f.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="286"
+		data-flex-basis="688px"
+	
+></p>
+<p><img src="/p/nginxnginx%E5%9F%BA%E7%A1%80/image-7.png"
+	width="510"
+	height="1062"
+	srcset="/p/nginxnginx%E5%9F%BA%E7%A1%80/image-7_hu_ef1810449c776550.png 480w, /p/nginxnginx%E5%9F%BA%E7%A1%80/image-7_hu_b15f1b70c08f5af2.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="48"
+		data-flex-basis="115px"
+	
+></p>
+<h3 id="主要目录">主要目录
+</h3><ul>
+<li>conf：用来存放配置文件相关</li>
+<li>html：用来存放静态文件的默认目录 html、css等</li>
+<li>sbin：nginx的主程序</li>
+</ul>
+<h3 id="临时目录">临时目录
+</h3><p>其中这几个文件夹在刚安装后是没有的，主要用来存放运行过程中的临时文件：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">client_body_temp fastcgi_temp proxy_temp scgi_temp
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="基本运行原理">基本运行原理
+</h2><p><img src="/p/nginxnginx%E5%9F%BA%E7%A1%80/image-9.png"
+	width="998"
+	height="528"
+	srcset="/p/nginxnginx%E5%9F%BA%E7%A1%80/image-9_hu_1a2fb397cb3dd7f2.png 480w, /p/nginxnginx%E5%9F%BA%E7%A1%80/image-9_hu_c1c98b7d5dba31f2.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="189"
+		data-flex-basis="453px"
+	
+></p>
+<h2 id="nginx基础配置">nginx基础配置
 </h2><h3 id="最小配置文件">最小配置文件
 </h3><h4 id="文件位置">文件位置
 </h4><ul>
@@ -561,10 +633,8 @@
 </span></span><span class="line"><span class="cl">}
 </span></span></code></pre></td></tr></table>
 </div>
-</div><ul>
-<li>简化文件（去掉所有注释）</li>
-</ul>
-<div class="highlight"><div class="chroma">
+</div><h4 id="最小配置文件去掉所有注释">最小配置文件（去掉所有注释）
+</h4><div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
 <pre tabindex="0" class="chroma"><code><span class="lnt"> 1
 </span><span class="lnt"> 2
@@ -670,7 +740,45 @@
 </span></span><span class="line"><span class="cl">}
 </span></span></code></pre></td></tr></table>
 </div>
-</div><h2 id="虚拟主机与域名解析">虚拟主机与域名解析
+</div><h4 id="sendfile-on">sendfile on;
+</h4><p><code>sendfile on;</code> 使用linux的sendfile(socket, file, len)高效网络传输，也就是数据0拷贝。</p>
+<ul>
+<li>未开启sendfile</li>
+</ul>
+<p><img src="/p/nginxnginx%E5%9F%BA%E7%A1%80/image-10.png"
+	width="998"
+	height="744"
+	srcset="/p/nginxnginx%E5%9F%BA%E7%A1%80/image-10_hu_68bb8e68e6ca5eaf.png 480w, /p/nginxnginx%E5%9F%BA%E7%A1%80/image-10_hu_f1bfccbd30ca0044.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="134"
+		data-flex-basis="321px"
+	
+></p>
+<p>当互联网向服务器请求对应的文件时，网络接口收到请求后，转发给nginx，nginx找到文件并将其读取到内存中，内存读完后将其发送给网络接口，让它返回给互联网。</p>
+<ul>
+<li>开启后</li>
+</ul>
+<p><img src="/p/nginxnginx%E5%9F%BA%E7%A1%80/image-11.png"
+	width="998"
+	height="746"
+	srcset="/p/nginxnginx%E5%9F%BA%E7%A1%80/image-11_hu_807084c651243b6e.png 480w, /p/nginxnginx%E5%9F%BA%E7%A1%80/image-11_hu_826b03b2c45efabc.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="133"
+		data-flex-basis="321px"
+	
+></p>
+<p>当互联网向服务器请求对应的文件时，网络接口收到请求后，转发给nginx，nginx让内存向网络接口发送sendfile()信号，网络接口收到信号后，从硬盘中读取对应的文件，并直接返回给互联网。</p>
+<h2 id="虚拟主机与域名解析">虚拟主机与域名解析
 </h2><ul>
 <li>使用ip访问虚拟机的nginx</li>
 </ul>
@@ -688,13 +796,33 @@
 		data-flex-basis="821px"
 	
 ></p>
+<h3 id="域名dnsip地址的关系">域名、dns、ip地址的关系
+</h3><p><img src="/p/nginxnginx%E5%9F%BA%E7%A1%80/image-12.png"
+	width="998"
+	height="450"
+	srcset="/p/nginxnginx%E5%9F%BA%E7%A1%80/image-12_hu_142a5beb4bc44e23.png 480w, /p/nginxnginx%E5%9F%BA%E7%A1%80/image-12_hu_1254e2b3e0811474.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="221"
+		data-flex-basis="532px"
+	
+></p>
+<p>三者核心关系：域名是 IP 地址的 “易记别名”，DNS 是将域名解析为 IP 地址的 “翻译系统”，最终通过 IP 地址实现网络访问。</p>
+<p>主机向域名发送请求，通过dns解析拿到ip地址，发起tcp/ip请求。</p>
+<p>http协议在tcp/ip协议之上，http是高级的网络协议，tcp/ip是基础网络协议。https协议是在http协议的基础上加了一层安全保障。</p>
+<h3 id="虚拟主机">虚拟主机
+</h3><p>原本一台服务器只能对应一个站点，通过虚拟主机技术可以虚拟化成多个站点同时对外提供服务。</p>
 <h3 id="使用hosts文件解析域名">使用hosts文件解析域名
 </h3><h4 id="hosts文件位置mac">hosts文件位置[mac]
 </h4><p><strong>mac:</strong></p>
 <ul>
 <li>/private/etc/hosts</li>
 </ul>
-<p>hosts:</p>
+<p><code>hosts</code>:</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
 <pre tabindex="0" class="chroma"><code><span class="lnt">1
@@ -719,9 +847,13 @@
 </span></span><span class="line"><span class="cl">::1             localhost
 </span></span></code></pre></td></tr></table>
 </div>
-</div><p><strong>win:</strong></p>
+</div><p><strong>Win:</strong></p>
 <ul>
 <li>C:\Windows\System32\drivers\etc\hosts</li>
+</ul>
+<p><strong>Linux</strong></p>
+<ul>
+<li>/etc/hosts</li>
 </ul>
 <h4 id="使用hosts解析虚拟机ip为域名">使用hosts解析虚拟机ip为域名
 </h4><ul>
@@ -829,8 +961,8 @@
 </span><span class="lnt">2
 </span></code></pre></td>
 <td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">172.16.140.102 book.vm-2.html
-</span></span><span class="line"><span class="cl">172.16.140.102 vod.vm-2.html
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">172.16.140.102 book.vm-2.com
+</span></span><span class="line"><span class="cl">172.16.140.102 vod.vm-2.com
 </span></span></code></pre></td></tr></table>
 </div>
 </div><p><img src="/p/nginxnginx%E5%9F%BA%E7%A1%80/image-4.png"
@@ -876,7 +1008,6 @@
 </span><span class="lnt">21
 </span><span class="lnt">22
 </span><span class="lnt">23
-</span><span class="lnt">24
 </span></code></pre></td>
 <td class="lntd">
 <pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">server {
@@ -901,7 +1032,6 @@
 </span></span><span class="line"><span class="cl">        root   /www/vod;
 </span></span><span class="line"><span class="cl">        index  index.html index.htm;
 </span></span><span class="line"><span class="cl">    }
-</span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">}
 </span></span></code></pre></td></tr></table>
 </div>
@@ -977,7 +1107,7 @@
 </div>
 </div><h3 id="通配符匹配">通配符匹配
 </h3><ul>
-<li><font>除了book.vm-2.com，全部匹配到第二个服务</font></li>
+<li><font>除了book.vm-2.com，如vod.vm-2.com等等开头不为book的全部匹配到第二个服务</font></li>
 </ul>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
@@ -1037,7 +1167,7 @@
 </div>
 </div><h3 id="通配符结束匹配">通配符结束匹配
 </h3><p><a class="link" href="https://www.vm-2.com"  target="_blank" rel="noopener"
-    >www.vm-2.com</a>匹配到第一个server，www.vm-2.com匹配到第二个server</p>
+    >www.vm-2.com</a>匹配到第一个server，www.vm-2.net等等末尾不是com的匹配到第二个server</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
 <pre tabindex="0" class="chroma"><code><span class="lnt"> 1
@@ -1064,7 +1194,6 @@
 </span><span class="lnt">22
 </span><span class="lnt">23
 </span><span class="lnt">24
-</span><span class="lnt">25
 </span></code></pre></td>
 <td class="lntd">
 <pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">server {
@@ -1090,7 +1219,61 @@
 </span></span><span class="line"><span class="cl">        root   /www/vod;
 </span></span><span class="line"><span class="cl">        index  index.html index.htm;
 </span></span><span class="line"><span class="cl">    }
+</span></span><span class="line"><span class="cl">}
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="正则匹配">正则匹配
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">server {
+</span></span><span class="line"><span class="cl">    listen       80;
+</span></span><span class="line"><span class="cl">    server_name  www.vm-2.com;
 </span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    location / {
+</span></span><span class="line"><span class="cl">        root   /www/book;
+</span></span><span class="line"><span class="cl">        index  index.html index.htm;
+</span></span><span class="line"><span class="cl">    }
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    error_page   500 502 503 504  /50x.html;
+</span></span><span class="line"><span class="cl">    location = /50x.html {
+</span></span><span class="line"><span class="cl">        root   html;
+</span></span><span class="line"><span class="cl">    }
+</span></span><span class="line"><span class="cl">}
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">server {
+</span></span><span class="line"><span class="cl">    listen 80;
+</span></span><span class="line"><span class="cl">    server_name  ~^[0-9]+\.vm-2\.com$;
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    location / {
+</span></span><span class="line"><span class="cl">        root   /www/vod;
+</span></span><span class="line"><span class="cl">        index  index.html index.htm;
+</span></span><span class="line"><span class="cl">    }
 </span></span><span class="line"><span class="cl">}
 </span></span></code></pre></td></tr></table>
 </div>
