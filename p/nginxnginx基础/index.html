@@ -295,6 +295,28 @@
             <li><a href="#伪静态实现">伪静态实现</a></li>
           </ol>
         </li>
+        <li><a href="#防盗链">防盗链</a>
+          <ol>
+            <li><a href="#介绍-2">介绍</a></li>
+            <li><a href="#nginx-通过refer-防盗链配置">Nginx 通过refer 防盗链配置</a></li>
+            <li><a href="#实战-1">实战</a></li>
+            <li><a href="#使用curl命令测试">使用curl命令测试</a></li>
+            <li><a href="#返回错误页面">返回错误页面</a></li>
+            <li><a href="#整合rewrite返回报错图片">整合rewrite返回报错图片</a></li>
+          </ol>
+        </li>
+      </ol>
+    </li>
+    <li><a href="#高可用场景及解决方案">高可用场景及解决方案</a>
+      <ol>
+        <li><a href="#为什么需要高可用">为什么需要高可用？</a></li>
+        <li><a href="#什么叫高可用场景">什么叫高可用场景？</a></li>
+        <li><a href="#使用keepaliverd提高可用性">使用Keepaliverd提高可用性</a>
+          <ol>
+            <li><a href="#什么是keepaliverd">什么是Keepaliverd</a></li>
+            <li><a href="#安装keepalived">安装keepalived</a></li>
+          </ol>
+        </li>
       </ol>
     </li>
   </ol>
@@ -2301,6 +2323,1731 @@
 <p>接下来，Nginx 将重新评估重写后的 URL，并继续应用其他的 rewrite 规则。在您的示例中，请求的 URL 现在是 “/new-url”，因此它会匹配第二个 rewrite 规则，将其重写为 “/final-url”。</p>
 <p>使用 last 标志的效果是，请求将在每次重写后重新进入 location 块，并按照新的 URL 继续处理。这可能会触发多次匹配和重写，直到没有更多的匹配项或达到配置的限制。</p>
 <p>如果没有 last 或 break 标志，Nginx 将会继续尝试其他的 rewrite 规则，直到找到匹配的规则或完成所有的 rewrite 处理。</p>
+<h3 id="防盗链">防盗链
+</h3><h4 id="介绍-2">介绍
+</h4><p>防盗链（Hotlinking）指的是在一个网站上使用了其他网站上的资源（如图片、视频、音频等），而未经授权直接链接到该资源。简单来说，就是盗用了其他网站的内容而不经过其授权或允许。</p>
+<p>盗链可能会给被盗取内容的网站带来以下问题：</p>
+<ul>
+<li><strong>带宽消耗</strong>：当其他网站盗用资源时，每次访问该资源都会直接加载原网站，消耗被盗取网站的带宽和服务器资源。</li>
+<li><strong>流量成本</strong>：如果资源的被盗取量很大，被盗取网站可能需要承担额外的流量成本。</li>
+</ul>
+<p>为了防止盗链现象，被盗取网站可以采取以下措施来实施防盗链：</p>
+<ul>
+<li><strong>HTTP Referer 验证</strong>：在网站服务器配置中添加验证逻辑，只允许特定的域名或 IP 地址引用（Referer）资源。如果不符合条件，则返回错误或替代内容。</li>
+<li><strong>URL 生成动态验证码</strong>：动态生成每个请求资源的唯一 URL，并将验证码作为查询参数附加在 URL 中。只有携带正确验证码的请求才能成功访问资源。</li>
+<li><strong>使用 CDN 提供者提供的防盗链功能</strong>：多数 CDN（内容分发网络）提供商都具备防盗链功能，可以通过配置，只允许特定的域名或 IP 地址来引用资源。</li>
+<li><strong>设置防盗链规则</strong>：在网站服务器上设置针对特定目录或文件类型的防盗链规则。通过编写程序逻辑或使用防火墙工具，限制资源只能被特定网站访问。</li>
+</ul>
+<p><img src="/p/nginxnginx%E5%9F%BA%E7%A1%80/image-29.png"
+	width="877"
+	height="448"
+	srcset="/p/nginxnginx%E5%9F%BA%E7%A1%80/image-29_hu_d4cd03d8a4d54578.png 480w, /p/nginxnginx%E5%9F%BA%E7%A1%80/image-29_hu_1d067168951c3b53.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="195"
+		data-flex-basis="469px"
+	
+></p>
+<h4 id="nginx-通过refer-防盗链配置">Nginx 通过refer 防盗链配置
+</h4><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">valid_referers none | blocked | server_names | strings ....;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li><code>none</code>， 检测 Referer 头域不存在的情况。</li>
+<li><code>blocked</code>，检测 Referer 头域的值被防火墙或者代理服务器删除或伪装的情况。这种情况该头域的值不以 “http://” 或 “https://” 开头。</li>
+<li><code>server_names</code> ，设置一个或多个 URL ，检测 Referer 头域的值是否是这些 URL 中的某一个。</li>
+</ul>
+<h4 id="实战-1">实战
+</h4><h5 id="前置环境-1">前置环境
+</h5><ul>
+<li>172.16.140.131：静态资源服务器、转发服务器</li>
+<li>172.16.140.132：应用服务器</li>
+<li>172.16.140.133：转发服务器</li>
+</ul>
+<p><code>172.16.140.132</code>服务器展示web页面，<code>172.16.140.131</code>服务器存放页面的静态资源，并转发到<code>172.16.140.132</code>服务器，<code>172.16.140.133</code>服务器转发到<code>172.16.140.131</code>服务器</p>
+<h5 id="操作">操作
+</h5><ol>
+<li>首先，<code>172.16.140.132</code>服务器的页面代码、目录结构和页面展示：</li>
+</ol>
+<p><code>index.html</code></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-html" data-lang="html"><span class="line"><span class="cl">Hello world! I&#39;m 172.16.140.132.
+</span></span><span class="line"><span class="cl"><span class="p">&lt;</span><span class="nt">hr</span><span class="p">/&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="p">&lt;</span><span class="nt">img</span> <span class="na">src</span><span class="o">=</span><span class="s">&#39;./img/20160314220905_jQe4M.jpeg&#39;</span> <span class="na">width</span><span class="o">=</span><span class="s">&#39;250px&#39;</span> <span class="na">height</span><span class="o">=</span><span class="s">&#39;300px&#39;</span> <span class="p">/&gt;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>目录结构</code>：
+<img src="/p/nginxnginx%E5%9F%BA%E7%A1%80/image-25.png"
+	width="554"
+	height="174"
+	srcset="/p/nginxnginx%E5%9F%BA%E7%A1%80/image-25_hu_96acb3266f047453.png 480w, /p/nginxnginx%E5%9F%BA%E7%A1%80/image-25_hu_90c0bdc1bffa9b50.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="318"
+		data-flex-basis="764px"
+	
+></p>
+<p><code>页面展示</code>：</p>
+<p><img src="/p/nginxnginx%E5%9F%BA%E7%A1%80/image-30.png"
+	width="1724"
+	height="1614"
+	srcset="/p/nginxnginx%E5%9F%BA%E7%A1%80/image-30_hu_c8c87e3ff273003e.png 480w, /p/nginxnginx%E5%9F%BA%E7%A1%80/image-30_hu_8d4117422d9b8162.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="106"
+		data-flex-basis="256px"
+	
+></p>
+<ol start="2">
+<li><code>172.16.140.131</code>的nginx配置和页面展示如下：</li>
+</ol>
+<p><code>nginx.conf</code>：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">server {
+</span></span><span class="line"><span class="cl">    listen       80;
+</span></span><span class="line"><span class="cl">    server_name  localhost;
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    location / {
+</span></span><span class="line"><span class="cl">        proxy_pass http://172.16.140.132;
+</span></span><span class="line"><span class="cl">    }
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    location ~*/(img|js|css) {
+</span></span><span class="line"><span class="cl">        root html;
+</span></span><span class="line"><span class="cl">        index index.html;
+</span></span><span class="line"><span class="cl">    }
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    error_page   500 502 503 504  /50x.html;
+</span></span><span class="line"><span class="cl">    location = /50x.html {
+</span></span><span class="line"><span class="cl">        root   html;
+</span></span><span class="line"><span class="cl">    }
+</span></span><span class="line"><span class="cl">}
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>页面展示</code>：</p>
+<p><img src="/p/nginxnginx%E5%9F%BA%E7%A1%80/image-31.png"
+	width="1710"
+	height="1614"
+	srcset="/p/nginxnginx%E5%9F%BA%E7%A1%80/image-31_hu_71b2b67a1d09b1c6.png 480w, /p/nginxnginx%E5%9F%BA%E7%A1%80/image-31_hu_15110a2857333272.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="105"
+		data-flex-basis="254px"
+	
+></p>
+<ol start="3">
+<li><code>172.16.140.133</code>服务器的nginx配置和页面展示如下：</li>
+</ol>
+<p><code>nginx.conf</code>：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">server {
+</span></span><span class="line"><span class="cl">    listen       80;
+</span></span><span class="line"><span class="cl">    server_name  localhost;
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    location / {
+</span></span><span class="line"><span class="cl">        proxy_pass http://172.16.140.131;
+</span></span><span class="line"><span class="cl">        root   html;
+</span></span><span class="line"><span class="cl">        index  index.html index.htm;
+</span></span><span class="line"><span class="cl">    }
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    error_page   500 502 503 504  /50x.html;
+</span></span><span class="line"><span class="cl">    location = /50x.html {
+</span></span><span class="line"><span class="cl">        root   html;
+</span></span><span class="line"><span class="cl">    }
+</span></span><span class="line"><span class="cl">}
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>页面展示</code>：</p>
+<p><img src="/p/nginxnginx%E5%9F%BA%E7%A1%80/image-32.png"
+	width="1712"
+	height="1614"
+	srcset="/p/nginxnginx%E5%9F%BA%E7%A1%80/image-32_hu_6f54013f95216d50.png 480w, /p/nginxnginx%E5%9F%BA%E7%A1%80/image-32_hu_ee5452d29ce9d9d9.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="106"
+		data-flex-basis="254px"
+	
+></p>
+<ol start="4">
+<li>修改<code>172.16.140.131</code>服务器的nginx配置，设置访问源：</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">server {
+</span></span><span class="line"><span class="cl">    listen       80;
+</span></span><span class="line"><span class="cl">    server_name  localhost;
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    location / {
+</span></span><span class="line"><span class="cl">        proxy_pass http://172.16.140.132;
+</span></span><span class="line"><span class="cl">    }
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    location ~*/(img|js|css) {
+</span></span><span class="line"><span class="cl">        valid_referers 172.16.140.131;
+</span></span><span class="line"><span class="cl">        if ($invalid_referer){
+</span></span><span class="line"><span class="cl">            return 403;
+</span></span><span class="line"><span class="cl">        }
+</span></span><span class="line"><span class="cl">        root html;
+</span></span><span class="line"><span class="cl">        index index.html;
+</span></span><span class="line"><span class="cl">    }
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    error_page   500 502 503 504  /50x.html;
+</span></span><span class="line"><span class="cl">    location = /50x.html {
+</span></span><span class="line"><span class="cl">        root   html;
+</span></span><span class="line"><span class="cl">    }
+</span></span><span class="line"><span class="cl">}
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>该内容表示，图片只允许访问源ip为172.16.140.131的数据访问。</p>
+<ol start="5">
+<li>请求：http://172.16.140.131</li>
+</ol>
+<p><img src="/p/nginxnginx%E5%9F%BA%E7%A1%80/image-33.png"
+	width="1346"
+	height="1614"
+	srcset="/p/nginxnginx%E5%9F%BA%E7%A1%80/image-33_hu_1550043481b0219a.png 480w, /p/nginxnginx%E5%9F%BA%E7%A1%80/image-33_hu_f86cae722c2ef81f.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="83"
+		data-flex-basis="200px"
+	
+></p>
+<p>请求：http://172.16.140.133</p>
+<p><img src="/p/nginxnginx%E5%9F%BA%E7%A1%80/image-34.png"
+	width="1340"
+	height="1614"
+	srcset="/p/nginxnginx%E5%9F%BA%E7%A1%80/image-34_hu_48a3ac39a9da1e5c.png 480w, /p/nginxnginx%E5%9F%BA%E7%A1%80/image-34_hu_9e8162fbe8d12755.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="83"
+		data-flex-basis="199px"
+	
+></p>
+<p>可以看出，访问源ip为172.16.140.133的请求被禁止访问图片。</p>
+<ol start="6">
+<li>修改<code>172.16.140.131</code>服务器的nginx配置，访问源添加none：</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">server {
+</span></span><span class="line"><span class="cl">    listen       80;
+</span></span><span class="line"><span class="cl">    server_name  localhost;
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    location / {
+</span></span><span class="line"><span class="cl">        proxy_pass http://172.16.140.132;
+</span></span><span class="line"><span class="cl">    }
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    location ~*/(img|js|css) {
+</span></span><span class="line"><span class="cl">        valid_referers none 172.16.140.131;
+</span></span><span class="line"><span class="cl">        if ($invalid_referer){
+</span></span><span class="line"><span class="cl">            return 403;
+</span></span><span class="line"><span class="cl">        }
+</span></span><span class="line"><span class="cl">        root html;
+</span></span><span class="line"><span class="cl">        index index.html;
+</span></span><span class="line"><span class="cl">    }
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    error_page   500 502 503 504  /50x.html;
+</span></span><span class="line"><span class="cl">    location = /50x.html {
+</span></span><span class="line"><span class="cl">        root   html;
+</span></span><span class="line"><span class="cl">    }
+</span></span><span class="line"><span class="cl">}
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="7">
+<li>在请求 172.16.140.133 的页面下，用新标签页打开图片</li>
+</ol>
+<p><img src="/p/nginxnginx%E5%9F%BA%E7%A1%80/image-35.png"
+	width="906"
+	height="956"
+	srcset="/p/nginxnginx%E5%9F%BA%E7%A1%80/image-35_hu_7e04497e8412c8fd.png 480w, /p/nginxnginx%E5%9F%BA%E7%A1%80/image-35_hu_3807ab0563ae5fc3.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="94"
+		data-flex-basis="227px"
+	
+></p>
+<p><img src="/p/nginxnginx%E5%9F%BA%E7%A1%80/image-36.png"
+	width="1728"
+	height="1614"
+	srcset="/p/nginxnginx%E5%9F%BA%E7%A1%80/image-36_hu_63c4c45af1db09ef.png 480w, /p/nginxnginx%E5%9F%BA%E7%A1%80/image-36_hu_ba4e4598f5d0d4a3.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="107"
+		data-flex-basis="256px"
+	
+></p>
+<p>此时，打开的图片，会标记访问源是172.16.140.133，图片无法访问。</p>
+<p>直接复制图片链接 http://172.16.140.133/img/20160314220905_jQe4M.jpeg 在浏览器中打开</p>
+<p><img src="/p/nginxnginx%E5%9F%BA%E7%A1%80/image-37.png"
+	width="2312"
+	height="740"
+	srcset="/p/nginxnginx%E5%9F%BA%E7%A1%80/image-37_hu_bc907a988fd4db9d.png 480w, /p/nginxnginx%E5%9F%BA%E7%A1%80/image-37_hu_2d83e5fc1ccbc387.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="312"
+		data-flex-basis="749px"
+	
+></p>
+<p><img src="/p/nginxnginx%E5%9F%BA%E7%A1%80/image-38.png"
+	width="2880"
+	height="1614"
+	srcset="/p/nginxnginx%E5%9F%BA%E7%A1%80/image-38_hu_bcf688015723c0b5.png 480w, /p/nginxnginx%E5%9F%BA%E7%A1%80/image-38_hu_f7d2d7a1c9ac11ec.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="178"
+		data-flex-basis="428px"
+	
+></p>
+<p>能够看到，能正常打开图片，且请求头中没有访问源参数。</p>
+<h4 id="使用curl命令测试">使用curl命令测试
+</h4><ul>
+<li>请求图片链接，返回头部信息</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">curl -I http://172.16.140.131/img/20160314220905_jQe4M.jpeg
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/nginxnginx%E5%9F%BA%E7%A1%80/image-39.png"
+	width="1166"
+	height="346"
+	srcset="/p/nginxnginx%E5%9F%BA%E7%A1%80/image-39_hu_6d7a800e7c08940f.png 480w, /p/nginxnginx%E5%9F%BA%E7%A1%80/image-39_hu_1adc175fb2691e8a.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="336"
+		data-flex-basis="808px"
+	
+></p>
+<ul>
+<li>设置referer，请求图片链接，返回头部信息</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">curl -e &#34;http://baidu.com&#34; -I http://172.16.140.131/img/20160314220905_jQe4M.jpeg
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/nginxnginx%E5%9F%BA%E7%A1%80/image-40.png"
+	width="1476"
+	height="258"
+	srcset="/p/nginxnginx%E5%9F%BA%E7%A1%80/image-40_hu_265b1ad6a9b7b112.png 480w, /p/nginxnginx%E5%9F%BA%E7%A1%80/image-40_hu_a9b8a4d5e001bcb4.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="572"
+		data-flex-basis="1373px"
+	
+></p>
+<h4 id="返回错误页面">返回错误页面
+</h4><ul>
+<li>创建401错误页面（中文）</li>
+</ul>
+<p><code>401.html</code></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-html" data-lang="html"><span class="line"><span class="cl"><span class="cp">&lt;!DOCTYPE html&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="p">&lt;</span><span class="nt">html</span><span class="p">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="p">&lt;</span><span class="nt">head</span><span class="p">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="p">&lt;</span><span class="nt">title</span><span class="p">&gt;</span>Error<span class="p">&lt;/</span><span class="nt">title</span><span class="p">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="p">&lt;</span><span class="nt">style</span><span class="p">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="nt">html</span> <span class="p">{</span> <span class="k">color-scheme</span><span class="p">:</span> <span class="n">light</span> <span class="n">dark</span><span class="p">;</span> <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="nt">body</span> <span class="p">{</span> <span class="k">width</span><span class="p">:</span> <span class="mi">35</span><span class="kt">em</span><span class="p">;</span> <span class="k">margin</span><span class="p">:</span> <span class="mi">0</span> <span class="kc">auto</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="k">font-family</span><span class="p">:</span> <span class="n">Tahoma</span><span class="p">,</span> <span class="n">Verdana</span><span class="p">,</span> <span class="n">Arial</span><span class="p">,</span> <span class="kc">sans-serif</span><span class="p">;</span> <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">&lt;/</span><span class="nt">style</span><span class="p">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="p">&lt;/</span><span class="nt">head</span><span class="p">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="p">&lt;</span><span class="nt">body</span><span class="p">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="p">&lt;</span><span class="nt">h1</span><span class="p">&gt;</span>An error occurred.<span class="p">&lt;/</span><span class="nt">h1</span><span class="p">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="p">&lt;</span><span class="nt">p</span><span class="p">&gt;</span>非法请求<span class="p">&lt;/</span><span class="nt">p</span><span class="p">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="p">&lt;</span><span class="nt">p</span><span class="p">&gt;&lt;</span><span class="nt">em</span><span class="p">&gt;</span>Faithfully yours, nginx.<span class="p">&lt;/</span><span class="nt">em</span><span class="p">&gt;&lt;/</span><span class="nt">p</span><span class="p">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="p">&lt;/</span><span class="nt">body</span><span class="p">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="p">&lt;/</span><span class="nt">html</span><span class="p">&gt;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>设置nginx配置</li>
+</ul>
+<p><code>nginx.conf</code></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">server {
+</span></span><span class="line"><span class="cl">    listen       80;
+</span></span><span class="line"><span class="cl">    server_name  localhost;
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    location / {
+</span></span><span class="line"><span class="cl">        proxy_pass http://172.16.140.132;
+</span></span><span class="line"><span class="cl">    }
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    location ~*/(img|js|css) {
+</span></span><span class="line"><span class="cl">        valid_referers none 172.16.140.131;
+</span></span><span class="line"><span class="cl">        if ($invalid_referer){
+</span></span><span class="line"><span class="cl">            return 401;
+</span></span><span class="line"><span class="cl">        }
+</span></span><span class="line"><span class="cl">        root html;
+</span></span><span class="line"><span class="cl">        index index.html;
+</span></span><span class="line"><span class="cl">    }
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    error_page   500 502 503 504  /50x.html;
+</span></span><span class="line"><span class="cl">    location = /50x.html {
+</span></span><span class="line"><span class="cl">        root   html;
+</span></span><span class="line"><span class="cl">    }
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    error_page 401 /401.html;
+</span></span><span class="line"><span class="cl">    location = /401.html {
+</span></span><span class="line"><span class="cl">        root   html;
+</span></span><span class="line"><span class="cl">    }
+</span></span><span class="line"><span class="cl">}
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>从<code>172.16.14.133</code>页面，使用新标签页打开图片</li>
+</ul>
+<p><img src="/p/nginxnginx%E5%9F%BA%E7%A1%80/image-41.png"
+	width="792"
+	height="854"
+	srcset="/p/nginxnginx%E5%9F%BA%E7%A1%80/image-41_hu_d034e8155907ae28.png 480w, /p/nginxnginx%E5%9F%BA%E7%A1%80/image-41_hu_dfcb2c2e7ca815c.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="92"
+		data-flex-basis="222px"
+	
+></p>
+<p><img src="/p/nginxnginx%E5%9F%BA%E7%A1%80/image-42.png"
+	width="1882"
+	height="842"
+	srcset="/p/nginxnginx%E5%9F%BA%E7%A1%80/image-42_hu_11c3222687b324eb.png 480w, /p/nginxnginx%E5%9F%BA%E7%A1%80/image-42_hu_f8bfde3b0e174848.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="223"
+		data-flex-basis="536px"
+	
+></p>
+<p>返回了401.html页面，但是出现了乱码</p>
+<ul>
+<li>解决乱码问题：添加&lt;meta charset=&lsquo;utf-8&rsquo;&gt;到页面源码中</li>
+</ul>
+<p><code>401.html</code></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-html" data-lang="html"><span class="line"><span class="cl"><span class="cp">&lt;!DOCTYPE html&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="p">&lt;</span><span class="nt">html</span><span class="p">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="p">&lt;</span><span class="nt">head</span><span class="p">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="p">&lt;</span><span class="nt">meta</span> <span class="na">charset</span><span class="o">=</span><span class="s">&#39;utf-8&#39;</span><span class="p">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="p">&lt;</span><span class="nt">title</span><span class="p">&gt;</span>Error<span class="p">&lt;/</span><span class="nt">title</span><span class="p">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="p">&lt;</span><span class="nt">style</span><span class="p">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="nt">html</span> <span class="p">{</span> <span class="k">color-scheme</span><span class="p">:</span> <span class="n">light</span> <span class="n">dark</span><span class="p">;</span> <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="nt">body</span> <span class="p">{</span> <span class="k">width</span><span class="p">:</span> <span class="mi">35</span><span class="kt">em</span><span class="p">;</span> <span class="k">margin</span><span class="p">:</span> <span class="mi">0</span> <span class="kc">auto</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="k">font-family</span><span class="p">:</span> <span class="n">Tahoma</span><span class="p">,</span> <span class="n">Verdana</span><span class="p">,</span> <span class="n">Arial</span><span class="p">,</span> <span class="kc">sans-serif</span><span class="p">;</span> <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">&lt;/</span><span class="nt">style</span><span class="p">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="p">&lt;/</span><span class="nt">head</span><span class="p">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="p">&lt;</span><span class="nt">body</span><span class="p">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="p">&lt;</span><span class="nt">h1</span><span class="p">&gt;</span>An error occurred.<span class="p">&lt;/</span><span class="nt">h1</span><span class="p">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="p">&lt;</span><span class="nt">p</span><span class="p">&gt;</span>非法请求<span class="p">&lt;/</span><span class="nt">p</span><span class="p">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="p">&lt;</span><span class="nt">p</span><span class="p">&gt;&lt;</span><span class="nt">em</span><span class="p">&gt;</span>Faithfully yours, nginx.<span class="p">&lt;/</span><span class="nt">em</span><span class="p">&gt;&lt;/</span><span class="nt">p</span><span class="p">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="p">&lt;/</span><span class="nt">body</span><span class="p">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="p">&lt;/</span><span class="nt">html</span><span class="p">&gt;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>刷新页面</li>
+</ul>
+<p><img src="/p/nginxnginx%E5%9F%BA%E7%A1%80/image-43.png"
+	width="1634"
+	height="606"
+	srcset="/p/nginxnginx%E5%9F%BA%E7%A1%80/image-43_hu_e499ea67482b64f5.png 480w, /p/nginxnginx%E5%9F%BA%E7%A1%80/image-43_hu_3e58e85a38679f34.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="269"
+		data-flex-basis="647px"
+	
+></p>
+<h4 id="整合rewrite返回报错图片">整合rewrite返回报错图片
+</h4><p>服务器：<code>172.16.140.131</code></p>
+<ul>
+<li>上传图片&quot;ban-1681758_1280.webp&quot;</li>
+</ul>
+<p><img src="/p/nginxnginx%E5%9F%BA%E7%A1%80/image-44.png"
+	width="490"
+	height="246"
+	srcset="/p/nginxnginx%E5%9F%BA%E7%A1%80/image-44_hu_ca4e31b0144df376.png 480w, /p/nginxnginx%E5%9F%BA%E7%A1%80/image-44_hu_52401e81290ccf6a.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="199"
+		data-flex-basis="478px"
+	
+></p>
+<ul>
+<li>设置<code>172.16.140.131</code>的nginx配置</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">server {
+</span></span><span class="line"><span class="cl">    listen       80;
+</span></span><span class="line"><span class="cl">    server_name  localhost;
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    location / {
+</span></span><span class="line"><span class="cl">        proxy_pass http://172.16.140.132;
+</span></span><span class="line"><span class="cl">    }
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    location ~*/(img|js|css) {
+</span></span><span class="line"><span class="cl">        valid_referers none 172.16.140.131;
+</span></span><span class="line"><span class="cl">        if ($invalid_referer){
+</span></span><span class="line"><span class="cl">            # 如果是非法请求，就将跳转请求报错图片
+</span></span><span class="line"><span class="cl">            rewrite ^/ /img/ban-1681759_1280.webp break;
+</span></span><span class="line"><span class="cl">            # return 401;
+</span></span><span class="line"><span class="cl">        }
+</span></span><span class="line"><span class="cl">        root html;
+</span></span><span class="line"><span class="cl">        index index.html;
+</span></span><span class="line"><span class="cl">    }
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    error_page   500 502 503 504  /50x.html;
+</span></span><span class="line"><span class="cl">    location = /50x.html {
+</span></span><span class="line"><span class="cl">        root   html;
+</span></span><span class="line"><span class="cl">    }
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    error_page 401 /401.html;
+</span></span><span class="line"><span class="cl">    location = /401.html {
+</span></span><span class="line"><span class="cl">        root   html;
+</span></span><span class="line"><span class="cl">    }
+</span></span><span class="line"><span class="cl">}
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="高可用场景及解决方案">高可用场景及解决方案
+</h2><h3 id="为什么需要高可用">为什么需要高可用？
+</h3><p>在系统运行中，不可避免的可能会发生各种奇奇怪怪的错误，如果有一个中间服务断掉，会导致后续所有的业务都断开。</p>
+<p><img src="/p/nginxnginx%E5%9F%BA%E7%A1%80/image-45.png"
+	width="895"
+	height="352"
+	srcset="/p/nginxnginx%E5%9F%BA%E7%A1%80/image-45_hu_de8f5ac8d449327f.png 480w, /p/nginxnginx%E5%9F%BA%E7%A1%80/image-45_hu_87072866b8b3b63.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="254"
+		data-flex-basis="610px"
+	
+></p>
+<h3 id="什么叫高可用场景">什么叫高可用场景？
+</h3><p>高可用场景是指系统或服务需要保持持续可用性的一种需求。在高可用场景中，系统或服务需要在面对各种故障、错误或异常情况时仍能够正常运行，以提供无间断的服务。</p>
+<p>以下是一些常见的高可用场景：</p>
+<ul>
+<li><strong>网站和应用服务器</strong>：高可用的网站和应用服务器需要在面对硬件故障、网络问题或软件错误时仍能够提供服务。通过使用负载均衡、故障转移机制和实时监控来确保系统的可用性。</li>
+<li><strong>数据库系统</strong>：数据库是许多应用程序的关键组件。高可用的数据库系统需要在主节点故障、网络中断或数据损坏时保持可用性，并能够快速进行故障转移，以最小化服务中断时间。</li>
+<li><strong>存储系统</strong>：高可用的存储系统需要能够在硬件故障、磁盘损坏或数据丢失的情况下保持数据的完整性和可用性。通过使用冗余存储、数据备份和数据恢复策略来实现高可用性。</li>
+<li><strong>网络和通信设备</strong>：在网络和通信设备中，高可用性至关重要。例如，路由器、交换机和防火墙等设备需要能够在硬件故障或网络异常时仍能够正常运行，以确保网络的稳定和可靠性。</li>
+<li><strong>云计算和容器化环境</strong>：在云计算和容器化环境中，高可用性是实现弹性和可伸缩性的关键要素。通过使用自动扩展、故障转移和容器编排等技术来实现高可用性和无缝的服务迁移。</li>
+</ul>
+<p>在这些高可用场景中，通常会使用冗余、负载均衡、故障转移、监控和自动化等技术手段来提高系统的可用性，并保证系统在面对故障时能够快速恢复和继续提供服务。</p>
+<h3 id="使用keepaliverd提高可用性">使用Keepaliverd提高可用性
+</h3><h4 id="什么是keepaliverd">什么是Keepaliverd
+</h4><p>Keepalived 是一个开源软件，用于提供高可用性和负载均衡的解决方案。它运行在 Linux 系统上，并使用 VRRP（Virtual Router Redundancy Protocol）协议来实现 IP 高可用性。</p>
+<p>Keepalived 主要有两个主要功能：</p>
+<ul>
+<li><strong>实现 IP 高可用性</strong>：通过使用 VRRP 协议，Keepalived 允许多个服务器共享同一个虚拟 IP 地址（VIP）。这意味着在一组服务器中，只有一个服务器将接收和处理传入的网络流量，即成为活跃（Master）节点，而其他服务器处于备用（Backup）状态。如果活跃节点发生故障，备用节点将自动接管虚拟 IP 地址并继续处理网络流量，以确保系统的高可用性。</li>
+<li><strong>提供负载均衡</strong>：除了实现 IP 高可用性外，Keepalived 还可以根据预定义的规则将流量分发到后端的多个服务器。它通过基于调度算法（如轮询、加权轮询等）将接收到的网络请求均匀地分发到不同的服务器上，从而实现负载均衡。这样可以提高系统的性能和资源利用率，并减少单个服务器上的负载压力。</li>
+</ul>
+<p>Keepalived 的配置相对简单，并且可以与许多负载均衡器（如 HAProxy）和服务（如 Web 服务器、数据库服务器等）集成使用。它被广泛应用于构建高可用性的系统架构，例如高访问量的网站、应用服务器集群等。</p>
+<p>需要注意的是，Keepalived 本身并不提供实际的负载均衡功能，而是与其他负载均衡软件一起使用，以实现高可用性和负载均衡的综合解决方案。</p>
+<h4 id="安装keepalived">安装keepalived
+</h4><p><strong>编译安装</strong></p>
+<p>下载地址</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-gdscript3" data-lang="gdscript3"><span class="line"><span class="cl"><span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">www</span><span class="o">.</span><span class="n">keepalived</span><span class="o">.</span><span class="n">org</span><span class="o">/</span><span class="n">download</span><span class="o">.</span><span class="n">html</span><span class="c1">#</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>使用 <code>./configure</code> 编译安装</p>
+<p>如遇报错提示：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">configure: error:
+</span></span><span class="line"><span class="cl">  !!! OpenSSL is not properly installed on your system. !!!
+</span></span><span class="line"><span class="cl">  !!! Can not include OpenSSL headers files.            !!!
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>安装依赖</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">yum install openssl-devel
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>yum安装</strong></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">yum install keepalived -y
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/nginxnginx%E5%9F%BA%E7%A1%80/image-46.png"
+	width="2880"
+	height="1610"
+	srcset="/p/nginxnginx%E5%9F%BA%E7%A1%80/image-46_hu_9d4040efdd9f9f16.png 480w, /p/nginxnginx%E5%9F%BA%E7%A1%80/image-46_hu_46f7bcb8263ec1be.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="178"
+		data-flex-basis="429px"
+	
+></p>
+<p><strong>初始配置</strong></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">vi /etc/keepalived/keepalived.conf
+</span></span></code></pre></td></tr></table>
+</div>
+</div><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">  1
+</span><span class="lnt">  2
+</span><span class="lnt">  3
+</span><span class="lnt">  4
+</span><span class="lnt">  5
+</span><span class="lnt">  6
+</span><span class="lnt">  7
+</span><span class="lnt">  8
+</span><span class="lnt">  9
+</span><span class="lnt"> 10
+</span><span class="lnt"> 11
+</span><span class="lnt"> 12
+</span><span class="lnt"> 13
+</span><span class="lnt"> 14
+</span><span class="lnt"> 15
+</span><span class="lnt"> 16
+</span><span class="lnt"> 17
+</span><span class="lnt"> 18
+</span><span class="lnt"> 19
+</span><span class="lnt"> 20
+</span><span class="lnt"> 21
+</span><span class="lnt"> 22
+</span><span class="lnt"> 23
+</span><span class="lnt"> 24
+</span><span class="lnt"> 25
+</span><span class="lnt"> 26
+</span><span class="lnt"> 27
+</span><span class="lnt"> 28
+</span><span class="lnt"> 29
+</span><span class="lnt"> 30
+</span><span class="lnt"> 31
+</span><span class="lnt"> 32
+</span><span class="lnt"> 33
+</span><span class="lnt"> 34
+</span><span class="lnt"> 35
+</span><span class="lnt"> 36
+</span><span class="lnt"> 37
+</span><span class="lnt"> 38
+</span><span class="lnt"> 39
+</span><span class="lnt"> 40
+</span><span class="lnt"> 41
+</span><span class="lnt"> 42
+</span><span class="lnt"> 43
+</span><span class="lnt"> 44
+</span><span class="lnt"> 45
+</span><span class="lnt"> 46
+</span><span class="lnt"> 47
+</span><span class="lnt"> 48
+</span><span class="lnt"> 49
+</span><span class="lnt"> 50
+</span><span class="lnt"> 51
+</span><span class="lnt"> 52
+</span><span class="lnt"> 53
+</span><span class="lnt"> 54
+</span><span class="lnt"> 55
+</span><span class="lnt"> 56
+</span><span class="lnt"> 57
+</span><span class="lnt"> 58
+</span><span class="lnt"> 59
+</span><span class="lnt"> 60
+</span><span class="lnt"> 61
+</span><span class="lnt"> 62
+</span><span class="lnt"> 63
+</span><span class="lnt"> 64
+</span><span class="lnt"> 65
+</span><span class="lnt"> 66
+</span><span class="lnt"> 67
+</span><span class="lnt"> 68
+</span><span class="lnt"> 69
+</span><span class="lnt"> 70
+</span><span class="lnt"> 71
+</span><span class="lnt"> 72
+</span><span class="lnt"> 73
+</span><span class="lnt"> 74
+</span><span class="lnt"> 75
+</span><span class="lnt"> 76
+</span><span class="lnt"> 77
+</span><span class="lnt"> 78
+</span><span class="lnt"> 79
+</span><span class="lnt"> 80
+</span><span class="lnt"> 81
+</span><span class="lnt"> 82
+</span><span class="lnt"> 83
+</span><span class="lnt"> 84
+</span><span class="lnt"> 85
+</span><span class="lnt"> 86
+</span><span class="lnt"> 87
+</span><span class="lnt"> 88
+</span><span class="lnt"> 89
+</span><span class="lnt"> 90
+</span><span class="lnt"> 91
+</span><span class="lnt"> 92
+</span><span class="lnt"> 93
+</span><span class="lnt"> 94
+</span><span class="lnt"> 95
+</span><span class="lnt"> 96
+</span><span class="lnt"> 97
+</span><span class="lnt"> 98
+</span><span class="lnt"> 99
+</span><span class="lnt">100
+</span><span class="lnt">101
+</span><span class="lnt">102
+</span><span class="lnt">103
+</span><span class="lnt">104
+</span><span class="lnt">105
+</span><span class="lnt">106
+</span><span class="lnt">107
+</span><span class="lnt">108
+</span><span class="lnt">109
+</span><span class="lnt">110
+</span><span class="lnt">111
+</span><span class="lnt">112
+</span><span class="lnt">113
+</span><span class="lnt">114
+</span><span class="lnt">115
+</span><span class="lnt">116
+</span><span class="lnt">117
+</span><span class="lnt">118
+</span><span class="lnt">119
+</span><span class="lnt">120
+</span><span class="lnt">121
+</span><span class="lnt">122
+</span><span class="lnt">123
+</span><span class="lnt">124
+</span><span class="lnt">125
+</span><span class="lnt">126
+</span><span class="lnt">127
+</span><span class="lnt">128
+</span><span class="lnt">129
+</span><span class="lnt">130
+</span><span class="lnt">131
+</span><span class="lnt">132
+</span><span class="lnt">133
+</span><span class="lnt">134
+</span><span class="lnt">135
+</span><span class="lnt">136
+</span><span class="lnt">137
+</span><span class="lnt">138
+</span><span class="lnt">139
+</span><span class="lnt">140
+</span><span class="lnt">141
+</span><span class="lnt">142
+</span><span class="lnt">143
+</span><span class="lnt">144
+</span><span class="lnt">145
+</span><span class="lnt">146
+</span><span class="lnt">147
+</span><span class="lnt">148
+</span><span class="lnt">149
+</span><span class="lnt">150
+</span><span class="lnt">151
+</span><span class="lnt">152
+</span><span class="lnt">153
+</span><span class="lnt">154
+</span><span class="lnt">155
+</span><span class="lnt">156
+</span><span class="lnt">157
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">! Configuration File for keepalived
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">global_defs {
+</span></span><span class="line"><span class="cl">   notification_email {
+</span></span><span class="line"><span class="cl">     acassen@firewall.loc
+</span></span><span class="line"><span class="cl">     failover@firewall.loc
+</span></span><span class="line"><span class="cl">     sysadmin@firewall.loc
+</span></span><span class="line"><span class="cl">   }
+</span></span><span class="line"><span class="cl">   notification_email_from Alexandre.Cassen@firewall.loc
+</span></span><span class="line"><span class="cl">   smtp_server 192.168.200.1
+</span></span><span class="line"><span class="cl">   smtp_connect_timeout 30
+</span></span><span class="line"><span class="cl">   router_id LVS_DEVEL
+</span></span><span class="line"><span class="cl">   vrrp_skip_check_adv_addr
+</span></span><span class="line"><span class="cl">   vrrp_strict
+</span></span><span class="line"><span class="cl">   vrrp_garp_interval 0
+</span></span><span class="line"><span class="cl">   vrrp_gna_interval 0
+</span></span><span class="line"><span class="cl">}
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">vrrp_instance VI_1 {
+</span></span><span class="line"><span class="cl">    state MASTER
+</span></span><span class="line"><span class="cl">    interface eth0
+</span></span><span class="line"><span class="cl">    virtual_router_id 51
+</span></span><span class="line"><span class="cl">    priority 100
+</span></span><span class="line"><span class="cl">    advert_int 1
+</span></span><span class="line"><span class="cl">    authentication {
+</span></span><span class="line"><span class="cl">        auth_type PASS
+</span></span><span class="line"><span class="cl">        auth_pass 1111
+</span></span><span class="line"><span class="cl">    }
+</span></span><span class="line"><span class="cl">    virtual_ipaddress {
+</span></span><span class="line"><span class="cl">        192.168.200.16
+</span></span><span class="line"><span class="cl">        192.168.200.17
+</span></span><span class="line"><span class="cl">        192.168.200.18
+</span></span><span class="line"><span class="cl">    }
+</span></span><span class="line"><span class="cl">}
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">virtual_server 192.168.200.100 443 {
+</span></span><span class="line"><span class="cl">    delay_loop 6
+</span></span><span class="line"><span class="cl">    lb_algo rr
+</span></span><span class="line"><span class="cl">    lb_kind NAT
+</span></span><span class="line"><span class="cl">    persistence_timeout 50
+</span></span><span class="line"><span class="cl">    protocol TCP
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    real_server 192.168.201.100 443 {
+</span></span><span class="line"><span class="cl">        weight 1
+</span></span><span class="line"><span class="cl">        SSL_GET {
+</span></span><span class="line"><span class="cl">            url {
+</span></span><span class="line"><span class="cl">              path /
+</span></span><span class="line"><span class="cl">              digest ff20ad2481f97b1754ef3e12ecd3a9cc
+</span></span><span class="line"><span class="cl">            }
+</span></span><span class="line"><span class="cl">            url {
+</span></span><span class="line"><span class="cl">              path /mrtg/
+</span></span><span class="line"><span class="cl">              digest 9b3a0c85a887a256d6939da88aabd8cd
+</span></span><span class="line"><span class="cl">            }
+</span></span><span class="line"><span class="cl">            connect_timeout 3
+</span></span><span class="line"><span class="cl">            nb_get_retry 3
+</span></span><span class="line"><span class="cl">            delay_before_retry 3
+</span></span><span class="line"><span class="cl">        }
+</span></span><span class="line"><span class="cl">    }
+</span></span><span class="line"><span class="cl">}
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">virtual_server 10.10.10.2 1358 {
+</span></span><span class="line"><span class="cl">    delay_loop 6
+</span></span><span class="line"><span class="cl">    lb_algo rr
+</span></span><span class="line"><span class="cl">    lb_kind NAT
+</span></span><span class="line"><span class="cl">    persistence_timeout 50
+</span></span><span class="line"><span class="cl">    protocol TCP
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    sorry_server 192.168.200.200 1358
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    real_server 192.168.200.2 1358 {
+</span></span><span class="line"><span class="cl">        weight 1
+</span></span><span class="line"><span class="cl">        HTTP_GET {
+</span></span><span class="line"><span class="cl">            url {
+</span></span><span class="line"><span class="cl">              path /testurl/test.jsp
+</span></span><span class="line"><span class="cl">              digest 640205b7b0fc66c1ea91c463fac6334d
+</span></span><span class="line"><span class="cl">            }
+</span></span><span class="line"><span class="cl">            url {
+</span></span><span class="line"><span class="cl">              path /testurl2/test.jsp
+</span></span><span class="line"><span class="cl">              digest 640205b7b0fc66c1ea91c463fac6334d
+</span></span><span class="line"><span class="cl">            }
+</span></span><span class="line"><span class="cl">            url {
+</span></span><span class="line"><span class="cl">              path /testurl3/test.jsp
+</span></span><span class="line"><span class="cl">              digest 640205b7b0fc66c1ea91c463fac6334d
+</span></span><span class="line"><span class="cl">            }
+</span></span><span class="line"><span class="cl">            connect_timeout 3
+</span></span><span class="line"><span class="cl">            nb_get_retry 3
+</span></span><span class="line"><span class="cl">            delay_before_retry 3
+</span></span><span class="line"><span class="cl">        }
+</span></span><span class="line"><span class="cl">    }
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    real_server 192.168.200.3 1358 {
+</span></span><span class="line"><span class="cl">        weight 1
+</span></span><span class="line"><span class="cl">        HTTP_GET {
+</span></span><span class="line"><span class="cl">            url {
+</span></span><span class="line"><span class="cl">              path /testurl/test.jsp
+</span></span><span class="line"><span class="cl">              digest 640205b7b0fc66c1ea91c463fac6334c
+</span></span><span class="line"><span class="cl">            }
+</span></span><span class="line"><span class="cl">            url {
+</span></span><span class="line"><span class="cl">              path /testurl2/test.jsp
+</span></span><span class="line"><span class="cl">              digest 640205b7b0fc66c1ea91c463fac6334c
+</span></span><span class="line"><span class="cl">            }
+</span></span><span class="line"><span class="cl">            connect_timeout 3
+</span></span><span class="line"><span class="cl">            nb_get_retry 3
+</span></span><span class="line"><span class="cl">            delay_before_retry 3
+</span></span><span class="line"><span class="cl">        }
+</span></span><span class="line"><span class="cl">    }
+</span></span><span class="line"><span class="cl">}
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">virtual_server 10.10.10.3 1358 {
+</span></span><span class="line"><span class="cl">    delay_loop 3
+</span></span><span class="line"><span class="cl">    lb_algo rr
+</span></span><span class="line"><span class="cl">    lb_kind NAT
+</span></span><span class="line"><span class="cl">    persistence_timeout 50
+</span></span><span class="line"><span class="cl">    protocol TCP
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    real_server 192.168.200.4 1358 {
+</span></span><span class="line"><span class="cl">        weight 1
+</span></span><span class="line"><span class="cl">        HTTP_GET {
+</span></span><span class="line"><span class="cl">            url {
+</span></span><span class="line"><span class="cl">              path /testurl/test.jsp
+</span></span><span class="line"><span class="cl">              digest 640205b7b0fc66c1ea91c463fac6334d
+</span></span><span class="line"><span class="cl">            }
+</span></span><span class="line"><span class="cl">            url {
+</span></span><span class="line"><span class="cl">              path /testurl2/test.jsp
+</span></span><span class="line"><span class="cl">              digest 640205b7b0fc66c1ea91c463fac6334d
+</span></span><span class="line"><span class="cl">            }
+</span></span><span class="line"><span class="cl">            url {
+</span></span><span class="line"><span class="cl">              path /testurl3/test.jsp
+</span></span><span class="line"><span class="cl">              digest 640205b7b0fc66c1ea91c463fac6334d
+</span></span><span class="line"><span class="cl">            }
+</span></span><span class="line"><span class="cl">            connect_timeout 3
+</span></span><span class="line"><span class="cl">            nb_get_retry 3
+</span></span><span class="line"><span class="cl">            delay_before_retry 3
+</span></span><span class="line"><span class="cl">        }
+</span></span><span class="line"><span class="cl">    }
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    real_server 192.168.200.5 1358 {
+</span></span><span class="line"><span class="cl">        weight 1
+</span></span><span class="line"><span class="cl">        HTTP_GET {
+</span></span><span class="line"><span class="cl">            url {
+</span></span><span class="line"><span class="cl">              path /testurl/test.jsp
+</span></span><span class="line"><span class="cl">              digest 640205b7b0fc66c1ea91c463fac6334d
+</span></span><span class="line"><span class="cl">            }
+</span></span><span class="line"><span class="cl">            url {
+</span></span><span class="line"><span class="cl">              path /testurl2/test.jsp
+</span></span><span class="line"><span class="cl">              digest 640205b7b0fc66c1ea91c463fac6334d
+</span></span><span class="line"><span class="cl">            }
+</span></span><span class="line"><span class="cl">            url {
+</span></span><span class="line"><span class="cl">              path /testurl3/test.jsp
+</span></span><span class="line"><span class="cl">              digest 640205b7b0fc66c1ea91c463fac6334d
+</span></span><span class="line"><span class="cl">            }
+</span></span><span class="line"><span class="cl">            connect_timeout 3
+</span></span><span class="line"><span class="cl">            nb_get_retry 3
+</span></span><span class="line"><span class="cl">            delay_before_retry 3
+</span></span><span class="line"><span class="cl">        }
+</span></span><span class="line"><span class="cl">    }
+</span></span><span class="line"><span class="cl">}
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>简化成最小配置</strong></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">:1
+</span></span><span class="line"><span class="cl">! Configuration File for keepalived
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">global_defs {
+</span></span><span class="line"><span class="cl">   router_id LVS_DEVEL
+</span></span><span class="line"><span class="cl">}
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">vrrp_instance VI_1 {
+</span></span><span class="line"><span class="cl">    state MASTER
+</span></span><span class="line"><span class="cl">    interface eth0
+</span></span><span class="line"><span class="cl">    virtual_router_id 51
+</span></span><span class="line"><span class="cl">    priority 100
+</span></span><span class="line"><span class="cl">    advert_int 1
+</span></span><span class="line"><span class="cl">    authentication {
+</span></span><span class="line"><span class="cl">        auth_type PASS
+</span></span><span class="line"><span class="cl">        auth_pass 1111
+</span></span><span class="line"><span class="cl">    }
+</span></span><span class="line"><span class="cl">    virtual_ipaddress {
+</span></span><span class="line"><span class="cl">        192.168.200.16
+</span></span><span class="line"><span class="cl">        192.168.200.17
+</span></span><span class="line"><span class="cl">        192.168.200.18
+</span></span><span class="line"><span class="cl">    }
+</span></span><span class="line"><span class="cl">}
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>最小配置说明</strong></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">! Configuration File for keepalived
+</span></span><span class="line"><span class="cl"> 
+</span></span><span class="line"><span class="cl">global_defs {
+</span></span><span class="line"><span class="cl">! 这里可以自定义名称
+</span></span><span class="line"><span class="cl">   router_id LVS_DEVEL  
+</span></span><span class="line"><span class="cl">}
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">! 这里的VI_1 也是实例名称的意思
+</span></span><span class="line"><span class="cl">vrrp_instance VI_1 {
+</span></span><span class="line"><span class="cl">    state MASTER
+</span></span><span class="line"><span class="cl">! 这里需要注意和当前网卡的配置一致 如下图1查看网卡信息
+</span></span><span class="line"><span class="cl">    interface eth0
+</span></span><span class="line"><span class="cl">    virtual_router_id 51
+</span></span><span class="line"><span class="cl">! 优先级 主备选择谁是master的时候
+</span></span><span class="line"><span class="cl">    priority 100
+</span></span><span class="line"><span class="cl">! 这个参数指定了 VRRP 协议广告间隔的数值，表示每隔1秒 Keepalived 就会发送一次 VRRP 广告报文。
+</span></span><span class="line"><span class="cl">    advert_int 1
+</span></span><span class="line"><span class="cl">! 同组认证配置
+</span></span><span class="line"><span class="cl">    authentication {
+</span></span><span class="line"><span class="cl">! 指定了使用密码进行身份验证
+</span></span><span class="line"><span class="cl">        auth_type PASS
+</span></span><span class="line"><span class="cl">! 密码是1111
+</span></span><span class="line"><span class="cl">        auth_pass 1111
+</span></span><span class="line"><span class="cl">    }
+</span></span><span class="line"><span class="cl">! 虚拟ip地址
+</span></span><span class="line"><span class="cl">    virtual_ipaddress {
+</span></span><span class="line"><span class="cl">        192.168.200.16
+</span></span><span class="line"><span class="cl">        192.168.200.17
+</span></span><span class="line"><span class="cl">        192.168.200.18
+</span></span><span class="line"><span class="cl">    }
+</span></span><span class="line"><span class="cl">}
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>131服务器配置</strong></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">! Configuration File for keepalived
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">global_defs {
+</span></span><span class="line"><span class="cl">    ! 这里可以自定义名称
+</span></span><span class="line"><span class="cl">    router_id lb131
+</span></span><span class="line"><span class="cl">}
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">! 这里的VI_1 也是实例名称的意思
+</span></span><span class="line"><span class="cl">vrrp_instance VI_1 {
+</span></span><span class="line"><span class="cl">    state MASTER
+</span></span><span class="line"><span class="cl">    ! 这里需要注意和当前网卡的配置一致 如下图1查看网卡信息
+</span></span><span class="line"><span class="cl">    interface ens160
+</span></span><span class="line"><span class="cl">    virtual_router_id 51
+</span></span><span class="line"><span class="cl">    ! 优先级 主备选择谁是master的时候
+</span></span><span class="line"><span class="cl">    priority 100
+</span></span><span class="line"><span class="cl">    ! 这个参数指定了 VRRP 协议广告间隔的数值，表示每隔1秒 Keepalived 就会发送一次 VRRP 广告报文。
+</span></span><span class="line"><span class="cl">    advert_int 1
+</span></span><span class="line"><span class="cl">    ! 同组认证配置
+</span></span><span class="line"><span class="cl">    authentication {
+</span></span><span class="line"><span class="cl">        ! 指定了使用密码进行身份验证
+</span></span><span class="line"><span class="cl">        auth_type PASS
+</span></span><span class="line"><span class="cl">        ! 密码是1111
+</span></span><span class="line"><span class="cl">        auth_pass 1111
+</span></span><span class="line"><span class="cl">    }
+</span></span><span class="line"><span class="cl">    ! 虚拟ip地址
+</span></span><span class="line"><span class="cl">    virtual_ipaddress {
+</span></span><span class="line"><span class="cl">        192.168.200.16
+</span></span><span class="line"><span class="cl">    }
+</span></span><span class="line"><span class="cl">}
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>这里是网卡信息查看配置 对应上面的 <code>interface</code></p>
+<p><img src="/p/nginxnginx%E5%9F%BA%E7%A1%80/image-47.png"
+	width="1432"
+	height="438"
+	srcset="/p/nginxnginx%E5%9F%BA%E7%A1%80/image-47_hu_ffcad5328078ae11.png 480w, /p/nginxnginx%E5%9F%BA%E7%A1%80/image-47_hu_cd0ce2e3ee68988e.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="326"
+		data-flex-basis="784px"
+	
+></p>
+<p>配置完成以后重启 keepalived并且检查</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">systemctl restart keepalived
+</span></span><span class="line"><span class="cl">systemctl status keepalived
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>启动报错</p>
+<p><img src="/p/nginxnginx%E5%9F%BA%E7%A1%80/image-48.png"
+	width="1752"
+	height="512"
+	srcset="/p/nginxnginx%E5%9F%BA%E7%A1%80/image-48_hu_f73e90c3cd2b8338.png 480w, /p/nginxnginx%E5%9F%BA%E7%A1%80/image-48_hu_cf1480fe1301a1ac.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="342"
+		data-flex-basis="821px"
+	
+></p>
+<p>解决办法：</p>
+<p>安装ipvsadm</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">yum install ipvsadm -y 
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>启用ipvsadm</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">ipvsadm
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/nginxnginx%E5%9F%BA%E7%A1%80/image-54.png"
+	width="1010"
+	height="136"
+	srcset="/p/nginxnginx%E5%9F%BA%E7%A1%80/image-54_hu_cb82a7c5f8489b60.png 480w, /p/nginxnginx%E5%9F%BA%E7%A1%80/image-54_hu_70d1905c52226f46.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="742"
+		data-flex-basis="1782px"
+	
+></p>
+<p>再次启动，还是报错</p>
+<p><img src="/p/nginxnginx%E5%9F%BA%E7%A1%80/image-49.png"
+	width="1764"
+	height="510"
+	srcset="/p/nginxnginx%E5%9F%BA%E7%A1%80/image-49_hu_28422969eda1ecc2.png 480w, /p/nginxnginx%E5%9F%BA%E7%A1%80/image-49_hu_83a2e809d5e5dc31.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="345"
+		data-flex-basis="830px"
+	
+></p>
+<p><font color=red>注意：<code>vrrp_instance</code> 示例名称不能使用 VI_1 ，修改实例名配置如下：</font></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">! Configuration File for keepalived
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">global_defs {
+</span></span><span class="line"><span class="cl">   router_id lb131
+</span></span><span class="line"><span class="cl">}
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">vrrp_instance vp1 {
+</span></span><span class="line"><span class="cl">    state MASTER
+</span></span><span class="line"><span class="cl">    interface ens160
+</span></span><span class="line"><span class="cl">    virtual_router_id 51
+</span></span><span class="line"><span class="cl">    priority 100
+</span></span><span class="line"><span class="cl">    advert_int 1
+</span></span><span class="line"><span class="cl">    authentication {
+</span></span><span class="line"><span class="cl">        auth_type PASS
+</span></span><span class="line"><span class="cl">        auth_pass 1111
+</span></span><span class="line"><span class="cl">    }
+</span></span><span class="line"><span class="cl">    virtual_ipaddress {
+</span></span><span class="line"><span class="cl">        192.168.200.16
+</span></span><span class="line"><span class="cl">    }
+</span></span><span class="line"><span class="cl">}
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>此时能正常启动</p>
+<p>查看网络，测试</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">ip addr
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/nginxnginx%E5%9F%BA%E7%A1%80/image-50.png"
+	width="1442"
+	height="508"
+	srcset="/p/nginxnginx%E5%9F%BA%E7%A1%80/image-50_hu_f6a2eb1b549a5781.png 480w, /p/nginxnginx%E5%9F%BA%E7%A1%80/image-50_hu_5cceaf0efc4d5e67.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="283"
+		data-flex-basis="681px"
+	
+></p>
+<p>使用主机ping</p>
+<p><img src="/p/nginxnginx%E5%9F%BA%E7%A1%80/image-51.png"
+	width="1132"
+	height="436"
+	srcset="/p/nginxnginx%E5%9F%BA%E7%A1%80/image-51_hu_bade70568d9a385f.png 480w, /p/nginxnginx%E5%9F%BA%E7%A1%80/image-51_hu_a3b088e9cd0dbe9b.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="259"
+		data-flex-basis="623px"
+	
+></p>
+<p>无法ping通</p>
+<p>修改为同一网段下的ip <code>172.16.140.200</code></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">! Configuration File for keepalived
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">global_defs {
+</span></span><span class="line"><span class="cl">   router_id lb131
+</span></span><span class="line"><span class="cl">}
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">vrrp_instance vp1 {
+</span></span><span class="line"><span class="cl">    state MASTER
+</span></span><span class="line"><span class="cl">    interface ens160
+</span></span><span class="line"><span class="cl">    virtual_router_id 51
+</span></span><span class="line"><span class="cl">    priority 100
+</span></span><span class="line"><span class="cl">    advert_int 1
+</span></span><span class="line"><span class="cl">    authentication {
+</span></span><span class="line"><span class="cl">        auth_type PASS
+</span></span><span class="line"><span class="cl">        auth_pass 1111
+</span></span><span class="line"><span class="cl">    }
+</span></span><span class="line"><span class="cl">    virtual_ipaddress {
+</span></span><span class="line"><span class="cl">        172.16.140.200
+</span></span><span class="line"><span class="cl">    }
+</span></span><span class="line"><span class="cl">}
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>重启并测试</p>
+<p><img src="/p/nginxnginx%E5%9F%BA%E7%A1%80/image-52.png"
+	width="1140"
+	height="488"
+	srcset="/p/nginxnginx%E5%9F%BA%E7%A1%80/image-52_hu_51594b236defa86d.png 480w, /p/nginxnginx%E5%9F%BA%E7%A1%80/image-52_hu_df6f58a789356916.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="233"
+		data-flex-basis="560px"
+	
+></p>
+<p>此时能正常请求</p>
+<p><strong>备用机130配置</strong></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">! Configuration File for keepalived
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">global_defs {
+</span></span><span class="line"><span class="cl">    ! 修改一下id
+</span></span><span class="line"><span class="cl">    router_id lb130
+</span></span><span class="line"><span class="cl">}
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">! 这个一定要一致 相当于是名称
+</span></span><span class="line"><span class="cl">vrrp_instance VI_1 {
+</span></span><span class="line"><span class="cl">    ! 备用机
+</span></span><span class="line"><span class="cl">    state BACKUP
+</span></span><span class="line"><span class="cl">    interface ens160
+</span></span><span class="line"><span class="cl">    virtual_router_id 51
+</span></span><span class="line"><span class="cl">    ! 优先级给低
+</span></span><span class="line"><span class="cl">    priority 50
+</span></span><span class="line"><span class="cl">    advert_int 1
+</span></span><span class="line"><span class="cl">    ! 这个一定要一致 这里可以理解成两个配置的认证关联项
+</span></span><span class="line"><span class="cl">    authentication {
+</span></span><span class="line"><span class="cl">        auth_type PASS
+</span></span><span class="line"><span class="cl">        auth_pass 1111
+</span></span><span class="line"><span class="cl">    }
+</span></span><span class="line"><span class="cl">    virtual_ipaddress {
+</span></span><span class="line"><span class="cl">        172.16.140.200
+</span></span><span class="line"><span class="cl">    }
+</span></span><span class="line"><span class="cl">}
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>启动keepalived</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">systemctl start keepalived
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>测试</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">ip addr
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/nginxnginx%E5%9F%BA%E7%A1%80/image-55.png"
+	width="1468"
+	height="506"
+	srcset="/p/nginxnginx%E5%9F%BA%E7%A1%80/image-55_hu_6c071e076302aa7a.png 480w, /p/nginxnginx%E5%9F%BA%E7%A1%80/image-55_hu_1d0ad145da10cb81.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="290"
+		data-flex-basis="696px"
+	
+></p>
+<p><strong>使用主机ping的中途，关闭131服务器</strong></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">ping 172.16.140.200
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>关闭131服务器</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">init 0
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/nginxnginx%E5%9F%BA%E7%A1%80/image-56.png"
+	width="1756"
+	height="1088"
+	srcset="/p/nginxnginx%E5%9F%BA%E7%A1%80/image-56_hu_9fb41da13c69c947.png 480w, /p/nginxnginx%E5%9F%BA%E7%A1%80/image-56_hu_622192369394741b.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="161"
+		data-flex-basis="387px"
+	
+></p>
+<p>中途关闭131服务器后，还是一直能请求到172.16.140.200</p>
 
 </section>
 

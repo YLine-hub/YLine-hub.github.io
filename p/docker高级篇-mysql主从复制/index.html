@@ -1,0 +1,1179 @@
+<!DOCTYPE html>
+<html lang="zh-cn" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="MySQL主从搭建 主服务器搭建 新建主服务器容器实例3307 1 2 3 4 5 6 docker run -p 3307:3306 --name mysql-master \\ -v /mydata/mysql-master/log:/var/log/mysql \\ -v /mydata/mysql-master/data:/var/lib/mysql \\ -v /mydata/mysql-master/conf:/etc/mysql \\ -e MYSQL_ROOT_PASSWORD=root \\ -d mysql:5.7 docker拉取mysql5.7报错 报错信息 1 docker: Error response from daemon: no matching manifest for linux/arm64/v8 in the manifest list entries: no match for platform in manifest: not found 原因：Docker 客户端请求的镜像架构（arm64/v8）与目标镜像支持的架构不匹配\n">
+<title>[Docker]高级篇-Mysql主从复制</title>
+
+<link rel='canonical' href='https://YLine-hub.github.io/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-mysql%E4%B8%BB%E4%BB%8E%E5%A4%8D%E5%88%B6/'>
+
+<link rel="stylesheet" href="/scss/style.min.6a692fd055deae459f2a9767f57f3855ba80cafd5041317f24f7360f6ca47cdf.css"><meta property='og:title' content="[Docker]高级篇-Mysql主从复制">
+<meta property='og:description' content="MySQL主从搭建 主服务器搭建 新建主服务器容器实例3307 1 2 3 4 5 6 docker run -p 3307:3306 --name mysql-master \\ -v /mydata/mysql-master/log:/var/log/mysql \\ -v /mydata/mysql-master/data:/var/lib/mysql \\ -v /mydata/mysql-master/conf:/etc/mysql \\ -e MYSQL_ROOT_PASSWORD=root \\ -d mysql:5.7 docker拉取mysql5.7报错 报错信息 1 docker: Error response from daemon: no matching manifest for linux/arm64/v8 in the manifest list entries: no match for platform in manifest: not found 原因：Docker 客户端请求的镜像架构（arm64/v8）与目标镜像支持的架构不匹配\n">
+<meta property='og:url' content='https://YLine-hub.github.io/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-mysql%E4%B8%BB%E4%BB%8E%E5%A4%8D%E5%88%B6/'>
+<meta property='og:site_name' content='リンボの個人ブログ'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:published_time' content='2025-12-12T16:26:32&#43;08:00'/><meta property='article:modified_time' content='2025-12-12T16:26:32&#43;08:00'/>
+<meta name="twitter:title" content="[Docker]高级篇-Mysql主从复制">
+<meta name="twitter:description" content="MySQL主从搭建 主服务器搭建 新建主服务器容器实例3307 1 2 3 4 5 6 docker run -p 3307:3306 --name mysql-master \\ -v /mydata/mysql-master/log:/var/log/mysql \\ -v /mydata/mysql-master/data:/var/lib/mysql \\ -v /mydata/mysql-master/conf:/etc/mysql \\ -e MYSQL_ROOT_PASSWORD=root \\ -d mysql:5.7 docker拉取mysql5.7报错 报错信息 1 docker: Error response from daemon: no matching manifest for linux/arm64/v8 in the manifest list entries: no match for platform in manifest: not found 原因：Docker 客户端请求的镜像架构（arm64/v8）与目标镜像支持的架构不匹配\n">
+    <link rel="shortcut icon" href="/favicon.ico" />
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        
+            
+            <figure class="site-avatar">
+                <a href="/">
+                
+                    
+                    
+                    
+                        
+                        <img src="/img/avatar_hu_7f398a7818085507.png" width="300"
+                            height="300" class="site-logo" loading="lazy" alt="Avatar">
+                    
+                
+                </a>
+                
+                    <span class="emoji">🏖️</span>
+                
+            </figure>
+            
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">リンボの個人ブログ</a></h1>
+            <h2 class="site-description">努力不一定能获得回报，但不努力一定不会有回报。</h2>
+        </div>
+    </header><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-home" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <polyline points="5 12 3 12 12 3 21 12 19 12" />
+  <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7" />
+  <path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6" />
+</svg>
+
+
+
+                
+                <span>主页</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/%E5%85%B3%E4%BA%8E/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/archives/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/search/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-search" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="10" cy="10" r="7" />
+  <line x1="21" y1="21" x2="15" y2="15" />
+</svg>
+
+
+
+                
+                <span>搜索</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav id="TableOfContents">
+  <ol>
+    <li><a href="#主服务器搭建">主服务器搭建</a>
+      <ol>
+        <li><a href="#新建主服务器容器实例3307">新建主服务器容器实例3307</a>
+          <ol>
+            <li><a href="#docker拉取mysql57报错">docker拉取mysql5.7报错</a></li>
+          </ol>
+        </li>
+        <li><a href="#进入mydatamysql-masterconf目录下新建mycnf">进入/mydata/mysql-master/conf目录下新建my.cnf</a></li>
+        <li><a href="#修改完配置后重启master实例">修改完配置后重启master实例</a></li>
+        <li><a href="#进入msql-master容器">进入msql-master容器</a></li>
+        <li><a href="#master容器实例内创建数据同步用户">master容器实例内创建数据同步用户</a></li>
+      </ol>
+    </li>
+    <li><a href="#从服务器搭建">从服务器搭建</a>
+      <ol>
+        <li><a href="#新建从服务器容器实例3308">新建从服务器容器实例3308</a></li>
+        <li><a href="#进入mydatamysql-slaveconf目录下新建mycnf">进入/mydata/mysql-slave/conf目录下新建my.cnf</a></li>
+        <li><a href="#修改完配置后重启slave实例">修改完配置后重启slave实例</a></li>
+      </ol>
+    </li>
+    <li><a href="#配置主从">配置主从</a>
+      <ol>
+        <li><a href="#在主数据库中查看主从同步状态">在主数据库中查看主从同步状态</a></li>
+        <li><a href="#进入mysql-slave容器">进入mysql-slave容器</a></li>
+        <li><a href="#在从数据库中配置主从复制">在从数据库中配置主从复制</a>
+          <ol>
+            <li><a href="#参数说明">参数说明</a></li>
+          </ol>
+        </li>
+        <li><a href="#在从数据库中查看主从同步状态">在从数据库中查看主从同步状态</a></li>
+        <li><a href="#在从数据库中开启主从同步">在从数据库中开启主从同步</a></li>
+        <li><a href="#测试主从同步">测试主从同步</a>
+          <ol>
+            <li><a href="#主机">主机</a></li>
+            <li><a href="#从机">从机</a></li>
+          </ol>
+        </li>
+      </ol>
+    </li>
+    <li><a href="#linux虚拟机-使用mac主机代理">Linux虚拟机 使用Mac主机代理</a>
+      <ol>
+        <li><a href="#linux虚拟机配置代理">Linux虚拟机配置代理</a></li>
+        <li><a href="#mac主机的clash开启局域网代理">Mac主机的clash开启局域网代理</a></li>
+      </ol>
+    </li>
+  </ol>
+</nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            <a href="/categories/docker/" >
+                Docker
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-mysql%E4%B8%BB%E4%BB%8E%E5%A4%8D%E5%88%B6/">[Docker]高级篇-Mysql主从复制</a>
+        </h2>
+    
+        
+    </div>
+
+    
+    
+    
+    
+    <footer class="article-time">
+        
+            <div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                <time class="article-time--published">2025-12-12</time>
+            </div>
+        
+
+        
+    </footer>
+    
+
+    
+</div>
+
+</header>
+
+    <section class="article-content">
+    
+    
+    <h1 id="mysql主从搭建">MySQL主从搭建
+</h1><h2 id="主服务器搭建">主服务器搭建
+</h2><h3 id="新建主服务器容器实例3307">新建主服务器容器实例3307
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-gdscript3" data-lang="gdscript3"><span class="line"><span class="cl"><span class="n">docker</span> <span class="n">run</span> <span class="o">-</span><span class="n">p</span> <span class="mi">3307</span><span class="p">:</span><span class="mi">3306</span> <span class="o">--</span><span class="n">name</span> <span class="n">mysql</span><span class="o">-</span><span class="n">master</span> \
+</span></span><span class="line"><span class="cl"><span class="o">-</span><span class="n">v</span> <span class="o">/</span><span class="n">mydata</span><span class="o">/</span><span class="n">mysql</span><span class="o">-</span><span class="n">master</span><span class="o">/</span><span class="nb">log</span><span class="p">:</span><span class="o">/</span><span class="k">var</span><span class="o">/</span><span class="nb">log</span><span class="o">/</span><span class="n">mysql</span> \
+</span></span><span class="line"><span class="cl"><span class="o">-</span><span class="n">v</span> <span class="o">/</span><span class="n">mydata</span><span class="o">/</span><span class="n">mysql</span><span class="o">-</span><span class="n">master</span><span class="o">/</span><span class="n">data</span><span class="p">:</span><span class="o">/</span><span class="k">var</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">mysql</span> \
+</span></span><span class="line"><span class="cl"><span class="o">-</span><span class="n">v</span> <span class="o">/</span><span class="n">mydata</span><span class="o">/</span><span class="n">mysql</span><span class="o">-</span><span class="n">master</span><span class="o">/</span><span class="n">conf</span><span class="p">:</span><span class="o">/</span><span class="n">etc</span><span class="o">/</span><span class="n">mysql</span> \
+</span></span><span class="line"><span class="cl"><span class="o">-</span><span class="n">e</span> <span class="n">MYSQL_ROOT_PASSWORD</span><span class="o">=</span><span class="n">root</span> \
+</span></span><span class="line"><span class="cl"><span class="o">-</span><span class="n">d</span> <span class="n">mysql</span><span class="p">:</span><span class="mf">5.7</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="docker拉取mysql57报错">docker拉取mysql5.7报错
+</h4><ul>
+<li>报错信息</li>
+</ul>
+<p><img src="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-mysql%E4%B8%BB%E4%BB%8E%E5%A4%8D%E5%88%B6/image-1.png"
+	width="2124"
+	height="340"
+	srcset="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-mysql%E4%B8%BB%E4%BB%8E%E5%A4%8D%E5%88%B6/image-1_hu_b7588eba9032e31f.png 480w, /p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-mysql%E4%B8%BB%E4%BB%8E%E5%A4%8D%E5%88%B6/image-1_hu_9546ba5e5757f6c8.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="624"
+		data-flex-basis="1499px"
+	
+></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">docker: Error response from daemon: no matching manifest for linux/arm64/v8 in the manifest list entries: no match for platform in manifest: not found
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>
+<p>原因：Docker 客户端请求的镜像架构（arm64/v8）与目标镜像支持的架构不匹配</p>
+</li>
+<li>
+<p>解决方法：</p>
+</li>
+</ul>
+<h3 id="进入mydatamysql-masterconf目录下新建mycnf">进入/mydata/mysql-master/conf目录下新建my.cnf
+</h3><ol>
+<li>创建my.cnf文件</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">cd /mydata/mysql-master/conf
+</span></span><span class="line"><span class="cl">vi my.cnf
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="2">
+<li><code>my.cnf</code>(5.7版本)</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">[mysqld]
+</span></span><span class="line"><span class="cl">## 设置 server_id ，同一局域网中需要唯一
+</span></span><span class="line"><span class="cl">server_id=101
+</span></span><span class="line"><span class="cl">## 指定不需要同步的数据库名称
+</span></span><span class="line"><span class="cl">binlog-ignore-db=mysql
+</span></span><span class="line"><span class="cl">## 开启二进制日志功能
+</span></span><span class="line"><span class="cl">log-bin=mall-mysql-bin
+</span></span><span class="line"><span class="cl">## 设置二进制日志使用内存大小（事务）
+</span></span><span class="line"><span class="cl">binlog_cache_size=1M
+</span></span><span class="line"><span class="cl">## 设置使用的二进制日志格式（mixed,statement,row）
+</span></span><span class="line"><span class="cl">binlog_format=mixed
+</span></span><span class="line"><span class="cl">## 二进制日志过期清理时间。默认值为0，表示不自动清理。
+</span></span><span class="line"><span class="cl">expire_logs_days=7
+</span></span><span class="line"><span class="cl">## 跳过主从复制中遇到的所有错误或指定类型的错误，避免slave端复制中断。
+</span></span><span class="line"><span class="cl">## 如：1062错误是指一些主键重复，1032错误是因为主从数据库数据不一致
+</span></span><span class="line"><span class="cl">slave_skip_errors=1062
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="2">
+<li><code>my.cnf</code>(8.0版本)</li>
+</ol>
+<ul>
+<li>创建文件夹</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">mkdir -p /mydata/mysql-master/conf/conf.d
+</span></span><span class="line"><span class="cl">mkdir -p /mydata/mysql-master/conf/mysql.conf.d
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li><code>my.cnf</code>文件</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-gdscript3" data-lang="gdscript3"><span class="line"><span class="cl"><span class="p">[</span><span class="n">mysqld</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl"><span class="c1">## 设置 server_id ，同一局域网中需要唯一</span>
+</span></span><span class="line"><span class="cl"><span class="n">server_id</span><span class="o">=</span><span class="mi">101</span>
+</span></span><span class="line"><span class="cl"><span class="c1">## 指定不需要同步的数据库名称</span>
+</span></span><span class="line"><span class="cl"><span class="n">binlog</span><span class="o">-</span><span class="n">ignore</span><span class="o">-</span><span class="n">db</span><span class="o">=</span><span class="n">mysql</span>
+</span></span><span class="line"><span class="cl"><span class="c1">## 开启二进制日志功能</span>
+</span></span><span class="line"><span class="cl"><span class="nb">log</span><span class="o">-</span><span class="n">bin</span><span class="o">=</span><span class="n">mall</span><span class="o">-</span><span class="n">mysql</span><span class="o">-</span><span class="n">bin</span>
+</span></span><span class="line"><span class="cl"><span class="c1">## 设置二进制日志使用内存大小（事务）</span>
+</span></span><span class="line"><span class="cl"><span class="n">binlog_cache_size</span><span class="o">=</span><span class="mi">1</span><span class="n">M</span>
+</span></span><span class="line"><span class="cl"><span class="c1">## 设置使用的二进制日志格式（mixed,statement,row）</span>
+</span></span><span class="line"><span class="cl"><span class="n">binlog_format</span><span class="o">=</span><span class="n">mixed</span>
+</span></span><span class="line"><span class="cl"><span class="c1">## 二进制日志过期清理时间。默认值为0，表示不自动清理。</span>
+</span></span><span class="line"><span class="cl"><span class="n">binlog_expire_logs_seconds</span><span class="o">=</span><span class="mi">604800</span>
+</span></span><span class="line"><span class="cl"><span class="c1">## 跳过主从复制中遇到的所有错误或指定类型的错误，避免slave端复制中断。</span>
+</span></span><span class="line"><span class="cl"><span class="c1">## 如：1062错误是指一些主键重复，1032错误是因为主从数据库数据不一致</span>
+</span></span><span class="line"><span class="cl"><span class="n">slave_skip_errors</span><span class="o">=</span><span class="mi">1062</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 新增8.0必要配置（解决默认配置冲突/权限问题）</span>
+</span></span><span class="line"><span class="cl"><span class="c1">## 字符集（8.0推荐utf8mb4，兼容emoji）</span>
+</span></span><span class="line"><span class="cl"><span class="n">character</span><span class="o">-</span><span class="n">set</span><span class="o">-</span><span class="n">server</span><span class="o">=</span><span class="n">utf8mb4</span>
+</span></span><span class="line"><span class="cl"><span class="n">collation</span><span class="o">-</span><span class="n">server</span><span class="o">=</span><span class="n">utf8mb4_unicode_ci</span>
+</span></span><span class="line"><span class="cl"><span class="c1">## 默认认证插件（解决8.0默认caching_sha2_password导致的连接问题）</span>
+</span></span><span class="line"><span class="cl"><span class="n">default_authentication_plugin</span><span class="o">=</span><span class="n">mysql_native_password</span>
+</span></span><span class="line"><span class="cl"><span class="c1">## 关闭只读（主库需要写入，8.0默认可能开启）</span>
+</span></span><span class="line"><span class="cl"><span class="n">read_only</span><span class="o">=</span><span class="mi">0</span>
+</span></span><span class="line"><span class="cl"><span class="c1">## 禁用SQL_LOG_BIN（主库无需自身日志复制，可选）</span>
+</span></span><span class="line"><span class="cl"><span class="n">sql_log_bin</span><span class="o">=</span><span class="mi">1</span>
+</span></span><span class="line"><span class="cl"><span class="c1">## 安全文件目录（8.0默认限制，需指定）</span>
+</span></span><span class="line"><span class="cl"><span class="n">secure_file_priv</span><span class="o">=/</span><span class="k">var</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">mysql</span>
+</span></span><span class="line"><span class="cl"><span class="c1">## SQL模式（保持和5.7兼容，避免业务报错）</span>
+</span></span><span class="line"><span class="cl"><span class="n">sql_mode</span><span class="o">=</span><span class="n">STRICT_TRANS_TABLES</span><span class="p">,</span><span class="n">NO_ZERO_IN_DATE</span><span class="p">,</span><span class="n">NO_ZERO_DATE</span><span class="p">,</span><span class="n">ERROR_FOR_DIVISION_BY_ZERO</span><span class="p">,</span><span class="n">NO_ENGINE_SUBSTITUTION</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="p">[</span><span class="n">client</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl"><span class="c1">## 客户端字符集（8.0适配）</span>
+</span></span><span class="line"><span class="cl"><span class="n">default</span><span class="o">-</span><span class="n">character</span><span class="o">-</span><span class="n">set</span><span class="o">=</span><span class="n">utf8mb4</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="p">[</span><span class="n">mysql</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl"><span class="c1">## 终端连接字符集（8.0适配）</span>
+</span></span><span class="line"><span class="cl"><span class="n">default</span><span class="o">-</span><span class="n">character</span><span class="o">-</span><span class="n">set</span><span class="o">=</span><span class="n">utf8mb4</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="修改完配置后重启master实例">修改完配置后重启master实例
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">docker restart mysql-master
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="进入msql-master容器">进入msql-master容器
+</h3><ol>
+<li>进入容器</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">docker exec -it mysql-master /bin/bash
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="2">
+<li>连接mysql客户端</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">mysql -uroot -proot
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="master容器实例内创建数据同步用户">master容器实例内创建数据同步用户
+</h3><ol>
+<li>创建数据同步用户</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">create user &#39;slave&#39;@&#39;%&#39; identified by &#39;123456&#39;;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="2">
+<li>同步用户赋予权限</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">grant replication slave,replication client on *.* to &#39;slave&#39;@&#39;%&#39;;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="从服务器搭建">从服务器搭建
+</h2><h3 id="新建从服务器容器实例3308">新建从服务器容器实例3308
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-gdscript3" data-lang="gdscript3"><span class="line"><span class="cl"><span class="n">docker</span> <span class="n">run</span> <span class="o">-</span><span class="n">p</span> <span class="mi">3308</span><span class="p">:</span><span class="mi">3306</span> <span class="o">--</span><span class="n">name</span> <span class="n">mysql</span><span class="o">-</span><span class="n">slave</span> \
+</span></span><span class="line"><span class="cl"><span class="o">-</span><span class="n">v</span> <span class="o">/</span><span class="n">mydata</span><span class="o">/</span><span class="n">mysql</span><span class="o">-</span><span class="n">slave</span><span class="o">/</span><span class="nb">log</span><span class="p">:</span><span class="o">/</span><span class="k">var</span><span class="o">/</span><span class="nb">log</span><span class="o">/</span><span class="n">mysql</span> \
+</span></span><span class="line"><span class="cl"><span class="o">-</span><span class="n">v</span> <span class="o">/</span><span class="n">mydata</span><span class="o">/</span><span class="n">mysql</span><span class="o">-</span><span class="n">slave</span><span class="o">/</span><span class="n">data</span><span class="p">:</span><span class="o">/</span><span class="k">var</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">mysql</span> \
+</span></span><span class="line"><span class="cl"><span class="o">-</span><span class="n">v</span> <span class="o">/</span><span class="n">mydata</span><span class="o">/</span><span class="n">mysql</span><span class="o">-</span><span class="n">slave</span><span class="o">/</span><span class="n">conf</span><span class="p">:</span><span class="o">/</span><span class="n">etc</span><span class="o">/</span><span class="n">mysql</span> \
+</span></span><span class="line"><span class="cl"><span class="o">-</span><span class="n">e</span> <span class="n">MYSQL_ROOT_PASSWORD</span><span class="o">=</span><span class="n">root</span> \
+</span></span><span class="line"><span class="cl"><span class="o">-</span><span class="n">d</span> <span class="n">mysql</span><span class="p">:</span><span class="mf">5.7</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="进入mydatamysql-slaveconf目录下新建mycnf">进入/mydata/mysql-slave/conf目录下新建my.cnf
+</h3><ol>
+<li>创建my.cnf文件</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">cd /mydata/mysql-slave/conf
+</span></span><span class="line"><span class="cl">vi my.cnf
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="2">
+<li><code>my.cnf</code>(5.7版本)</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">[mysqld]
+</span></span><span class="line"><span class="cl">## 设置 server_id ，同一局域网中需要唯一
+</span></span><span class="line"><span class="cl">server_id=102
+</span></span><span class="line"><span class="cl">## 指定不需要同步的数据库名称
+</span></span><span class="line"><span class="cl">binlog-ignore-db=mysql
+</span></span><span class="line"><span class="cl">## 开启二进制日志功能，以备Slave作为其他数据库实例的Master时使用
+</span></span><span class="line"><span class="cl">log-bin=mall-mysql-slave-bin
+</span></span><span class="line"><span class="cl">## 设置使用的二进制日志格式（mixed,statement,row）
+</span></span><span class="line"><span class="cl">binlog_format=mixed
+</span></span><span class="line"><span class="cl">## 二进制日志过期清理时间。默认值为0，表示不自动清理。
+</span></span><span class="line"><span class="cl">expire_logs_days=7
+</span></span><span class="line"><span class="cl">## 跳过主从复制中遇到的所有错误或指定类型的错误，避免slave端复制中断。
+</span></span><span class="line"><span class="cl">## 如：1062错误是指一些主键重复，1032错误是因为主从数据库数据不一致
+</span></span><span class="line"><span class="cl">slave_skip_errors=1062
+</span></span><span class="line"><span class="cl">## relay_log配置中继日志
+</span></span><span class="line"><span class="cl">relay_log=mall-mysql-relay-bin
+</span></span><span class="line"><span class="cl">## log_slave_updates表示slave将复制事件写进自己的二进制日志
+</span></span><span class="line"><span class="cl">log_slave_updates=1
+</span></span><span class="line"><span class="cl">## slave设置为只读
+</span></span><span class="line"><span class="cl">read_only=1（具有super权限的用户除外）
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="2">
+<li><code>my.cnf</code>(8.0版本)</li>
+</ol>
+<ul>
+<li>创建文件夹</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">mkdir -p /mydata/mysql-slave/conf/conf.d
+</span></span><span class="line"><span class="cl">mkdir -p /mydata/mysql-slave/conf/mysql.conf.d
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li><code>my.cnf</code></li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">[mysqld]
+</span></span><span class="line"><span class="cl">## 设置 server_id ，同一局域网中需要唯一
+</span></span><span class="line"><span class="cl">server_id=102
+</span></span><span class="line"><span class="cl">## 指定不需要同步的数据库名称
+</span></span><span class="line"><span class="cl">binlog-ignore-db=mysql
+</span></span><span class="line"><span class="cl">## 开启二进制日志功能，以备Slave作为其他数据库实例的Master时使用
+</span></span><span class="line"><span class="cl">log-bin=mall-mysql-slave-bin
+</span></span><span class="line"><span class="cl">## 设置使用的二进制日志格式（mixed,statement,row）
+</span></span><span class="line"><span class="cl">binlog_format=mixed
+</span></span><span class="line"><span class="cl">## 二进制日志过期清理时间。默认值为0，表示不自动清理。
+</span></span><span class="line"><span class="cl">binlog_expire_logs_seconds=604800
+</span></span><span class="line"><span class="cl">## 跳过主从复制中遇到的所有错误或指定类型的错误，避免slave端复制中断。
+</span></span><span class="line"><span class="cl">## 如：1062错误是指一些主键重复，1032错误是因为主从数据库数据不一致
+</span></span><span class="line"><span class="cl">slave_skip_errors=1062
+</span></span><span class="line"><span class="cl">## relay_log配置中继日志
+</span></span><span class="line"><span class="cl">relay_log=mall-mysql-relay-bin
+</span></span><span class="line"><span class="cl">## log_slave_updates表示slave将复制事件写进自己的二进制日志
+</span></span><span class="line"><span class="cl">log_slave_updates=1
+</span></span><span class="line"><span class="cl">## slave设置为只读
+</span></span><span class="line"><span class="cl">read_only=1（具有super权限的用户除外）
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="修改完配置后重启slave实例">修改完配置后重启slave实例
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">docker restart mysql-slave
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="配置主从">配置主从
+</h2><h3 id="在主数据库中查看主从同步状态">在主数据库中查看主从同步状态
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">show master status;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>9.5.0版本的查看语句</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">SHOW BINARY LOG STATUS;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="进入mysql-slave容器">进入mysql-slave容器
+</h3><ol>
+<li>进入mysql-slave容器</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">docker exec -it mysql-slave /bin/bash
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="2">
+<li>连接mysql客户端</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">mysql -uroot -proot
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="在从数据库中配置主从复制">在从数据库中配置主从复制
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">change master to master_host=&#39;172.16.140.101&#39;,master_user=&#39;slave&#39;,master_password=&#39;123456&#39;,master_port=3307,master_log_file=&#39;mall-mysql-bin.000001&#39;,master_log_pos=617,master_connect_retry=30;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>9.5.0版本</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">CHANGE REPLICATION SOURCE TO
+</span></span><span class="line"><span class="cl">    SOURCE_HOST=&#39;172.16.140.101&#39;,
+</span></span><span class="line"><span class="cl">    SOURCE_USER=&#39;slave&#39;,
+</span></span><span class="line"><span class="cl">    SOURCE_PASSWORD=&#39;123456&#39;,
+</span></span><span class="line"><span class="cl">    SOURCE_PORT = 3307,
+</span></span><span class="line"><span class="cl">    SOURCE_LOG_FILE=&#39;mall-mysql-bin.000003&#39;,
+</span></span><span class="line"><span class="cl">    SOURCE_LOG_POS=712,
+</span></span><span class="line"><span class="cl">    SOURCE_CONNECT_RETRY = 30;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="参数说明">参数说明
+</h4><ul>
+<li><code>master_host</code> : 主数据库的IP地址；</li>
+<li><code>master_port</code> : 主数据库的运行端口；</li>
+<li><code>master_user</code> : 在主数据库创建的用于同步数据的用户账号；</li>
+<li><code>master_password</code> : 在主数据库创建的用于同步数据的用户账号；</li>
+<li><code>master_log_file</code> : 指定从数据库要复制数据的日志文件，通过查看主数据的状态，获取File参数；</li>
+<li><code>master_log_pos</code> : 指定从数据库从哪个位置开始复制数据，通过查看主数据的状态，获取Position参数；</li>
+<li><code>master_connect_retry</code> : 连接失败重试的时间间隔，单位为秒；</li>
+</ul>
+<h3 id="在从数据库中查看主从同步状态">在从数据库中查看主从同步状态
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">sho slave status\G;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>9.5.0版本</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">SHOW REPLICA STATUS\G;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="在从数据库中开启主从同步">在从数据库中开启主从同步
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">start slave;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>9.5.0版本</li>
+</ul>
+<p>开始</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">START REPLICA;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>停止</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">STOP REPLICA;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="测试主从同步">测试主从同步
+</h3><h4 id="主机">主机
+</h4><ul>
+<li>新建库</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">create database db01;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>使用库</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">use db01;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>新建表</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-gdscript3" data-lang="gdscript3"><span class="line"><span class="cl"><span class="n">create</span> <span class="n">table</span> <span class="n">t1</span><span class="p">(</span><span class="n">id</span> <span class="ne">int</span><span class="p">,</span><span class="n">name</span> <span class="n">varchar</span><span class="p">(</span><span class="mi">20</span><span class="p">));</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>插入数据</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">insert into t1 values(1,&#39;z3&#39;);
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="从机">从机
+</h4><ul>
+<li>使用库</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">use db01;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>查看记录</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">select * from t1;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="linux虚拟机-使用mac主机代理">Linux虚拟机 使用Mac主机代理
+</h2><h3 id="linux虚拟机配置代理">Linux虚拟机配置代理
+</h3><ul>
+<li>在/etc/profile下输入以下内容</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-gdscript3" data-lang="gdscript3"><span class="line"><span class="cl"><span class="k">export</span> <span class="n">HTTP_PROXY</span><span class="o">=</span><span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="mf">192.168</span><span class="o">.</span><span class="mf">8.32</span><span class="p">:</span><span class="mi">7890</span>
+</span></span><span class="line"><span class="cl"><span class="k">export</span> <span class="n">HTTPS_PROXY</span><span class="o">=</span><span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="mf">192.168</span><span class="o">.</span><span class="mf">8.32</span><span class="p">:</span><span class="mi">7890</span>
+</span></span><span class="line"><span class="cl"><span class="k">export</span> <span class="n">NO_PROXY</span><span class="o">=</span><span class="n">localhost</span><span class="p">,</span><span class="mf">127.0</span><span class="o">.</span><span class="mf">0.1</span><span class="p">,</span><span class="mf">172.17</span><span class="o">.</span><span class="mf">0.0</span><span class="o">/</span><span class="mi">16</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>保存后重新加载配置</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">source /etc/profile
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="mac主机的clash开启局域网代理">Mac主机的clash开启局域网代理
+</h3><ul>
+<li>将<code>Allow connect from Lan</code>开关打开</li>
+</ul>
+<p><img src="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-mysql%E4%B8%BB%E4%BB%8E%E5%A4%8D%E5%88%B6/image.png"
+	width="486"
+	height="270"
+	srcset="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-mysql%E4%B8%BB%E4%BB%8E%E5%A4%8D%E5%88%B6/image_hu_612b5d431a087b30.png 480w, /p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-mysql%E4%B8%BB%E4%BB%8E%E5%A4%8D%E5%88%B6/image_hu_8f17835596e50736.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="180"
+		data-flex-basis="432px"
+	
+></p>
+
+</section>
+
+
+    <footer class="article-footer">
+    
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+<aside class="related-content--wrapper">
+    <h2 class="section-title">相关文章</h2>
+    <div class="related-content">
+        <div class="flex article-list--tile">
+            
+                
+<article class="">
+    <a href="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-redis%E9%9B%86%E7%BE%A4-3%E4%B8%BB3%E4%BB%8E%E5%AE%89%E8%A3%85%E9%85%8D%E7%BD%AE/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Docker]高级篇-Redis集群-3主3从安装配置</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-redis%E9%9B%86%E7%BE%A4-%E9%9D%A2%E8%AF%95%E9%A2%98/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Docker]高级篇-Redis集群-面试题</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/docker%E5%9F%BA%E7%A1%80%E7%AF%87/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Docker]基础篇</h2>
+        </div>
+    </a>
+</article>
+
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+        2025 リンボの個人ブログ
+    </section>
+    
+    <section class="powerby">
+         <br />
+        
+    </section>
+</footer>
+
+
+    
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+    
+    <div class="pswp__bg"></div>
+
+    
+    <div class="pswp__scroll-wrap">
+
+        
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+
+        
+        <div class="pswp__ui pswp__ui--hidden">
+
+            <div class="pswp__top-bar">
+
+                
+
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+
+                <button class="pswp__button pswp__button--share" title="Share"></button>
+
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+
+                
+                
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                        <div class="pswp__preloader__cut">
+                            <div class="pswp__preloader__donut"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div>
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.js"integrity="sha256-ePwmChbbvXbsO02lbM3HoHbSHTHFAeChekF1xKJdleo="crossorigin="anonymous"
+                defer
+                >
+            </script><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe-ui-default.min.js"integrity="sha256-UKkzOn/w1mBxRmLLGrSeyB4e1xbrp4xylgAWb3M42pU="crossorigin="anonymous"
+                defer
+                >
+            </script><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/default-skin/default-skin.min.css"crossorigin="anonymous"
+            ><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.css"crossorigin="anonymous"
+            >
+
+            </main>
+        </div>
+        <script 
+                src="https://cdn.jsdelivr.net/npm/node-vibrant@3.1.6/dist/vibrant.min.js"integrity="sha256-awcR2jno4kI5X0zL8ex0vi2z&#43;KMkF24hUW8WePSA9HM="crossorigin="anonymous"
+                
+                >
+            </script><script type="text/javascript" src="/ts/main.1e9a3bafd846ced4c345d084b355fb8c7bae75701c338f8a1f8a82c780137826.js" defer></script>
+<script>
+    (function () {
+        const customFont = document.createElement('link');
+        customFont.href = "https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap";
+
+        customFont.type = "text/css";
+        customFont.rel = "stylesheet";
+
+        document.head.appendChild(customFont);
+    }());
+</script>
+
+    </body>
+</html>
