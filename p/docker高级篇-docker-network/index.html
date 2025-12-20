@@ -1,18 +1,18 @@
 <!DOCTYPE html>
-<html lang="zh-cn" dir="ltr">
+<html lang="en-us" dir="ltr">
     <head><meta charset='utf-8'>
-<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="Docker Network 介绍 docker不启动，默认网络情况 ens160 lo virbr0 docker启动，网络情况 docker0 常用基本命令 作用 网络模式 Docker平台架构图解 ">
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="Docker Network 介绍 docker不启动，默认网络情况 ens160 lo virbr0 mac使用的VMware Fusion不显示。\n在CentOS7的安装过程中如果有选择相关虚拟化的的服务安装系统后，启动网卡时会发现有一个以网桥连接的私网地址的virbr0网卡(virbr0网卡：它还有一个固定的默认IP地址192.168.122.1)，是做虚拟机网桥的使用的，其作用是为连接其上的虚机网卡提供 NAT访问外网的功能。\n">
 <title>[Docker]高级篇-Docker Network</title>
 
 <link rel='canonical' href='https://YLine-hub.github.io/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/'>
 
 <link rel="stylesheet" href="/scss/style.min.6a692fd055deae459f2a9767f57f3855ba80cafd5041317f24f7360f6ca47cdf.css"><meta property='og:title' content="[Docker]高级篇-Docker Network">
-<meta property='og:description' content="Docker Network 介绍 docker不启动，默认网络情况 ens160 lo virbr0 docker启动，网络情况 docker0 常用基本命令 作用 网络模式 Docker平台架构图解 ">
+<meta property='og:description' content="Docker Network 介绍 docker不启动，默认网络情况 ens160 lo virbr0 mac使用的VMware Fusion不显示。\n在CentOS7的安装过程中如果有选择相关虚拟化的的服务安装系统后，启动网卡时会发现有一个以网桥连接的私网地址的virbr0网卡(virbr0网卡：它还有一个固定的默认IP地址192.168.122.1)，是做虚拟机网桥的使用的，其作用是为连接其上的虚机网卡提供 NAT访问外网的功能。\n">
 <meta property='og:url' content='https://YLine-hub.github.io/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/'>
 <meta property='og:site_name' content='リンボの個人ブログ'>
 <meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:published_time' content='2025-12-18T16:15:21&#43;08:00'/><meta property='article:modified_time' content='2025-12-18T16:15:21&#43;08:00'/>
 <meta name="twitter:title" content="[Docker]高级篇-Docker Network">
-<meta name="twitter:description" content="Docker Network 介绍 docker不启动，默认网络情况 ens160 lo virbr0 docker启动，网络情况 docker0 常用基本命令 作用 网络模式 Docker平台架构图解 ">
+<meta name="twitter:description" content="Docker Network 介绍 docker不启动，默认网络情况 ens160 lo virbr0 mac使用的VMware Fusion不显示。\n在CentOS7的安装过程中如果有选择相关虚拟化的的服务安装系统后，启动网卡时会发现有一个以网桥连接的私网地址的virbr0网卡(virbr0网卡：它还有一个固定的默认IP地址192.168.122.1)，是做虚拟机网桥的使用的，其作用是为连接其上的虚机网卡提供 NAT访问外网的功能。\n">
     <link rel="shortcut icon" href="/favicon.ico" />
 
     </head>
@@ -218,14 +218,42 @@
         <li><a href="#docker启动网络情况">docker启动，网络情况</a>
           <ol>
             <li><a href="#docker0">docker0</a></li>
+            <li><a href="#查看docker网络模式">查看docker网络模式</a></li>
           </ol>
         </li>
       </ol>
     </li>
-    <li><a href="#常用基本命令">常用基本命令</a></li>
+    <li><a href="#常用基本命令">常用基本命令</a>
+      <ol>
+        <li><a href="#all命令">ALL命令</a></li>
+        <li><a href="#查看网络">查看网络</a></li>
+        <li><a href="#查看网络数据源">查看网络数据源</a></li>
+        <li><a href="#创建网络">创建网络</a></li>
+        <li><a href="#删除">删除</a></li>
+        <li><a href="#案例">案例</a></li>
+      </ol>
+    </li>
     <li><a href="#作用">作用</a></li>
-    <li><a href="#网络模式">网络模式</a></li>
-    <li><a href="#docker平台架构图解">Docker平台架构图解</a></li>
+    <li><a href="#网络模式">网络模式</a>
+      <ol>
+        <li><a href="#介绍-1">介绍</a></li>
+        <li><a href="#容器实例内默认网络ip生产规则">容器实例内默认网络IP生产规则</a>
+          <ol>
+            <li><a href="#说明">说明</a></li>
+            <li><a href="#结论">结论</a></li>
+          </ol>
+        </li>
+        <li><a href="#案例说明">案例说明</a>
+          <ol>
+            <li><a href="#bridge">bridge</a></li>
+            <li><a href="#host">host</a></li>
+            <li><a href="#none">none</a></li>
+            <li><a href="#container">container</a></li>
+            <li><a href="#自定义网络">自定义网络</a></li>
+          </ol>
+        </li>
+      </ol>
+    </li>
   </ol>
 </nav>
         </div>
@@ -295,15 +323,1582 @@
 </h1><h2 id="介绍">介绍
 </h2><h3 id="docker不启动默认网络情况">docker不启动，默认网络情况
 </h3><h4 id="ens160">ens160
-</h4><h4 id="lo">lo
-</h4><h4 id="virbr0">virbr0
-</h4><h3 id="docker启动网络情况">docker启动，网络情况
+</h4><p><img src="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image.png"
+	width="1058"
+	height="314"
+	srcset="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image_hu_e4a5b0c7cd3a7cb1.png 480w, /p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image_hu_4250a1a6ae07c4b0.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="336"
+		data-flex-basis="808px"
+	
+></p>
+<h4 id="lo">lo
+</h4><p><img src="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-1.png"
+	width="950"
+	height="288"
+	srcset="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-1_hu_45c9d038b25fee5b.png 480w, /p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-1_hu_11d3830373cda39f.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="329"
+		data-flex-basis="791px"
+	
+></p>
+<h4 id="virbr0">virbr0
+</h4><p>mac使用的VMware Fusion不显示。</p>
+<blockquote>
+<p>在CentOS7的安装过程中如果有选择相关虚拟化的的服务安装系统后，启动网卡时会发现有一个以网桥连接的私网地址的virbr0网卡(virbr0网卡：它还有一个固定的默认IP地址192.168.122.1)，是做虚拟机网桥的使用的，其作用是为连接其上的虚机网卡提供 NAT访问外网的功能。</p>
+</blockquote>
+<blockquote>
+<p>我们之前学习Linux安装，勾选安装系统的时候附带了libvirt服务才会生成的一个东西，如果不需要可以直接将libvirtd服务卸载，</p>
+</blockquote>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">yum remove libvirt-libs.x86_64
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="docker启动网络情况">docker启动，网络情况
 </h3><h4 id="docker0">docker0
-</h4><h2 id="常用基本命令">常用基本命令
-</h2><h2 id="作用">作用
-</h2><h2 id="网络模式">网络模式
-</h2><h2 id="docker平台架构图解">Docker平台架构图解
-</h2>
+</h4><p><img src="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-2.png"
+	width="1030"
+	height="272"
+	srcset="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-2_hu_4180ab348d70302b.png 480w, /p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-2_hu_a81a0a004fc66050.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="378"
+		data-flex-basis="908px"
+	
+></p>
+<h4 id="查看docker网络模式">查看docker网络模式
+</h4><p>默认创建三大网络模式</p>
+<ul>
+<li>查看网络</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">docker network ls
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-3.png"
+	width="644"
+	height="166"
+	srcset="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-3_hu_6626ac425fcfaa70.png 480w, /p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-3_hu_ec07da5252447a19.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="387"
+		data-flex-basis="931px"
+	
+></p>
+<h2 id="常用基本命令">常用基本命令
+</h2><h3 id="all命令">ALL命令
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">docker network --help
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="查看网络">查看网络
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">docker network ls
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-3.png"
+	width="644"
+	height="166"
+	srcset="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-3_hu_6626ac425fcfaa70.png 480w, /p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-3_hu_ec07da5252447a19.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="387"
+		data-flex-basis="931px"
+	
+></p>
+<h3 id="查看网络数据源">查看网络数据源
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">docker network inspect NETWORK_NAME
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="创建网络">创建网络
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">docker network create NETWORK_NAME
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="删除">删除
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">docker network rm NETWORK_NAME
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="案例">案例
+</h3><ul>
+<li>查看所有命令</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">docker network --help
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-4.png"
+	width="1020"
+	height="544"
+	srcset="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-4_hu_fb2604fd7ddfcedb.png 480w, /p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-4_hu_b465caaad88f624.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="187"
+		data-flex-basis="450px"
+	
+></p>
+<ul>
+<li>查看网络</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">docker network ls
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-3.png"
+	width="644"
+	height="166"
+	srcset="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-3_hu_6626ac425fcfaa70.png 480w, /p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-3_hu_ec07da5252447a19.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="387"
+		data-flex-basis="931px"
+	
+></p>
+<ul>
+<li>创建网络</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">docker network create aa_network
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-5.png"
+	width="918"
+	height="66"
+	srcset="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-5_hu_a475a3910ce9bdb7.png 480w, /p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-5_hu_20e44d2ed3d57d3d.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="1390"
+		data-flex-basis="3338px"
+	
+></p>
+<p><img src="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-6.png"
+	width="682"
+	height="206"
+	srcset="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-6_hu_8c7ff8440c196430.png 480w, /p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-6_hu_9e7e7e36217cb219.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="331"
+		data-flex-basis="794px"
+	
+></p>
+<ul>
+<li>删除网络</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">docker network rm aa_network
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-7.png"
+	width="812"
+	height="68"
+	srcset="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-7_hu_a7c50bff2d8c2220.png 480w, /p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-7_hu_ff79c014099a1c55.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="1194"
+		data-flex-basis="2865px"
+	
+></p>
+<ul>
+<li>查看网络数据源</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">docker network inspect bridge
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-8.png"
+	width="1178"
+	height="1294"
+	srcset="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-8_hu_d5dea8c7bc0982ce.png 480w, /p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-8_hu_b4e6c3c97573c024.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="91"
+		data-flex-basis="218px"
+	
+></p>
+<h2 id="作用">作用
+</h2><ol>
+<li>
+<p>容器间的互联和通信以及端口映射。</p>
+</li>
+<li>
+<p>容器IP变动时候可以通过服务名直接网络通信而不受影响。</p>
+</li>
+</ol>
+<h2 id="网络模式">网络模式
+</h2><h3 id="介绍-1">介绍
+</h3><div class="table-wrapper"><table>
+  <thead>
+      <tr>
+          <th>网络模式</th>
+          <th>简介</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>bridge</td>
+          <td>为每一个容器分配、设置IP等，并将容器连接到一个docker0<br>虚拟网桥，默认为该模式。</td>
+      </tr>
+      <tr>
+          <td>host</td>
+          <td>容器将不会虚拟出自己的网卡，配置自己的IP等，而是使用宿主机的IP和端口。</td>
+      </tr>
+      <tr>
+          <td>none</td>
+          <td>容器有独立的Network namespace，但并没有对其进行任何网络设置，如分配veth pair和网桥连接，IP等。</td>
+      </tr>
+      <tr>
+          <td>container</td>
+          <td>新创建的容器不会创建自己的网卡和配置自己的IP，而是和一个指定的容器共享IP，端口范围等。</td>
+      </tr>
+  </tbody>
+</table></div>
+<ul>
+<li>bridge模式：使用&ndash;network bridge指定，默认使用docker</li>
+<li>host模式：使用&ndash;network host指定</li>
+<li>none模式：使用&ndash;network none指定</li>
+<li>container模式：使用&ndash;network container:NAME或者容器ID指定</li>
+</ul>
+<h3 id="容器实例内默认网络ip生产规则">容器实例内默认网络IP生产规则
+</h3><h4 id="说明">说明
+</h4><ol>
+<li>先启动两个ubuntu容器实例</li>
+</ol>
+<ul>
+<li>启动u1</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">docker run -it --name u1 ubuntu bash
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-9.png"
+	width="804"
+	height="78"
+	srcset="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-9_hu_b9376805143ca8ed.png 480w, /p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-9_hu_a90a06f21c16dc98.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="1030"
+		data-flex-basis="2473px"
+	
+></p>
+<ul>
+<li>启动u2</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">docker run -it --name u2 ubuntu bash
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-10.png"
+	width="818"
+	height="86"
+	srcset="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-10_hu_c50051df0a8beda7.png 480w, /p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-10_hu_f07b6b31e0afe04c.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="951"
+		data-flex-basis="2282px"
+	
+></p>
+<ul>
+<li>查看运行的容器</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">docker ps
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-11.png"
+	width="1322"
+	height="138"
+	srcset="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-11_hu_5b09d97500d13d59.png 480w, /p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-11_hu_4a0b440a7fc56155.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="957"
+		data-flex-basis="2299px"
+	
+></p>
+<ol start="2">
+<li>docker inspect 容器ID or 容器名字</li>
+</ol>
+<ul>
+<li>查看u1网络</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">docker inspect u1
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-12.png"
+	width="1374"
+	height="614"
+	srcset="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-12_hu_cbd42b4f32b7abf5.png 480w, /p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-12_hu_aab39a1ee0eb5ad1.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="223"
+		data-flex-basis="537px"
+	
+></p>
+<ul>
+<li>查看u2网络</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">docker inspect u2
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-13.png"
+	width="1284"
+	height="624"
+	srcset="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-13_hu_db87ba51aa71a6b1.png 480w, /p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-13_hu_48608f3a53360ae6.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="205"
+		data-flex-basis="493px"
+	
+></p>
+<ol start="3">
+<li>关闭u2实例，新建u3，查看ip变化</li>
+</ol>
+<ul>
+<li>关闭u2实例</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">docker rm -f u2
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-14.png"
+	width="516"
+	height="66"
+	srcset="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-14_hu_a9dd623f8eceff45.png 480w, /p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-14_hu_1b79ef2c1a5658d2.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="781"
+		data-flex-basis="1876px"
+	
+></p>
+<ul>
+<li>创建u3</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">docker run -it --name u3 ubuntu bash
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-15.png"
+	width="842"
+	height="86"
+	srcset="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-15_hu_514baafdfb2ab475.png 480w, /p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-15_hu_b91d86dac3e4ae2e.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="979"
+		data-flex-basis="2349px"
+	
+></p>
+<ul>
+<li>查看u3网络</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">docker inspect u3
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-16.png"
+	width="1316"
+	height="618"
+	srcset="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-16_hu_392b37478d973b7c.png 480w, /p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-16_hu_3c2ec8ce73a72aa2.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="212"
+		data-flex-basis="511px"
+	
+></p>
+<h4 id="结论">结论
+</h4><p>docker容器内部的ip是有可能会发生改变的</p>
+<h3 id="案例说明">案例说明
+</h3><h4 id="bridge">bridge
+</h4><h5 id="是什么">是什么
+</h5><p>Docker 服务默认会创建一个 docker0 网桥（其上有一个 docker0 内部接口），该桥接网络的名称为docker0，它在<font color=red>内核层</font>连通了其他的物理或虚拟网卡，这就将所有容器和本地主机都放到<font color=red>同一个物理网络</font>。Docker 默认指定了 docker0 接口 的 IP 地址和子网掩码，<font color=red>让主机和容器之间可以通过网桥相互通信</font>。</p>
+<ul>
+<li>查看 bridge 网络的详细信息，并通过 grep 获取名称项</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">docker network inspect bridge | grep name
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>查看主机网络，并查询有关docker的信息</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">ifconfig | grep docker
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h5 id="案例-1">案例
+</h5><ul>
+<li>说明</li>
+</ul>
+<blockquote>
+<ol>
+<li>Docker 使用Linux桥接，在宿主机虚拟一个Docker容器网桥（docker0），Docker启动一个容器时会根据Docker网桥的网段分配给容器一个IP地址，称为Container-IP，同时Docker网桥是每个容器的默认网关。因为在同一宿主机内的容器都接入同一个网桥，这样容器之间就能够通过容器的Container-IP直接通信。</li>
+</ol>
+</blockquote>
+<blockquote>
+<ol start="2">
+<li>docker run的时候，没有指定network的话默认使用的网桥模式就是bridge，使用的就是docker0。在宿主机ifconfig，就可以看到docker0和自己create的network（后面讲）eth0，eth1，eth2&hellip;&hellip;代表网卡一，网卡二，网卡三&hellip;&hellip;，lo代表127.0.0.1，即localhost，inet addr用来表示网卡的IP地址。</li>
+</ol>
+</blockquote>
+<blockquote>
+<ol start="3">
+<li>网桥docker0创建一对对等虚拟设备接口一个叫veth，一个叫eth0，成对匹配。
+3.1. 整个宿主机的网桥模式都是docker0，类似一个交换机有一堆借口，每个接口叫veth，在本地主机和容器内分别创建一个虚拟接口，并让他们彼此连通（这样一对接口叫veth pair）；
+3.2. 每个容器实例内部也有一块网卡，每个接口叫veth；
+3.3. docker0上面的每个veth匹配某个容器实例内部的eth0，两两配对，一一匹配；</li>
+</ol>
+<p>通过上述，将宿主机上的所有容器都连接到这个内部网络上，两个容器在同一个网络下，会从这个网关下各自拿到分配的ip，此时两个容器的网络是互通的。</p>
+</blockquote>
+<p><img src="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-17.png"
+	width="1174"
+	height="592"
+	srcset="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-17_hu_f42fe79b66ef425c.png 480w, /p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-17_hu_8ee262ed5320e96e.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="198"
+		data-flex-basis="475px"
+	
+></p>
+<ul>
+<li>代码</li>
+</ul>
+<ol>
+<li>创建tomcat81</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">docker run -d -p 8081:8080 --name tomcat81 tomcat:8-jdk8
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-18.png"
+	width="1088"
+	height="70"
+	srcset="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-18_hu_8e2caa50a4406803.png 480w, /p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-18_hu_defac2936803903f.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="1554"
+		data-flex-basis="3730px"
+	
+></p>
+<ol start="2">
+<li>创建tomcat82</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">docker run -d -p 8082:8080 --name tomcat82 tomcat:8-jdk8
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-19.png"
+	width="1098"
+	height="66"
+	srcset="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-19_hu_a32f5da905383925.png 480w, /p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-19_hu_20726ac672872126.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="1663"
+		data-flex-basis="3992px"
+	
+></p>
+<ol start="3">
+<li>查看运行中的容器</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">docker ps
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-20.png"
+	width="1932"
+	height="138"
+	srcset="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-20_hu_faf3a5498d67797f.png 480w, /p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-20_hu_2949fb908894dc8a.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="1400"
+		data-flex-basis="3360px"
+	
+></p>
+<ul>
+<li>两两匹配验证</li>
+</ul>
+<ol>
+<li>查看本机网络</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">ip addr
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-21.png"
+	width="1666"
+	height="272"
+	srcset="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-21_hu_7ae5162287577f6b.png 480w, /p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-21_hu_bbc0d45ba7842d24.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="612"
+		data-flex-basis="1470px"
+	
+></p>
+<ol start="2">
+<li>查看tomcat81网络</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">ip addr
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-22.png"
+	width="1348"
+	height="372"
+	srcset="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-22_hu_35ae9a5139ed6a8b.png 480w, /p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-22_hu_c4a0b87a9d659a5f.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="362"
+		data-flex-basis="869px"
+	
+></p>
+<ol start="3">
+<li>查看tomcat82网络</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">ip addr
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-23.png"
+	width="1344"
+	height="370"
+	srcset="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-23_hu_68f0aa905ea4c209.png 480w, /p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-23_hu_2bc137f0adffd41a.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="363"
+		data-flex-basis="871px"
+	
+></p>
+<h4 id="host">host
+</h4><h5 id="是什么-1">是什么
+</h5><p>直接使用宿主机IP地址与外界进行通信，不再需要额外进行NAT转换。</p>
+<h5 id="案例-2">案例
+</h5><ul>
+<li>说明</li>
+</ul>
+<blockquote>
+<p>容器将<font color=red>不会获得</font>一个独立的Network Namespace，而是和宿主机共用一个Network Namespace。<font color=red>容器将不会虚拟出自己的网卡而是使用宿主机的IP和端口</font>。</p>
+</blockquote>
+<p><img src="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-24.png"
+	width="1462"
+	height="732"
+	srcset="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-24_hu_f034ac2e81740b00.png 480w, /p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-24_hu_587531785f68295d.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="199"
+		data-flex-basis="479px"
+	
+></p>
+<ul>
+<li>代码</li>
+</ul>
+<ol>
+<li>警告</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">docker run -d -p 8083:8080 --network host --name tomcat83 tomcat:8-jdk8
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-25.png"
+	width="1300"
+	height="104"
+	srcset="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-25_hu_9d589f6ddf2f850.png 480w, /p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-25_hu_9bfda380a1a31c87.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="1250"
+		data-flex-basis="3000px"
+	
+></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">WARNING: Published ports are discarded when using host network mode
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-26.png"
+	width="2038"
+	height="174"
+	srcset="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-26_hu_747c0c73b9848efe.png 480w, /p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-26_hu_5b01dedb5fa57669.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="1171"
+		data-flex-basis="2811px"
+	
+></p>
+<blockquote>
+<p>问题：
+docker 启动时总是遇见标题中的警告
+原因：
+docker 启动时指定&ndash;network=host或-net=host，如果还指定了-p映射端口，那这个时候就会有此警告，并且通过-p设置的参数将不会起到任何作用，端口号会以主机端口号为主，重复时则递增。
+解决：
+解决办法就是使用docker的其他网络模式，例如&ndash;network=bridge，这样就可以解决问题，或者直接无视。</p>
+</blockquote>
+<ol start="2">
+<li>正确</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">docker run -d --network host --name tomcat83 tomcat:8-jdk8
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-27.png"
+	width="1120"
+	height="70"
+	srcset="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-27_hu_a3beac747d8eb2c.png 480w, /p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-27_hu_1bf0db1e5981f94a.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="1600"
+		data-flex-basis="3840px"
+	
+></p>
+<ul>
+<li>查看tomcat83的网络</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">ip addr
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-28.png"
+	width="1658"
+	height="922"
+	srcset="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-28_hu_8c35e00b5764da8d.png 480w, /p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-28_hu_cd5848800c62e16c.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="179"
+		data-flex-basis="431px"
+	
+></p>
+<p>可以看到容器内部的网络和主机的网络是一样的</p>
+<ul>
+<li>没有端口映射，那么如何访问tomcat83</li>
+</ul>
+<p>网址：http://宿主机IP:8080</p>
+<blockquote>
+<p>和默认安装的tomcat端口一样，相当于在主机上安装了一个tomcat</p>
+</blockquote>
+<p><img src="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-29.png"
+	width="2880"
+	height="1614"
+	srcset="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-29_hu_3c53d13f9f1497cd.png 480w, /p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-29_hu_b5b7d45e87c9e14b.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="178"
+		data-flex-basis="428px"
+	
+></p>
+<p>因为此时容器的IP借用主机的，所以容器共享主机网络IP，这样的好处是外部主机与容器可以直接通信。</p>
+<h4 id="none">none
+</h4><h5 id="是什么-2">是什么
+</h5><p>禁用网络功能，只有lo标识（就是127.0.0.1表示本地回环）</p>
+<p>在none模式下，并不为Docker容器进行任何网络配置。
+也就是说，这个Docker容器没有网卡、IP、路由等信息，只有一个lo需要我们自己为Docker容器添加网卡、配置IP等。</p>
+<h5 id="案例-3">案例
+</h5><ul>
+<li>创建tomcat84容器</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">docker run -d -p 8084:8080 --network none --name tomcat84 tomcat:8-jdk8
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-30.png"
+	width="1296"
+	height="72"
+	srcset="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-30_hu_6c67356be100430e.png 480w, /p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-30_hu_6922432102ee8d4e.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="1800"
+		data-flex-basis="4320px"
+	
+></p>
+<ul>
+<li>查看运行的容器</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">docker ps
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-31.png"
+	width="1950"
+	height="204"
+	srcset="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-31_hu_6edc855da22f4e9a.png 480w, /p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-31_hu_e33912e6c8dc172d.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="955"
+		data-flex-basis="2294px"
+	
+></p>
+<ul>
+<li>查看网络</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">hostname -I
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-32.png"
+	width="704"
+	height="112"
+	srcset="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-32_hu_a1dc947845436b89.png 480w, /p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-32_hu_d5bbe272064836a2.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="628"
+		data-flex-basis="1508px"
+	
+></p>
+<p>可以看到没有自己的ip</p>
+<h4 id="container">container
+</h4><h5 id="是什么-3">是什么
+</h5><p>新建的容器和已经存在的一个容器共享一个网络ip配置而不是和宿主机共享。新创建的容器不会创建自己的网卡，配置自己的IP，而是和一个指定的容器共享IP、端口范围等。同样，两个容器除了网络方面，其他的如文件系统、进程列表等还是隔离的。</p>
+<p><img src="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-33.png"
+	width="1468"
+	height="780"
+	srcset="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-33_hu_8c4ddc6febb75c8.png 480w, /p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-33_hu_81251e3bfdc6e04b.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="188"
+		data-flex-basis="451px"
+	
+></p>
+<h5 id="案例一">案例一
+</h5><ul>
+<li>创建tomcat85</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">docker run -d -p 8085:8080 --name tomcat85 tomcat:8-jdk8
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>创建tomcat86，并且使用tomcat85的网络</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">docker run -d -p 8086:8080 --network container:tomcat85 --name tomcat86 tomcat:8-jdk8
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>运行结果</li>
+</ul>
+<p><img src="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-34.png"
+	width="1548"
+	height="226"
+	srcset="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-34_hu_1ff45504b2a64e8b.png 480w, /p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-34_hu_5d0116e24690642f.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="684"
+		data-flex-basis="1643px"
+	
+></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">docker: Error response from daemon: conflicting options: port publishing and the container type network mode.
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>相当于tomcat86和tomcat85公用同一个ip同一个端口，导致端口冲突。</p>
+<h5 id="案例二">案例二
+</h5><ul>
+<li>Alpine操作系统是一个面向安全的轻型Linux发行版</li>
+</ul>
+<blockquote>
+<p>Alpine Linux是一款独立的、非商业的通用Linux发行版，专为追求安全性、简单性和资源效率的用户而设计。可能很多人没听说过这个Linux发行版本，但是经常用Docker的朋友可能都用过，因为他小，简单，安全而著称，所以作为基础镜像是非常好的一个选择，可谓是麻雀虽小但五脏俱全，镜像非常小巧，不到9M的大小，所以特别适合容器打包。</p>
+</blockquote>
+<ul>
+<li>创建alpine1</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">docker run -it --name alpine1 alpine /bin/sh
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-35.png"
+	width="926"
+	height="80"
+	srcset="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-35_hu_40a2b6b7a7f3d5d8.png 480w, /p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-35_hu_e2d3ce08b3ec5034.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="1157"
+		data-flex-basis="2778px"
+	
+></p>
+<ul>
+<li>创建alpine2</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">docker run -it --network container:alpine1 --name alpine2 alpine /bin/sh
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-36.png"
+	width="1330"
+	height="86"
+	srcset="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-36_hu_98c26d9bc5979555.png 480w, /p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-36_hu_1c7d7938c10680fd.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="1546"
+		data-flex-basis="3711px"
+	
+></p>
+<ul>
+<li>运行结果，验证共用搭桥</li>
+</ul>
+<ol>
+<li>查看alpine1网络</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">ip addr
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-37.png"
+	width="1290"
+	height="454"
+	srcset="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-37_hu_19bad67a6f7fe9c0.png 480w, /p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-37_hu_9d64141c98fd9a59.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="284"
+		data-flex-basis="681px"
+	
+></p>
+<ol start="2">
+<li>查看alpine2网络</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">ip addr
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-38.png"
+	width="1348"
+	height="452"
+	srcset="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-38_hu_af340b2cba9c94ff.png 480w, /p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-38_hu_7c5acd66228effb2.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="298"
+		data-flex-basis="715px"
+	
+></p>
+<ul>
+<li>假如此时关闭alpine1，再看看alpine2</li>
+</ul>
+<ol>
+<li>退出alpine1</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">exit
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-39.png"
+	width="2038"
+	height="318"
+	srcset="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-39_hu_12099cc45bcbfa49.png 480w, /p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-39_hu_a81aaed7d6498cf.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="640"
+		data-flex-basis="1538px"
+	
+></p>
+<p>退出后，alpine1的容器也停止运行了</p>
+<ol start="2">
+<li>查看alpine2的网络</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">ip addr
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-40.png"
+	width="1098"
+	height="290"
+	srcset="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-40_hu_d813ddb06f0ed264.png 480w, /p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-40_hu_653302afce7502b6.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="378"
+		data-flex-basis="908px"
+	
+></p>
+<p>可以看到退出以后alpine2的网络没了，只剩一个lo</p>
+<h4 id="自定义网络">自定义网络
+</h4><h5 id="过时的link">过时的link
+</h5><h5 id="是什么-4">是什么
+</h5><h5 id="案例-4">案例
+</h5><h6 id="before">before
+</h6><ul>
+<li>案例</li>
+</ul>
+<ol>
+<li>创建tomcat81</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">docker run -d -p 8081:8080 --name tomcat81 tomcat:8-jdk8
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-41.png"
+	width="1094"
+	height="74"
+	srcset="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-41_hu_29ef9f52cdbb5439.png 480w, /p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-41_hu_59d2dfb76d9c5648.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="1478"
+		data-flex-basis="3548px"
+	
+></p>
+<ol start="2">
+<li>创建tomcat82</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">docker run -d -p 8082:8080 --name tomcat82 tomcat:8-jdk8
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-42.png"
+	width="1096"
+	height="70"
+	srcset="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-42_hu_79bb2cbcc2d15646.png 480w, /p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-42_hu_93c4b9d08256bd97.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="1565"
+		data-flex-basis="3757px"
+	
+></p>
+<ol start="3">
+<li>分别进入容器内部并查看IP</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">docker exec -it tomcat81 bash
+</span></span><span class="line"><span class="cl">hostname -I
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-43.png"
+	width="708"
+	height="154"
+	srcset="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-43_hu_fa10b22c781a99f0.png 480w, /p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-43_hu_c1e197d828688e84.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="459"
+		data-flex-basis="1103px"
+	
+></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">docker exec -it tomcat82 bash
+</span></span><span class="line"><span class="cl">hostname -I
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-44.png"
+	width="708"
+	height="142"
+	srcset="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-44_hu_79b8cc46aa76cb1d.png 480w, /p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-44_hu_369e98c1e8bac3a3.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="498"
+		data-flex-basis="1196px"
+	
+></p>
+<ol start="4">
+<li>tomcat81 ping tomcat82的ip</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">ping -c 4 172.17.0.3
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-45.png"
+	width="906"
+	height="388"
+	srcset="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-45_hu_cdfbb1c8913769c3.png 480w, /p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-45_hu_80eaf31e680c40ce.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="233"
+		data-flex-basis="560px"
+	
+></p>
+<ol start="5">
+<li>tomcat82 ping tomcat81的ip</li>
+</ol>
+<p><img src="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-46.png"
+	width="900"
+	height="392"
+	srcset="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-46_hu_7bf8c7ef6add5333.png 480w, /p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-46_hu_88359fa25a9d4716.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="229"
+		data-flex-basis="551px"
+	
+></p>
+<ol start="6">
+<li>tomcat81 ping tomcat82的服务名</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">ping tomcat82
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-47.png"
+	width="744"
+	height="126"
+	srcset="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-47_hu_b50f00ede2dbb14b.png 480w, /p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-47_hu_24c417a593e8902e.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="590"
+		data-flex-basis="1417px"
+	
+></p>
+<ol start="7">
+<li>tomcat82 ping tomcat81的服务名</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">ping tomcat81
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-48.png"
+	width="748"
+	height="122"
+	srcset="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-48_hu_865601a3a41f54e9.png 480w, /p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-48_hu_67b54976cab8a320.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="613"
+		data-flex-basis="1471px"
+	
+></p>
+<ul>
+<li>问题</li>
+</ul>
+<ol>
+<li>
+<p>按照IP地址ping是可以的</p>
+</li>
+<li>
+<p>按照服务名ping是不行的</p>
+</li>
+</ol>
+<h6 id="after">after
+</h6><ul>
+<li>案例</li>
+</ul>
+<ol>
+<li>
+<p>自定义桥接网络，自定义网络默认使用的是桥接网络bridge</p>
+</li>
+<li>
+<p>新建自定义网络</p>
+</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">docker network create zzyy_network
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-49.png"
+	width="928"
+	height="340"
+	srcset="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-49_hu_964bcd22801be047.png 480w, /p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-49_hu_36fb1abcd1b0da0e.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="272"
+		data-flex-basis="655px"
+	
+></p>
+<ol start="3">
+<li>新建容器加入上一步新建的自定义网络</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">docker run -d -p 8081:8080 --network zzyy_network --name tomcat81 tomcat:8-jdk8
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-50.png"
+	width="1410"
+	height="114"
+	srcset="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-50_hu_306e3f5adf36b074.png 480w, /p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-50_hu_b1e27da39364694.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="1236"
+		data-flex-basis="2968px"
+	
+></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">docker run -d -p 8082:8080 --network zzyy_network --name tomcat82 tomcat:8-jdk8
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-51.png"
+	width="1406"
+	height="112"
+	srcset="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-51_hu_9f2db334679f1045.png 480w, /p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-51_hu_f59e1db616be1f79.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="1255"
+		data-flex-basis="3012px"
+	
+></p>
+<ol start="4">
+<li>互相ping测试</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">ping tomcat82
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-52.png"
+	width="1166"
+	height="378"
+	srcset="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-52_hu_7691d86e5791d159.png 480w, /p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-52_hu_85ae551778f505d0.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="308"
+		data-flex-basis="740px"
+	
+></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">ping tomcat81
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-53.png"
+	width="1154"
+	height="382"
+	srcset="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-53_hu_32c325c85260fd46.png 480w, /p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/image-53_hu_427bee8e4a659f38.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="302"
+		data-flex-basis="725px"
+	
+></p>
+<ul>
+<li>问题结论</li>
+</ul>
+<p><font color=red>自定义网络本身就维护好了主机名和ip的对应关系（ip和域名都能通）</font></p>
+
 </section>
 
 
