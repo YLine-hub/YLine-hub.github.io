@@ -1,0 +1,2143 @@
+<!DOCTYPE html>
+<html lang="en-us" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="Linux性能调优-CPU篇（基础篇） 怎样理解“平均负载” 平均负载的含义 了解系统负载的情况 使用top或者uptime\n1 2 uptime # 03:39:46 up 3:16, 1 user, load average: 0.06, 0.04, 0.06 含义 1 2 3 4 5 6 03:39:46 // 当前时间 up 3:16 // 系统运行时间 1 user // 正在登录用户数 0.06 // 过去1分钟的平均负载 0.04 // 过去5分钟的平均负载 0.06 // 过去15分钟的平均负载 了解平均负载的详细解释 1 man uptime 帮助文档中平均负载的说明：\n">
+<title>[Linux]性能调优-CPU篇（基础篇）</title>
+
+<link rel='canonical' href='https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/'>
+
+<link rel="stylesheet" href="/scss/style.min.6a692fd055deae459f2a9767f57f3855ba80cafd5041317f24f7360f6ca47cdf.css"><meta property='og:title' content="[Linux]性能调优-CPU篇（基础篇）">
+<meta property='og:description' content="Linux性能调优-CPU篇（基础篇） 怎样理解“平均负载” 平均负载的含义 了解系统负载的情况 使用top或者uptime\n1 2 uptime # 03:39:46 up 3:16, 1 user, load average: 0.06, 0.04, 0.06 含义 1 2 3 4 5 6 03:39:46 // 当前时间 up 3:16 // 系统运行时间 1 user // 正在登录用户数 0.06 // 过去1分钟的平均负载 0.04 // 过去5分钟的平均负载 0.06 // 过去15分钟的平均负载 了解平均负载的详细解释 1 man uptime 帮助文档中平均负载的说明：\n">
+<meta property='og:url' content='https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/'>
+<meta property='og:site_name' content='リンボの個人ブログ'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:published_time' content='2026-01-14T22:19:53&#43;08:00'/><meta property='article:modified_time' content='2026-01-14T22:19:53&#43;08:00'/>
+<meta name="twitter:title" content="[Linux]性能调优-CPU篇（基础篇）">
+<meta name="twitter:description" content="Linux性能调优-CPU篇（基础篇） 怎样理解“平均负载” 平均负载的含义 了解系统负载的情况 使用top或者uptime\n1 2 uptime # 03:39:46 up 3:16, 1 user, load average: 0.06, 0.04, 0.06 含义 1 2 3 4 5 6 03:39:46 // 当前时间 up 3:16 // 系统运行时间 1 user // 正在登录用户数 0.06 // 过去1分钟的平均负载 0.04 // 过去5分钟的平均负载 0.06 // 过去15分钟的平均负载 了解平均负载的详细解释 1 man uptime 帮助文档中平均负载的说明：\n">
+    <link rel="shortcut icon" href="/favicon.ico" />
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        
+            
+            <figure class="site-avatar">
+                <a href="/">
+                
+                    
+                    
+                    
+                        
+                        <img src="/img/avatar_hu_de528bff5d5e9598.png" width="300"
+                            height="300" class="site-logo" loading="lazy" alt="Avatar">
+                    
+                
+                </a>
+                
+                    <span class="emoji">🏖️</span>
+                
+            </figure>
+            
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">リンボの個人ブログ</a></h1>
+            <h2 class="site-description">努力不一定能获得回报，但不努力一定不会有回报。</h2>
+        </div>
+    </header><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-home" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <polyline points="5 12 3 12 12 3 21 12 19 12" />
+  <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7" />
+  <path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6" />
+</svg>
+
+
+
+                
+                <span>主页</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/%E5%85%B3%E4%BA%8E/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/archives/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/search/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-search" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="10" cy="10" r="7" />
+  <line x1="21" y1="21" x2="15" y2="15" />
+</svg>
+
+
+
+                
+                <span>搜索</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav id="TableOfContents">
+  <ol>
+    <li><a href="#怎样理解平均负载">怎样理解“平均负载”</a>
+      <ol>
+        <li><a href="#平均负载的含义">平均负载的含义</a></li>
+        <li><a href="#平均负载为多少时合理">平均负载为多少时合理</a></li>
+        <li><a href="#平均负载与cpu使用率">平均负载与CPU使用率</a></li>
+        <li><a href="#平均负载案例分析">平均负载案例分析</a>
+          <ol>
+            <li><a href="#准备">准备</a></li>
+            <li><a href="#场景一-cpu-密集型进程">场景一： CPU 密集型进程</a></li>
+            <li><a href="#场景二-io-密集型进程">场景二： I/O 密集型进程</a></li>
+            <li><a href="#场景三大量进程的场景">场景三：大量进程的场景</a></li>
+          </ol>
+        </li>
+        <li><a href="#小结">小结</a></li>
+      </ol>
+    </li>
+    <li><a href="#经常说的cpu上下文切换是什么意思">经常说的CPU上下文切换是什么意思</a>
+      <ol>
+        <li><a href="#cpu上下文切换">CPU上下文切换</a>
+          <ol>
+            <li><a href="#进程上下文切换">进程上下文切换</a></li>
+            <li><a href="#线程上下文切换">线程上下文切换</a></li>
+            <li><a href="#中断上下文切换">中断上下文切换</a></li>
+            <li><a href="#生词">生词</a></li>
+            <li><a href="#小结-1">小结</a></li>
+          </ol>
+        </li>
+        <li><a href="#怎么查看系统的上下文切换情况">怎么查看系统的上下文切换情况</a>
+          <ol>
+            <li><a href="#生词-1">生词</a></li>
+          </ol>
+        </li>
+        <li><a href="#案例分析">案例分析</a>
+          <ol>
+            <li><a href="#前置准备">前置准备</a></li>
+            <li><a href="#操作和分析">操作和分析</a></li>
+            <li><a href="#思考-1">思考</a></li>
+          </ol>
+        </li>
+        <li><a href="#小结-2">小结</a></li>
+      </ol>
+    </li>
+    <li><a href="#某个应用的cpu使用率达到100该如何处理">某个应用的CPU使用率达到100%，该如何处理</a>
+      <ol>
+        <li><a href="#cpu使用率">CPU使用率</a></li>
+        <li><a href="#查看-cpu-使用率">查看 CPU 使用率</a></li>
+        <li><a href="#cpu-使用率过高怎么办">CPU 使用率过高怎么办</a></li>
+        <li><a href="#案例">案例</a>
+          <ol>
+            <li><a href="#准备-1">准备</a></li>
+            <li><a href="#操作和分析-1">操作和分析</a></li>
+          </ol>
+        </li>
+        <li><a href="#小结-3">小结</a></li>
+      </ol>
+    </li>
+  </ol>
+</nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            <a href="/categories/linux/" >
+                Linux
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/">[Linux]性能调优-CPU篇（基础篇）</a>
+        </h2>
+    
+        
+    </div>
+
+    
+    
+    
+    
+    <footer class="article-time">
+        
+            <div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                <time class="article-time--published">2026-01-14</time>
+            </div>
+        
+
+        
+    </footer>
+    
+
+    
+</div>
+
+</header>
+
+    <section class="article-content">
+    
+    
+    <h1 id="linux性能调优-cpu篇基础篇">Linux性能调优-CPU篇（基础篇）
+</h1><h2 id="怎样理解平均负载">怎样理解“平均负载”
+</h2><h3 id="平均负载的含义">平均负载的含义
+</h3><ul>
+<li>了解系统负载的情况</li>
+</ul>
+<p>使用top或者uptime</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">uptime
+</span></span><span class="line"><span class="cl"><span class="c1"># 03:39:46 up  3:16,  1 user,  load average: 0.06, 0.04, 0.06</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image.png"
+	width="886"
+	height="68"
+	srcset="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image_hu_5457da906d73e570.png 480w, /p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image_hu_8bdc156e140c3de4.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="1302"
+		data-flex-basis="3127px"
+	
+></p>
+<ul>
+<li>含义</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">03:39:46    // 当前时间
+</span></span><span class="line"><span class="cl">up  3:16    // 系统运行时间
+</span></span><span class="line"><span class="cl">1 user      // 正在登录用户数
+</span></span><span class="line"><span class="cl">0.06        // 过去1分钟的平均负载
+</span></span><span class="line"><span class="cl">0.04        // 过去5分钟的平均负载
+</span></span><span class="line"><span class="cl">0.06        // 过去15分钟的平均负载
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>了解平均负载的详细解释</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">man uptime
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>帮助文档中平均负载的说明</strong>：</p>
+<blockquote>
+<p>System load averages is the average number of processes that are either in a runnable or uninterruptable state.  A process in a runnable state is either using the CPU or waiting  to  use  the CPU.   A process in uninterruptable state is waiting for some I/O access, eg waiting for disk.  The averages are taken over the three time intervals.  Load averages are not normalized for the number of CPUs in a system, so a load average of 1 means a single CPU system is loaded all the time while on a 4 CPU system it means it was idle 75% of the time.</p>
+</blockquote>
+<p>简单来说，<strong>平均负载</strong>：单位时间内，系统处于<strong>可运行状态</strong>和<strong>不可中断状态</strong>的平均进程数，即平均活跃进程数。</p>
+<p><strong>可运行状态</strong>：正在使用CPU或者正在等待CPU的进程，也就是常用ps命令看到的，处于R状态（Running或Runnable）的进程。</p>
+<p><strong>不可中断状态</strong>：正处于内核态关键流程中的进程，并且这些流程是不可打断的，比如最常见的是等待硬件设备的I/O响应，也就是我们在ps命令中看到的D状态（Uninterruptible Sleep，也称为Disk Sleep）的进程。比如：当一个进程向磁盘读写数据时，为了保证数据的一致性，在磁盘得到回复前，它是不能被其他进程中断打断的，这个时候进程就处于不可中断状态。如果此时的进程被打断了，就容易出现磁盘数据与进程数据不一致的问题。</p>
+<p><strong>不可中断状态实际上是系统对进程和硬件设备的一种保护机制。</strong></p>
+<p><strong>平均负载</strong>：即<strong>平均活跃进程数</strong>，单位时间内的活跃进程数，实际上是活跃进程数的指数衰减平均值。</p>
+<p>平均负载为2:</p>
+<ul>
+<li>在只有2个CPU的系统上，意味着所有CPU都刚好被完全占用。</li>
+<li>在4个CPU的系统上，意味着CPU有50%的空闲。</li>
+<li>而在只有1个CPU的系统中，则意味着有一半的进程竞争不到CPU。</li>
+</ul>
+<h3 id="平均负载为多少时合理">平均负载为多少时合理
+</h3><p>平均负载最理想的情况是<strong>等于CPU个数</strong>。首先需要知道系统有几个CPU，这可以通过top命令或者从文件/proc/cpuinfo</p>
+<ul>
+<li>查询CPU个数</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">grep <span class="s1">&#39;processor&#39;</span> /proc/cpuinfo <span class="p">|</span> wc -l
+</span></span><span class="line"><span class="cl"><span class="c1"># 4</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-1.png"
+	width="834"
+	height="62"
+	srcset="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-1_hu_4417aa41bc0bc10.png 480w, /p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-1_hu_a3c3c7ab55393a33.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="1345"
+		data-flex-basis="3228px"
+	
+></p>
+<p>有了CPU个数之后，就可以判断出，当平均负载比CPU个数还大的时候，系统就已经出现了过载。</p>
+<p>另外，系统提供三个不同时间间隔的平均值，是分析<strong>系统负载趋势</strong>的数据来源，能让我们更全面、更立体地理解目前的负载状况。</p>
+<p>CPU三个负载时间段：</p>
+<ul>
+<li>如果1分钟、5分钟、15分钟的三个值基本相同，或者相差不大，那就说明系统负载很平稳。</li>
+<li>但如果1分钟的值远小于15分钟的值，就说明系统最近1分钟的负载在减少，而过去15分钟内却有很大的负载。</li>
+<li>反过来，如果1分钟的值远大于15分钟的值，就说明最近1分钟的负载在增加，这种增加有可能只是临时性的，也有可能还会持续增加下去，所以就需持续观察。一旦1分钟的平均负载接近或超过了CPU的个数，就意味着系统正在发生过载的问题，这时就得分析调查是哪里导致的问题，并要想办法优化。</li>
+</ul>
+<p>举例说明：假设在一个单CPU系统上看到平均负载为1.73，0.60，7.98，那么说明在过去1分钟内，系统有73%的超载，而在15分钟内，有698%的超载，从整体趋势来看，系统的负载在降低，</p>
+<h4>实际生产环境中，平均负载多高时，需要重点关注？</h4>
+<p><strong>当平均负载高于CPU数量70%的时候</strong>，就应该分析排查负载高的问题了。一旦负载过高，就可能导致进程响应变慢，进而影响服务的正常功能。</p>
+<p><strong>最推荐的是</strong>：把系统的平均负载监控起来，然后根据更多的历史数据，判断负载的变化趋势。当发现负载有明显升高趋势时，比如负载翻倍了，再去做分析和调查。</p>
+<h3 id="平均负载与cpu使用率">平均负载与CPU使用率
+</h3><p>平均负载与CPU使用率的区分。</p>
+<p>平均负载是指：单位时间内，处于可运行状态和不可中断状态的进程数。所以，它不仅包括了<strong>正在使用CPU</strong>的进程，还包括<strong>等待CPU和等待I/O</strong>的进程。</p>
+<p>CPU使用率：单位时间内CPU繁忙情况的统计。它与平均负载并不一定完全对应。</p>
+<p>比如：</p>
+<ul>
+<li>CPU密集型进程，使用大量CPU会导致平均负载升高，此时这两者是一致的；</li>
+<li>I/O密集型进程，等待I/O也会导致平均负载升高，但CPU使用率不一定很高；</li>
+<li>大量等待CPU的进程调度也会导致平均负载升高，此时的CPU使用率也会比较高。</li>
+</ul>
+<h3 id="平均负载案例分析">平均负载案例分析
+</h3><p>以三个案例来分别看这三种情况，并用iostat、mpstat、ipdstat等工具，找出平均负载升高的根源。</p>
+<h4 id="准备">准备
+</h4><p>环境配置：</p>
+<ul>
+<li>服务器配置：2 CPU，4GB 内存 ubuntu 20</li>
+<li>预先安装stress和sysstat包</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo apt install stress sysstat
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>stress</strong>： Linux系统压力测试工具，用作异常进程模拟平均负载升高的场景。</p>
+<p><strong>sysstat</strong>：包含常用的Linux性能工具，用来监控和分析系统的性能。这里会用到里面的<em>mpstat</em>和<em>pidstat</em>。</p>
+<p><em>mpstat</em>：是一个常用的多核CPU性能分析工具，用来实时查看每个CPU的性能指标，以及所有CPU的平均指标。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">mpstat <span class="o">[</span>选项<span class="o">]</span> &lt;时间间隔&gt; &lt;次数&gt;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><em>pidstat</em>：是一个常用的进程性能分析工具，用来实时查看进程的CPU、内存、I/O以及上下文切换等性能指标。</p>
+<ul>
+<li>pidstat语法</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">pidstat <span class="o">[</span>选项<span class="o">]</span> &lt;时间间隔&gt; &lt;次数&gt;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>此外，每个场景都需要开四个终端，登陆到同一台Linux机器中。</p>
+<ul>
+<li>查看测试前的平均负载</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">uptime 
+</span></span><span class="line"><span class="cl"><span class="c1">#  08:03:05 up 46 min,  4 users,  load average: 0.00, 0.02, 0.00</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>切换到root账号</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo su root
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="场景一-cpu-密集型进程">场景一： CPU 密集型进程
+</h4><ol>
+<li>终端一：运行 stress 命令，模拟一个 CPU 使用率 100% 的场景</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">stree --cpu <span class="m">1</span> --timeout <span class="m">600</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-2.png"
+	width="922"
+	height="142"
+	srcset="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-2_hu_d3b6ffd47145585e.png 480w, /p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-2_hu_33fc3ea880758a3e.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="649"
+		data-flex-basis="1558px"
+	
+></p>
+<ol start="2">
+<li>终端二：运行 uptime，查看平均负载的变化情况</li>
+</ol>
+<p><code>-d</code>：表示高亮显示变化的区域</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">watch -d uptime
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-5.png"
+	width="904"
+	height="154"
+	srcset="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-5_hu_e1964806fc95b07a.png 480w, /p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-5_hu_6e7f5efa2f2923c6.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="587"
+		data-flex-basis="1408px"
+	
+></p>
+<ol start="3">
+<li>终端三：运行 mpstat，查看 CPU 使用率的变化情况：</li>
+</ol>
+<p><code>-P ALL</code>： 表示监控所有CPU，后面数字5表示间隔5秒后输出一组数据</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">mpstat -P ALL <span class="m">5</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-6.png"
+	width="1370"
+	height="272"
+	srcset="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-6_hu_91e9a6fe19f194f8.png 480w, /p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-6_hu_da8618bf7eaf49f0.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="503"
+		data-flex-basis="1208px"
+	
+></p>
+<p>从终端二中可以看到，1 分钟的平均负载会慢慢增加到 1.00，而从终端三中还可以看到，正好有一个 CPU 的使用率为 100%，但它的 iowait 只有 0。这说明，平均负载的升高正是由于 CPU 使用率为 100% 。</p>
+<ul>
+<li>终端四：使用 pidstat，查询哪个进程导致 CPU 使用率为 100%</li>
+</ul>
+<p><code>-u</code>：表示CPU指标</p>
+<p><code>5 1</code>：表示间隔5秒后输出一组数据</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">pidstat -u <span class="m">5</span> <span class="m">1</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-7.png"
+	width="1214"
+	height="216"
+	srcset="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-7_hu_6d44733cdae4ac29.png 480w, /p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-7_hu_f9cc9f9d85c95a0e.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="562"
+		data-flex-basis="1348px"
+	
+></p>
+<p>从这里可以明显看到，stress 进程的 CPU 使用率为 100%。</p>
+<h4 id="场景二-io-密集型进程">场景二： I/O 密集型进程
+</h4><ol>
+<li>终端一：运行 stress 命令，但这次模拟I/O压力，即不停地执行 sync</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">stress -i <span class="m">1</span> --timeout <span class="m">600</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-9.png"
+	width="914"
+	height="118"
+	srcset="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-9_hu_d62f7c06f69266ef.png 480w, /p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-9_hu_2da1e6169bb26311.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="774"
+		data-flex-basis="1858px"
+	
+></p>
+<ol start="2">
+<li>终端二：运行 uptime 命令，查看平均负载的变化情况</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">watch -d uptime
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-12.png"
+	width="882"
+	height="144"
+	srcset="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-12_hu_35d38de78a86c19f.png 480w, /p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-12_hu_7478f1a0387910f4.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="612"
+		data-flex-basis="1470px"
+	
+></p>
+<ol start="3">
+<li>终端三：运行 mpstat 命令，查看 CPU使用率的变化情况</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">mpstat -P ALL <span class="m">5</span> <span class="m">1</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-10.png"
+	width="1382"
+	height="258"
+	srcset="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-10_hu_d5b16708c252a521.png 480w, /p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-10_hu_9782314538eee475.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="535"
+		data-flex-basis="1285px"
+	
+></p>
+<p>从这里可以看到，1分钟的平均负载会慢慢加到1，其中一个CPU的系统 CPU 使用率升高到了98.40，iowait为0，偶尔会加一点（这个和老师的结果展示不一致，他显示的是%sys为23.87，%iowait为67.53）。我这边只能说明，平均负载的升高是由于%sys升高导致的，而他的为%iowait升高导致的。</p>
+<ol start="4">
+<li>终端四：运行 pidstat 命令</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">pidstat -u <span class="m">5</span> <span class="m">1</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-11.png"
+	width="1192"
+	height="216"
+	srcset="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-11_hu_886491e684e5c959.png 480w, /p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-11_hu_627ad3621f0a0203.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="551"
+		data-flex-basis="1324px"
+	
+></p>
+<p>可以发现，还是 stress 进程导致的。</p>
+<h4 id="场景三大量进程的场景">场景三：大量进程的场景
+</h4><p>当系统中运行进程超出CPU运行能力时，就会出现等待CPU的进程。</p>
+<ol>
+<li>终端一：使用 stress 命令，模拟8个进程执行计算密集型任务</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">stress -c <span class="m">8</span> --timeout <span class="m">600</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-13.png"
+	width="930"
+	height="112"
+	srcset="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-13_hu_cdc37e2c0d4c4cf0.png 480w, /p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-13_hu_cdbaf72f99575d1b.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="830"
+		data-flex-basis="1992px"
+	
+></p>
+<ol start="2">
+<li>终端二：使用 uptime 命令，查看平均负载的情况</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">watch -d uptime
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-16.png"
+	width="890"
+	height="142"
+	srcset="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-16_hu_e78939ec569093e5.png 480w, /p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-16_hu_32d5078ee68e41c5.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="626"
+		data-flex-basis="1504px"
+	
+></p>
+<p>由于系统只有2个CPU，明显比8个进程要少得多，因而，系统的CPU处于严重过载状态。平均负载高达7.96。</p>
+<ol start="3">
+<li>终端三：使用 pidstat命令，来查看进程的情况</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">pidstat -u <span class="m">5</span> <span class="m">1</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-15.png"
+	width="1180"
+	height="458"
+	srcset="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-15_hu_d40c0b0298712985.png 480w, /p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-15_hu_51c3858561d4b4e1.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="257"
+		data-flex-basis="618px"
+	
+></p>
+<p>可以看出，8个进程在争抢2个CPU，每个进程等待 CPU 的时间（也就是代码块中的 %wait 列）高达75%。这些超出 CPU 计算能力的进程，最终导致 CPU 的过载。</p>
+<h3 id="小结">小结
+</h3><p>平均负载的理解：</p>
+<p>平均负载提供了一个快速查看系统整体性能的手段，反映了整体的负载情况。但只看平均负载本身，我们并不能直接发现，到底是哪里出现了瓶颈。所以，在理解平均负载时，也要注意：</p>
+<ul>
+<li>平均负载高有可能是 CPU 密集型进程导致的；</li>
+<li>平均负载高并不一定 CPU 使用率高，还有可能是I/O更繁忙了；</li>
+<li>当发现负载高的时候，可以使用 mpstat、pidstat 等工具，辅助分析负载的来源。</li>
+</ul>
+<h2 id="经常说的cpu上下文切换是什么意思">经常说的CPU上下文切换是什么意思
+</h2><h3 id="cpu上下文切换">CPU上下文切换
+</h3><p><strong>多个进程竞争CPU</strong>就是造成平均负载过载的其中<strong>一个原因</strong>。</p>
+<p>那么，进程在竞争CPU的时候并没有真正运行，为什么还会导致系统的负载升高呢？原因就是因为<strong>CPU上下文切换</strong></p>
+<p>Linux是一个多任务操作系统，它支持远大于 CPU 数量的任务同时运行。当然，这些任务实际上并不是真的在同时运行，而是因为系统在很短的时间内，将 CPU 轮流分配给它们，造成多任务同时运行的错觉。</p>
+<p>而在每个任务运行前，CPU 都需要知道任务从哪里加载、又从哪里开始运行，也就是说，需要系统事先帮它设置好<strong>CPU 寄存器和程序计数器</strong></p>
+<p><em>CPU 寄存器</em>：CPU 内置的、容量小但速度极快的内存。
+<em>程序计数器</em>：用来存储 CPU 正在执行的指令位置、或即将执行的下一条指令位置。</p>
+<p>它们都是CPU在运行任何任务前，必须的依赖环境，因此也被叫做<strong>CPU 上下文</strong></p>
+<p><img src="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-17.png"
+	width="438"
+	height="345"
+	srcset="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-17_hu_ba6418ec36edf4e6.png 480w, /p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-17_hu_ab0faf7897ffa159.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="126"
+		data-flex-basis="304px"
+	
+></p>
+<p><strong>CPU 上下文切换</strong>：就是先把前一个任务的 CPU 上下文（也就是 CPU 寄存器和程序计数器）保存起来，然后加载新任务的上下文到这些寄存器和程序计数器，最后再跳转到程序计数器所指的新位置，运行新任务。而这些保存下来的上下文，会存储在系统内核中，并在任务重新调度执行时再次加载进来。这样就保证了原来的状态不受影响，让任务看起来还是在<strong>连续执行</strong>。</p>
+<p>CPU上下文切换就是更新了 CPU 寄存器的值。但这些寄存器，本身就是为了快速运行任务而设计的，为什么会影响CPU的性能呢？</p>
+<p><strong>根据任务不同</strong>：CPU上下文切换也可分为，<em>进程上下文切换</em>、<em>线程上下文切换</em>、<em>中断上下文切换</em>。</p>
+<h4 id="进程上下文切换">进程上下文切换
+</h4><p>Linux 按照特权等级，把进程的运行空间分为<strong>内核空间</strong>和<strong>用户空间</strong>，分别对应下图中，CPU特权等级的Ring 0和Ring 3。</p>
+<ul>
+<li>内核空间（Ring 0）：具有最高权限，可以直接访问所有资源。</li>
+<li>用户空间（Ring 3）：只能访问受限资源，不能直接访问内存等硬件设备，必须通过系统调用陷入到内核中，才能访问这些特权资源。</li>
+</ul>
+<p><img src="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-18.png"
+	width="321"
+	height="312"
+	srcset="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-18_hu_94b105ee5935d159.png 480w, /p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-18_hu_c4d3dc8aa102c294.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="102"
+		data-flex-basis="246px"
+	
+></p>
+<p>也就是说，进程即可以在用户空间运行，又可以在内核空间中运行。进程在用户空间运行时，被称为<strong>进程的用户态</strong>，而陷入内核空间的时候，被称为<strong>进程的内核态</strong>。</p>
+<p>从用户态到内核态的转变，都需要<strong>系统调用</strong>来完成。比如，产看文件内容时，就需要多次系统调用来完成：首先调用open()打开文件，然后调用read()读取文件内容，并调用write()将内容写到标准输出，最后再调用close()关闭文件。</p>
+<p>那么，<u>系统调用的过程中有没有发生 CPU 上下文切换呢？</u>自然是有的。</p>
+<blockquote>
+<p>系统调用中的 CPU 上下文切换：</br>（1）CPU寄存器里原来用户态的指令位置，需要先保存起来。接着，为了执行内核态代码，CPU 寄存器需要更新为内核态指令的新位置。最后才是跳转到内核态运行内核任务。</br>（2）而系统调用结束后，CPU 寄存器需要<em>恢复</em>原来保存的用户态，然后切换到用户空间，继续运行进程。</br><strong>所以，一次系统调用的过程，其实是发生了两次CPU上下文切换。</strong></p>
+</blockquote>
+<p><strong>其中，用户态切换成内核态和内核态切换成用户态就是CPU上下文切换。</strong></p>
+<p>不过，<u>系统调用过程中，并不会涉及虚拟内存等进程用户态的资源，也不会切换进程：</u></p>
+<ul>
+<li>进程上下文切换，是指从一个进程切换到另一个进程运行。</li>
+<li>而系统调用过程中一直是同一个进程在运行。</li>
+</ul>
+<p>所以，<strong>系统调用过程通常称为特权模式切换，而不是上下文切换</strong>。但实际上，系统调用过程中，CPU 的上下文切换还是无法避免的。</p>
+<p><u>进程的上下文切换和系统调用有什么区别呢？</u>
+由于进程是<u>由内核来管理和调度</u>的，进程的切换<u>只能发生在内核态</u>。所以，进程的上下文不仅包括了虚拟内存、栈、全局变量等用户空间的资源，还包括了内核堆栈、寄存器等内核空间的状态。</p>
+<p>因此，进程的上下文切换就比系统调用时多了一步：在保存当前进程的内核状态和 CPU 寄存器之前，需要先把该进程的虚拟内存、栈等保存下来；而加载了下一进程的内核态后，还要刷新进程的虚拟内存和用户栈。</p>
+<p>如下图所示，保存上下文和恢复上下文的过程并不是“免费”的，需要内核在 CPU 上运行才能完成。</p>
+<p><img src="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-19.png"
+	width="966"
+	height="186"
+	srcset="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-19_hu_9a654d1fa1fb20b6.png 480w, /p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-19_hu_f8da1ca02a1d54b.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="519"
+		data-flex-basis="1246px"
+	
+></p>
+<p>每次上下文切换都需要几十纳秒到数微秒的CPU时间。但是，当进程上下文切换次数较多的情况下，很容易导致 CPU <u>将大量时间耗费在寄存器、内核栈以及虚拟内存等资源的保存和恢复上</u>，从而大大缩短了真正运行进程的时间。这也是<strong>导致平均负载升高</strong>的一个因素。</p>
+<p>TLB（Translation Lookaside Buffer）：Linux用来管理虚拟内存到物理内存的映射关系。
+<u>当虚拟内存更新后，TLB也需要刷新，内存的访问也会随之变慢。</u>特别是多处理系统上，缓存是被多个处理器共享的，刷新共享的，刷新缓存不仅会影响当前处理器的进程，也会影响共享缓存的其他处理器的进程。</p>
+<p>显然，进程切换时才需要切换上下文，也就是说，<strong>只有在进程调度</strong>的时候，才需要切换上下文。Linux为每一个CPU都维护了一个<u>就绪队列</u>：将活跃进程（即正在运行和正在等待 CPU 的进程）按照优先级和等待 CPU 的时间排序，然后选择最需要 CPU 的进程，也就是优先级最高和等待 CPU 时间最长的进程来运行。</p>
+<p>那么，<u>进程在什么时候才会被调度到 CPU 上运行呢？</u></p>
+<p>触发进程调度的场景：</p>
+<ol>
+<li>
+<p><strong>进程终止</strong>：进程执行终止后，它之前使用的 CPU 会释放出来，这个时候再从就绪队列里，拿一个新的进程过来运行。（最常见）</p>
+</li>
+<li>
+<p><strong>时间片耗尽</strong>：为保证所有进程可以得到公平调度，CPU 时间被划分为一段段时间片，这些时间片再被轮流分配给各个进程。当某个进程的时间片耗尽后，就会被系统挂起，切换到其它正在等待 CPU 的进程运行。</p>
+</li>
+<li>
+<p><strong>资源不足</strong>：进程在系统资源不足（比如内存不足）时，要等到资源满足后才可以运行，这个时候进程也会被挂起，并由系统调度其它进程运行。</p>
+</li>
+<li>
+<p><strong>睡眠函数</strong>：当进程通过睡眠函数 sleep 这样的方法将自己主动挂起时，自然也会重新调度。</p>
+</li>
+<li>
+<p><strong>优先级</strong>：当有优先级更高的进程运行时，为了保证优先级进程的运行，当前进程会被挂起，由高优先级进程来运行。</p>
+</li>
+<li>
+<p><strong>硬件中断</strong>：发生硬件终端时，CPU上的进程会被中断挂起，转而执行内核中的中断服务程序。</p>
+</li>
+</ol>
+<h4 id="线程上下文切换">线程上下文切换
+</h4><p>进程上下文切换一定会进行线程上下文切换。</p>
+<p>线程与进程最大的区别：<strong>线程是调度的基本单位，而进程则是资源拥有的基本单位</strong>（线程是调度的最小单位，进程是资源拥有的最小单位）。说白了，所谓内核中的任务调度，实际上的调度对象是线程；而进程只是给线程提供了虚拟内存、全局变量等资源。所以，对于线程和进程，我们可以理解：</p>
+<ul>
+<li>当进程只有一个线程时，可以认为进程等于线程。</li>
+<li>当进程拥有多个线程时，这些线程会共享相同的虚拟内存和全局变量等资源。这些资源在上下文切换时是不需要修改的。</li>
+<li>另外，线程也有自己的私有数据，比如栈和寄存器等，这些在上下文切换时也是需要保存的。</li>
+</ul>
+<p>所以，线程的上下文也是被分成两种情况：</p>
+<ol>
+<li>
+<p><strong>前后两个线程属于不同进程</strong>。此时，因为资源不共享，所以切换过程就跟进程上下文一样。（即是线程的上下文切换又是进程的上下文切换。）</p>
+</li>
+<li>
+<p><strong>前后两个线程属于同一个进程</strong>。此时，因为虚拟内存是共享的，所以在切换时，虚拟内存这些资源就保持不动，只需要切换线程的私有数据、寄存器等不共享的数据。</p>
+</li>
+</ol>
+<p>虽然同为上下文切换，但同进程内的线程切换，要比多进程间的切换消耗更少的资源，而这，也正是<strong>多线程替代多进程</strong>的一个优势。</p>
+<h4 id="中断上下文切换">中断上下文切换
+</h4><p>为了快速响应硬件的事件，<strong>中断处理会打断进程调度的中断和执行</strong>，转而调用中断处理程序，响应设备事件。而在打断其它进程时，就需要将进程当前的状态保存下来，这样中断结束后，进程仍然可以从原来的状态恢复运行。</p>
+<p>跟进程上下文不同，中断上下文切换并不涉及到进程的用户态。所以，<u>即便中断过程打断了一个正处在用户态的进程，也不需要保存和恢复这个进程的虚拟内存、全局变量等用户态资源</u>。<strong>中断上下文</strong>，其实<u>只包括内核态中断服务程序执行所必需的状态，包括 CPU 寄存器、内核堆栈、硬件中断参数等</u>。</p>
+<p><strong>对同一个CPU来说，中断处理比进程拥有更高的优先级</strong>，所以中断上下文切换并不会比与进程上下文切换同时发生。同样道理，由于中断会打断正常进程的调度和执行，所以大部分中断处理程序都短小精悍，以便尽可能快的执行结束。</p>
+<h5 id="思考">思考
+</h5><p>即然进程上下文切换，必定会进行线程上下文切换，那么进程上下文切换是不是就是线程上下文切换呢？但是线程上下文切换不一定切换进程执行，那么线程上下文切换不一定是进程上下文切换。即然中断上下文切换会打断进程，那么中断上下文切换是不是也就是进程上下文切换。</p>
+<h4 id="生词">生词
+</h4><ul>
+<li>lookaside buffer ： 旁路缓存。</li>
+</ul>
+<h4 id="小结-1">小结
+</h4><ol>
+<li>
+<p>CPU上下文切换，是保证 Linux 系统正常工作的核心功能之一，一般情况下不需要我们特别关注。</p>
+</li>
+<li>
+<p>但过多的上下文切换，会把 CPU 时间消耗在寄存器、内存栈以及虚拟内存等数据的保存和恢复上，从而缩短进程真正运行的时间，导致系统的整体性能大幅下降。</p>
+</li>
+</ol>
+<h3 id="怎么查看系统的上下文切换情况">怎么查看系统的上下文切换情况
+</h3><p>背景：过多上下文切换，会把CPU时间<u>消耗在寄存器、内核栈以及虚拟内存等数据的保存和恢复上</u>，缩短进程真正运行的时间，导致系统性能大幅度下降。</p>
+<p><u>如何查看上下文切换？</u></p>
+<p>可以使用<strong>vmstat</strong>这个工具，来查询系统的上下文切换。</p>
+<p>vmstat：一个常用的系统性能分析工具，主要用来分析系统的内存使用情况，也常用来分析 CPU 上下文切换和中断的次数。</p>
+<ul>
+<li>vmstat使用示例</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 每隔5秒输出一组数据</span>
+</span></span><span class="line"><span class="cl">vmstat <span class="m">5</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-20.png"
+	width="1156"
+	height="182"
+	srcset="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-20_hu_f401c27611d425b8.png 480w, /p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-20_hu_14cfa19625fcbc61.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="635"
+		data-flex-basis="1524px"
+	
+></p>
+<p>重点关注以下4列内容：</p>
+<ul>
+<li>cs（context switch）是每秒上下文切换的次数</li>
+<li>in（interrupt）是每秒中断的次数</li>
+<li>r（Running or Runnable）是就绪队列的长度，也就是正在运行和等待 CPU 的进程数。</li>
+<li>b（Blocked）是处于不可中断睡眠状态的进程数。</li>
+</ul>
+<p>可以看到上图中上下文切换的次数是36，而系统中断的次数是33，就绪队列长度r为1，不可中断进程数b是0。</p>
+<p>vmstat只给出了系统总体的上下文切换情况，要想查看每个进程的详细情况，就需要使用<code>pidstat</code>。给它加上<code>-w</code>选项，就能查看每个进程上下文切换的情况。</p>
+<ul>
+<li>每隔5秒输出一组进程上下文切换的情况</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">pidstat -w <span class="m">5</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-21.png"
+	width="1230"
+	height="520"
+	srcset="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-21_hu_f05ee01764d7f28b.png 480w, /p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-21_hu_bf14e65df9e16f1f.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="236"
+		data-flex-basis="567px"
+	
+></p>
+<p>上图重点关注的内容：</p>
+<ul>
+<li>
+<p><code>cswch/s</code>（voluntary context switches）：表示每秒自愿上下文切换的次数。</p>
+</li>
+<li>
+<p><code>nvcswch</code>（non voluntary context switches）：表示每秒非自愿上下文切换的次数。</p>
+</li>
+</ul>
+<p><strong>它们意味着不同的性能问题：</strong></p>
+<ul>
+<li>
+<p>所谓<strong>自愿上下文切换</strong>，是指<u>进程无法获取所需资源，导致上下文切换</u>。比如说，I/O、内存等系统资源不足时，就会发生自愿上下文切换。</p>
+</li>
+<li>
+<p>而<strong>非自愿上下文切换</strong>，则是指<u>进程由于时间片已到等原因，被系统强制调度，进而发生的上下文切换</u>。比如说，大量进程都在争抢 CPU 时，就容易发生非自愿上下文切换。</p>
+</li>
+</ul>
+<h4 id="生词-1">生词
+</h4><ul>
+<li>voluntary：adj、自愿的</li>
+</ul>
+<h3 id="案例分析">案例分析
+</h3><p>问题：上下文切换频率是多少次才算正常呢？接下来就通过案例实战演练，来分析并找出这个标准。</p>
+<h4 id="前置准备">前置准备
+</h4><p>案例环境：</p>
+<ul>
+<li>机器配置：2 CPU，4 GB内存，ubuntu 20.04.5。（老师的环境是2 CPU，8 GB内存）</li>
+<li>预先安装 sysbench 和 sysstat 包</li>
+</ul>
+<p>开始之前，需要三个终端，登陆到同一台 Linux 机器中，并做好上述环境的安装。</p>
+<ul>
+<li>切换到root用户</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo su root
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>安装sysbench和sysstat</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo apt install -y sysbench sysstat
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>安装完成后，可以先用vmstat查看空闲系统的上下文切换次数：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">vmstat <span class="m">1</span> <span class="m">1</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-22.png"
+	width="1156"
+	height="136"
+	srcset="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-22_hu_2fb26e761f64d6a2.png 480w, /p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-22_hu_90bf823f32759042.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="850"
+		data-flex-basis="2040px"
+	
+></p>
+<p>这里可以看到，现在上下文切换次数 cs 是 33（老师的是35），而中断次数 in 是29（老师的是19），r 和 b 都是 0。因为这会儿我并没有运行其它命令，所以它们就是空闲系统的上下文切换次数。</p>
+<h4 id="操作和分析">操作和分析
+</h4><ol>
+<li>终端1：运行 sysbench 命令，模拟系统多线程调度的瓶颈：</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 以10个线程运行5分钟的基准测试</span>
+</span></span><span class="line"><span class="cl">sysbench --thread<span class="o">=</span><span class="m">10</span> --max-time<span class="o">=</span><span class="m">300</span> threads run
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-23.png"
+	width="1068"
+	height="434"
+	srcset="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-23_hu_75ad78821f55f3a7.png 480w, /p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-23_hu_32064e552e2e1e1d.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="246"
+		data-flex-basis="590px"
+	
+></p>
+<ol start="2">
+<li>终端2：运行 vmstat 命令，观察上下文切换情况：</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 每隔1秒输出1组数据</span>
+</span></span><span class="line"><span class="cl">vmstat <span class="m">1</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-24.png"
+	width="1240"
+	height="270"
+	srcset="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-24_hu_9133556d3a07d216.png 480w, /p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-24_hu_58af6a7af4b085ca.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="459"
+		data-flex-basis="1102px"
+	
+></p>
+<p>可以发现，cs列的上下文切换次数从之前的33迅速上升到了262万（2625260）。同时，注意观察其它几个指标：</p>
+<ul>
+<li>
+<p>r列：就绪队列的长度已经到了9，远远超过了系统 CPU 的个数 2，所以肯定会有大量的 CPU 竞争。</p>
+</li>
+<li>
+<p>us（user）和 sy（system）列：这两列的 CPU 使用率加起来上升到了 100%，其中系统 CPU 使用率，也就是 sy 列高达80%，说明 CPU 主要是被内核占用了。</p>
+</li>
+<li>
+<p>in 列：中断次数也上升到了 13万（134129） 左右，说明中断处理也是个潜在的问题。</p>
+</li>
+</ul>
+<p>综合这几个指标，我们可以知道，系统的就绪队列过长，也就是正在运行和等待 CPU 的进程数过多，导致了大量的上下文切换，而上下文切换又导致系统 CPU 的占用率升高。</p>
+<ol start="3">
+<li>终端3：运行 pidstat 命令，查看 CPU 和进程上下文切换的情况：</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 每隔1秒输出1组数据（需要 Ctrl+C 才结束）</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># -w参数表示输出进程切换指标，而-u参数则表示输出CPU使用指标</span>
+</span></span><span class="line"><span class="cl">pidstat -w -u <span class="m">1</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-25.png"
+	width="1304"
+	height="692"
+	srcset="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-25_hu_cfed84c255dd9426.png 480w, /p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-25_hu_f8767683dc36cd69.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="188"
+		data-flex-basis="452px"
+	
+></p>
+<p><img src="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-26.png"
+	width="1220"
+	height="526"
+	srcset="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-26_hu_d7905d9e84569e7c.png 480w, /p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-26_hu_4fb042cdc33a7952.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="231"
+		data-flex-basis="556px"
+	
+></p>
+<p>从<code>pidstat</code>的输出可以发现，CPU 使用率的升高果然是 sysbench 导致的，它的 CPU 使用率已经达到了 189.11%。但上下文切换则是来自其它进程，包括非自愿上下文切换频率最高的 pidstat，以及自愿上下文切换频率最高的内核线程是 kworker（老师最高的是 kworker 和 sshd，我的 sshd 倒是没有超过10）。</p>
+<p>但是，pidstat 输出的上下文切换次数，加起来也就几百，比vmstat 的 262 万明显小太多了，这是什么原因？</p>
+<p>因为Linux 调度的基本单位实际上是线程，而我们的场景 sysbench 模拟的也是线程的调度问题，<u>而 pidstat 默认只显示进程的指标数据，加上<code>-t</code>参数后才会输出线程的指标</u>。</p>
+<ol start="4">
+<li>终端三：加上<code>-t</code>参数重新运行 pidstat 命令。</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 每隔1秒输出一组数据（需要 Ctrl+C 才结束）</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># -wt 参数表示输出线程的上下文切换指标</span>
+</span></span><span class="line"><span class="cl">pidstat -wt <span class="m">1</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-27.png"
+	width="1398"
+	height="1212"
+	srcset="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-27_hu_f2b62b09deceec20.png 480w, /p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-27_hu_c4d8cf8dd20cd2cd.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="115"
+		data-flex-basis="276px"
+	
+></p>
+<p><img src="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-28.png"
+	width="1394"
+	height="1352"
+	srcset="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-28_hu_ac3e0d6687b01711.png 480w, /p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-28_hu_b896b6992e17c2db.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="103"
+		data-flex-basis="247px"
+	
+></p>
+<p>这样就能看到线程了，<u>虽然有时候 kworker/u4:2-events_power_efficient 进程（也就是sysbench主进程）的上下文切换次数看起来并不多，但它的子线程的上下文切换次数却有很多</u>。看来，上下文切换罪魁祸首，还是过多的sysbench 线程。</p>
+<p>那么，到这里就已经找到了上下文切换次数增多的根源。但是除了上下文切换频率突然升高，中断次数也快速上升到了十几万，接下来还需要找到中断次数上升的源头以及发生的中断类型。</p>
+<p><u>即然是中断，那么它只会发生在内核态</u>，而 pidstat 只是一个进程的性能分析工具，并不提供任何关于中断的详细信息，怎样才能知道中断发生的类型呢？</p>
+<p>从只读文件<code>/proc/interrupts</code>中读取。<code>/proc</code>实际上是 Linux 的一个虚拟文件系统，用于内核空间与用户空间之间的通信。<code>/proc/interrupts</code>就是这种通信机制的一部分，提供了一个只读的中断使用情况。</p>
+<ol start="5">
+<li>终端3：停止 pidstat 命令，并运行 cat 命令，观察中断的变化情况：</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># -d 表示高亮显示变化的区域</span>
+</span></span><span class="line"><span class="cl">watch -d cat /proc/interrupts
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>变化速度最快的是下面这行：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">IPI0:  47476857   48795031       Rescheduling interrupts
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>可以看到，变化数据最快的是<strong>重调度中断</strong>（Rescheduling interrupts，RES），这个中断类型表示，唤醒空闲状态的 CPU 来调度新的任务运行。<u>这是多处理器系统（SMP）中，调度器用来分散任务到不同 CPU 的机制</u>，通常也被称为<strong>处理器间中断</strong>（Inter-Processor Interrupts，IPI）。</p>
+<p>所以，这里中断升高还是因为过多任务的调度问题，跟前面上下文切换次数的分析结果是一致的。</p>
+<p>那么，每秒上下文切换多少次才算正常？</p>
+<p><strong>这个数值其实取决于系统本身的 CPU 性能</strong>。如果系统的上下文切换次数比较稳定，那么从数百到一万以内，都应该是正常的。但当上下文切换次数超过一万次，或者切换次数出现数量级的增长时，就很可能已经出现了性能问题。</p>
+<p>此时，还需要根据上下文切换的类型，再做具体分析。比方说：</p>
+<ul>
+<li>
+<p>自愿上下文切换变多了，说明进程都在等待资源，有可能发生了I/O等其它问题。</p>
+</li>
+<li>
+<p>非自愿上下文切换变多了，说明进程都在被强制调度，也就是都在争抢 CPU，说明 CPU 的确成了瓶颈。</p>
+</li>
+<li>
+<p>中断次数变多了，说明 CPU 被中断处理程序占用，还需要通过查看<code>/proc/interrupts</code>文件来分析具体的中断类型。</p>
+</li>
+</ul>
+<h4 id="思考-1">思考
+</h4><p>在使用watch命令时，发现watch命令无法翻页或上下移动，这样当输出的内容超出屏幕后，就无法查看超出屏幕的内容了，这样的话如何去处理？</p>
+<h3 id="小结-2">小结
+</h3><p>通过一个 sysbench 的案例，对上下文切换问题的分析思路。碰到上下文切换次数过多的问题时，我们可以借助 <strong>vmstat</strong> 、 <strong>pidstat</strong> 和 <strong>/proc/interrupts</strong> 等工具，来辅助排查性能问题的根源。</p>
+<h2 id="某个应用的cpu使用率达到100该如何处理">某个应用的CPU使用率达到100%，该如何处理
+</h2><p>CPU使用率是单位时间内CPU使用情况的统计，以百分比的方式展示。</p>
+<h3 id="cpu使用率">CPU使用率
+</h3><p>Linux 作为一个多任务操作系统，将每个 CPU 的时间划分为很短的时间片，再通过调度器轮流分配给各个任务使用，因此造成多任务同时运行的错觉。</p>
+<p>为了维护 CPU 时间，Linux 通过事先定义的节拍率（内核中表示为 HZ），触发时间中断，并使用全局变量 Jiffies 记录了开机以来的节拍数。每发生一次时间中断，Jiffies 就加1。</p>
+<p>节拍率 HZ 是内核的可选项，可以设置成 100、250、1000 等。不同的系统可能设置成不同的数值，可以通过查询<code>/boot/config</code>内核选项来查看它的配置值。</p>
+<ul>
+<li>查询节拍率</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">grep <span class="s1">&#39;CONFIG_HZ=&#39;</span> /boot/config-<span class="k">$(</span>uname -r<span class="k">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-29.png"
+	width="980"
+	height="66"
+	srcset="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-29_hu_27ed55c5af0d905e.png 480w, /p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-29_hu_1d228577a8bb32dc.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="1484"
+		data-flex-basis="3563px"
+	
+></p>
+<p>可以看到，我的系统中<strong>节拍率为250，也就是每秒钟触发250次时间中断</strong>。</p>
+<p>同时，正因为节拍率 HZ 是内核选项，所以用户空间程序并不能直接访问。为了方便用户空间程序，内核还提供了一个用户空间节拍率 USER_HZ，它总是固定为 100，也就是 1/100 秒。这样，用户空间程序并不需要关心内核中 HZ 被设置成了多少，因为它看到的总是固定值 USER_HZ。</p>
+<p>Linux 通过<code>/proc</code>虚拟文件系统，向用户空间提供了系统内部状态的信息，而<code>/proc/stat</code>提供的就是系统的 CPU 和任务统计信息。比方说，如果只想查看CPU的信息，可以执行以下命令：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 只保留各个CPU的数据</span>
+</span></span><span class="line"><span class="cl">cat /proc/stat <span class="p">|</span> grep ^cpu
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-30.png"
+	width="764"
+	height="134"
+	srcset="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-30_hu_e49894cff0d25598.png 480w, /p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-30_hu_be3c868cd5ba2ac.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="570"
+		data-flex-basis="1368px"
+	
+></p>
+<p>这里的输出结果是一个表格。其中，第一列表示的是 CPU 编号，如 cpu、cpu0、cpu1，而第一行没有编号的cpu，表示的是所有CPU的累加。其他列表示不同场景下 CPU 的累加节拍数，它的单位是 USER_HZ，也就是 10ms（1/100秒），所以这其实是不同场景下的CPU时间。</p>
+<p>当然，这里每一列的顺序并需要背下来。需要的时候，查询<code>man proc</code>就可以。不过，需要清楚<code>man proc</code>文档里每一列的含义，它们都是 CPU 使用率相关的重要指标。</p>
+<ul>
+<li>
+<p>user（通常缩写为us），代表用户态 CPU 时间。注意，它不包括下面的 nice 时间，但包括了 guest 时间。</p>
+</li>
+<li>
+<p>nice（通常缩写为ni），代表低优先级用户态 CPU 时间，也就是进程的 nice 值被调整为 1-19 之间时的 CPU 时间。这里注意，nice 可取值范围 -20 到 19，数值越大，优先级反而越低。</p>
+</li>
+<li>
+<p>system（通常缩写为sys），代表内核态 CPU 时间。</p>
+</li>
+<li>
+<p>idle（通常缩写为id），代表空闲时间。注意，它不包括等待 I/O 的时间（iowait）。</p>
+</li>
+<li>
+<p>iowait（通常缩写为wa），代表等待 I/O 的 CPU 时间。</p>
+</li>
+<li>
+<p>irq（通常缩写为hi），代表处理硬中断的 CPU 时间。</p>
+</li>
+<li>
+<p>softirq（通常缩写为si），代表处理软中断的 CPU 时间。</p>
+</li>
+<li>
+<p>steal（通常缩写为st），代表当系统运行在虚拟机中的时候，被其他虚拟机占用的 CPU 时间。</p>
+</li>
+<li>
+<p>guest（通常缩写为guest），代表通过虚拟化运行其他操作系统的时间，被其他虚拟机占用的 CPU 时间。</p>
+</li>
+<li>
+<p>guest_nice（通常缩写为gnice），代表以低优先级运行虚拟机的时间。</p>
+</li>
+</ul>
+<p>CPU使用率，即除了空闲时间外的其他时间占总 CPU 时间的百分比，公式如下：</p>
+<p><img src="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-31.png"
+	width="312"
+	height="78"
+	srcset="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-31_hu_498d567cf1af5dd6.png 480w, /p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-31_hu_510a9cdfd88712ac.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="400"
+		data-flex-basis="960px"
+	
+></p>
+<p>根据该公式，就可以从<code>/proc/stat</code>中的数据，很容易计算出 CPU 使用率。当然，也可以用每一个场景的 CPU 时间，计算出每个场景的 CPU 使用率。</p>
+<p>不过，<code>/proc/stat</code>中的数据是开机以来的节拍数累加值，所以计算出来的是开机以来的平均 CPU 使用率，没有什么参考价值。</p>
+<p>事实上，为了计算 CPU 使用率，性能工具一般都会取间隔一段时间（比如 3 秒）的两次值，作差后，再计算出这段时间内的平均 CPU 使用率，即</p>
+<p><img src="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-32.png"
+	width="569"
+	height="85"
+	srcset="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-32_hu_7b89dea15861f887.png 480w, /p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-32_hu_35fe27d097e2b051.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="669"
+		data-flex-basis="1606px"
+	
+></p>
+<p>这个公式，就是用各种性能工具所看到的 CPU 使用率的实际计算公式。</p>
+<p>那么知道了系统 CPU 使用率的计算方法，那么进程的呢？跟系统的指标类似，Linux 也给每个进程提供了运行情况的统计信息，也就是<code>/proc/[pid]/stat</code>。</p>
+<p>当然，各种性能分析工具已经帮我们计算好了 CPU 使用率。但是，<strong>性能分析工具给出的都是间隔一段时间的平均 CPU 使用率，所以要注意间隔时间的设置</strong>，特别是多个工具对比分析时，一定要保证使用的是相同的时间间隔。</p>
+<p>比如，<code>top</code>和<code>ps</code>这两个工具报告的 CPU 使用率，默认结果很可能不同，因为<code>top</code>默认使用3秒时间间隔，而<code>ps</code>使用的却是进程的整个生命周期。</p>
+<h3 id="查看-cpu-使用率">查看 CPU 使用率
+</h3><p>查看 CPU 使用率，最常用的性能分析工具是<code>top</code>和<code>ps</code>：</p>
+<ul>
+<li>
+<p><code>top</code> 显示了系统总体的 CPU 和内存使用情况，以及各个进程的资源使用情况。</p>
+</li>
+<li>
+<p><code>ps</code> 只显示了每个进程的资源使用情况。</p>
+</li>
+</ul>
+<p>使用<code>top</code>查看系统信息：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">top
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-33.png"
+	width="1326"
+	height="480"
+	srcset="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-33_hu_b65dd97dfd237b9b.png 480w, /p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-33_hu_609a629874f26804.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="276"
+		data-flex-basis="663px"
+	
+></p>
+<p>输出结果中，第三行 %Cpu 就是系统的 CPU 使用率。不过，top默认显示的是所有 CPU 的平均值，这个时候只要按下数字1，就可以切换到每个 CPU 的使用率了。</p>
+<p><img src="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-34.png"
+	width="1306"
+	height="552"
+	srcset="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-34_hu_277ccc2a31b8f77.png 480w, /p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-34_hu_f6be26ddb1c5003c.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="236"
+		data-flex-basis="567px"
+	
+></p>
+<p>空白行之后是进程的实时信息，每个进程都有一个 %CPU 列，表示进程的 CPU 使用率。它是用户态和内核态 CPU 使用率的总和，包括进程用户空间使用的 CPU、通过系统调用执行的内核空间CPU、以及在就绪队列等待运行的 CPU。在虚拟化环境中，它还包括了运行虚拟机占用的 CPU。</p>
+<p>这里我们可以发现，<code>top</code>并没有细分进程的用户态 CPU 和内核态 CPU。那么如何查看每个进程的详细情况？<code>pidstat</code>，它正是专门分析每个进程 CPU 使用情况的工具。</p>
+<p>使用<code>pidstat</code>间隔1秒展示5组 CPU 使用率：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">pidstat <span class="m">1</span> <span class="m">5</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-35.png"
+	width="1214"
+	height="750"
+	srcset="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-35_hu_ac2f2908c3f9c92e.png 480w, /p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-35_hu_3c3cd986c6856d69.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="161"
+		data-flex-basis="388px"
+	
+></p>
+<p>其中包括：</p>
+<ul>
+<li>用户态 CPU 使用率（%usr）；</li>
+<li>内核态 CPU 使用率（%system）；</li>
+<li>运行虚拟机 CPU 使用率（%guest）；</li>
+<li>等待 CPU 使用率（%wait）；</li>
+<li>总的 CPU 使用率（%CPU）。</li>
+</ul>
+<p>最后的 Average 部分，还计算了 5 组数据的平均值。</p>
+<h3 id="cpu-使用率过高怎么办">CPU 使用率过高怎么办
+</h3><p>通过 <code>top</code>、<code>ps</code>、<code>pidstat</code> 等工具，能够轻松找到 CPU 使用率较高（比如100%）的进程。接下来，<u>如何知道占用 CPU 的到底是代码里的哪个函数呢？</u></p>
+<p>第一个可能会想到的是<code>GDB（The GNU Project Debugger）</code>这个功能强大的程序调试利器。但是，<code>GDB</code>并不适合在性能分析的早期应用。因为 GDB 调试程序的过程会中断程序运行，这在线上环境往往是不允许的。所以，GDB 只适合用在性能分析的后期，当找到发生问题的大致函数后，线下借助它来进一步调试函数内部问题。</p>
+<p>那么哪种工具适合在第一时间分析进程的 CPU 问题呢？这里推荐的是<code>perf</code>。<code>perf</code> 是 Linux 2.6.31 以后内置的性能分析工具。它以性能事件采样为基础，不仅可以分析系统的各种事件和内核性能，还可以用来分析指定应用程序的性能问题。</p>
+<p>安装<code>perf</code>（ubuntu）</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 更新软件包列表</span>
+</span></span><span class="line"><span class="cl">apt update
+</span></span><span class="line"><span class="cl"><span class="c1"># 安装 perf（根据当前内核版本自动匹配）</span>
+</span></span><span class="line"><span class="cl">apt install -y linux-tools-common linux-tools-generic linux-tools-<span class="k">$(</span>uname -r<span class="k">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>使用 <code>perf</code> 分析 CPU 性能问题的方法：</p>
+<ol>
+<li><code>perf top</code>，类似于top，它能够实时显示占用 CPU 时钟最多的函数或者指令，因此可以用来查找热点函数。</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">perf top
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-36.png"
+	width="1430"
+	height="412"
+	srcset="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-36_hu_f82179adae242082.png 480w, /p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-36_hu_c25cc85e4d96dccc.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="347"
+		data-flex-basis="833px"
+	
+></p>
+<p>输出结果中，第一行包含三个数据，分别是采样数（Samples）、事件类型（event）和事件总数量（Event count）。比如这个例子中，perf 总共采集了 961 个 CPU 时钟事件，而总事件数则为 92121735。</p>
+<p>另外，采样数需要注意的是：如果采样数过少（比如十几个），那么下面的排序和百分比就没什么实际参考价值了。</p>
+<p>再往下看表格样式的数据，每一行包括四列：</p>
+<ul>
+<li>第一列 Overhead，是该符号的性能事件在所有采样中的比例，用百分比来表示。</li>
+<li>第二列 Shared，是该函数或指令所在的动态共享对象（Dynamic Shared Object），如内核、进程名、动态链接库名、内核模块名等。</li>
+<li>第三列 Object，是动态共享对象的类型。比如[.]表示用户空间的可执行程序、或者动态链接库，而[k]则表示内核空间。</li>
+<li>最后一列 Symbol 是符号名，也就是函数名。当函数名未知时，用十六进制的地址来表示。</li>
+</ul>
+<p>以上述输出为例，我们可以看到，占用 CPU 时钟最多的是 <code>libc-2.31.so</code>，不过它的比例也只有 6.91% ，说明系统并没有 CPU 性能问题。</p>
+<ol start="2">
+<li><code>perf record</code>和<code>perf report</code>。perf top 虽然实时展示了系统的性能信息，但它的缺点是并不保存数据，也就无法用于离线或者后续的分析。而 perf record 则提供了保存数据的功能，保存后的数据，需要用 perf report 解析展示。</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">perf record <span class="c1"># 按Ctrl+c终止采样</span>
+</span></span><span class="line"><span class="cl"><span class="o">[</span> perf record: Woken up <span class="m">10</span> <span class="nb">times</span> to write data <span class="o">]</span>
+</span></span><span class="line"><span class="cl"><span class="o">[</span> perf record: Captured and wrote 2.826 MB perf.data <span class="o">(</span><span class="m">56268</span> samples<span class="o">)</span> <span class="o">]</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-37.png"
+	width="1004"
+	height="116"
+	srcset="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-37_hu_e214bb271731ea5f.png 480w, /p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-37_hu_5b5aa6c9473a7500.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="865"
+		data-flex-basis="2077px"
+	
+></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">perf report <span class="c1"># 展示类似于perf top的报告</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-38.png"
+	width="1268"
+	height="512"
+	srcset="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-38_hu_8273353f7b565837.png 480w, /p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-38_hu_3514d7f46667c2fd.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="247"
+		data-flex-basis="594px"
+	
+></p>
+<p>在实际使用中，我们还经常为 perf top 和 perf record 加上 -g 参数，开启调用关系的采样，方便我们根据调用链来分析性能问题。</p>
+<h3 id="案例">案例
+</h3><p>下面以 Nginx + PHP 的 Web 服务为例，当发现 CPU 使用率过高的问题后，如何使用 top 等工具找出异常的进程，又如何利用 perf 找出引发性能问题的函数。</p>
+<h4 id="准备-1">准备
+</h4><ul>
+<li>系统：ubuntu 20.04.5</li>
+<li>机器配置：2 CPU，8 GB内存</li>
+<li>预先安装 docker、sysstat、perf、ab 等工具。</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">apt install -y docker.io sysstat linux-tools-common linux-tools-generic apache2-utils
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>新工具<code>ab</code>。<code>ab（apache bench）</code>是一个常用的 HTTP 服务性能测试工具。这里用来模拟 Nginx 的客户端。由于 Nginx 和 PHP 的配置比较麻烦，我把它们打包成了两个<a class="link" href="https://github.com/feiskyer/linux-perf-examples/tree/master/nginx-high-cpu"  target="_blank" rel="noopener"
+    >Docker镜像</a>，这样只需运行两个容器，就能得到模拟环境。</p>
+<p>该案例使用两台虚拟机，如图所示：</p>
+<p><img src="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-39.png"
+	width="408"
+	height="258"
+	srcset="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-39_hu_544cd0b3febfc5dc.png 480w, /p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-39_hu_306e3df02a212061.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="158"
+		data-flex-basis="379px"
+	
+></p>
+<p>其中一台用作 Web 服务器，来模拟性能问题；另一台用作 Web 服务器的客户端，来给服务增加压力请求。使用两台虚拟机是为了相互隔离，避免“交叉感染”。</p>
+<ul>
+<li>打开两个终端，分别 SSH 登陆到两台机器上，并安装上面提到的工具。</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">apt install -y docker.io sysstat linux-tools-common linux-tools-generic apache2-utils
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>默认用 root 用户运行</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo su root
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>不过，本次案例的 PHP 应用的核心逻辑比较简单，大部分能够一眼看出问题，但是，在实际生产环境中就会复杂很多了。所以，需要<strong>把它当成一个黑盒来分析</strong>。这样，就能够更好地理解整个解决思路，怎么从系统的资源使用问题出发，分析出瓶颈所在的应用、以及瓶颈在应用中的大概位置。</p>
+<h4 id="操作和分析-1">操作和分析
+</h4><p>由于我使用的虚拟机为arm64的架构，而下面的应用为amd64的架构，所以该内容，目前使用的是老师的测试结果：</p>
+<ol>
+<li>终端1：执行以下命令来运行 Nginx 和 PHP 应用</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">docker run --name nginx -p 10000:80 -itd feisky/nginx
+</span></span><span class="line"><span class="cl">docker run --name phpfpm -itd --network container:nginx feisky/php-fpm
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="2">
+<li>终端2：使用 curl 访问 http://[VM1 的 IP]:10000，确认nginx已经启动</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">curl http://172.16.140.131:10000/
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="3">
+<li>终端2：测试 Nginx 服务的性能</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">ab -c <span class="m">10</span> -n <span class="m">100</span> http://172.16.140.131:10000/
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>输出结果：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">This is ApacheBench, Version 2.3 &lt;<span class="nv">$Revision</span>: <span class="m">1706008</span> $&gt;
+</span></span><span class="line"><span class="cl">Copyright <span class="m">1996</span> Adam Twiss, Zeus Technology Ltd, 
+</span></span><span class="line"><span class="cl">...
+</span></span><span class="line"><span class="cl">Requests per second: 11.63 <span class="o">[</span><span class="c1">#/sec] (mean)</span>
+</span></span><span class="line"><span class="cl">Time per request: 859.942 <span class="o">[</span>ms<span class="o">]</span> <span class="o">(</span>mean<span class="o">)</span>
+</span></span><span class="line"><span class="cl">...
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>从 ab 的输出结果可以看到，Nginx 能承受的每秒平均请求数只有 11.63。这个数值很低，那到底是哪里出问题了呢？使用<code>top</code>和<code>pidstat</code>再来观察一下。</p>
+<ol start="4">
+<li>终端2：运行 ab 命令，将测试请求总数增加到10000</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">ab -c <span class="m">10</span> -n <span class="m">10000</span> http://172.16.140.131:10000/
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="5">
+<li>终端1：使用性能分析工具</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">top
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>输出结果：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">...
+</span></span><span class="line"><span class="cl">%Cpu0 : 98.7 us, 1.3 sy, 0.0 ni, 0.0 id, 0.0 wa, 0.0 hi, 0.0 si, 0.0 st
+</span></span><span class="line"><span class="cl">%Cpu1 : 99.3 us, 0.7 sy, 0.0 ni, 0.0 id, 0.0 wa, 0.0 hi, 0.0 si, 0.0 st
+</span></span><span class="line"><span class="cl">...
+</span></span><span class="line"><span class="cl"> PID USER PR NI VIRT RES SHR S %CPU %MEM TIME+ COMMAND
+</span></span><span class="line"><span class="cl"><span class="m">21514</span> daemon <span class="m">20</span> <span class="m">0</span> <span class="m">336696</span> <span class="m">16384</span> <span class="m">8712</span> R 41.9 0.2 0:06.00 php-fpm
+</span></span><span class="line"><span class="cl"><span class="m">21513</span> daemon <span class="m">20</span> <span class="m">0</span> <span class="m">336696</span> <span class="m">13244</span> <span class="m">5572</span> R 40.2 0.2 0:06.08 php-fpm
+</span></span><span class="line"><span class="cl"><span class="m">21515</span> daemon <span class="m">20</span> <span class="m">0</span> <span class="m">336696</span> <span class="m">16384</span> <span class="m">8712</span> R 40.2 0.2 0:05.67 php-fpm
+</span></span><span class="line"><span class="cl"><span class="m">21512</span> daemon <span class="m">20</span> <span class="m">0</span> <span class="m">336696</span> <span class="m">13244</span> <span class="m">5572</span> R 39.9 0.2 0:05.87 php-fpm
+</span></span><span class="line"><span class="cl"><span class="m">21516</span> daemon <span class="m">20</span> <span class="m">0</span> <span class="m">336696</span> <span class="m">16384</span> <span class="m">8712</span> R 35.9 0.2 0:05.61 php-fpm
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>这里可以看到，系统中有几个 php-fpm 进程的 CPU 使用率加起来接近 200%；而每个 CPU 的用户使用率（us）也已经超过了 98%，接近饱和。这样就可以确认，正是用户空间的 php-fpm 进程，导致 CPU 使用率骤升。</p>
+<p>那么，如何知道是 php-fpm 的哪个函数导致 CPU 使用率升高呢？使用 perf 分析。</p>
+<ol start="6">
+<li>终端1：运行以下 perf 命令</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># -g 开启调用关系分析，-p 指定 php-fpm 的进程号21515</span>
+</span></span><span class="line"><span class="cl">perf top -g -p <span class="m">21515</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>按方向键切换到 php-fpm，再按下回车键展开 php-fpm 的调用关系，就能够发现，调用关系最终到了 sqrt 和 add_function。看来，需要从这两个函数入手了。</p>
+<p>拷贝出<a class="link" href="https://github.com/feiskyer/linux-perf-examples/blob/master/nginx-high-cpu/app/index.php"  target="_blank" rel="noopener"
+    >Nginx 应用的源码</a>，看看是不是调用了这两个函数</p>
+<ol start="7">
+<li>终端1：从容器phpfpm中将PHP源码拷贝出来</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">docker cp phpfpm:/app .
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="8">
+<li>终端1：使用grep查找函数调用</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">grep sqrt -r app/   <span class="c1"># 找到了sqrt调用</span>
+</span></span><span class="line"><span class="cl">grep add_function -r app/ <span class="c1"># 没找到add_function调用，这其实是PHP内置函数</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>那么，只有 sqrt 函数在 app/index.php 文件中调用了。那么，我们就看看这个文件的源码。</p>
+<ol start="9">
+<li>终端1：查看源码</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">cat app/index.php
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>输出结果：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-php" data-lang="php"><span class="line"><span class="cl"><span class="o">&lt;?</span><span class="nx">php</span>
+</span></span><span class="line"><span class="cl"><span class="c1">// test only.
+</span></span></span><span class="line"><span class="cl"><span class="nv">$x</span> <span class="o">=</span> <span class="mf">0.0001</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="k">for</span> <span class="p">(</span><span class="nv">$i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="nv">$i</span> <span class="o">&lt;=</span> <span class="mi">1000000</span><span class="p">;</span> <span class="nv">$i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>  
+</span></span><span class="line"><span class="cl">    <span class="nv">$x</span> <span class="o">+=</span> <span class="nx">sqrt</span><span class="p">(</span><span class="nv">$x</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">echo</span> <span class="s2">&#34;It works!&#34;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>可以看到，测试代码还在，并没有删除。</p>
+<ol start="10">
+<li>终端1：停止原来的应用，并发布修复后的应用进行测试</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 停止原来的应用</span>
+</span></span><span class="line"><span class="cl">docker rm -f nginx phpfpm
+</span></span><span class="line"><span class="cl"><span class="c1"># 运行优化后的应用</span>
+</span></span><span class="line"><span class="cl">docker run --name nginx -p 10000:80 -itd feisky/nginx:cpu-fix
+</span></span><span class="line"><span class="cl">docker run --name phpfpm -tid --network container:nginx feisky/php-fpm:cpu-fix
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="11">
+<li>终端2：验证修复结果</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">ab -c <span class="m">10</span> -n <span class="m">10000</span> http://172.16.140.131:10000/
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>输出结果：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">...
+</span></span><span class="line"><span class="cl">Complete requests: <span class="m">10000</span>
+</span></span><span class="line"><span class="cl">Failed requests: <span class="m">0</span>
+</span></span><span class="line"><span class="cl">Total transferred: <span class="m">1720000</span> bytes
+</span></span><span class="line"><span class="cl">HTML transferred: <span class="m">90000</span> bytes
+</span></span><span class="line"><span class="cl">Requests per second: 2237.04 <span class="o">[</span><span class="c1">#/sec] (mean)</span>
+</span></span><span class="line"><span class="cl">Time per request: 4.470 <span class="o">[</span>ms<span class="o">]</span> <span class="o">(</span>mean<span class="o">)</span>
+</span></span><span class="line"><span class="cl">Time per request: 0.447 <span class="o">[</span>ms<span class="o">]</span> <span class="o">(</span>mean, across all concurrent requests<span class="o">)</span>
+</span></span><span class="line"><span class="cl">Transfer rate: 375.75 <span class="o">[</span>Kbytes/sec<span class="o">]</span> received
+</span></span><span class="line"><span class="cl">...
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>从这里可以发现，现在每秒的平均请求数，已经从原来的 11 变成了 2237。</p>
+<p>可以看出，一个很小的问题，却会极大的影响性能，并且查找起来也不容易。不过，找到问题以后，就很容易解决了，删除测试代码就可以了。</p>
+<h3 id="小结-3">小结
+</h3><p><u> <strong>CPU 使用率</strong>是最直观和最常用的系统性能指标，更是我们在排查性能问题时，通常会关注的第一个指标。</u></p>
+<p>所以更需要弄清楚它们的含义，尤其要弄清楚用户（%user）、Nice（%nice）、系统（%system）、等待I/O（%iowait）、中断（%irq）以及软中断（%softirq）这几种不同 CPU 的使用率。比如说</p>
+<ul>
+<li>用户 CPU 和 Nice CPU 高，说明用户态进程占用了较多的 CPU，所以应该着重排查进程的性能问题。</li>
+<li>系统 CPU 高，说明内核态占用了较多的 CPU，所以应该着重排查内核线程或系统调用的性能问题。</li>
+<li>I/O 等待 CPU 高，说明等待 I/O 的时间比较长，所以应该着重排查系统存储是不是出现了 I/O 问题。</li>
+<li>软中断和硬中断高，说明软中断或硬中断的处理程序占用了较多的 CPU，所以应该着重排查内核中的中断服务程序。</li>
+</ul>
+<p>碰到 CPU 使用率升高的问题，可以借助 top、pidstat 等工具，确认引发 CPU 性能问题的来源；再使用 perf 等工具，排查出引起性能问题的具体函数。</p>
+
+</section>
+
+
+    <footer class="article-footer">
+    
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+<aside class="related-content--wrapper">
+    <h2 class="section-title">相关文章</h2>
+    <div class="related-content">
+        <div class="flex article-list--tile">
+            
+                
+<article class="">
+    <a href="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%89%8D%E8%A8%80/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Linux]性能调优-前言</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/linuxcurl%E5%91%BD%E4%BB%A4/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Linux]curl命令</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/linux%E4%BD%BF%E7%94%A8systemctl%E7%AE%A1%E7%90%86mysql/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Linux]使用systemctl管理mysql</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/linux%E4%BD%BF%E7%94%A8systemctl%E6%9D%A5%E7%AE%A1%E7%90%86%E6%9C%8D%E5%8A%A1/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Linux]使用systemctl来管理服务</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/linux%E5%90%8E%E5%8F%B0%E8%BF%9B%E7%A8%8B%E8%BF%90%E8%A1%8C%E6%8C%82%E8%B5%B7%E6%81%A2%E5%A4%8D/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Linux]后台进程运行、挂起、恢复</h2>
+        </div>
+    </a>
+</article>
+
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+            2025 - 
+        
+        2026 リンボの個人ブログ
+    </section>
+    
+    <section class="powerby">
+         <br />
+        
+    </section>
+</footer>
+
+
+    
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+    
+    <div class="pswp__bg"></div>
+
+    
+    <div class="pswp__scroll-wrap">
+
+        
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+
+        
+        <div class="pswp__ui pswp__ui--hidden">
+
+            <div class="pswp__top-bar">
+
+                
+
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+
+                <button class="pswp__button pswp__button--share" title="Share"></button>
+
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+
+                
+                
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                        <div class="pswp__preloader__cut">
+                            <div class="pswp__preloader__donut"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div>
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.js"integrity="sha256-ePwmChbbvXbsO02lbM3HoHbSHTHFAeChekF1xKJdleo="crossorigin="anonymous"
+                defer
+                >
+            </script><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe-ui-default.min.js"integrity="sha256-UKkzOn/w1mBxRmLLGrSeyB4e1xbrp4xylgAWb3M42pU="crossorigin="anonymous"
+                defer
+                >
+            </script><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/default-skin/default-skin.min.css"crossorigin="anonymous"
+            ><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.css"crossorigin="anonymous"
+            >
+
+            </main>
+        </div>
+        <script 
+                src="https://cdn.jsdelivr.net/npm/node-vibrant@3.1.6/dist/vibrant.min.js"integrity="sha256-awcR2jno4kI5X0zL8ex0vi2z&#43;KMkF24hUW8WePSA9HM="crossorigin="anonymous"
+                
+                >
+            </script><script type="text/javascript" src="/ts/main.1e9a3bafd846ced4c345d084b355fb8c7bae75701c338f8a1f8a82c780137826.js" defer></script>
+<script>
+    (function () {
+        const customFont = document.createElement('link');
+        customFont.href = "https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap";
+
+        customFont.type = "text/css";
+        customFont.rel = "stylesheet";
+
+        document.head.appendChild(customFont);
+    }());
+</script>
+
+    </body>
+</html>
