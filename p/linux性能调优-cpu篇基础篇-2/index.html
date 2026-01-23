@@ -1,18 +1,18 @@
 <!DOCTYPE html>
 <html lang="en-us" dir="ltr">
     <head><meta charset='utf-8'>
-<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="怎么理解Linux软中断">
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="怎么理解Linux软中断 其实除了 iowait，软中断（softirq）CPU 使用率升高也是最常见的一种问题。本篇就以最常见的反向代理服务器 Nginx 的案例，来分析这种情况。\n">
 <title>[Linux]性能调优 CPU篇（基础篇）- 2</title>
 
 <link rel='canonical' href='https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87-2/'>
 
 <link rel="stylesheet" href="/scss/style.min.6a692fd055deae459f2a9767f57f3855ba80cafd5041317f24f7360f6ca47cdf.css"><meta property='og:title' content="[Linux]性能调优 CPU篇（基础篇）- 2">
-<meta property='og:description' content="怎么理解Linux软中断">
+<meta property='og:description' content="怎么理解Linux软中断 其实除了 iowait，软中断（softirq）CPU 使用率升高也是最常见的一种问题。本篇就以最常见的反向代理服务器 Nginx 的案例，来分析这种情况。\n">
 <meta property='og:url' content='https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87-2/'>
 <meta property='og:site_name' content='リンボの個人ブログ'>
 <meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:published_time' content='2026-01-23T14:52:14&#43;08:00'/><meta property='article:modified_time' content='2026-01-23T14:52:14&#43;08:00'/>
 <meta name="twitter:title" content="[Linux]性能调优 CPU篇（基础篇）- 2">
-<meta name="twitter:description" content="怎么理解Linux软中断">
+<meta name="twitter:description" content="怎么理解Linux软中断 其实除了 iowait，软中断（softirq）CPU 使用率升高也是最常见的一种问题。本篇就以最常见的反向代理服务器 Nginx 的案例，来分析这种情况。\n">
     <link rel="shortcut icon" href="/favicon.ico" />
 
     </head>
@@ -184,7 +184,41 @@
     </ol>
 </aside>
 
-    
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav id="TableOfContents">
+  <ol>
+    <li><a href="#从取外卖看中断">从“取外卖”看中断</a></li>
+    <li><a href="#软中断">软中断</a></li>
+    <li><a href="#查看软中断和内核线程">查看软中断和内核线程</a></li>
+    <li><a href="#小结">小结</a></li>
+  </ol>
+</nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
 
             <main class="main full-width">
     <article class="main-article">
@@ -242,6 +276,146 @@
     
     
     <h2>怎么理解Linux软中断</h2>
+<p>其实除了 iowait，软中断（softirq）CPU 使用率升高也是最常见的一种问题。本篇就以最常见的反向代理服务器 Nginx 的案例，来分析这种情况。</p>
+<h2 id="从取外卖看中断">从“取外卖”看中断
+</h2><p>说到中断，先来回顾一下中断的含义。</p>
+<p><code>中断</code>是系统用来响应硬件设备请求的一种机制，它会打断进程的正常调度和执行，然后调用内核的中断处理程序来响应设备的请求。</p>
+<p><u>那么，为什么要有中断呢？老师举了一个生活中的例子：</u></p>
+<p>比如你订了一份外卖，但是不确定外卖什么时候送到，也没有别的方法了解外卖的进度，但是，配送员送外卖是不等人的，到了你这没人取的话，就直接走人了。所以你只能苦苦等着，时不时去门口看看外卖送到没，而不能干其他事情。</p>
+<p>不过呢，如果在订外卖的时候，你就跟配送员约定好，让他送到以后给你打个电话，那就不用苦苦等待了，就可以去忙别的事情，直到电话一响，接电话、取外卖就可以了。</p>
+<p>这里的“打电话”，其实就是一个中断。没接到电话的时候，你可以做其他事情；只有接到了电话（也就是发生中断），你才要进行另一个动作：取外卖。</p>
+<p>通过老师举的这个例子，能够发现，<strong>中断其实是一种异步的事件处理机制，可以提高系统的并发处理能力</strong>。</p>
+<p>由于中断处理程序会打断其他进程的运行，所以，<strong>为了减少对正常进程运行调度的影响，中断处理程序就需要尽可能快地运行</strong>。如果中断本身要做的事情不多，那么处理起来也不会有太大问题；但如果中断要处理的事情很多，中断服务程序就有可能要运行很长时间。</p>
+<p>特别是，中断处理程序在响应中断时，还会临时关闭中断。这就会导致上一次中断处理完成之前，其他中断都不能响应，也就是说中断有可能会丢失。</p>
+<p><u>那么还是以取外卖为例：</u></p>
+<p>假如你订了 2 份外卖，一份主食和一份饮料，并且是由 2 个不同的配送员来配送。这次不用时时等待，两份外卖都约定了电话取外卖的方式。但是，问题又来了。</p>
+<p>当第一份外卖送到时，配送员打了一个很长的电话，商量发票的处理方式。于此同时，第二个配送员也到了，也想给你打电话。</p>
+<p>但是很明显，因为电话占线（也就是关闭了中断响应），第二个配送员的电话时打不通的。所以，第二个配送员很可能试了几次就走了（也就是丢失了一次中断）。</p>
+<h2 id="软中断">软中断
+</h2><p>如果弄清楚了“取外卖”的模式，那就对系统的中断机制很容易理解了。事实上，为了解决中断处理程序执行过长和中断丢失的问题，Linux 将中断处理过程分成了两个阶段，也就是<strong>上半部</strong>和<strong>下半部</strong>：</p>
+<ul>
+<li>
+<p><strong>上半部用来快速处理中断</strong>，它在中断禁止模式下运行，主要处理跟硬件紧密相关的或时间敏感的工作。</p>
+</li>
+<li>
+<p><strong>下半部用来延迟处理上半部未完成的工作，通常以内核线程的方式运行</strong>。</p>
+</li>
+</ul>
+<p><u>比如说前面取外卖的例子：</u></p>
+<p><strong>上半部</strong>就是你接听电话，告诉配送员你已经知道了，其他事见面再说，然后电话可以挂断了；<strong>下半部</strong>才是取外卖的动作，以及见面后商量发票处理的动作。</p>
+<p>这样，第一个配送员不会占用太多时间，当第二个配送员过来时，照样能正常打通电话。</p>
+<p><u>除了取外卖，老师又举了一个网卡接受数据包的例子：</u></p>
+<p>网卡接收到数据包后，会通过<strong>硬件中断</strong>的方式，通知内核有新的数据到了。这时，内核就该调用中断处理程序来响应它。</p>
+<p>对于<strong>上半部</strong>来说，即然是快速处理，其实就是要把网卡的数据读到内存中，然后更新一下硬件寄存器的状态（表示数据已经读好了），再发送一个软中断的信号，通知下半部做进一步的处理。</p>
+<p>而<strong>下半部</strong>被软中断信号唤醒后，需要从内存中找到网络资源，再按照网络协议栈，对数据进行逐层解析和处理，直到把它送给应用程序。</p>
+<p>所以这两个阶段也能这样理解：</p>
+<ul>
+<li>
+<p><strong>上半部</strong>直接处理硬件请求，也就是我们常说的硬中断，特点是快速执行；</p>
+</li>
+<li>
+<p><strong>下半部</strong>则是内核触发，也就是我们常说的软中断，特点是延迟执行。</p>
+</li>
+</ul>
+<p>实际上，上半部会打断 CPU 正在执行的任务，然后立即执行中断处理程序。而下半部以内核线程的方式执行，并且每个 CPU 都对应一个软中断内核线程，名字为“ksoftirqd/CPU 编号”。比如说，0 号 CPU 对应的软中断内核线程的名字就是ksoftirqd/CPU 0。</p>
+<p>不过要注意的是，软中断不只包括了刚刚所讲的硬件设备中断处理程序的下半部，一些内核自定义的时间也属于软中断，比如内核调度和 RCU 锁（Read-Copy Update 的缩写，RCU 是 Linux 内核最常用的锁之一）等。</p>
+<h2 id="查看软中断和内核线程">查看软中断和内核线程
+</h2><p>前面提到过的 proc 文件系统。它是一种内核空间和用户空间进行通信的机制，可以用来查看内核的数据结构，或者用来动态修改内核的配置。其中：</p>
+<ul>
+<li><code>/proc/softirqs</code>提供了软中断的运行情况；</li>
+<li><code>/proc/interrupts</code>提供了硬中断的运行情况。</li>
+</ul>
+<p>运行下面的命令，查看<code>/proc/softirqs</code>文件的内容，就可以看到各种类型软中断在不同 CPU 上的累积运行次数：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">cat /proc/softirqs
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87-2/image.png"
+	width="662"
+	height="412"
+	srcset="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87-2/image_hu_dc7946475094a850.png 480w, /p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87-2/image_hu_4d2469eec49832e5.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="160"
+		data-flex-basis="385px"
+	
+></p>
+<p>下面是老师运行得到的结果：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">$ cat /proc/softirqs
+</span></span><span class="line"><span class="cl">                    CPU0       CPU1
+</span></span><span class="line"><span class="cl">          HI:          <span class="m">0</span>          <span class="m">0</span>
+</span></span><span class="line"><span class="cl">       TIMER:     <span class="m">811613</span>    <span class="m">1972736</span>
+</span></span><span class="line"><span class="cl">      NET_TX:         <span class="m">49</span>          <span class="m">7</span>
+</span></span><span class="line"><span class="cl">      NET_RX:    <span class="m">1136736</span>    <span class="m">1506885</span>
+</span></span><span class="line"><span class="cl">       BLOCK:          <span class="m">0</span>          <span class="m">0</span>
+</span></span><span class="line"><span class="cl">    IRQ_POLL:          <span class="m">0</span>          <span class="m">0</span>
+</span></span><span class="line"><span class="cl">     TASKLET:     <span class="m">304787</span>       <span class="m">3691</span>
+</span></span><span class="line"><span class="cl">       SCHED:     <span class="m">689718</span>    <span class="m">1897539</span>
+</span></span><span class="line"><span class="cl">     HRTIMER:          <span class="m">0</span>          <span class="m">0</span>
+</span></span><span class="line"><span class="cl">         RCU:    <span class="m">1330771</span>    <span class="m">1354737</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><u>在查看 /proc/softirqs 文件内容时，要注意以下两点</u></p>
+<p>第一，要注意软中断的类型，也就是这个界面中第一列的内容。从第一列可以看到，软中断包括了 10 个类别，分别对应不同的工作类型，比如 NET_RX 表示网络接收中断，而 NET_TX 表示网络发送中断。</p>
+<p>第二，要注意同一种软中断在不同 CPU 上的分布情况，也就是同一行的内容。正常情况下，同一种中断在不同 CPU 上的累积次数应该差不多。比如这个界面中，NET_RX 在 CPU0 和 CPU1 上的中断次数基本上是同一个数量级，相差不大。</p>
+<p>不过可以发现，TASKLET 在不同 CPU 上的分布并不均匀。<code>TASKLET</code> 是最常用的软中断实现机制，每个 TASKLET 只运行一次就会结束，并且只在调用它的函数所在的 CPU 上运行。</p>
+<p>因此，使用 TASKLET 特别简便，当然也会存在一些问题，比如说由于只在一个 CPU 上运行导致的调度不均衡，再比如因为不能在多个 CPU 上并行运行带来了性能限制。</p>
+<p>另外，刚刚提到过，软中断实际上是以线程的方式运行的，每个 CPU 都对应一个软中断内核线程，这个软中断内核线程就叫做 ksoftirqd/CPU 编号。那要怎么查看这些线程的运行状况呢？</p>
+<p>其实用 ps 命令就可以做到，比如执行下面的指令：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">ps aux <span class="p">|</span> grep softirq
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87-2/image-1.png"
+	width="1326"
+	height="140"
+	srcset="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87-2/image-1_hu_d538a54df337c634.png 480w, /p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87-2/image-1_hu_b7f25a19d7da2b7d.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="947"
+		data-flex-basis="2273px"
+	
+></p>
+<p>注意：这些线程的名字外面都有中括号，这说明 ps 无法获取它们的命令行参数（cmline）。一般来说，ps 的输出中，名字扩在中括号里的，一般都是内核线程。</p>
+<h2 id="小结">小结
+</h2><p>Linux 中的中断处理程序分为上半部和下半部：</p>
+<ul>
+<li>上半部对应硬件中断，用来快速处理中断。</li>
+<li>下半部对应软中断，用来异步处理上半部未完成的工作。</li>
+</ul>
+<p>Linux 中的软中断包括网络收发、定时、调度、RCU 锁等各种类型，可以通过查看 /proc/softirqs 来观察软中断的运行情况。</p>
 
 </section>
 
