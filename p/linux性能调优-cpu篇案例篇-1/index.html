@@ -1,0 +1,1126 @@
+<!DOCTYPE html>
+<html lang="en-us" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="系统的 CPU 使用率很高，但为啥却找不到高 CPU 的应用？ 上一个案例中，我们通过 top、vmstat、pidstat 等工具，排查高 CPU 使用率的进程，然后再使用 perf top 工具，定位应用内部函数的问题。但是不是所有 CPU 使用率的问题都是这么排查的。\n">
+<title>[Linux]性能调优-CPU篇（案例篇）- 1</title>
+
+<link rel='canonical' href='https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-1/'>
+
+<link rel="stylesheet" href="/scss/style.min.6a692fd055deae459f2a9767f57f3855ba80cafd5041317f24f7360f6ca47cdf.css"><meta property='og:title' content="[Linux]性能调优-CPU篇（案例篇）- 1">
+<meta property='og:description' content="系统的 CPU 使用率很高，但为啥却找不到高 CPU 的应用？ 上一个案例中，我们通过 top、vmstat、pidstat 等工具，排查高 CPU 使用率的进程，然后再使用 perf top 工具，定位应用内部函数的问题。但是不是所有 CPU 使用率的问题都是这么排查的。\n">
+<meta property='og:url' content='https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-1/'>
+<meta property='og:site_name' content='リンボの個人ブログ'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:published_time' content='2026-01-20T15:19:01&#43;08:00'/><meta property='article:modified_time' content='2026-01-20T15:19:01&#43;08:00'/>
+<meta name="twitter:title" content="[Linux]性能调优-CPU篇（案例篇）- 1">
+<meta name="twitter:description" content="系统的 CPU 使用率很高，但为啥却找不到高 CPU 的应用？ 上一个案例中，我们通过 top、vmstat、pidstat 等工具，排查高 CPU 使用率的进程，然后再使用 perf top 工具，定位应用内部函数的问题。但是不是所有 CPU 使用率的问题都是这么排查的。\n">
+    <link rel="shortcut icon" href="/favicon.ico" />
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        
+            
+            <figure class="site-avatar">
+                <a href="/">
+                
+                    
+                    
+                    
+                        
+                        <img src="/img/avatar_hu_de528bff5d5e9598.png" width="300"
+                            height="300" class="site-logo" loading="lazy" alt="Avatar">
+                    
+                
+                </a>
+                
+                    <span class="emoji">🏖️</span>
+                
+            </figure>
+            
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">リンボの個人ブログ</a></h1>
+            <h2 class="site-description">努力不一定能获得回报，但不努力一定不会有回报。</h2>
+        </div>
+    </header><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-home" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <polyline points="5 12 3 12 12 3 21 12 19 12" />
+  <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7" />
+  <path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6" />
+</svg>
+
+
+
+                
+                <span>主页</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/%E5%85%B3%E4%BA%8E/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/archives/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/search/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-search" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="10" cy="10" r="7" />
+  <line x1="21" y1="21" x2="15" y2="15" />
+</svg>
+
+
+
+                
+                <span>搜索</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav id="TableOfContents">
+  <ol>
+    <li><a href="#案例分析">案例分析</a>
+      <ol>
+        <li><a href="#准备">准备</a></li>
+        <li><a href="#操作和分析">操作和分析</a></li>
+      </ol>
+    </li>
+    <li><a href="#execsnoop">execsnoop</a></li>
+    <li><a href="#小结">小结</a></li>
+  </ol>
+</nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            <a href="/categories/linux/" >
+                Linux
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-1/">[Linux]性能调优-CPU篇（案例篇）- 1</a>
+        </h2>
+    
+        
+    </div>
+
+    
+    
+    
+    
+    <footer class="article-time">
+        
+            <div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                <time class="article-time--published">2026-01-20</time>
+            </div>
+        
+
+        
+    </footer>
+    
+
+    
+</div>
+
+</header>
+
+    <section class="article-content">
+    
+    
+    <h2>系统的 CPU 使用率很高，但为啥却找不到高 CPU 的应用？</h2>
+<p>上一个案例中，我们通过 top、vmstat、pidstat 等工具，排查高 CPU 使用率的进程，然后再使用 perf top 工具，定位应用内部函数的问题。但是不是所有 CPU 使用率的问题都是这么排查的。</p>
+<p>我们知道，系统的 CPU 使用率，不仅包括进程用户态和内核态的运行，还包括中断处理、等待 I/O 以及内核线程等。所以，<strong>当发现系统的 CPU 使用率很高的时候，不一定能找到相对应的高 CPU 使用率的进程</strong>。</p>
+<p>下面，就是使用一个 Nginx + PHP 的 Web服务的案例，进行分析。</p>
+<h2 id="案例分析">案例分析
+</h2><p>（由于我使用的虚拟机为arm64的架构，而下面的应用为amd64的架构，所以该内容，目前使用的是老师的测试结果）</p>
+<h3 id="准备">准备
+</h3><ul>
+<li>系统配置：ubuntu 20.04.5</li>
+<li>机器配置：2 CPU，8 GB 内存</li>
+<li>预先安装 docker、sysstat、perf、ab 等工具</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">apt install -y docker.io sysstat linux-tools-common linux-tools-generic apache2-utils
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>ab（apache bench）是一个常用的 HTTP 服务性能测试工具，这里同样用来模拟 Nginx 的客户端。由于 Nginx 和 PHP 的配置比较麻烦，这里打包成了两个<a class="link" href="https://github.com/feiskyer/linux-perf-examples/tree/master/nginx-short-process"  target="_blank" rel="noopener"
+    >Docker 镜像</a>，这样只需运行两个容器，就可以得到模拟环境。</p>
+<p>该案例用到的两台虚拟机，如下图所示：</p>
+<p><img src="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-1/image.png"
+	width="408"
+	height="258"
+	srcset="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-1/image_hu_544cd0b3febfc5dc.png 480w, /p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-1/image_hu_306e3df02a212061.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="158"
+		data-flex-basis="379px"
+	
+></p>
+<p>可以看到，其中一台用作 Web 服务器，来模拟性能问题；另一台用作 Web 服务器的客户端，来给 Web 服务增加压力请求。使用两台虚拟机是为了相互隔离，避免“交叉感染”。</p>
+<ul>
+<li>打开两个终端，分别 SSH 登录到两台机器上，并安装上述工具。</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">apt install -y docker.io sysstat linux-tools-common linux-tools-generic apache2-utils
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>默认使用 root 用户</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo su root
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>这一步之后，准备工作就已经完成了。接下来进入实操环节</p>
+<blockquote>
+<p>温馨提示：案例中 PHP 应用的核心逻辑比较简单，你可能一眼就能看出问题，但实际生产环境中的源码就复杂多了。所以，我依旧建议，操作之前别看源码，避免先入为主，而要把它当成一个黑盒来分析。这样，你可以更好把握，怎么从系统的资源使用问题出发，分析出瓶颈所在的应用，以及瓶颈在应用中大概的位置。</p>
+</blockquote>
+<h3 id="操作和分析">操作和分析
+</h3><ol>
+<li>终端1：执行下面的命令运行 Nginx 和 PHP 应用</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">docker run --name nginx -p 10000:80 -itd feisky/nginx:sp
+</span></span><span class="line"><span class="cl">docker run --name phpfpm -itd --network container:nginx feisky/php-fpm:sp
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="2">
+<li>终端2：使用 curl 访问 http://[VM1 的 IP]:10000，确认 Nginx 已正常启动。</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">curl http://172.16.140.131:10000/
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>输出结果：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">It works!
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="3">
+<li>终端2：测试 Nginx 服务的性能，运行 ab 命令，并发 100 个请求测试 Nginx 性能，总共测试 1000 个请求。</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">ab -c <span class="m">100</span> -n <span class="m">1000</span> http://172.16.140.131:10000/
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>输出结果：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">This is ApacheBench, Version 2.3 &lt;<span class="nv">$Revision</span>: <span class="m">1706008</span> $&gt;
+</span></span><span class="line"><span class="cl">Copyright <span class="m">1996</span> Adam Twiss, Zeus Technology Ltd, 
+</span></span><span class="line"><span class="cl">...
+</span></span><span class="line"><span class="cl">Requests per second: 87.86 <span class="o">[</span><span class="c1">#/sec] (mean)</span>
+</span></span><span class="line"><span class="cl">Time per request: 1138.229 <span class="o">[</span>ms<span class="o">]</span> <span class="o">(</span>mean<span class="o">)</span>
+</span></span><span class="line"><span class="cl">...
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>从 ab 的输出结果可以看到，Nginx 能承受的每秒平均请求数，只有 87 多一点，这个数值很差，那么，如何查看哪里出了问题呢？我们用 top 和 pidstat 来观察。</p>
+<ol start="4">
+<li>终端2：运行 ab 命令，将测试的并发请求数改成 5，同时把请求时长设置为 10 分钟（-t 600）。这样，第一个终端使用性能分析工具时，Nginx 的压力还是继续的。</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">ab -c <span class="m">5</span> -t <span class="m">600</span> http://172.16.140.131:10000/
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="5">
+<li>终端1：运行 top 命令，观察系统的 CPU 使用情况</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">top
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>输出结果：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">...
+</span></span><span class="line"><span class="cl">%Cpu<span class="o">(</span>s<span class="o">)</span>: 80.8 us, 15.1 sy, 0.0 ni, 2.8 id, 0.0 wa, 0.0 hi, 1.3 si, 0.0 st
+</span></span><span class="line"><span class="cl">...
+</span></span><span class="line"><span class="cl"> PID USER PR NI VIRT RES SHR S %CPU %MEM TIME+ COMMAND 
+</span></span><span class="line"><span class="cl"> <span class="m">6882</span> root <span class="m">20</span> <span class="m">0</span> <span class="m">8456</span> <span class="m">5052</span> <span class="m">3884</span> S 2.7 0.1 0:04.78 docker-containe 
+</span></span><span class="line"><span class="cl"> <span class="m">6947</span> systemd+ <span class="m">20</span> <span class="m">0</span> <span class="m">33104</span> <span class="m">3716</span> <span class="m">2340</span> S 2.7 0.0 0:04.92 nginx 
+</span></span><span class="line"><span class="cl"> <span class="m">7494</span> daemon <span class="m">20</span> <span class="m">0</span> <span class="m">336696</span> <span class="m">15012</span> <span class="m">7332</span> S 2.0 0.2 0:03.55 php-fpm 
+</span></span><span class="line"><span class="cl"> <span class="m">7495</span> daemon <span class="m">20</span> <span class="m">0</span> <span class="m">336696</span> <span class="m">15160</span> <span class="m">7480</span> S 2.0 0.2 0:03.55 php-fpm
+</span></span><span class="line"><span class="cl"><span class="m">10547</span> daemon <span class="m">20</span> <span class="m">0</span> <span class="m">336696</span> <span class="m">16200</span> <span class="m">8520</span> S 2.0 0.2 0:03.13 php-fpm
+</span></span><span class="line"><span class="cl"><span class="m">10155</span> daemon <span class="m">20</span> <span class="m">0</span> <span class="m">336696</span> <span class="m">16200</span> <span class="m">8520</span> S 1.7 0.2 0:03.12 php-fpm
+</span></span><span class="line"><span class="cl"><span class="m">10552</span> daemon <span class="m">20</span> <span class="m">0</span> <span class="m">336696</span> <span class="m">16200</span> <span class="m">8520</span> S 1.7 0.2 0:03.12 php-fpm
+</span></span><span class="line"><span class="cl"><span class="m">15006</span> root <span class="m">20</span> <span class="m">0</span> <span class="m">1168608</span> <span class="m">66264</span> <span class="m">37536</span> S 1.0 0.8 9:39.51 dockerd 
+</span></span><span class="line"><span class="cl"> <span class="m">4323</span> root <span class="m">20</span> <span class="m">0</span> <span class="m">0</span> <span class="m">0</span> <span class="m">0</span> I 0.3 0.0 0:00.87 kworker/u4:1
+</span></span><span class="line"><span class="cl">...
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>观察 top 输出的进程列表可以发现，CPU 使用率最高的进程也只不过才 2.7%，看起来并不高。</p>
+<p>然而，再看系统 CPU 使用率（%CPU）这一行，你会发现，系统的整体 CPU 使用率是比较高的：用户 CPU 使用率（us）已经到了 80%，系统 CPU 为 15.1%，而空闲 CPU （id）则只有 2.8%。</p>
+<p>为什么用户 CPU 使用率高？重新分析进程表，看看有没有可以进程：</p>
+<ul>
+<li>
+<p>docker-containerd 进程是用来运行容器的，2.7% 的 CPU 使用率看起来正常；</p>
+</li>
+<li>
+<p>Nginx 和 php-fpm 是运行 Web 服务的，它们会占用一些 CPU 也不意味，并且 2% 的 CPU 使用率也不算高；</p>
+</li>
+<li>
+<p>再往下看，后面的进程呢，只有 0.3% 的 CPU 使用率，看起来不太像会导致用户 CPU 使用率达到 80%。</p>
+</li>
+</ul>
+<p>这就奇怪了，明明用户 CPU 使用率都 80% 了，可是分析了一遍进程列表，还是找不到高 CPU 使用率的进程。看来 top 是不管用了，那还有其他工具可以查看进程 CPU 使用情况吗？<code>pidstat</code>，它可以用来分析进程的 CPU 使用情况。</p>
+<ol start="6">
+<li>终端1：运行 pidstat 命令</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 间隔1秒输出一组数据（按Ctrl+c结束）</span>
+</span></span><span class="line"><span class="cl">pidstat <span class="m">1</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>输出结果：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">...
+</span></span><span class="line"><span class="cl">04:36:24 UID PID %usr %system %guest %wait %CPU CPU Command
+</span></span><span class="line"><span class="cl">04:36:25 <span class="m">0</span> <span class="m">6882</span> 1.00 3.00 0.00 0.00 4.00 <span class="m">0</span> docker-containe
+</span></span><span class="line"><span class="cl">04:36:25 <span class="m">101</span> <span class="m">6947</span> 1.00 2.00 0.00 1.00 3.00 <span class="m">1</span> nginx
+</span></span><span class="line"><span class="cl">04:36:25 <span class="m">1</span> <span class="m">14834</span> 1.00 1.00 0.00 1.00 2.00 <span class="m">0</span> php-fpm
+</span></span><span class="line"><span class="cl">04:36:25 <span class="m">1</span> <span class="m">14835</span> 1.00 1.00 0.00 1.00 2.00 <span class="m">0</span> php-fpm
+</span></span><span class="line"><span class="cl">04:36:25 <span class="m">1</span> <span class="m">14845</span> 0.00 2.00 0.00 2.00 2.00 <span class="m">1</span> php-fpm04:36:25 <span class="m">1</span> <span class="m">14855</span> 0.00 1.00 0.00 1.00 1.00 <span class="m">1</span> php-fpm
+</span></span><span class="line"><span class="cl">04:36:25 <span class="m">1</span> <span class="m">14857</span> 1.00 2.00 0.00 1.00 3.00 <span class="m">0</span> php-fpm
+</span></span><span class="line"><span class="cl">04:36:25 <span class="m">0</span> <span class="m">15006</span> 0.00 1.00 0.00 0.00 1.00 <span class="m">0</span> dockerd
+</span></span><span class="line"><span class="cl">04:36:25 <span class="m">0</span> <span class="m">15801</span> 0.00 1.00 0.00 0.00 1.00 <span class="m">1</span> pidstat
+</span></span><span class="line"><span class="cl">04:36:25 <span class="m">1</span> <span class="m">17084</span> 1.00 0.00 0.00 2.00 1.00 <span class="m">0</span> stress
+</span></span><span class="line"><span class="cl">04:36:25 <span class="m">0</span> <span class="m">31116</span> 0.00 1.00 0.00 0.00 1.00 <span class="m">0</span> atopacctd
+</span></span><span class="line"><span class="cl">...
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>所有进程的 CPU 使用率都不高，最高的 Docker 和 Nginx 也只有 4% 和 3%，即是所有进程的 CPU 使用率都加起来，也不过是 21%，离 80% 还差很多。</p>
+<p>**问题：**明明用户 CPU 使用率已经高达 80%，但是却找不到是哪个进程的问题。</p>
+<p>会出现这种情况，很可能是因为分析的时候漏了一些关键信息，返回重新分析 top 的输出。</p>
+<ol start="7">
+<li>终端1：运行 top 命令，并观察</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">top
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>输出结果：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">top - 04:58:24 up <span class="m">14</span> days, 15:47, <span class="m">1</span> user, load average: 3.39, 3.82, 2.74
+</span></span><span class="line"><span class="cl">Tasks: <span class="m">149</span> total, <span class="m">6</span> running, <span class="m">93</span> sleeping, <span class="m">0</span> stopped, <span class="m">0</span> zombie
+</span></span><span class="line"><span class="cl">%Cpu<span class="o">(</span>s<span class="o">)</span>: 77.7 us, 19.3 sy, 0.0 ni, 2.0 id, 0.0 wa, 0.0 hi, 1.0 si, 0.0 st
+</span></span><span class="line"><span class="cl">KiB Mem : <span class="m">8169348</span> total, <span class="m">2543916</span> free, <span class="m">457976</span> used, <span class="m">5167456</span> buff/cache
+</span></span><span class="line"><span class="cl">KiB Swap: <span class="m">0</span> total, <span class="m">0</span> free, <span class="m">0</span> used. <span class="m">7363908</span> avail Mem
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  PID USER PR NI VIRT RES SHR S %CPU %MEM TIME+ COMMAND
+</span></span><span class="line"><span class="cl"> <span class="m">6947</span> systemd+ <span class="m">20</span> <span class="m">0</span> <span class="m">33104</span> <span class="m">3764</span> <span class="m">2340</span> S 4.0 0.0 0:32.69 nginx
+</span></span><span class="line"><span class="cl"> <span class="m">6882</span> root <span class="m">20</span> <span class="m">0</span> <span class="m">12108</span> <span class="m">8360</span> <span class="m">3884</span> S 2.0 0.1 0:31.40 docker-containe
+</span></span><span class="line"><span class="cl"><span class="m">15465</span> daemon <span class="m">20</span> <span class="m">0</span> <span class="m">336696</span> <span class="m">15256</span> <span class="m">7576</span> S 2.0 0.2 0:00.62 php-fpm
+</span></span><span class="line"><span class="cl"><span class="m">15466</span> daemon <span class="m">20</span> <span class="m">0</span> <span class="m">336696</span> <span class="m">15196</span> <span class="m">7516</span> S 2.0 0.2 0:00.62 php-fpm
+</span></span><span class="line"><span class="cl"><span class="m">15489</span> daemon <span class="m">20</span> <span class="m">0</span> <span class="m">336696</span> <span class="m">16200</span> <span class="m">8520</span> S 2.0 0.2 0:00.62 php-fpm
+</span></span><span class="line"><span class="cl"> <span class="m">6948</span> systemd+ <span class="m">20</span> <span class="m">0</span> <span class="m">33104</span> <span class="m">3764</span> <span class="m">2340</span> S 1.0 0.0 0:00.95 nginx
+</span></span><span class="line"><span class="cl"><span class="m">15006</span> root <span class="m">20</span> <span class="m">0</span> <span class="m">1168608</span> <span class="m">65632</span> <span class="m">37536</span> S 1.0 0.8 9:51.09 dockerd
+</span></span><span class="line"><span class="cl"><span class="m">15476</span> daemon <span class="m">20</span> <span class="m">0</span> <span class="m">336696</span> <span class="m">16200</span> <span class="m">8520</span> S 1.0 0.2 0:00.61 php-fpm
+</span></span><span class="line"><span class="cl"><span class="m">15477</span> daemon <span class="m">20</span> <span class="m">0</span> <span class="m">336696</span> <span class="m">16200</span> <span class="m">8520</span> S 1.0 0.2 0:00.61 php-fpm
+</span></span><span class="line"><span class="cl"><span class="m">24340</span> daemon <span class="m">20</span> <span class="m">0</span> <span class="m">8184</span> <span class="m">1616</span> <span class="m">536</span> R 1.0 0.0 0:00.01 stress
+</span></span><span class="line"><span class="cl"><span class="m">4342</span> daemon <span class="m">20</span> <span class="m">0</span> <span class="m">8196</span> <span class="m">1580</span> <span class="m">492</span> R 1.0 0.0 0:00.01 stress
+</span></span><span class="line"><span class="cl"><span class="m">24344</span> daemon <span class="m">20</span> <span class="m">0</span> <span class="m">8188</span> <span class="m">1056</span> <span class="m">492</span> R 1.0 0.0 0:00.01 stress
+</span></span><span class="line"><span class="cl"><span class="m">24347</span> daemon <span class="m">20</span> <span class="m">0</span> <span class="m">8184</span> <span class="m">1356</span> <span class="m">540</span> R 1.0 0.0 0:00.01 stress
+</span></span><span class="line"><span class="cl">...
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>这次从头看 top 的每行输出，发现 Tasks 这行有些问题，就绪队列中有 6 个 Running 状态的进程（6 Running），有些多了。</p>
+<p>在 ab 的测试参数中，并发请求数是 5。再看进程列表里，php-fpm 的数量也是 5，再加上 Nginx，好像同时有 6 个进程也并不奇怪。但真的是这样吗？</p>
+<p>再仔细看进程列表，这次主要看 Running（R）状态的进程。可以发现，Nginx 和所有的 php-fpm 都处于 Sleep（S）状态，而真正处于 Running（R）状态的，却是几个 stress 进程。这几个 stress 进程就比较奇怪了，需要我们进一步分析。</p>
+<p>我们还是使用 pidstat 来分析这几个进程，并且使用 -p 选项指定进程的 PID。首先，从上面 top 的结果中，找到这几个进程的 PID。比如，先随便找一个 24344，然后用 pidstat 命令看一下它的 CPU 使用情况：</p>
+<ol start="8">
+<li>使用 pidstat 查看 24344 CPU 使用情况</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">pidstat -p <span class="m">24344</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>输出结果：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">16:14:55 UID PID %usr %system %guest %wait %CPU CPU Command
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>但是居然没有任何输出。难道是 pidstat 命令出问题了吗？<strong>在怀疑性能工具，最好还是先用其他工具交叉确认一下</strong>。那用什么工具呢？ ps 应该是最简单易用的。我们在终端里运行下面的命令，看看 24344 进程的状态：</p>
+<ol start="9">
+<li>查找 PID 为 24344 的进程</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 从所有进程中查找PID是24344的进程</span>
+</span></span><span class="line"><span class="cl">ps aux <span class="p">|</span> grep <span class="m">24344</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>输出结果：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root <span class="m">9628</span> 0.0 0.0 <span class="m">14856</span> <span class="m">1096</span> pts/0 S+ 16:15 0:00 grep --color<span class="o">=</span>auto <span class="m">24344</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>还是没有输出。现在终于发现问题了，原来这个进程已经不存在了，所以 pidstat 就没有任何输出。即然进程都没了，那性能问题应该也跟着没了吧。我们再用 top 命令确认一下：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">top
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>输出结果：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span><span class="lnt">9
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">...
+</span></span><span class="line"><span class="cl">%Cpu<span class="o">(</span>s<span class="o">)</span>: 80.9 us, 14.9 sy, 0.0 ni, 2.8 id, 0.0 wa, 0.0 hi, 1.3 si, 0.0 st
+</span></span><span class="line"><span class="cl">...
+</span></span><span class="line"><span class="cl">  PID USER PR NI VIRT RES SHR S %CPU %MEM TIME+ COMMAND 
+</span></span><span class="line"><span class="cl"> <span class="m">6882</span> root <span class="m">20</span> <span class="m">0</span> <span class="m">12108</span> <span class="m">8360</span> <span class="m">3884</span> S 2.7 0.1 0:45.63 docker-containe 
+</span></span><span class="line"><span class="cl"> <span class="m">6947</span> systemd+ <span class="m">20</span> <span class="m">0</span> <span class="m">33104</span> <span class="m">3764</span> <span class="m">2340</span> R 2.7 0.0 0:47.79 nginx 
+</span></span><span class="line"><span class="cl"> <span class="m">3865</span> daemon <span class="m">20</span> <span class="m">0</span> <span class="m">336696</span> <span class="m">15056</span> <span class="m">7376</span> S 2.0 0.2 0:00.15 php-fpm 
+</span></span><span class="line"><span class="cl"> <span class="m">6779</span> daemon <span class="m">20</span> <span class="m">0</span> <span class="m">8184</span> <span class="m">1112</span> <span class="m">556</span> R 0.3 0.0 0:00.01 stress
+</span></span><span class="line"><span class="cl">...
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>能看到，结果还跟原来一样，用户 CPU 使用率还是高达 80.9%，系统 CPU 接近 15%，而空闲 CPU 只有 2.8%，Running 状态的进程有 Nginx、stress 等。</p>
+<p>可是，刚刚看到 stress 进程不存在了，怎么现在还在运行呢？再细看一下 top 的输出，原来这次 stress 进程的 PID 跟前面不一样了，原来的 PID 24344 不见了，现在的是 6779。</p>
+<p>进程的 PID 在变，这说明什么呢？在我看来，要么是这些进程在不停地重启，要么就是全新的进程，这无非是两个原因：</p>
+<ul>
+<li>
+<p>第一个原因，进程在不停地崩溃重启，比如因为段错误、配置错误等等，这时在进程退出后可能又被监控系统自动重启了。</p>
+</li>
+<li>
+<p>第二个原因，这些进程都是短时进程，也就是在其他应用内部通过 exec 调用的外部命令。这些命令一般都只运行很短时间就会结束，很难用 top 这种间隔比较长的工具发现（上面的案例中，我们碰巧发现了）。</p>
+</li>
+</ul>
+<p>至于 stress，前面提到过，它是一个常用的压力测试工具。它的 PID 在不断变化中，看起来像是被其他进程调用的短视进程。要想分析下去，还得找到它的父进程。</p>
+<p><u>如何找到一个进程的父进程？用 pstree 就可以树状形式显示所有进程之间的关系：</u></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">pstree <span class="p">|</span> grep stress
+</span></span><span class="line"><span class="cl">        <span class="p">|</span>-docker-containe-+-php-fpm-+-php-fpm---sh---stress 
+</span></span><span class="line"><span class="cl">        <span class="p">|</span>          <span class="p">|</span>-3*<span class="o">[</span>php-fpm---sh---stress---stress<span class="o">]</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>从这里可以看到，stress 是被 php-fpm 调用的子进程，并且进程数量不止一个（这里是 3 个）。找到父进程后，我们能进入 app 的内部分析了。</p>
+<p>首先，当然应该去看看它的源码。运行下面的命令，把案例应用的源码拷贝到 app 目录，然后再执行 grep 查找是不是有代码再调用 stress 命令：</p>
+<ol start="10">
+<li>拷贝源码到本地</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">docker cp phpfpm:/app
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="11">
+<li>grep 查找看看是不是有代码在调用stress命令</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">grep stress -r app
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>输出结果：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">app/index.php:// fake I/O with stress <span class="o">(</span>via write<span class="o">()</span>/unlink<span class="o">())</span>.
+</span></span><span class="line"><span class="cl">app/index.php:<span class="nv">$result</span> <span class="o">=</span> exec<span class="o">(</span><span class="s2">&#34;/usr/local/bin/stress -t 1 -d 1 2&gt;&amp;1&#34;</span>, <span class="nv">$output</span>, <span class="nv">$status</span><span class="o">)</span><span class="p">;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>找到了，是 app/index.php 文件中直接调用了 stress 命令。</p>
+<p>再来看看<a class="link" href="https://github.com/feiskyer/linux-perf-examples/blob/master/nginx-short-process/app/index.php"  target="_blank" rel="noopener"
+    >app/index.php</a>的源代码：</p>
+<ol start="12">
+<li>查看源码</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">cat app/index.php
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li><code>app/index.php</code></li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-php" data-lang="php"><span class="line"><span class="cl"><span class="o">&lt;?</span><span class="nx">php</span>
+</span></span><span class="line"><span class="cl"><span class="c1">// fake I/O with stress (via write()/unlink()).
+</span></span></span><span class="line"><span class="cl"><span class="nv">$result</span> <span class="o">=</span> <span class="nx">exec</span><span class="p">(</span><span class="s2">&#34;/usr/local/bin/stress -t 1 -d 1 2&gt;&amp;1&#34;</span><span class="p">,</span> <span class="nv">$output</span><span class="p">,</span> <span class="nv">$status</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="k">if</span> <span class="p">(</span><span class="nx">isset</span><span class="p">(</span><span class="nv">$_GET</span><span class="p">[</span><span class="s2">&#34;verbose&#34;</span><span class="p">])</span> <span class="o">&amp;&amp;</span> <span class="nv">$_GET</span><span class="p">[</span><span class="s2">&#34;verbose&#34;</span><span class="p">]</span><span class="o">==</span><span class="mi">1</span> <span class="o">&amp;&amp;</span> <span class="nv">$status</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">echo</span> <span class="s2">&#34;Server internal error: &#34;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="nx">print_r</span><span class="p">(</span><span class="nv">$output</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">echo</span> <span class="s2">&#34;It works!&#34;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="cp">?&gt;</span><span class="err">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><p>可以看到，源码里对每个请求都会调用一个 stress 命令，模拟 I/O 压力。从注释上看，stress 会通过 write() 和 unlink() 对 I/O 进程进行压测，看来，这应该就是系统 CPU 使用率升高的根源了。</p>
+<p>不过，stress 模拟的是 I/O 压力，而之前在 top 的输出中淡道的，却一直是用户 CPU 和系统 CPU 升高，并没见到 iowait 升高。这又是怎么回事？stress 到底是不是 CPU 使用率升高的原因呢？</p>
+<p>我们继续往下走，从代码中可以看到，给请求加入 verbose=1 参数后，就可以查看 stress 的输出。</p>
+<ol start="13">
+<li>终端2：加入参数 verbose=1 进行请求</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">curl http://192.168.0.10:10000?verbose<span class="o">=</span><span class="m">1</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>输出结果：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span><span class="lnt">9
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">Server internal error: Array
+</span></span><span class="line"><span class="cl"><span class="o">(</span>
+</span></span><span class="line"><span class="cl">    <span class="o">[</span>0<span class="o">]</span> <span class="o">=</span>&gt; stress: info: <span class="o">[</span>19607<span class="o">]</span> dispatching hogs: <span class="m">0</span> cpu, <span class="m">0</span> io, <span class="m">0</span> vm, <span class="m">1</span> hdd
+</span></span><span class="line"><span class="cl">    <span class="o">[</span>1<span class="o">]</span> <span class="o">=</span>&gt; stress: FAIL: <span class="o">[</span>19608<span class="o">]</span> <span class="o">(</span>563<span class="o">)</span> mkstemp failed: Permission denied
+</span></span><span class="line"><span class="cl">    <span class="o">[</span>2<span class="o">]</span> <span class="o">=</span>&gt; stress: FAIL: <span class="o">[</span>19607<span class="o">]</span> <span class="o">(</span>394<span class="o">)</span> &lt;-- worker <span class="m">19608</span> returned error <span class="m">1</span>
+</span></span><span class="line"><span class="cl">    <span class="o">[</span>3<span class="o">]</span> <span class="o">=</span>&gt; stress: WARN: <span class="o">[</span>19607<span class="o">]</span> <span class="o">(</span>396<span class="o">)</span> now reaping child worker processes
+</span></span><span class="line"><span class="cl">    <span class="o">[</span>4<span class="o">]</span> <span class="o">=</span>&gt; stress: FAIL: <span class="o">[</span>19607<span class="o">]</span> <span class="o">(</span>400<span class="o">)</span> <span class="nb">kill</span> error: No such process
+</span></span><span class="line"><span class="cl">    <span class="o">[</span>5<span class="o">]</span> <span class="o">=</span>&gt; stress: FAIL: <span class="o">[</span>19607<span class="o">]</span> <span class="o">(</span>451<span class="o">)</span> failed run completed in 0s
+</span></span><span class="line"><span class="cl"><span class="o">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>看错误消息 <code>mkstemp failed: Permission denied</code>，以及<code>failed run completed in 0s</code>。原来 stress 命令并没有成功，它因为权限问题失败退出了。看来，我们发现了一个 PHP 调用外部 stress 命令的 bug：没有权限创建临时文件。</p>
+<p>从这里我们可以猜测，正是由于权限错误，大量的 stress 进程在启动时初始化失败，进而导致用户 CPU 使用率的升高。</p>
+<p>那么分析出问题来源以后，我们就要验证这个猜测是否正确，前面已经用了 top、pidstat、pstree 等工具，没有发现大量的 stress 进程。那么，还有什么工具可以用呢？</p>
+<p><code>perf</code>，它可以用来分析 CPU 性能事件，用在这里就很合适。</p>
+<ol start="14">
+<li>终端1：运行 perf 命令，记录性能事件，并等待一会儿（比如15秒）后按 Ctrl+c 退出。</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 记录性能事件，等待大约15秒后按 Ctrl+c 退出</span>
+</span></span><span class="line"><span class="cl">perf record -g
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="15">
+<li>终端1：运行 perf 命令，查看性能事件报告</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">perf report
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>这样，可以看到如下性能报告：</p>
+<p><img src="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-1/image-1.png"
+	width="720"
+	height="527"
+	srcset="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-1/image-1_hu_d61f232935bdcb79.png 480w, /p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-1/image-1_hu_c1d9bcd0a29ce61.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="136"
+		data-flex-basis="327px"
+	
+></p>
+<p>可以看到，stress 占了所有 CPU 时钟事件的 77%，而 stress 调用调用栈中比例最高的，是随机数生成函数 random()，看来它的确就是 CPU 使用率升高的元凶了。随后的优化就很简单了，只要修复权限问题，并减少或删除 stress 的调用，就可以减轻系统的 CPU 压力。</p>
+<p>当然，实际生产环境中的问题一般都要比这个案例复杂，在你找到触发瓶颈的命令行后，却可能发现，这个外部命令的调用过程是应用核心逻辑的一部分，并不能轻易减少或者删除。</p>
+<ol start="16">
+<li>终端1：案例结束，清理环境，停止 Nginx 进程：</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">docker rm -f nginx phpfpm
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="execsnoop">execsnoop
+</h2><p>在这次案例中，我们使用了 top、pidstat、pstree 等工具分析了系统 CPU 使用率高的问题，并发现 CPU 升高是短时进程 stress 导致的，但是整个分析过程还是比较复杂的。对于这类问题，有没有更好的方法监控呢？</p>
+<p><a class="link" href="https://github.com/brendangregg/perf-tools/blob/master/execsnoop"  target="_blank" rel="noopener"
+    >execsnoop</a>就是一个专为短时进程设计的工具。它通过 ftrace 实时监控进程的 exec() 行为，并输出短时进程的基本信息，包括进程 PID、父进程 PID、命令行参数以及执行的结果。</p>
+<p>比如，用 execsnoop 监控上述案例，就可以直接得到 stress 进程的父进程 PID 以及它的命令行参数，并可以发现大量的 stress 进程在不停启动：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 按 Ctrl+C 结束</span>
+</span></span><span class="line"><span class="cl">$ execsnoop
+</span></span><span class="line"><span class="cl">PCOMM            PID    PPID   RET ARGS
+</span></span><span class="line"><span class="cl">sh               <span class="m">30394</span>  <span class="m">30393</span>    <span class="m">0</span>
+</span></span><span class="line"><span class="cl">stress           <span class="m">30396</span>  <span class="m">30394</span>    <span class="m">0</span> /usr/local/bin/stress -t <span class="m">1</span> -d <span class="m">1</span>
+</span></span><span class="line"><span class="cl">sh               <span class="m">30398</span>  <span class="m">30393</span>    <span class="m">0</span>
+</span></span><span class="line"><span class="cl">stress           <span class="m">30399</span>  <span class="m">30398</span>    <span class="m">0</span> /usr/local/bin/stress -t <span class="m">1</span> -d <span class="m">1</span>
+</span></span><span class="line"><span class="cl">sh               <span class="m">30402</span>  <span class="m">30400</span>    <span class="m">0</span>
+</span></span><span class="line"><span class="cl">stress           <span class="m">30403</span>  <span class="m">30402</span>    <span class="m">0</span> /usr/local/bin/stress -t <span class="m">1</span> -d <span class="m">1</span>
+</span></span><span class="line"><span class="cl">sh               <span class="m">30405</span>  <span class="m">30393</span>    <span class="m">0</span>
+</span></span><span class="line"><span class="cl">stress           <span class="m">30407</span>  <span class="m">30405</span>    <span class="m">0</span> /usr/local/bin/stress -t <span class="m">1</span> -d <span class="m">1</span>
+</span></span><span class="line"><span class="cl">...
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>execsnoop 所用的 ftrace 是一种常用的动态追踪技术，一般用于分析 Linux 内核的运行时行为。</p>
+<h2 id="小结">小结
+</h2><p>碰到常规问题无法解释的 CPU 使用率情况时，首先要想到有可能是短时应用导致的问题，比如有可能是下面这两种情况。</p>
+<ul>
+<li><strong>第一，应用里直接调用了其他二进制程序，这些程序通常运行时间比较短，通过 top 等工具也不容易发现。</strong></li>
+<li><strong>第二，应用本身在不停地崩溃重启，而启动过程的资源初始化，很可能会占用相当多的 CPU。</strong></li>
+</ul>
+<p>对于这类进程，我们可以用 pstree 或者 execsnoop 找到它们的父进程，再从父进程所在的应用入手，排查问题的根源。</p>
+
+</section>
+
+
+    <footer class="article-footer">
+    
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+<aside class="related-content--wrapper">
+    <h2 class="section-title">相关文章</h2>
+    <div class="related-content">
+        <div class="flex article-list--tile">
+            
+                
+<article class="">
+    <a href="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87-2/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Linux]性能调优 CPU篇（基础篇）- 2</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-2/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Linux]性能调优-CPU篇（案例篇）- 2</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87-1/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Linux]性能调优-CPU篇（基础篇）- 1</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%89%8D%E8%A8%80/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Linux]性能调优-前言</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/linuxcurl%E5%91%BD%E4%BB%A4/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Linux]curl命令</h2>
+        </div>
+    </a>
+</article>
+
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+            2025 - 
+        
+        2026 リンボの個人ブログ
+    </section>
+    
+    <section class="powerby">
+         <br />
+        
+    </section>
+</footer>
+
+
+    
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+    
+    <div class="pswp__bg"></div>
+
+    
+    <div class="pswp__scroll-wrap">
+
+        
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+
+        
+        <div class="pswp__ui pswp__ui--hidden">
+
+            <div class="pswp__top-bar">
+
+                
+
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+
+                <button class="pswp__button pswp__button--share" title="Share"></button>
+
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+
+                
+                
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                        <div class="pswp__preloader__cut">
+                            <div class="pswp__preloader__donut"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div>
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.js"integrity="sha256-ePwmChbbvXbsO02lbM3HoHbSHTHFAeChekF1xKJdleo="crossorigin="anonymous"
+                defer
+                >
+            </script><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe-ui-default.min.js"integrity="sha256-UKkzOn/w1mBxRmLLGrSeyB4e1xbrp4xylgAWb3M42pU="crossorigin="anonymous"
+                defer
+                >
+            </script><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/default-skin/default-skin.min.css"crossorigin="anonymous"
+            ><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.css"crossorigin="anonymous"
+            >
+
+            </main>
+        </div>
+        <script 
+                src="https://cdn.jsdelivr.net/npm/node-vibrant@3.1.6/dist/vibrant.min.js"integrity="sha256-awcR2jno4kI5X0zL8ex0vi2z&#43;KMkF24hUW8WePSA9HM="crossorigin="anonymous"
+                
+                >
+            </script><script type="text/javascript" src="/ts/main.1e9a3bafd846ced4c345d084b355fb8c7bae75701c338f8a1f8a82c780137826.js" defer></script>
+<script>
+    (function () {
+        const customFont = document.createElement('link');
+        customFont.href = "https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap";
+
+        customFont.type = "text/css";
+        customFont.rel = "stylesheet";
+
+        document.head.appendChild(customFont);
+    }());
+</script>
+
+    </body>
+</html>

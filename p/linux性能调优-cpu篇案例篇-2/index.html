@@ -1,0 +1,1219 @@
+<!DOCTYPE html>
+<html lang="en-us" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="系统中出现大量不可中断进程和僵尸进程怎么办？ 进程状态 等待 I/O 的 CPU 使用率（以下简称为 iowait）升高，也是常见的一个服务器性能问题。今天就来看一个多进程 I/O 的案例，并分析这种情况。\n">
+<title>[Linux]性能调优-CPU篇（案例篇）- 2</title>
+
+<link rel='canonical' href='https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-2/'>
+
+<link rel="stylesheet" href="/scss/style.min.6a692fd055deae459f2a9767f57f3855ba80cafd5041317f24f7360f6ca47cdf.css"><meta property='og:title' content="[Linux]性能调优-CPU篇（案例篇）- 2">
+<meta property='og:description' content="系统中出现大量不可中断进程和僵尸进程怎么办？ 进程状态 等待 I/O 的 CPU 使用率（以下简称为 iowait）升高，也是常见的一个服务器性能问题。今天就来看一个多进程 I/O 的案例，并分析这种情况。\n">
+<meta property='og:url' content='https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-2/'>
+<meta property='og:site_name' content='リンボの個人ブログ'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:published_time' content='2026-01-22T10:56:51&#43;08:00'/><meta property='article:modified_time' content='2026-01-22T10:56:51&#43;08:00'/>
+<meta name="twitter:title" content="[Linux]性能调优-CPU篇（案例篇）- 2">
+<meta name="twitter:description" content="系统中出现大量不可中断进程和僵尸进程怎么办？ 进程状态 等待 I/O 的 CPU 使用率（以下简称为 iowait）升高，也是常见的一个服务器性能问题。今天就来看一个多进程 I/O 的案例，并分析这种情况。\n">
+    <link rel="shortcut icon" href="/favicon.ico" />
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        
+            
+            <figure class="site-avatar">
+                <a href="/">
+                
+                    
+                    
+                    
+                        
+                        <img src="/img/avatar_hu_de528bff5d5e9598.png" width="300"
+                            height="300" class="site-logo" loading="lazy" alt="Avatar">
+                    
+                
+                </a>
+                
+                    <span class="emoji">🏖️</span>
+                
+            </figure>
+            
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">リンボの個人ブログ</a></h1>
+            <h2 class="site-description">努力不一定能获得回报，但不努力一定不会有回报。</h2>
+        </div>
+    </header><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-home" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <polyline points="5 12 3 12 12 3 21 12 19 12" />
+  <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7" />
+  <path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6" />
+</svg>
+
+
+
+                
+                <span>主页</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/%E5%85%B3%E4%BA%8E/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/archives/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/search/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-search" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="10" cy="10" r="7" />
+  <line x1="21" y1="21" x2="15" y2="15" />
+</svg>
+
+
+
+                
+                <span>搜索</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav id="TableOfContents">
+  <ol>
+    <li><a href="#进程状态">进程状态</a></li>
+    <li><a href="#案例分析">案例分析</a>
+      <ol>
+        <li><a href="#准备">准备</a></li>
+        <li><a href="#操作和分析">操作和分析</a>
+          <ol>
+            <li><a href="#iowait-分析问题一">iowait 分析（问题一）</a></li>
+            <li><a href="#僵尸进程问题二">僵尸进程（问题二）</a></li>
+          </ol>
+        </li>
+      </ol>
+    </li>
+    <li><a href="#小结">小结</a></li>
+  </ol>
+</nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            <a href="/categories/linux/" >
+                Linux
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-2/">[Linux]性能调优-CPU篇（案例篇）- 2</a>
+        </h2>
+    
+        
+    </div>
+
+    
+    
+    
+    
+    <footer class="article-time">
+        
+            <div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                <time class="article-time--published">2026-01-22</time>
+            </div>
+        
+
+        
+    </footer>
+    
+
+    
+</div>
+
+</header>
+
+    <section class="article-content">
+    
+    
+    <h2>系统中出现大量不可中断进程和僵尸进程怎么办？</h2>
+<h2 id="进程状态">进程状态
+</h2><p>等待 I/O 的 CPU 使用率（以下简称为 iowait）升高，也是常见的一个服务器性能问题。今天就来看一个多进程 I/O 的案例，并分析这种情况。</p>
+<p><strong>进程状态：</strong></p>
+<p>当 iowait 升高时，进程很可能因为得不到硬件的响应，而长时间处于不可中断的状态。从 ps 或者 top 命令的输出中，你可以发现它们都处于 D 状态，也就是不可中断状态（Uninterruptible Sleep）。即然说到了进程的状态，那就再来回顾一下进程的所有状态。</p>
+<p>top 和 ps 是常用的查看进程状态的工具，我们就从 top 的输出开始。下面是一个 top 命令输出的示例，S 列（也就是 Status 列）表示进程的状态。从这个示例里，可以看到 R、D、Z、S、I 等几个状态，它们分别是什么意思？</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">$ top
+</span></span><span class="line"><span class="cl">  PID USER      PR  NI    VIRT    RES    SHR S  %CPU %MEM     TIME+ COMMAND
+</span></span><span class="line"><span class="cl"><span class="m">28961</span> root      <span class="m">20</span>   <span class="m">0</span>   <span class="m">43816</span>   <span class="m">3148</span>   <span class="m">4040</span> R   3.2  0.0   0:00.01 top
+</span></span><span class="line"><span class="cl">  <span class="m">620</span> root      <span class="m">20</span>   <span class="m">0</span>   <span class="m">37280</span>  <span class="m">33676</span>    <span class="m">908</span> D   0.3  0.4   0:00.01 app
+</span></span><span class="line"><span class="cl">    <span class="m">1</span> root      <span class="m">20</span>   <span class="m">0</span>  <span class="m">160072</span>   <span class="m">9416</span>   <span class="m">6752</span> S   0.0  0.1   0:37.64 systemd
+</span></span><span class="line"><span class="cl"> <span class="m">1896</span> root      <span class="m">20</span>   <span class="m">0</span>       <span class="m">0</span>      <span class="m">0</span>      <span class="m">0</span> Z   0.0  0.0   0:00.00 devapp
+</span></span><span class="line"><span class="cl">    <span class="m">2</span> root      <span class="m">20</span>   <span class="m">0</span>       <span class="m">0</span>      <span class="m">0</span>      <span class="m">0</span> S   0.0  0.0   0:00.10 kthreadd
+</span></span><span class="line"><span class="cl">    <span class="m">4</span> root       <span class="m">0</span> -20       <span class="m">0</span>      <span class="m">0</span>      <span class="m">0</span> I   0.0  0.0   0:00.00 kworker/0:0H
+</span></span><span class="line"><span class="cl">    <span class="m">6</span> root       <span class="m">0</span> -20       <span class="m">0</span>      <span class="m">0</span>      <span class="m">0</span> I   0.0  0.0   0:00.00 mm_percpu_wq
+</span></span><span class="line"><span class="cl">    <span class="m">7</span> root      <span class="m">20</span>   <span class="m">0</span>       <span class="m">0</span>      <span class="m">0</span>      <span class="m">0</span> S   0.0  0.0   0:06.37 ksoftirqd/0
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>
+<p>R 是 Running 或 Runnable 的缩写，表示进程在 CPU 的就绪队列中，正在运行或者正在等待运行。</p>
+</li>
+<li>
+<p>D 是 Disk Sleep 的缩写，也就是不可中断状态睡眠（Uninterruptible Sleep）一般表示进程正在跟硬件交互，并且交互过程不允许被其他进程或中断打断。</p>
+</li>
+<li>
+<p>Z 是 Zombie 的缩写。它表示僵尸进程，也就是进程实际上已经结束了，但是父进程还没有回收它的资源（比如进程的描述符、PID等）。</p>
+</li>
+<li>
+<p>S 是 Interruptible Sleep 的缩写，也就是可中断状态睡眠，表示进程因为等待某个事件而被系统挂起。当进程等待的事件发生时，它会被唤醒并进入 R 状态。</p>
+</li>
+<li>
+<p>I 是 Idle 的缩写，也就是空闲状态，用在不可中断睡眠的内核线程上。前面说了，硬件交互导致的不可中断进程用 D 表示，但对某些内核线程来说，它们有可能实际上并没有任何负载，用 Idle 正是为了区分这种情况。要注意，D 状态的进程会导致平均负载升高，I 状态的进程不会。</p>
+</li>
+</ul>
+<p>除了以上 5 个状态，进程还包括下面两个状态。</p>
+<ul>
+<li>T 或者 t，也就是 Stopped 或 Traced 的缩写，表示进程处于暂停或者跟踪状态。</li>
+</ul>
+<blockquote>
+<p>向一个进程发送 SIGSTOP 信号，它就会因响应这个信号变成暂停状态（Stopped）；再向它发送 SIGCONT 信号，进程又会恢复运行（如果进程是终端里直接启动的，则需要你用 fg 命令，恢复到前台运行）。</br>而当你用调试器（如gdb）调试一个进程时，在使用断点中断进程后，进程就会变成跟踪状态，这其实也是一种特殊的暂停状态，只不过你可以用调试器来跟踪并按需要来控制进程的运行。</p>
+</blockquote>
+<ul>
+<li>X，也就是 Dead 的缩写，表示进程已经消亡，所以不会在 top 或 ps 命令中看到它。</li>
+</ul>
+<p>了解了进程状态，再回到今天的主题。先看不可中断状态，这其实是为了保证进程数据与硬件状态一致，并且正常情况下，不可中断状态在很短时间内就会结束，所以，短时的不可中断状态，一般可以忽略。</p>
+<p>但如果系统或硬件发生了故障，进程可能会在不可中断状态保持很久，甚至导致系统中出现大量不可中断进程，这时，就得注意一下，系统是不是出现了 I/O 等性能问题。</p>
+<p>再看<strong>僵尸进程</strong>，这时多进程应用很容易碰到的问题。正常情况下，（1）当一个进程创建了子进程后，它应该通过系统调用 wait() 或者 waitpid() 等待子进程结束，回收子进程的资源；（2）而子进程在结束时，会像它的父进程发送 SIGCHLD 信号，所以，父进程还可以注册 SIGCHLD 信号的处理函数，异步回收资源。</p>
+<p>如果父进程没这么做，或是子进程执行太快，父进程还没来得急处理子进程状态，子进程就已经提前退出，那这时的子进程就会变成僵尸进程。</p>
+<p>通常，僵尸进程持续的时间都比较短，在父进程回收它的资源后就会消亡；或者在父进程退出后，由 init 进程回收后也会消亡。</p>
+<p>一旦父进程没有处理子进程的终止，还一直保持在运行状态，那么子进程就会一直处于僵尸状态。<u>大量的僵尸进程会用尽 PID 进程号，导致新进程不能创建</u>，所以这种情况一定要避免。</p>
+<h2 id="案例分析">案例分析
+</h2><p>（由于我使用的虚拟机为arm64的架构，而下面的应用为amd64的架构，所以该内容，目前使用的是老师的测试结果）</p>
+<p>接下来，将用一个多进程应用的案例，来分析大量不可中断状态和僵尸进程的问题。这个应用基于 C 开发，由于编译与运行步骤比较麻烦，老师提供了一个<a class="link" href="https://github.com/feiskyer/linux-perf-examples/tree/master/high-iowait-process"  target="_blank" rel="noopener"
+    >Docker 镜像</a>。这样，只需要运行一个 Docker 容器就可以得到模拟环境。</p>
+<h3 id="准备">准备
+</h3><ul>
+<li>系统配置：ubuntu 18</li>
+<li>机器配置：2 CPU、8 GB内存</li>
+<li>预先安装 docker、sysstat、dstat等工具</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">apt install -y docker.io dstat sysstat
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>dstat</code>：性能工具，吸收了 vmstat、iostat、ifstat 等几种工具的优点，可以同时观察系统的 CPU、磁盘I/O、网络以及内存使用情况。</p>
+<ul>
+<li>打开一个终端，SSH 登录到机器上，并安装上述工具。</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">apt install -y docker.io dstat sysstat
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>如果安装过程有问题，可以上网搜索解决。</p>
+<ul>
+<li>默认以 root 用户运行</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo su root
+</span></span></code></pre></td></tr></table>
+</div>
+</div><blockquote>
+<p>温馨提示：案例应用的核心代码逻辑比较简单，你可能一眼就能看出问题，但实际生产环境中的源码就复杂多了。所以，我依旧建议，操作之前别看源码，避免先入为主，而要把它当成一个黑盒来分析，这样你可以更好地根据现象分析问题。你姑且当成你工作中的一次演练，这样效果更佳。</p>
+</blockquote>
+<h3 id="操作和分析">操作和分析
+</h3><ol>
+<li>安装完成后，首先执行下面命令运行案件实例：</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">docker run --privileged --name<span class="o">=</span>app -itd feisky/app:iowait
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="2">
+<li>输入 ps 命令，确认案例应用已正常启动。</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">ps aux <span class="p">|</span> grep /app
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>输出结果：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root      <span class="m">4009</span>  0.0  0.0   <span class="m">4376</span>  <span class="m">1008</span> pts/0    Ss+  05:51   0:00 /app
+</span></span><span class="line"><span class="cl">root      <span class="m">4287</span>  0.6  0.4  <span class="m">37280</span> <span class="m">33660</span> pts/0    D+   05:54   0:00 /app
+</span></span><span class="line"><span class="cl">root      <span class="m">4288</span>  0.6  0.4  <span class="m">37280</span> <span class="m">33668</span> pts/0    D+   05:54   0:00 /app
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>从这个界面，我们可以发现，多个 app 进程以及启动，并且它们的状态分别是 Ss+ 和 D+。其中，S 表示可中断睡眠状态，D 表示不可中断睡眠状态，这两个在前面刚说过，那后面的 s 和 + 是什么意思？查一下 man ps 就可以知道。s 表示这个进程是一个会话的领导进程，而 + 表示前台进程组。</p>
+<p>这里又出现了两个新概念，<strong>进程组</strong>和<strong>会话</strong>。它们用来管理一组相互关联的进程，意思其实很好理解：</p>
+<ul>
+<li>进程组表示一组相互关联的进程，比如每个子进程都是父进程所在组的成员；</li>
+<li>而会话是指共享同一个控制终端的一个或多个进程组。</li>
+</ul>
+<p>比如，我们通过 SSH 登录服务器，就会打开一个控制终端（TTY），这个控制终端就对应一个会话。而我们在终端中运行的命令以及它们的子进程，就构成了一个个的进程组，其中，在后台运行的命令，构成后台进程组；在前台运行的命令，构成前台进程组。</p>
+<ol start="3">
+<li>使用 top 看一下系统的资源使用情况：</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">top
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>输出结果：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 按下数字 1 切换到所有 CPU 的使用情况，观察一会儿按 Ctrl+C 结束</span>
+</span></span><span class="line"><span class="cl">top - 05:56:23 up <span class="m">17</span> days, 16:45,  <span class="m">2</span> users,  load average: 2.00, 1.68, 1.39
+</span></span><span class="line"><span class="cl">Tasks: <span class="m">247</span> total,   <span class="m">1</span> running,  <span class="m">79</span> sleeping,   <span class="m">0</span> stopped, <span class="m">115</span> zombie
+</span></span><span class="line"><span class="cl">%Cpu0  :  0.0 us,  0.7 sy,  0.0 ni, 38.9 id, 60.5 wa,  0.0 hi,  0.0 si,  0.0 st
+</span></span><span class="line"><span class="cl">%Cpu1  :  0.0 us,  0.7 sy,  0.0 ni,  4.7 id, 94.6 wa,  0.0 hi,  0.0 si,  0.0 st
+</span></span><span class="line"><span class="cl">...
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  PID USER      PR  NI    VIRT    RES    SHR S  %CPU %MEM     TIME+ COMMAND
+</span></span><span class="line"><span class="cl"> <span class="m">4340</span> root      <span class="m">20</span>   <span class="m">0</span>   <span class="m">44676</span>   <span class="m">4048</span>   <span class="m">3432</span> R   0.3  0.0   0:00.05 top
+</span></span><span class="line"><span class="cl"> <span class="m">4345</span> root      <span class="m">20</span>   <span class="m">0</span>   <span class="m">37280</span>  <span class="m">33624</span>    <span class="m">860</span> D   0.3  0.0   0:00.01 app
+</span></span><span class="line"><span class="cl"> <span class="m">4344</span> root      <span class="m">20</span>   <span class="m">0</span>   <span class="m">37280</span>  <span class="m">33624</span>    <span class="m">860</span> D   0.3  0.4   0:00.01 app
+</span></span><span class="line"><span class="cl">    <span class="m">1</span> root      <span class="m">20</span>   <span class="m">0</span>  <span class="m">160072</span>   <span class="m">9416</span>   <span class="m">6752</span> S   0.0  0.1   0:38.59 systemd
+</span></span><span class="line"><span class="cl">...
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>这里发现四个可疑的地方。</p>
+<ul>
+<li>
+<p>先看第一行的平均负载（Load Average），过去 1 分钟、5 分钟和 15 分钟内的平均负载在依次减小，说明平均负载正在升高；而 1 分钟内的平均负载已经达到系统的 CPU 个数，说明系统很可能已经有了性能瓶颈。</p>
+</li>
+<li>
+<p>再看第二行的 Tasks，有 1 个正在运行的进程，但僵尸进程比较多，而且还在不停增加，说明有子进程在退出时没被清理。</p>
+</li>
+<li>
+<p>接下来看两个 CPU 的使用率情况，用户 CPU 和系统 CPU 都不高，但 iowait 分别是 60.5% 和 94.6%，好像有点不正常。</p>
+</li>
+<li>
+<p>最后再看每个进程的情况，CPU 使用率最高的进程只有 0.3%，看起来并不高；但有两个进程处于 D 状态，它们可能在等待 I/O，但光凭这里并不能确定是它们导致了 iowait 升高。</p>
+</li>
+</ul>
+<p>汇总四个问题，就可以明确得到两点。</p>
+<ul>
+<li>第一点，iowait 太高了，导致系统的平均负载升高，甚至达到了系统 CPU 的个数。</li>
+<li>第二点，僵尸进程在不断增多，说明程序没能正确清理子进程的资源。</li>
+</ul>
+<p>那么，接下来就顺着这两个问题继续分析，找出根源。</p>
+<ol start="4">
+<li>删除上个启动的案例</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">docker rm -f app
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="5">
+<li>重新运行案例</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">docker run --privileged --name<span class="o">=</span>app -itd feisky/app:iowait
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="iowait-分析问题一">iowait 分析（问题一）
+</h4><p>先来看第一个 iowait 升高的问题。</p>
+<p>提到 iowait 升高，首先会想到查询系统的 I/O 情况。那么什么工具可以查询系统的 I/O 情况呢？</p>
+<p>这里推荐使用<code>dstat</code>，它的好处是，可以同时查看 CPU 和 I/O 这两种资源的使用情况，便于对比分析。</p>
+<ol start="6">
+<li>在终端中运行 dstat 命令，观察 CPU 和 I/O 的使用情况：</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 间隔1秒输出10组数据</span>
+</span></span><span class="line"><span class="cl">dstat <span class="m">1</span> <span class="m">10</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>输出结果：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">You did not <span class="k">select</span> any stats, using -cdngy by default.
+</span></span><span class="line"><span class="cl">--total-cpu-usage-- -dsk/total- -net/total- ---paging-- ---system--
+</span></span><span class="line"><span class="cl">usr sys idl wai stl<span class="p">|</span> <span class="nb">read</span>  writ<span class="p">|</span> recv  send<span class="p">|</span>  in   out <span class="p">|</span> int   csw
+</span></span><span class="line"><span class="cl">  <span class="m">0</span>   <span class="m">0</span>  <span class="m">96</span>   <span class="m">4</span>   0<span class="p">|</span>1219k  408k<span class="p">|</span>   <span class="m">0</span>     <span class="m">0</span> <span class="p">|</span>   <span class="m">0</span>     <span class="m">0</span> <span class="p">|</span>  <span class="m">42</span>   <span class="m">885</span>
+</span></span><span class="line"><span class="cl">  <span class="m">0</span>   <span class="m">0</span>   <span class="m">2</span>  <span class="m">98</span>   0<span class="p">|</span>  34M    <span class="m">0</span> <span class="p">|</span> 198B  790B<span class="p">|</span>   <span class="m">0</span>     <span class="m">0</span> <span class="p">|</span>  <span class="m">42</span>   <span class="m">138</span>
+</span></span><span class="line"><span class="cl">  <span class="m">0</span>   <span class="m">0</span>   <span class="m">0</span> <span class="m">100</span>   0<span class="p">|</span>  34M    <span class="m">0</span> <span class="p">|</span>  66B  342B<span class="p">|</span>   <span class="m">0</span>     <span class="m">0</span> <span class="p">|</span>  <span class="m">42</span>   <span class="m">135</span>
+</span></span><span class="line"><span class="cl">  <span class="m">0</span>   <span class="m">0</span>  <span class="m">84</span>  <span class="m">16</span>   0<span class="p">|</span>5633k    <span class="m">0</span> <span class="p">|</span>  66B  342B<span class="p">|</span>   <span class="m">0</span>     <span class="m">0</span> <span class="p">|</span>  <span class="m">52</span>   <span class="m">177</span>
+</span></span><span class="line"><span class="cl">  <span class="m">0</span>   <span class="m">3</span>  <span class="m">39</span>  <span class="m">58</span>   0<span class="p">|</span>  22M    <span class="m">0</span> <span class="p">|</span>  66B  342B<span class="p">|</span>   <span class="m">0</span>     <span class="m">0</span> <span class="p">|</span>  <span class="m">43</span>   <span class="m">144</span>
+</span></span><span class="line"><span class="cl">  <span class="m">0</span>   <span class="m">0</span>   <span class="m">0</span> <span class="m">100</span>   0<span class="p">|</span>  34M    <span class="m">0</span> <span class="p">|</span> 200B  450B<span class="p">|</span>   <span class="m">0</span>     <span class="m">0</span> <span class="p">|</span>  <span class="m">46</span>   <span class="m">147</span>
+</span></span><span class="line"><span class="cl">  <span class="m">0</span>   <span class="m">0</span>   <span class="m">2</span>  <span class="m">98</span>   0<span class="p">|</span>  34M    <span class="m">0</span> <span class="p">|</span>  66B  342B<span class="p">|</span>   <span class="m">0</span>     <span class="m">0</span> <span class="p">|</span>  <span class="m">45</span>   <span class="m">134</span>
+</span></span><span class="line"><span class="cl">  <span class="m">0</span>   <span class="m">0</span>   <span class="m">0</span> <span class="m">100</span>   0<span class="p">|</span>  34M    <span class="m">0</span> <span class="p">|</span>  66B  342B<span class="p">|</span>   <span class="m">0</span>     <span class="m">0</span> <span class="p">|</span>  <span class="m">39</span>   <span class="m">131</span>
+</span></span><span class="line"><span class="cl">  <span class="m">0</span>   <span class="m">0</span>  <span class="m">83</span>  <span class="m">17</span>   0<span class="p">|</span>5633k    <span class="m">0</span> <span class="p">|</span>  66B  342B<span class="p">|</span>   <span class="m">0</span>     <span class="m">0</span> <span class="p">|</span>  <span class="m">46</span>   <span class="m">168</span>
+</span></span><span class="line"><span class="cl">  <span class="m">0</span>   <span class="m">3</span>  <span class="m">39</span>  <span class="m">59</span>   0<span class="p">|</span>  22M    <span class="m">0</span> <span class="p">|</span>  66B  342B<span class="p">|</span>   <span class="m">0</span>     <span class="m">0</span> <span class="p">|</span>  <span class="m">37</span>   <span class="m">134</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>从 dstat 的输出，我们可以看到，每当 iowait 升高（wai）时，磁盘的读请求（read）都会很大。这说明 iowait 的升高跟磁盘的读请求有关，很可能就是磁盘读导致的。</p>
+<p>那么到底是哪个进程在读磁盘呢？前面用 top 看到的不可中断状态进程就很可疑，这里来分析一下。</p>
+<ol start="7">
+<li>终端里运行 top 命令，观察 D 状态的进程：</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">top
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>输出结果：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">...
+</span></span><span class="line"><span class="cl">  PID USER      PR  NI    VIRT    RES    SHR S  %CPU %MEM     TIME+ COMMAND
+</span></span><span class="line"><span class="cl"> <span class="m">4340</span> root      <span class="m">20</span>   <span class="m">0</span>   <span class="m">44676</span>   <span class="m">4048</span>   <span class="m">3432</span> R   0.3  0.0   0:00.05 top
+</span></span><span class="line"><span class="cl"> <span class="m">4345</span> root      <span class="m">20</span>   <span class="m">0</span>   <span class="m">37280</span>  <span class="m">33624</span>    <span class="m">860</span> D   0.3  0.0   0:00.01 app
+</span></span><span class="line"><span class="cl"> <span class="m">4344</span> root      <span class="m">20</span>   <span class="m">0</span>   <span class="m">37280</span>  <span class="m">33624</span>    <span class="m">860</span> D   0.3  0.4   0:00.01 app
+</span></span><span class="line"><span class="cl">...
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>从 top 的输出找到 D 状态进程的 PID，可以发现，这个界面有两个 D 状态的进程，PID 分别是 4344 和 4345。</p>
+<p>接着查看这些进程的磁盘读写情况。一般查看某个进程的资源使用情况，可以用<code>pidstat</code>，不过这次需要加上 <code>-d</code>，以便输出 I/O 使用情况。</p>
+<ol start="8">
+<li>运行 pidstat 命令，指定查看 4344进程号的进程，统计 I/O 的数据</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># -d 展示 I/O 统计数据，-p 指定进程号，间隔 1 秒输出 3 组数据</span>
+</span></span><span class="line"><span class="cl">pidstat -d -p <span class="m">4344</span> <span class="m">1</span> <span class="m">3</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>输出结果：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">06:38:50      UID       PID   kB_rd/s   kB_wr/s kB_ccwr/s iodelay  Command
+</span></span><span class="line"><span class="cl">06:38:51        <span class="m">0</span>      <span class="m">4344</span>      0.00      0.00      0.00       <span class="m">0</span>  app
+</span></span><span class="line"><span class="cl">06:38:52        <span class="m">0</span>      <span class="m">4344</span>      0.00      0.00      0.00       <span class="m">0</span>  app
+</span></span><span class="line"><span class="cl">06:38:53        <span class="m">0</span>      <span class="m">4344</span>      0.00      0.00      0.00       <span class="m">0</span>  app
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>这个输出中，KB_rd 表示每秒读的 KB 数，KB_wr 表示每秒写的 KB 数，iodelay 表示 I/O 的延迟（单位是时钟周期）。它们都是 0，那就表示此时没有任何读写，说明问题不是 4344 进程导致的。</p>
+<ol start="9">
+<li>同样操作 8 的方法测试 4345，可以发现，它也没有任何磁盘读写。</li>
+</ol>
+<p>那要怎么知道，到底是哪个进程在进行磁盘读写呢？</p>
+<ol start="10">
+<li>运行 pidstat 命令，观察所有进程的 I/O 使用情况。</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 间隔 1 秒输出多组数据（这里是 20 组数据）</span>
+</span></span><span class="line"><span class="cl">pidstat -d <span class="m">1</span> <span class="m">20</span> 
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>输出结果：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">...
+</span></span><span class="line"><span class="cl">06:48:46      UID       PID   kB_rd/s   kB_wr/s kB_ccwr/s iodelay  Command
+</span></span><span class="line"><span class="cl">06:48:47        <span class="m">0</span>      <span class="m">4615</span>      0.00      0.00      0.00       <span class="m">1</span>  kworker/u4:1
+</span></span><span class="line"><span class="cl">06:48:47        <span class="m">0</span>      <span class="m">6080</span>  32768.00      0.00      0.00     <span class="m">170</span>  app
+</span></span><span class="line"><span class="cl">06:48:47        <span class="m">0</span>      <span class="m">6081</span>  32768.00      0.00      0.00     <span class="m">184</span>  app
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">06:48:47      UID       PID   kB_rd/s   kB_wr/s kB_ccwr/s iodelay  Command
+</span></span><span class="line"><span class="cl">06:48:48        <span class="m">0</span>      <span class="m">6080</span>      0.00      0.00      0.00     <span class="m">110</span>  app
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">06:48:48      UID       PID   kB_rd/s   kB_wr/s kB_ccwr/s iodelay  Command
+</span></span><span class="line"><span class="cl">06:48:49        <span class="m">0</span>      <span class="m">6081</span>      0.00      0.00      0.00     <span class="m">191</span>  app
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">06:48:49      UID       PID   kB_rd/s   kB_wr/s kB_ccwr/s iodelay  Command
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">06:48:50      UID       PID   kB_rd/s   kB_wr/s kB_ccwr/s iodelay  Command
+</span></span><span class="line"><span class="cl">06:48:51        <span class="m">0</span>      <span class="m">6082</span>  32768.00      0.00      0.00       <span class="m">0</span>  app
+</span></span><span class="line"><span class="cl">06:48:51        <span class="m">0</span>      <span class="m">6083</span>  32768.00      0.00      0.00       <span class="m">0</span>  app
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">06:48:51      UID       PID   kB_rd/s   kB_wr/s kB_ccwr/s iodelay  Command
+</span></span><span class="line"><span class="cl">06:48:52        <span class="m">0</span>      <span class="m">6082</span>  32768.00      0.00      0.00     <span class="m">184</span>  app
+</span></span><span class="line"><span class="cl">06:48:52        <span class="m">0</span>      <span class="m">6083</span>  32768.00      0.00      0.00     <span class="m">175</span>  app
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">06:48:52      UID       PID   kB_rd/s   kB_wr/s kB_ccwr/s iodelay  Command
+</span></span><span class="line"><span class="cl">06:48:53        <span class="m">0</span>      <span class="m">6083</span>      0.00      0.00      0.00     <span class="m">105</span>  app
+</span></span><span class="line"><span class="cl">...
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>观察可以发现，的确是 app 进程在进行磁盘读，并且每秒读的数据有 32 MB，看来就是 app 的问题。不过，app 进程到底在执行啥 I/O 操作？</p>
+<p>这里我们需要回顾一下进程用户态和内核态的区别，进程想要访问磁盘，就必须使用系统调用，所以接下来，重点就是找出 app 进程的系统调用了。</p>
+<p><code>strace</code> 是最常用的跟踪进程系统调用的工具。所以，我们从 <code>pidstat</code> 的输出中拿到进程的 PID 号。</p>
+<ol start="11">
+<li>运行 strace 命令，指定进程号为 6082</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">strace -p <span class="m">6082</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>输出结果：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">strace: attach: ptrace<span class="o">(</span>PTRACE_SEIZE, 6082<span class="o">)</span>: Operation not permitted
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>这儿出现了一个奇怪的错误，strace 命令失败了，并且命令报出的错误是没有权限。按理来说，我们所有操作都是以 root 用户，为什么还会没有权限？</p>
+<p><strong>一般遇到这种问题，先检查一下进程的状态是否正常</strong>：</p>
+<ol start="12">
+<li>运行 ps 命令，并使用 grep 找出刚才的 6082 号进程</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">ps aux <span class="p">|</span> grep <span class="m">6082</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>输出结果：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root      <span class="m">6082</span>  0.0  0.0      <span class="m">0</span>     <span class="m">0</span> pts/0    Z+   13:43   0:00 <span class="o">[</span>app<span class="o">]</span> &lt;defunct&gt;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>果然，进程 6082 已经变成了 Z 状态，也就是僵尸进程。僵尸进程都是已经退出的进程，所以没法继续分析它的系统调用。关于僵尸进程的问题，等会再处理，现在继续分析 iowait 的问题。</p>
+<p>到这一步以后，系统 iowait 的问题还在继续，但是 top、pidstat 这类工具已经不能给出更多信息了。这时，我们需要借助那些<u>基于事件记录的动态追踪工具</u>了。</p>
+<ol start="13">
+<li>运行 perf 命令，记录性能事件</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">perf record -g
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="14">
+<li>运行 perf 命令，查看报告</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">perf report
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>接着，找到 app 进程，按回车键展开调用栈，就可以得到如下调用关系：</p>
+<p><img src="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-2/image.png"
+	width="776"
+	height="667"
+	srcset="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-2/image_hu_8be53184f297613.png 480w, /p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-2/image_hu_46a7c338aefff952.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="116"
+		data-flex-basis="279px"
+	
+></p>
+<p>这个图里的 swapper 是内核中的调度进程，可以先忽略掉。</p>
+<p>再看其他信息，app 在通过系统调用sys_read()读取数据。并且从 new_sync_read 和 blkdev_direct_IO 能看出，进程正在对磁盘进行<strong>直接读</strong>，也就是绕过了系统缓存，每个读请求都会从磁盘直接读，这样就可以解释观察到的 iowait 升高了。</p>
+<p>问题原因：<u>所以，罪魁祸首是 app 内部进行了磁盘的直接 I/O。</u></p>
+<p>发现了问题，就容易解决了。接下来从代码层面进行分析，究竟是哪里出现了直接读请求。</p>
+<p>查看源码文件<a class="link" href="https://github.com/feiskyer/linux-perf-examples/blob/master/high-iowait-process/app.c"  target="_blank" rel="noopener"
+    >app.c</a>，就会发现它果然使用了 O_DIRECT 选项打开磁盘，于是绕过了系统缓存，直接对磁盘进行读写。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="nf">open</span><span class="p">(</span><span class="n">disk</span><span class="p">,</span> <span class="n">O_RDONLY</span><span class="o">|</span><span class="n">O_DIRECT</span><span class="o">|</span><span class="n">O_LARGEFILE</span><span class="p">,</span> <span class="mo">0755</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>直接读写磁盘，对 I/O 敏感型应用（比如数据库系统）是很友好的，因为可以在应用中，直接控制磁盘的读写。但在大部分情况下，最好还是通过系统缓存来优化磁盘 I/O，换句话说，删除这个 O_DIRECT 这个选项即可。</p>
+<p><a class="link" href="https://github.com/feiskyer/linux-perf-examples/blob/master/high-iowait-process/app-fix1.c"  target="_blank" rel="noopener"
+    >app-fix1.c</a> 就是修改后的文件，运行以下命令就能启动它：</p>
+<ol start="15">
+<li>运行新的应用</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">docker run --privileged --name<span class="o">=</span>app -itd feisky/app:iowait-fix1
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="16">
+<li>使用 top 检查</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">top
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>输出结果：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">top - 14:59:32 up <span class="m">19</span> min,  <span class="m">1</span> user,  load average: 0.15, 0.07, 0.05
+</span></span><span class="line"><span class="cl">Tasks: <span class="m">137</span> total,   <span class="m">1</span> running,  <span class="m">72</span> sleeping,   <span class="m">0</span> stopped,  <span class="m">12</span> zombie
+</span></span><span class="line"><span class="cl">%Cpu0  :  0.0 us,  1.7 sy,  0.0 ni, 98.0 id,  0.3 wa,  0.0 hi,  0.0 si,  0.0 st
+</span></span><span class="line"><span class="cl">%Cpu1  :  0.0 us,  1.3 sy,  0.0 ni, 98.7 id,  0.0 wa,  0.0 hi,  0.0 si,  0.0 st
+</span></span><span class="line"><span class="cl">...
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  PID USER      PR  NI    VIRT    RES    SHR S  %CPU %MEM     TIME+ COMMAND
+</span></span><span class="line"><span class="cl"> <span class="m">3084</span> root      <span class="m">20</span>   <span class="m">0</span>       <span class="m">0</span>      <span class="m">0</span>      <span class="m">0</span> Z   1.3  0.0   0:00.04 app
+</span></span><span class="line"><span class="cl"> <span class="m">3085</span> root      <span class="m">20</span>   <span class="m">0</span>       <span class="m">0</span>      <span class="m">0</span>      <span class="m">0</span> Z   1.3  0.0   0:00.04 app
+</span></span><span class="line"><span class="cl">    <span class="m">1</span> root      <span class="m">20</span>   <span class="m">0</span>  <span class="m">159848</span>   <span class="m">9120</span>   <span class="m">6724</span> S   0.0  0.1   0:09.03 systemd
+</span></span><span class="line"><span class="cl">    <span class="m">2</span> root      <span class="m">20</span>   <span class="m">0</span>       <span class="m">0</span>      <span class="m">0</span>      <span class="m">0</span> S   0.0  0.0   0:00.00 kthreadd
+</span></span><span class="line"><span class="cl">    <span class="m">3</span> root      <span class="m">20</span>   <span class="m">0</span>       <span class="m">0</span>      <span class="m">0</span>      <span class="m">0</span> I   0.0  0.0   0:00.40 kworker/0:0
+</span></span><span class="line"><span class="cl">...
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>可以发现 iowait 已经非常低了，只有 0.3%，说明刚才的改动已经成功修复了 iowait 高的问题。不过僵尸进程的问题还存在，能看到僵尸进程的数量还在不断增长。</p>
+<h4 id="僵尸进程问题二">僵尸进程（问题二）
+</h4><p>接下来处理僵尸进程的问题，即然僵尸进程是因为父进程没有回收子进程的资源而出现的，那么要解决它们就要找到它们的根，也就是找出父进程，在父进程里解决。</p>
+<ol start="17">
+<li>找父进程：运行 pstree 命令</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># -a 表示输出命令行选项</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># p 表示PID</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># S 表示指定进程的父进程</span>
+</span></span><span class="line"><span class="cl">pstree -aps <span class="m">3084</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>输出结果：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">systemd,1
+</span></span><span class="line"><span class="cl">  └─dockerd,15006 -H fd://
+</span></span><span class="line"><span class="cl">      └─docker-containe,15024 --config /var/run/docker/containerd/containerd.toml
+</span></span><span class="line"><span class="cl">          └─docker-containe,3991 -namespace moby -workdir...
+</span></span><span class="line"><span class="cl">              └─app,4009
+</span></span><span class="line"><span class="cl">                  └─<span class="o">(</span>app,3084<span class="o">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>运行完发现，3084 号进程的父进程是 4009，也就是 app 应用。</p>
+<p>所以，接着查看 app 应用程序的代码，看看子进程结束的处理是否正确，比如有没有调用 wait() 或 waitpid()，抑或是，有没有注册 SIGCHLD 信号的处理函数。</p>
+<p>现在查看修复 iowait 后的源码文件<a class="link" href="https://github.com/feiskyer/linux-perf-examples/blob/master/high-iowait-process/app-fix1.c"  target="_blank" rel="noopener"
+    >app-fix1.c</a>，找到子进程的创建和清理的地方：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="kt">int</span> <span class="n">status</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="k">for</span> <span class="p">(;;)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">      <span class="k">if</span><span class="p">(</span><span class="nf">fork</span><span class="p">()</span><span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="nf">sub_process</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">      <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="nf">sleep</span><span class="p">(</span><span class="mi">5</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="k">while</span><span class="p">(</span><span class="nf">wait</span><span class="p">(</span><span class="o">&amp;</span><span class="n">status</span><span class="p">)</span><span class="o">&gt;</span><span class="mi">0</span><span class="p">);</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>这段代码虽然看起来调用了 wait() 函数等待子进程结束，但却错误地把 wait() 放到了 for 死循环的外面，也就是说，wait() 函数实际上并没有被调用，我们把它挪到 for 循环的里面就可以了。</p>
+<p>老师将修改后的文件<a class="link" href="https://github.com/feiskyer/linux-perf-examples/blob/master/high-iowait-process/app-fix2.c"  target="_blank" rel="noopener"
+    >app-fix2.c</a>打包成了一个 Docker 镜像。</p>
+<ol start="18">
+<li>运行新的 Docker 镜像</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 先停止产生僵尸进程的 app</span>
+</span></span><span class="line"><span class="cl">docker rm -f app
+</span></span><span class="line"><span class="cl"><span class="c1"># 然后启动新的 app</span>
+</span></span><span class="line"><span class="cl">docker run --privileged --name<span class="o">=</span>app -itd feisky/app:iowait-fix2
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="19">
+<li>运行 top 检查</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">top 
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>输出结果：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">top - 15:00:44 up <span class="m">20</span> min,  <span class="m">1</span> user,  load average: 0.05, 0.05, 0.04
+</span></span><span class="line"><span class="cl">Tasks: <span class="m">125</span> total,   <span class="m">1</span> running,  <span class="m">72</span> sleeping,   <span class="m">0</span> stopped,   <span class="m">0</span> zombie
+</span></span><span class="line"><span class="cl">%Cpu0  :  0.0 us,  1.7 sy,  0.0 ni, 98.3 id,  0.0 wa,  0.0 hi,  0.0 si,  0.0 st
+</span></span><span class="line"><span class="cl">%Cpu1  :  0.0 us,  1.3 sy,  0.0 ni, 98.7 id,  0.0 wa,  0.0 hi,  0.0 si,  0.0 st
+</span></span><span class="line"><span class="cl">...
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  PID USER      PR  NI    VIRT    RES    SHR S  %CPU %MEM     TIME+ COMMAND
+</span></span><span class="line"><span class="cl"> <span class="m">3198</span> root      <span class="m">20</span>   <span class="m">0</span>    <span class="m">4376</span>    <span class="m">840</span>    <span class="m">780</span> S   0.3  0.0   0:00.01 app
+</span></span><span class="line"><span class="cl">    <span class="m">2</span> root      <span class="m">20</span>   <span class="m">0</span>       <span class="m">0</span>      <span class="m">0</span>      <span class="m">0</span> S   0.0  0.0   0:00.00 kthreadd
+</span></span><span class="line"><span class="cl">    <span class="m">3</span> root      <span class="m">20</span>   <span class="m">0</span>       <span class="m">0</span>      <span class="m">0</span>      <span class="m">0</span> I   0.0  0.0   0:00.41 kworker/0:0
+</span></span><span class="line"><span class="cl">...
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>可以看到僵尸进程（Z状态）已经没有了，iowait 也是0，问题已经解决了。</p>
+<h2 id="小结">小结
+</h2><p>今天老师用一个多进程的案例，带我们分析系统等待 I/O 的 CPU 使用率（也就是 iowait%）升高的情况。</p>
+<p>虽然这个案例是磁盘 I/O 导致了 iowait 升高，不过， <strong>iowait 高不一定代表 I/O 有性能瓶颈。当系统中只有 I/O 类型的进程在运行时，iowait 也会很高，但实际上，磁盘的读写远没有达到性能瓶颈的程度</strong>。</p>
+<p>因此，碰到 iowait 升高时，需要先用 dstat、pidstat 等工具，确认是不是磁盘 I/O 的问题，然后再找是哪些进程倒是了 I/O。</p>
+<p>等待 I/O 的进程一般是不可中断状态。所以用 ps 命令找到的 D 状态（即不可中断状态）的进程，多为可疑进程。但这个案例中，在 I/O 操作后，进程又变成了僵尸进程，所以不能用 strace 直接分析这个进程的系统调用。</p>
+<p>这种情况下，我们用了 perf 工具，来分析系统的 CPU 时钟事件，最终发现是直接 I/O 导致的问题。这时，再检查源码中对应位置的问题，就很轻松了。</p>
+<p>而僵尸进程的问题相对容易排查，使用 pstree 找出父进程后，去查看父进程的代码，检查 wait() / waitpid() 的调用，或是 SIGCHLD 信号处理函数的注册就行了。</p>
+
+</section>
+
+
+    <footer class="article-footer">
+    
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+<aside class="related-content--wrapper">
+    <h2 class="section-title">相关文章</h2>
+    <div class="related-content">
+        <div class="flex article-list--tile">
+            
+                
+<article class="">
+    <a href="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87-2/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Linux]性能调优 CPU篇（基础篇）- 2</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-1/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Linux]性能调优-CPU篇（案例篇）- 1</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87-1/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Linux]性能调优-CPU篇（基础篇）- 1</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%89%8D%E8%A8%80/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Linux]性能调优-前言</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/linuxcurl%E5%91%BD%E4%BB%A4/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Linux]curl命令</h2>
+        </div>
+    </a>
+</article>
+
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+            2025 - 
+        
+        2026 リンボの個人ブログ
+    </section>
+    
+    <section class="powerby">
+         <br />
+        
+    </section>
+</footer>
+
+
+    
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+    
+    <div class="pswp__bg"></div>
+
+    
+    <div class="pswp__scroll-wrap">
+
+        
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+
+        
+        <div class="pswp__ui pswp__ui--hidden">
+
+            <div class="pswp__top-bar">
+
+                
+
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+
+                <button class="pswp__button pswp__button--share" title="Share"></button>
+
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+
+                
+                
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                        <div class="pswp__preloader__cut">
+                            <div class="pswp__preloader__donut"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div>
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.js"integrity="sha256-ePwmChbbvXbsO02lbM3HoHbSHTHFAeChekF1xKJdleo="crossorigin="anonymous"
+                defer
+                >
+            </script><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe-ui-default.min.js"integrity="sha256-UKkzOn/w1mBxRmLLGrSeyB4e1xbrp4xylgAWb3M42pU="crossorigin="anonymous"
+                defer
+                >
+            </script><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/default-skin/default-skin.min.css"crossorigin="anonymous"
+            ><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.css"crossorigin="anonymous"
+            >
+
+            </main>
+        </div>
+        <script 
+                src="https://cdn.jsdelivr.net/npm/node-vibrant@3.1.6/dist/vibrant.min.js"integrity="sha256-awcR2jno4kI5X0zL8ex0vi2z&#43;KMkF24hUW8WePSA9HM="crossorigin="anonymous"
+                
+                >
+            </script><script type="text/javascript" src="/ts/main.1e9a3bafd846ced4c345d084b355fb8c7bae75701c338f8a1f8a82c780137826.js" defer></script>
+<script>
+    (function () {
+        const customFont = document.createElement('link');
+        customFont.href = "https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap";
+
+        customFont.type = "text/css";
+        customFont.rel = "stylesheet";
+
+        document.head.appendChild(customFont);
+    }());
+</script>
+
+    </body>
+</html>
