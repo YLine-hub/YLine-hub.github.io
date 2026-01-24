@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+<html lang="en-us" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="系统的软中断CPU使用率升高，我该怎么办？ 案例 准备 系统环境：ubuntu 20 机器配置：2 CPU、8 GB内存 预先安装 docker、sysstat、sar、hping3、tcpdump 等工具 1 apt-get install -y docker.io sysstat hping3 tcpdump 这里又用到了3个新工具sar、hping3、tcpdump，先简单介绍一下：\n">
+<title>[Linux]性能调优-CPU篇（案例篇）- 3</title>
+
+<link rel='canonical' href='https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-3/'>
+
+<link rel="stylesheet" href="/scss/style.min.6a692fd055deae459f2a9767f57f3855ba80cafd5041317f24f7360f6ca47cdf.css"><meta property='og:title' content="[Linux]性能调优-CPU篇（案例篇）- 3">
+<meta property='og:description' content="系统的软中断CPU使用率升高，我该怎么办？ 案例 准备 系统环境：ubuntu 20 机器配置：2 CPU、8 GB内存 预先安装 docker、sysstat、sar、hping3、tcpdump 等工具 1 apt-get install -y docker.io sysstat hping3 tcpdump 这里又用到了3个新工具sar、hping3、tcpdump，先简单介绍一下：\n">
+<meta property='og:url' content='https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-3/'>
+<meta property='og:site_name' content='リンボの個人ブログ'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:published_time' content='2026-01-23T17:56:32&#43;08:00'/><meta property='article:modified_time' content='2026-01-23T17:56:32&#43;08:00'/>
+<meta name="twitter:title" content="[Linux]性能调优-CPU篇（案例篇）- 3">
+<meta name="twitter:description" content="系统的软中断CPU使用率升高，我该怎么办？ 案例 准备 系统环境：ubuntu 20 机器配置：2 CPU、8 GB内存 预先安装 docker、sysstat、sar、hping3、tcpdump 等工具 1 apt-get install -y docker.io sysstat hping3 tcpdump 这里又用到了3个新工具sar、hping3、tcpdump，先简单介绍一下：\n">
+    <link rel="shortcut icon" href="/favicon.ico" />
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        
+            
+            <figure class="site-avatar">
+                <a href="/">
+                
+                    
+                    
+                    
+                        
+                        <img src="/img/avatar_hu_de528bff5d5e9598.png" width="300"
+                            height="300" class="site-logo" loading="lazy" alt="Avatar">
+                    
+                
+                </a>
+                
+                    <span class="emoji">🏖️</span>
+                
+            </figure>
+            
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">リンボの個人ブログ</a></h1>
+            <h2 class="site-description">努力不一定能获得回报，但不努力一定不会有回报。</h2>
+        </div>
+    </header><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-home" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <polyline points="5 12 3 12 12 3 21 12 19 12" />
+  <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7" />
+  <path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6" />
+</svg>
+
+
+
+                
+                <span>主页</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/%E5%85%B3%E4%BA%8E/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/archives/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/search/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-search" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="10" cy="10" r="7" />
+  <line x1="21" y1="21" x2="15" y2="15" />
+</svg>
+
+
+
+                
+                <span>搜索</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav id="TableOfContents">
+  <ol>
+    <li><a href="#案例">案例</a>
+      <ol>
+        <li><a href="#准备">准备</a></li>
+        <li><a href="#操作和分析">操作和分析</a></li>
+      </ol>
+    </li>
+    <li><a href="#小结">小结</a></li>
+  </ol>
+</nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            <a href="/categories/linux/" >
+                Linux
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-3/">[Linux]性能调优-CPU篇（案例篇）- 3</a>
+        </h2>
+    
+        
+    </div>
+
+    
+    
+    
+    
+    <footer class="article-time">
+        
+            <div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                <time class="article-time--published">2026-01-23</time>
+            </div>
+        
+
+        
+    </footer>
+    
+
+    
+</div>
+
+</header>
+
+    <section class="article-content">
+    
+    
+    <h2>系统的软中断CPU使用率升高，我该怎么办？
+</h2>
+<h2 id="案例">案例
+</h2><h3 id="准备">准备
+</h3><ul>
+<li>系统环境：ubuntu 20</li>
+<li>机器配置：2 CPU、8 GB内存</li>
+<li>预先安装 docker、sysstat、sar、hping3、tcpdump 等工具</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">apt-get install -y docker.io sysstat hping3 tcpdump
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>这里又用到了3个新工具<code>sar</code>、<code>hping3</code>、<code>tcpdump</code>，先简单介绍一下：</p>
+<ul>
+<li>
+<p>sar 是一个系统活动报告工具，即可以实时查看系统的当前活动，又可以配置保存和报告历史统计数据。</p>
+</li>
+<li>
+<p>hping3 是一个可以构造 TCP/IP 协议数据包的工具，可以对系统进行安全审计、防火墙测试等。</p>
+</li>
+<li>
+<p>tcpdump 是一个常用的网络抓包工具，常用来分析各种网络问题。</p>
+</li>
+</ul>
+<p>本次案例用到两台虚拟机，下图为它们的关系：</p>
+<p><img src="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-3/image.png"
+	width="1632"
+	height="1032"
+	srcset="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-3/image_hu_175f1d50196ee312.png 480w, /p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-3/image_hu_32c17614ee1a0886.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="158"
+		data-flex-basis="379px"
+	
+></p>
+<p>可以看到，其中一台虚拟机运行 Nginx，用来模拟待分析的 Web 服务器；而另一台当作 Web 服务器的客户端，用来给 Nginx 增加压力请求。使用两台虚拟机的目的，是为了相互隔离，避免“交叉感染”。</p>
+<ul>
+<li>打开两个终端，分别 SSH 登录到两台机器上，并安装上面提到的工具：</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">apt-get install docker.io sysstat hping3 tcpdump
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>默认运行 root 用户</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo su root
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="操作和分析">操作和分析
+</h3><ol>
+<li>终端1：使用 docker 运行 Nginx 服务，并对外开放 80 端口</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">docker run -itd --name<span class="o">=</span>nginx -p 80:80 nginx
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="2">
+<li>终端2：使用 curl 访问 Nginx 监听的端口，确认 Nginx 正常启动</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">curl http://172.16.140.131/
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-3/image-1.png"
+	width="1062"
+	height="820"
+	srcset="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-3/image-1_hu_35999b85ada3a015.png 480w, /p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-3/image-1_hu_2ed0c49e2e0d4ed9.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="129"
+		data-flex-basis="310px"
+	
+></p>
+<p>从返回结果可以看到 nginx 服务已经在正常运行。</p>
+<ol start="3">
+<li>终端2：运行 hping3 命令，模拟 Nginx 客户端请求</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># -S 参数表示设置TCP协议的SYN（同步序列号）</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># -i u100 表示每隔100微秒发送一个网络帧</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># 注：如果在实践过程中现象不明显，可以尝试把100调小，比如调成10甚至1</span>
+</span></span><span class="line"><span class="cl">hping3 -S -p <span class="m">80</span> -i u100 172.16.140.131
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>现在回到第一个终端，发现了系统响应时间明显变慢了，在终端敲几个按键或者回车都很慢，要很久才响应。</p>
+<p>虽然运行 hping3 命令时，老师已经说了，这是一个 SYN FLOOD 攻击，肯定也会想到从网络方面入手。但是在实际生产环境中，没人会直接告诉我们原因。</p>
+<p>所以我们需要忘记 hping3 模拟 SYN FLOOD 这个操作，重新<u>从观察到的问题方面开始，分析系统的资源使用情况，逐步找出问题根源。</u></p>
+<p>那么，该从什么地方入手呢？</p>
+<p>即然发现，连简单的 SHELL 命令都明显变慢，那么先看看系统的整体资源使用情况应该是个不错的主意。</p>
+<ol start="4">
+<li>终端1：运行 top 命令，看一下系统整体的资源使用情况。</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">top
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-3/image-3.png"
+	width="1296"
+	height="1468"
+	srcset="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-3/image-3_hu_5f0e3990aee96e2a.png 480w, /p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-3/image-3_hu_47944ba0d79cdba4.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="88"
+		data-flex-basis="211px"
+	
+></p>
+<p>我们从第一行开始，逐行往下看：</p>
+<ul>
+<li>
+<p>平均负载基本上为 0，就绪队列只有 1 个进程（1 running）。</p>
+</li>
+<li>
+<p>CPU 0 的使用率挺低的，但是能够看到 CPU 1 用的就比较多了，有18.5%。</p>
+</li>
+<li>
+<p>再看进程列表，最高的只有 2%，看上去也不算高。</p>
+</li>
+</ul>
+<p>那么，接下来我们来分析一下。</p>
+<p>能看到 top 的输出，CPU 0 和 CPU 1 使用率分别是3.3%和18.5%，基本上用在了软中断上；再看进程列表，CPU 使用率最高的也是软中断进程 ksoftirqd。看来，软中断有点可疑了。</p>
+<p>那么，即然软中断有问题，我们就需要先判断是哪类软中断有问题。还是使用 proc 文件系统。观察 /proc/softirqs 文件的内容，就能够知道各种软中断类型的次数。</p>
+<p>不过，这里的各种软中断次数，是系统运行以来的<strong>累计软中断次数</strong>。所以，我们直接查看内容的话，得到的只是累计中断次数，对这里的问题并没有直接参考意义。这里<strong>中断次数的变化速率</strong>才是我们需要关注的。可以使用 watch -d 命令，使用高亮显示，直观的看出哪些内容变化速度快。</p>
+<ol start="5">
+<li>终端1：运行以下命令，查看各种软中断类型变化速率</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">watch -d cat /proc/softirqs
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-3/image-4.png"
+	width="582"
+	height="470"
+	srcset="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-3/image-4_hu_2ece275fef51515e.png 480w, /p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-3/image-4_hu_7d497f8312888645.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="123"
+		data-flex-basis="297px"
+	
+></p>
+<p>通过 /proc/softirqs 文件内容的变化情况，可以发现 TIMER（定时中断）、NET_TX（网络接收）、SCHED（内核调度）、RCU（RCU 锁）等这几个软中断都在不停变化。</p>
+<p>其中，NET_RT，也就是网络接收包接收软中断的变化速率最快。而其他几种类型的软中断，是保证 Linux 调度、时钟和临界保护区这些正常工作所必须的，所以它们有一定变化是正常的。</p>
+<p>那么，我们就从网络接收的软中断着手，继续分析。即然是网络接收的软中断，第一步应该是观察系统的网络接收情况。虽然有很多网络工具，但是这里推荐的是<code>sar</code>。</p>
+<p><code>sar</code> 可以用来查看系统的网络收发情况，还有一个好处是，不仅可以观察网络收发的吞吐量（BPS，每秒收发的字节数），还可以观察网络收发的 PPS，即每秒收发的网络帧数。</p>
+<ol start="6">
+<li>中断1：运行 sar 命令，并添加 -n DEV 参数显示网络收发的报告：</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># -n DEV 表示显示网络收发的报告，间隔1秒输出一组数据</span>
+</span></span><span class="line"><span class="cl">sar -n DEV <span class="m">1</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-3/image-5.png"
+	width="1474"
+	height="282"
+	srcset="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-3/image-5_hu_e2f911581719d8a7.png 480w, /p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-3/image-5_hu_e93dbcc8bb219fc2.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="522"
+		data-flex-basis="1254px"
+	
+></p>
+<p>对于<code>sar</code>的输出界面，先来简单介绍一下，从左往右依次是：</p>
+<ul>
+<li>第一列：表示报告的时间。</li>
+<li>第二列：IFACE 表示网卡</li>
+<li>第三、四列：rxpck/s 和 txpck/s 分别表示每秒接收、发送的网络帧数，也就是 PPS。</li>
+<li>第五、六列：rxkB/s 和 txkB/s 分别表示每秒接收、发送的千字节数，也就是 BPS。</li>
+<li>后面的其他参数基本接近 0，显然跟今天的问题没有直接关系，可以先忽略。</li>
+</ul>
+<p>具体查看输出的内容，可以发现：</p>
+<ul>
+<li>
+<p>对网卡 ens160 来说，每秒接收的网络帧数比较大，达到了 13613，而发送的网络帧数则比较小，只有 6806；每秒接收的千字节数只有 850 KB，而发送的千字节数更小，只有 385 KB。</p>
+</li>
+<li>
+<p>docker0 和 vetha6bf9b6 的数据跟 ens160 基本一致，只是发送和接收相反，发送的数据较大而接收的数据较小。这是 Linux 内部网桥转发导致的，暂且不用深究，只要知道这是系统把 ens160 收到的包转发给 Nginx 服务即可。具体工作原理，后面在详细介绍。</p>
+</li>
+</ul>
+<p>这些数据中，有没有发现异常的地方？</p>
+<p>即然怀疑是网络接收中断的地方，那么就重点来看 ens160：接收的 PPS 比较大，达到 13613，而接收的 BPS 却很小，只有 850KB。直观来看网络帧应该都是比较小的，我们稍微计算一下， 850 * 1024 / 13613 = 64 字节，说明平均每个网络帧只有 64 字节，这显然是很小的网络帧，也就是我们通常所说的小包问题。</p>
+<p>那么，有没有办法知道这是一个什么样的网络帧，以及从哪里发过来的呢？</p>
+<p>使用 tcpdump 抓取 ens160 上的包就可以了。我们事先已经知道，Nginx 监听在 80 端口，它所提供的 HTTP 服务是基于 TCP 协议的，所以我们可以指定 TCP 协议和 80 端口精确抓包。</p>
+<ol start="7">
+<li>终端1：中运行 tcpdump 命令，通过 -i ens160 选项指定网卡 ens160，并通过 tcp port 80 选项指定 TCP 协议的 80 端口：</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># -i ens160 只抓取ens160网卡，-n不解析协议名和主机名</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># tcp port 80表示只抓取tcp协议并且端口号为80的网络帧</span>
+</span></span><span class="line"><span class="cl">tcpdump -i ens160 -n tcp port <span class="m">80</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-3/image-6.png"
+	width="2046"
+	height="248"
+	srcset="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-3/image-6_hu_c2fc36020dea1778.png 480w, /p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-3/image-6_hu_d2b61e309d37acaf.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="825"
+		data-flex-basis="1980px"
+	
+></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">11:35:48.410104 IP 172.16.140.132.53233 &gt; 172.16.140.131.80: Flags [S], seq 1521568433, win 512, length 0
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>从 tcpdump 的输出中，可以发现：</p>
+<ul>
+<li>
+<p>172.16.140.132.53233 &gt; 172.16.140.131.80，表示网络帧从 172.16.140.132 的 53233 端口发送到 172.16.140.131 的 80 端口，也就是从运行 hping3 机器的 53233 端口发送网络帧，目的为 Nginx 所在机器的 80 端口。</p>
+</li>
+<li>
+<p>Flags[S]则表示这是一个 SYN 包。</p>
+</li>
+</ul>
+<p>再加上前面用 sar 发现的，PPS 超过 13000 的现象，现在我们可以确认，这就是从 172.16.140.131 这个地址发送过来的 SYN FLOOD 攻击。</p>
+<p>到这里，我们已经做了全套的性能诊断和分析。从系统的软中断使用率高这个现象出发，通过观察 /proc/softirqs 文件的变化情况，判断出软中断类型是网络接收中断；再通过 sar 和 tcpdump ，确认这是一个 SYN FLOOD 问题。</p>
+<p>SYN FLOOD 问题最简单的解决方法，就是从交换机或者硬件防火墙中封掉来源 IP，这样 SYN FLOOD 网络帧就不会发送到服务器中。</p>
+<ol start="8">
+<li>终端1：停止 Nginx 服务</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">docker rm -f nginx
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="9">
+<li>终端2：按 Ctrl+C 停止 hping3</li>
+</ol>
+<h2 id="小结">小结
+</h2><p>软中断 CPU 使用率（softirq）升高是一种很常见的性能问题。虽然软中断的类型很多，但实际生产中，我们遇到的性能瓶颈大多是网络收发类型的软中断，特别是网络接收的软中断。</p>
+<p>在碰到这类问题时，你可以借用 sar、tcpdump 等工具，做进一步分析。</p>
+
+</section>
+
+
+    <footer class="article-footer">
+    
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+<aside class="related-content--wrapper">
+    <h2 class="section-title">相关文章</h2>
+    <div class="related-content">
+        <div class="flex article-list--tile">
+            
+                
+<article class="">
+    <a href="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87-2/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Linux]性能调优 CPU篇（基础篇）- 2</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-2/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Linux]性能调优-CPU篇（案例篇）- 2</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-1/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Linux]性能调优-CPU篇（案例篇）- 1</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87-1/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Linux]性能调优-CPU篇（基础篇）- 1</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%89%8D%E8%A8%80/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Linux]性能调优-前言</h2>
+        </div>
+    </a>
+</article>
+
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+            2025 - 
+        
+        2026 リンボの個人ブログ
+    </section>
+    
+    <section class="powerby">
+         <br />
+        
+    </section>
+</footer>
+
+
+    
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+    
+    <div class="pswp__bg"></div>
+
+    
+    <div class="pswp__scroll-wrap">
+
+        
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+
+        
+        <div class="pswp__ui pswp__ui--hidden">
+
+            <div class="pswp__top-bar">
+
+                
+
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+
+                <button class="pswp__button pswp__button--share" title="Share"></button>
+
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+
+                
+                
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                        <div class="pswp__preloader__cut">
+                            <div class="pswp__preloader__donut"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div>
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.js"integrity="sha256-ePwmChbbvXbsO02lbM3HoHbSHTHFAeChekF1xKJdleo="crossorigin="anonymous"
+                defer
+                >
+            </script><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe-ui-default.min.js"integrity="sha256-UKkzOn/w1mBxRmLLGrSeyB4e1xbrp4xylgAWb3M42pU="crossorigin="anonymous"
+                defer
+                >
+            </script><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/default-skin/default-skin.min.css"crossorigin="anonymous"
+            ><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.css"crossorigin="anonymous"
+            >
+
+            </main>
+        </div>
+        <script 
+                src="https://cdn.jsdelivr.net/npm/node-vibrant@3.1.6/dist/vibrant.min.js"integrity="sha256-awcR2jno4kI5X0zL8ex0vi2z&#43;KMkF24hUW8WePSA9HM="crossorigin="anonymous"
+                
+                >
+            </script><script type="text/javascript" src="/ts/main.1e9a3bafd846ced4c345d084b355fb8c7bae75701c338f8a1f8a82c780137826.js" defer></script>
+<script>
+    (function () {
+        const customFont = document.createElement('link');
+        customFont.href = "https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap";
+
+        customFont.type = "text/css";
+        customFont.rel = "stylesheet";
+
+        document.head.appendChild(customFont);
+    }());
+</script>
+
+    </body>
+</html>

@@ -7,7 +7,326 @@
         <generator>Hugo -- gohugo.io</generator>
         <language>en-us</language>
         <copyright>リンボの個人ブログ</copyright>
-        <lastBuildDate>Fri, 23 Jan 2026 14:52:14 +0800</lastBuildDate><atom:link href="https://YLine-hub.github.io/categories/linux/index.xml" rel="self" type="application/rss+xml" /><item>
+        <lastBuildDate>Fri, 23 Jan 2026 17:56:32 +0800</lastBuildDate><atom:link href="https://YLine-hub.github.io/categories/linux/index.xml" rel="self" type="application/rss+xml" /><item>
+        <title>[Linux]性能调优-CPU篇（案例篇）- 3</title>
+        <link>https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-3/</link>
+        <pubDate>Fri, 23 Jan 2026 17:56:32 +0800</pubDate>
+        
+        <guid>https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-3/</guid>
+        <description>&lt;h2&gt;系统的软中断CPU使用率升高，我该怎么办？
+&lt;/h2&gt;
+&lt;h2 id=&#34;案例&#34;&gt;案例
+&lt;/h2&gt;&lt;h3 id=&#34;准备&#34;&gt;准备
+&lt;/h3&gt;&lt;ul&gt;
+&lt;li&gt;系统环境：ubuntu 20&lt;/li&gt;
+&lt;li&gt;机器配置：2 CPU、8 GB内存&lt;/li&gt;
+&lt;li&gt;预先安装 docker、sysstat、sar、hping3、tcpdump 等工具&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;apt-get install -y docker.io sysstat hping3 tcpdump
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;这里又用到了3个新工具&lt;code&gt;sar&lt;/code&gt;、&lt;code&gt;hping3&lt;/code&gt;、&lt;code&gt;tcpdump&lt;/code&gt;，先简单介绍一下：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;sar 是一个系统活动报告工具，即可以实时查看系统的当前活动，又可以配置保存和报告历史统计数据。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;hping3 是一个可以构造 TCP/IP 协议数据包的工具，可以对系统进行安全审计、防火墙测试等。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;tcpdump 是一个常用的网络抓包工具，常用来分析各种网络问题。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;本次案例用到两台虚拟机，下图为它们的关系：&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-3/image.png&#34;
+	width=&#34;1632&#34;
+	height=&#34;1032&#34;
+	srcset=&#34;https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-3/image_hu_175f1d50196ee312.png 480w, https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-3/image_hu_32c17614ee1a0886.png 1024w&#34;
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;alt text&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;158&#34;
+		data-flex-basis=&#34;379px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;p&gt;可以看到，其中一台虚拟机运行 Nginx，用来模拟待分析的 Web 服务器；而另一台当作 Web 服务器的客户端，用来给 Nginx 增加压力请求。使用两台虚拟机的目的，是为了相互隔离，避免“交叉感染”。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;打开两个终端，分别 SSH 登录到两台机器上，并安装上面提到的工具：&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;apt-get install docker.io sysstat hping3 tcpdump
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;ul&gt;
+&lt;li&gt;默认运行 root 用户&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;sudo su root
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;h3 id=&#34;操作和分析&#34;&gt;操作和分析
+&lt;/h3&gt;&lt;ol&gt;
+&lt;li&gt;终端1：使用 docker 运行 Nginx 服务，并对外开放 80 端口&lt;/li&gt;
+&lt;/ol&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;docker run -itd --name&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;nginx -p 80:80 nginx
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;ol start=&#34;2&#34;&gt;
+&lt;li&gt;终端2：使用 curl 访问 Nginx 监听的端口，确认 Nginx 正常启动&lt;/li&gt;
+&lt;/ol&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;curl http://172.16.140.131/
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;&lt;img src=&#34;https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-3/image-1.png&#34;
+	width=&#34;1062&#34;
+	height=&#34;820&#34;
+	srcset=&#34;https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-3/image-1_hu_35999b85ada3a015.png 480w, https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-3/image-1_hu_2ed0c49e2e0d4ed9.png 1024w&#34;
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;alt text&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;129&#34;
+		data-flex-basis=&#34;310px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;p&gt;从返回结果可以看到 nginx 服务已经在正常运行。&lt;/p&gt;
+&lt;ol start=&#34;3&#34;&gt;
+&lt;li&gt;终端2：运行 hping3 命令，模拟 Nginx 客户端请求&lt;/li&gt;
+&lt;/ol&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;2
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;3
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;4
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c1&#34;&gt;# -S 参数表示设置TCP协议的SYN（同步序列号）&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c1&#34;&gt;# -i u100 表示每隔100微秒发送一个网络帧&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c1&#34;&gt;# 注：如果在实践过程中现象不明显，可以尝试把100调小，比如调成10甚至1&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;hping3 -S -p &lt;span class=&#34;m&#34;&gt;80&lt;/span&gt; -i u100 172.16.140.131
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;现在回到第一个终端，发现了系统响应时间明显变慢了，在终端敲几个按键或者回车都很慢，要很久才响应。&lt;/p&gt;
+&lt;p&gt;虽然运行 hping3 命令时，老师已经说了，这是一个 SYN FLOOD 攻击，肯定也会想到从网络方面入手。但是在实际生产环境中，没人会直接告诉我们原因。&lt;/p&gt;
+&lt;p&gt;所以我们需要忘记 hping3 模拟 SYN FLOOD 这个操作，重新&lt;u&gt;从观察到的问题方面开始，分析系统的资源使用情况，逐步找出问题根源。&lt;/u&gt;&lt;/p&gt;
+&lt;p&gt;那么，该从什么地方入手呢？&lt;/p&gt;
+&lt;p&gt;即然发现，连简单的 SHELL 命令都明显变慢，那么先看看系统的整体资源使用情况应该是个不错的主意。&lt;/p&gt;
+&lt;ol start=&#34;4&#34;&gt;
+&lt;li&gt;终端1：运行 top 命令，看一下系统整体的资源使用情况。&lt;/li&gt;
+&lt;/ol&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;top
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;&lt;img src=&#34;https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-3/image-3.png&#34;
+	width=&#34;1296&#34;
+	height=&#34;1468&#34;
+	srcset=&#34;https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-3/image-3_hu_5f0e3990aee96e2a.png 480w, https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-3/image-3_hu_47944ba0d79cdba4.png 1024w&#34;
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;alt text&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;88&#34;
+		data-flex-basis=&#34;211px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;p&gt;我们从第一行开始，逐行往下看：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;平均负载基本上为 0，就绪队列只有 1 个进程（1 running）。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;CPU 0 的使用率挺低的，但是能够看到 CPU 1 用的就比较多了，有18.5%。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;再看进程列表，最高的只有 2%，看上去也不算高。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;那么，接下来我们来分析一下。&lt;/p&gt;
+&lt;p&gt;能看到 top 的输出，CPU 0 和 CPU 1 使用率分别是3.3%和18.5%，基本上用在了软中断上；再看进程列表，CPU 使用率最高的也是软中断进程 ksoftirqd。看来，软中断有点可疑了。&lt;/p&gt;
+&lt;p&gt;那么，即然软中断有问题，我们就需要先判断是哪类软中断有问题。还是使用 proc 文件系统。观察 /proc/softirqs 文件的内容，就能够知道各种软中断类型的次数。&lt;/p&gt;
+&lt;p&gt;不过，这里的各种软中断次数，是系统运行以来的&lt;strong&gt;累计软中断次数&lt;/strong&gt;。所以，我们直接查看内容的话，得到的只是累计中断次数，对这里的问题并没有直接参考意义。这里&lt;strong&gt;中断次数的变化速率&lt;/strong&gt;才是我们需要关注的。可以使用 watch -d 命令，使用高亮显示，直观的看出哪些内容变化速度快。&lt;/p&gt;
+&lt;ol start=&#34;5&#34;&gt;
+&lt;li&gt;终端1：运行以下命令，查看各种软中断类型变化速率&lt;/li&gt;
+&lt;/ol&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;watch -d cat /proc/softirqs
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;&lt;img src=&#34;https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-3/image-4.png&#34;
+	width=&#34;582&#34;
+	height=&#34;470&#34;
+	srcset=&#34;https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-3/image-4_hu_2ece275fef51515e.png 480w, https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-3/image-4_hu_7d497f8312888645.png 1024w&#34;
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;alt text&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;123&#34;
+		data-flex-basis=&#34;297px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;p&gt;通过 /proc/softirqs 文件内容的变化情况，可以发现 TIMER（定时中断）、NET_TX（网络接收）、SCHED（内核调度）、RCU（RCU 锁）等这几个软中断都在不停变化。&lt;/p&gt;
+&lt;p&gt;其中，NET_RT，也就是网络接收包接收软中断的变化速率最快。而其他几种类型的软中断，是保证 Linux 调度、时钟和临界保护区这些正常工作所必须的，所以它们有一定变化是正常的。&lt;/p&gt;
+&lt;p&gt;那么，我们就从网络接收的软中断着手，继续分析。即然是网络接收的软中断，第一步应该是观察系统的网络接收情况。虽然有很多网络工具，但是这里推荐的是&lt;code&gt;sar&lt;/code&gt;。&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;sar&lt;/code&gt; 可以用来查看系统的网络收发情况，还有一个好处是，不仅可以观察网络收发的吞吐量（BPS，每秒收发的字节数），还可以观察网络收发的 PPS，即每秒收发的网络帧数。&lt;/p&gt;
+&lt;ol start=&#34;6&#34;&gt;
+&lt;li&gt;中断1：运行 sar 命令，并添加 -n DEV 参数显示网络收发的报告：&lt;/li&gt;
+&lt;/ol&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;2
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c1&#34;&gt;# -n DEV 表示显示网络收发的报告，间隔1秒输出一组数据&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;sar -n DEV &lt;span class=&#34;m&#34;&gt;1&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;&lt;img src=&#34;https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-3/image-5.png&#34;
+	width=&#34;1474&#34;
+	height=&#34;282&#34;
+	srcset=&#34;https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-3/image-5_hu_e2f911581719d8a7.png 480w, https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-3/image-5_hu_e93dbcc8bb219fc2.png 1024w&#34;
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;alt text&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;522&#34;
+		data-flex-basis=&#34;1254px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;p&gt;对于&lt;code&gt;sar&lt;/code&gt;的输出界面，先来简单介绍一下，从左往右依次是：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;第一列：表示报告的时间。&lt;/li&gt;
+&lt;li&gt;第二列：IFACE 表示网卡&lt;/li&gt;
+&lt;li&gt;第三、四列：rxpck/s 和 txpck/s 分别表示每秒接收、发送的网络帧数，也就是 PPS。&lt;/li&gt;
+&lt;li&gt;第五、六列：rxkB/s 和 txkB/s 分别表示每秒接收、发送的千字节数，也就是 BPS。&lt;/li&gt;
+&lt;li&gt;后面的其他参数基本接近 0，显然跟今天的问题没有直接关系，可以先忽略。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;具体查看输出的内容，可以发现：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;对网卡 ens160 来说，每秒接收的网络帧数比较大，达到了 13613，而发送的网络帧数则比较小，只有 6806；每秒接收的千字节数只有 850 KB，而发送的千字节数更小，只有 385 KB。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;docker0 和 vetha6bf9b6 的数据跟 ens160 基本一致，只是发送和接收相反，发送的数据较大而接收的数据较小。这是 Linux 内部网桥转发导致的，暂且不用深究，只要知道这是系统把 ens160 收到的包转发给 Nginx 服务即可。具体工作原理，后面在详细介绍。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;这些数据中，有没有发现异常的地方？&lt;/p&gt;
+&lt;p&gt;即然怀疑是网络接收中断的地方，那么就重点来看 ens160：接收的 PPS 比较大，达到 13613，而接收的 BPS 却很小，只有 850KB。直观来看网络帧应该都是比较小的，我们稍微计算一下， 850 * 1024 / 13613 = 64 字节，说明平均每个网络帧只有 64 字节，这显然是很小的网络帧，也就是我们通常所说的小包问题。&lt;/p&gt;
+&lt;p&gt;那么，有没有办法知道这是一个什么样的网络帧，以及从哪里发过来的呢？&lt;/p&gt;
+&lt;p&gt;使用 tcpdump 抓取 ens160 上的包就可以了。我们事先已经知道，Nginx 监听在 80 端口，它所提供的 HTTP 服务是基于 TCP 协议的，所以我们可以指定 TCP 协议和 80 端口精确抓包。&lt;/p&gt;
+&lt;ol start=&#34;7&#34;&gt;
+&lt;li&gt;终端1：中运行 tcpdump 命令，通过 -i ens160 选项指定网卡 ens160，并通过 tcp port 80 选项指定 TCP 协议的 80 端口：&lt;/li&gt;
+&lt;/ol&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;2
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;3
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c1&#34;&gt;# -i ens160 只抓取ens160网卡，-n不解析协议名和主机名&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c1&#34;&gt;# tcp port 80表示只抓取tcp协议并且端口号为80的网络帧&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;tcpdump -i ens160 -n tcp port &lt;span class=&#34;m&#34;&gt;80&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;&lt;img src=&#34;https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-3/image-6.png&#34;
+	width=&#34;2046&#34;
+	height=&#34;248&#34;
+	srcset=&#34;https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-3/image-6_hu_c2fc36020dea1778.png 480w, https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-3/image-6_hu_d2b61e309d37acaf.png 1024w&#34;
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;alt text&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;825&#34;
+		data-flex-basis=&#34;1980px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-fallback&#34; data-lang=&#34;fallback&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;11:35:48.410104 IP 172.16.140.132.53233 &amp;gt; 172.16.140.131.80: Flags [S], seq 1521568433, win 512, length 0
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;从 tcpdump 的输出中，可以发现：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;172.16.140.132.53233 &amp;gt; 172.16.140.131.80，表示网络帧从 172.16.140.132 的 53233 端口发送到 172.16.140.131 的 80 端口，也就是从运行 hping3 机器的 53233 端口发送网络帧，目的为 Nginx 所在机器的 80 端口。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;Flags[S]则表示这是一个 SYN 包。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;再加上前面用 sar 发现的，PPS 超过 13000 的现象，现在我们可以确认，这就是从 172.16.140.131 这个地址发送过来的 SYN FLOOD 攻击。&lt;/p&gt;
+&lt;p&gt;到这里，我们已经做了全套的性能诊断和分析。从系统的软中断使用率高这个现象出发，通过观察 /proc/softirqs 文件的变化情况，判断出软中断类型是网络接收中断；再通过 sar 和 tcpdump ，确认这是一个 SYN FLOOD 问题。&lt;/p&gt;
+&lt;p&gt;SYN FLOOD 问题最简单的解决方法，就是从交换机或者硬件防火墙中封掉来源 IP，这样 SYN FLOOD 网络帧就不会发送到服务器中。&lt;/p&gt;
+&lt;ol start=&#34;8&#34;&gt;
+&lt;li&gt;终端1：停止 Nginx 服务&lt;/li&gt;
+&lt;/ol&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;docker rm -f nginx
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;ol start=&#34;9&#34;&gt;
+&lt;li&gt;终端2：按 Ctrl+C 停止 hping3&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h2 id=&#34;小结&#34;&gt;小结
+&lt;/h2&gt;&lt;p&gt;软中断 CPU 使用率（softirq）升高是一种很常见的性能问题。虽然软中断的类型很多，但实际生产中，我们遇到的性能瓶颈大多是网络收发类型的软中断，特别是网络接收的软中断。&lt;/p&gt;
+&lt;p&gt;在碰到这类问题时，你可以借用 sar、tcpdump 等工具，做进一步分析。&lt;/p&gt;
+</description>
+        </item>
+        <item>
         <title>[Linux]性能调优 CPU篇（基础篇）- 2</title>
         <link>https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87-2/</link>
         <pubDate>Fri, 23 Jan 2026 14:52:14 +0800</pubDate>
