@@ -7,7 +7,501 @@
         <generator>Hugo -- gohugo.io</generator>
         <language>en-us</language>
         <copyright>リンボの個人ブログ</copyright>
-        <lastBuildDate>Fri, 23 Jan 2026 17:56:32 +0800</lastBuildDate><atom:link href="https://YLine-hub.github.io/categories/linux/index.xml" rel="self" type="application/rss+xml" /><item>
+        <lastBuildDate>Mon, 26 Jan 2026 15:48:10 +0800</lastBuildDate><atom:link href="https://YLine-hub.github.io/categories/linux/index.xml" rel="self" type="application/rss+xml" /><item>
+        <title>[Linux]性能调优-内存篇（基础篇）</title>
+        <link>https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%86%85%E5%AD%98%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/</link>
+        <pubDate>Mon, 26 Jan 2026 15:48:10 +0800</pubDate>
+        
+        <guid>https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%86%85%E5%AD%98%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/</guid>
+        <description>&lt;h2&gt;Linux 内存是怎么工作的？&lt;/h2&gt;
+&lt;p&gt;同 CPU 管理一样，内存管理也是操作系统最核心的功能之一。内存主要用来存储系统和应用程序的指令、数据、缓存等。&lt;/p&gt;
+&lt;p&gt;那么，Linux 到底是怎么管理内存的呢？&lt;/p&gt;
+&lt;h2 id=&#34;内存映射&#34;&gt;内存映射
+&lt;/h2&gt;&lt;p&gt;说到内存，这是我们购买电脑时，首先考虑的一个重要参数，我现在的笔记本电脑内存是 8GB。&lt;/p&gt;
+&lt;p&gt;我们通常所说的内存容量，就像我刚刚说的 8GB，其实指的是物理内存。物理内存也称为主存，大多数计算机用的主存都是动态随机访问内存（DRAM）。只有内核才可以直接访问物理内存。那么，进程要访问内存时，该怎么办呢？&lt;/p&gt;
+&lt;p&gt;Linux 内核给每个进程都提供了一个独立的虚拟地址空间，并且这个地址空间是连续的。这样，进程就可以很方便地访问内存，更确切地说是访问虚拟内存。&lt;/p&gt;
+&lt;p&gt;虚拟地址空间的内部又被分为&lt;strong&gt;内核空间&lt;/strong&gt;和&lt;strong&gt;用户空间&lt;/strong&gt;两部分，不同字长（也就是单个 CPU 指令可以处理数据的最大长度）的处理器，地址空间的范围也不同。比如最常见的 32 位和 64 位系统，老师画了两张图来分别表示它们的虚拟地址空间，如下图所示：&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%86%85%E5%AD%98%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image.png&#34;
+	width=&#34;1004&#34;
+	height=&#34;456&#34;
+	srcset=&#34;https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%86%85%E5%AD%98%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image_hu_b443665dcfceb393.png 480w, https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%86%85%E5%AD%98%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image_hu_6467e3160f68389.png 1024w&#34;
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;alt text&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;220&#34;
+		data-flex-basis=&#34;528px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;p&gt;通过这里可以看出，32 位系统的内核空间占用 1G，位于最高处，剩下的 3G 是用户空间。而 64 位系统的内核空间和用户空间都是 128T，分别占据整个内存的最高和最低处，剩下的中间部分是未定义的。&lt;/p&gt;
+&lt;p&gt;还记得进程的用户态和内核态吗？进程在用户态时，只能访问用户空间内存；只有进入内核态后，才可以访问内核空间内存。虽然每个进程的地址空间都包含了内核空间，但这些内核空间，其实关联的都是相同的物理内存。这样，进程切换到内核态后，就可以很方便地访问内核空间内存。&lt;/p&gt;
+&lt;p&gt;即然每个进程都有一个这么大的地址空间，那么所有进程的虚拟内存加起来，自然要比实际物理内存大得多。所以，并不是所有的虚拟内存都会分配物理内存，只有那些实际使用的虚拟内存才分配物理内存，并且分配后的物理内存，是通过&lt;strong&gt;内存映射&lt;/strong&gt;来管理的。&lt;/p&gt;
+&lt;p&gt;内存映射，其实就是将&lt;strong&gt;虚拟内存地址&lt;/strong&gt;映射到&lt;strong&gt;物理内存地址&lt;/strong&gt;。为了完成内存映射，内核为每个进程都维护了一张页表，记录虚拟地址与物理地址的映射关系，如下图所示：&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%86%85%E5%AD%98%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-1.png&#34;
+	width=&#34;572&#34;
+	height=&#34;370&#34;
+	srcset=&#34;https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%86%85%E5%AD%98%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-1_hu_450bb1f2cca2002a.png 480w, https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%86%85%E5%AD%98%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-1_hu_ac8f11cdfb3b8b4b.png 1024w&#34;
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;alt text&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;154&#34;
+		data-flex-basis=&#34;371px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;p&gt;页表实际上存储在 CPU 的内存管理单元 MMU 中，这样，正常情况下，处理器就可以直接通过硬件，找出要访问的内存。&lt;/p&gt;
+&lt;p&gt;而当进程访问的虚拟地址在页表中查询不到时，系统会产生一个&lt;strong&gt;缺页异常&lt;/strong&gt;，进入内核空间分配物理内存、更新进程页表，最后再返回用户空间，恢复进程的运行。&lt;/p&gt;
+&lt;p&gt;另外，老师在&lt;a class=&#34;link&#34; href=&#34;https://yline-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87-1/&#34;  target=&#34;_blank&#34; rel=&#34;noopener&#34;
+    &gt;CPU 上下文切换的文章中&lt;/a&gt;曾经提到，TLB（Translation Lookaside Buffer，转译后备缓冲器）会影响 CPU 的内存访问性能，在这里其实就可以得到解释。&lt;/p&gt;
+&lt;p&gt;TLB 其实就是 MMU 中页表的高速缓存。由于进程的虚拟地址空间是独立的，而 TLB 的访问速度又比 MMU 快得多，所以，通过减少进程的上下文切换，减少 TLB 的刷新次数，就可以提高 TLB 缓存的使用率，进而提高 CPU 的内存访问性能。&lt;/p&gt;
+&lt;p&gt;不过要注意，MMU 并不以字节为单位来管理内存，而是规定了一个内存映射的最小单位，也就是页，通常是 4KB 大小。这样，每一次内存映射，都需要关联 4KB 或者 4KB 整数倍的内存空间。&lt;/p&gt;
+&lt;p&gt;页的大小只有 4KB ，导致的另一个问题就是，整个页表会变得非常大。比方说，仅 32 位系统就需要 100 多万个页表项（4GB/4KB），才可以实现整个地址空间的映射。为了解决页表项过多的问题，Linux 提供了两种机制，也就是&lt;strong&gt;多级页表&lt;/strong&gt;和&lt;strong&gt;大页（HugePage）&lt;/strong&gt;。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;多级页表&lt;/strong&gt;就是把内存分成区块来管理，将原来的映射关系改成区块索引和区块内的偏移。由于虚拟内存空间通常只用了很少一部分，那么，多级页表就只保存这些使用中的区块，这样就可以大大地减少页表的项数。&lt;br&gt;Linux 用的正是四级页表来管理内存页，如下图所示，虚拟地址被分为 5 个部分，前 4 个表项用于选择页，而最后一个索引表示页内偏移。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;img src=&#34;https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%86%85%E5%AD%98%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-2.png&#34;
+	width=&#34;1390&#34;
+	height=&#34;460&#34;
+	srcset=&#34;https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%86%85%E5%AD%98%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-2_hu_e0db1f33ad5bf3e3.png 480w, https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%86%85%E5%AD%98%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-2_hu_827e382b0189d5c4.png 1024w&#34;
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;alt text&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;302&#34;
+		data-flex-basis=&#34;725px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;大页&lt;/strong&gt;，顾名思义，就是比普通页更大的内存块，常见的大小有 2MB 和 1GB。大页通常用在使用大量内存的进程上，比如 Oracle、DPDK 等。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;通过这些机制，在页表的映射下，进程就可以通过虚拟地址来访问物理内存了。那么具体到一个 Linux 进程中，这些内存又是怎么使用呢？&lt;/p&gt;
+&lt;h2 id=&#34;虚拟内存空间分布&#34;&gt;虚拟内存空间分布
+&lt;/h2&gt;&lt;p&gt;首先，我们需要进一步了解虚拟内存空间的分布情况。最上方的内核空间不用多讲，下方的用户空间内存，其实又被分成了多个不同的段。以 32 位系统为例，老师画了一张图来表示它们的关系。&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%86%85%E5%AD%98%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-3.png&#34;
+	width=&#34;266&#34;
+	height=&#34;354&#34;
+	srcset=&#34;https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%86%85%E5%AD%98%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-3_hu_d4686e1e66fa7f06.png 480w, https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%86%85%E5%AD%98%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-3_hu_c7eb3d36d2183fc.png 1024w&#34;
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;alt text&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;75&#34;
+		data-flex-basis=&#34;180px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;p&gt;通过这张图可以看到，用户空间内存，从低到高分别是五种不同的内存段。&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;只读段，包括代码和常量等。&lt;/li&gt;
+&lt;li&gt;数据段，包括全局变量等。&lt;/li&gt;
+&lt;li&gt;堆，包括动态分配的内存，从低地址开始向上增长。&lt;/li&gt;
+&lt;li&gt;文件映射段，包括动态库、共享内存等，从高地址开始向下增长。&lt;/li&gt;
+&lt;li&gt;栈，包括局部变量和函数调用的上下文等。栈的大小是固定的，一般是 8MB。&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;在这五个内存段中，堆和文件映射段的内存是动态分配的。比如说，使用 C 标准库的 malloc() 或者 mmap()，就可以分别在堆和文件映射动态分配内存。&lt;/p&gt;
+&lt;p&gt;其实 64 位系统的内存分布也类似，只不过内存空间大的多。那么，更重要的问题来了，内存究竟是怎么分配的呢？&lt;/p&gt;
+&lt;h2 id=&#34;内存分配与回收&#34;&gt;内存分配与回收
+&lt;/h2&gt;&lt;p&gt;malloc()是 C 标准库提供的内存分配函数，对应到系统调用上，有两种实现方式，即 &lt;strong&gt;brk()&lt;/strong&gt; 和 &lt;strong&gt;mmap()&lt;/strong&gt;。&lt;/p&gt;
+&lt;p&gt;对于&lt;code&gt;小块内存（小于 128K）&lt;/code&gt;，C 标准库使用 &lt;strong&gt;brk()&lt;/strong&gt; 来分配，也就是通过移动堆顶的位置来分配内存。这些内存释放后，并不会立刻归还系统，而是被缓存起来，这样就可以重复利用。&lt;/p&gt;
+&lt;p&gt;而&lt;code&gt;大块内存（大于 128K）&lt;/code&gt;，则直接使用内存映射 &lt;strong&gt;mmap()&lt;/strong&gt; 来分配，也就是在文件映射段找一块空闲内存分配出去。&lt;/p&gt;
+&lt;p&gt;这两种方式，自然各有优缺点。&lt;/p&gt;
+&lt;p&gt;**brk()**方式的缓存，可以减少缺页异常的发生，提高内存访问的效率。不过，由于这些内存没有归还系统，在内存工作繁忙时，频繁的内存分配和释放会造成内存碎片。&lt;/p&gt;
+&lt;p&gt;**mmap()**方式分配的内存，会在释放时直接归还系统，所以每次 mmap 都会发生缺页异常。在内存工作繁忙时，频繁的内存分配会导致大量的缺页异常，使内核的管理负担增大。这也是 malloc 只对大块内存使用 mmap 的原因。&lt;/p&gt;
+&lt;p&gt;了解这两种调用方式后，我们还需要清楚一点，那就是，当这两种调用发生后，其实并没有真正分配内存。这些内存，都只在首次访问时才分配，也就是通过缺页异常进入内核中，再有内核来分配内存。&lt;/p&gt;
+&lt;p&gt;整体来说，Linux 使用伙伴系统来管理内存分配。前面提到过，这些内存在 MMU 中以页为单位进行管理，伙伴系统也一样，以页为单位来管理内存，并且会通过相邻页的合并，减少内存碎片化（比如 brk 方式造成的内存碎片）。&lt;/p&gt;
+&lt;p&gt;但是，如果遇到比页更小的对象，比如不到 1K 的时候，该怎么分配内存呢？&lt;/p&gt;
+&lt;p&gt;实际系统运行中，确实有大量比页还小的对象，如果为它们也分配单独的页，那就太浪费内存了。&lt;/p&gt;
+&lt;p&gt;所以，在用户空间，malloc 通过 brk() 分配的内存，在释放时并不立即归还系统，而是缓存起来重复利用。在内核空间，Linux 则通过 slab 分配器来管理小内存。可以把 slab 看成构建在伙伴系统上的一个缓存，主要作用就是分配并释放内核中的小对象。&lt;/p&gt;
+&lt;p&gt;对内存来说，如果只分配而不释放，就会造成内存泄漏，甚至会耗尽系统内存。所以，在应用程序用完内存后，还需要调用 free() 或 unmap()，来释放这些用不到的内存。&lt;/p&gt;
+&lt;p&gt;当然，系统也不会任由某个进程用完所有内存。在发现内存紧张时，系统就会通过一系列机制来回收内存，比如下面这三种方式：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;回收缓存，比如使用 LRU（Least Recently Used）算法，回收最近使用最少的内存页面；&lt;/li&gt;
+&lt;li&gt;回收不常用访问的内存，把不常用的内存通过交换分区直接写到磁盘中；&lt;/li&gt;
+&lt;li&gt;杀死进程，内存紧张时系统还会通过 OOM （Out of Memory），直接杀掉占用大量内存的进程。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;其中，第二种方式回收不常访问的内存时，会用到交换分区（以下简称 Swap）。Swap 其实就是把一块磁盘空间当作内存来用。它可以把进程暂时不用的数据存储到磁盘中（这个过程称为换出），当进程访问这些内存时，再从磁盘读取这些数据到内存中（这个过程称为换入）。&lt;/p&gt;
+&lt;p&gt;所以，可以发现，Swap 把系统的可用内存变大了。不过要注意，通常只在内存不足时，才会发生 Swap 交换。并且由于磁盘读写的速度远比内存慢，Swap 会导致严重的内存性能问题。&lt;/p&gt;
+&lt;p&gt;第三种方式提到的 OOM（Out of Memory），其实是内核的一种保护机制。它监控进程的内存使用情况，并且使用 oom_score 为每个进程的内存使用情况进行评分：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;一个进程消耗的内存越大，oom_score 就越大；&lt;/li&gt;
+&lt;li&gt;一个进程运行占用的 CPU 越多，oom_score 就越小。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;这样，进程的 oom_score 越大，代表消耗的内存越多，也就越容易被 OOM 杀死，从而可以更好地保护系统。&lt;/p&gt;
+&lt;p&gt;当然，为了实际工作的需要，管理员可以通过 /proc 文件系统，手动设置进程的 oom_adj，从而调整进程的 oom_score。&lt;/p&gt;
+&lt;p&gt;oom_adj 的范围是[-17,15],数值越大，表示进程越容易被 OOM 杀死；数值越小，表示进程越不容易被 OOM 杀死，其中 -17 表示禁止 OOM。&lt;/p&gt;
+&lt;p&gt;比如用下面的命令，就可以把 sshd 进程的 oom_adj 调小为 -16，这样，sshd 进程就不容易被 OOM 杀死。&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;nb&#34;&gt;echo&lt;/span&gt; -16 &amp;gt; /proc/&lt;span class=&#34;k&#34;&gt;$(&lt;/span&gt;pidof sshd&lt;span class=&#34;k&#34;&gt;)&lt;/span&gt;/oom_adj
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;ul&gt;
+&lt;li&gt;查看sshd进程下的 oom_adj 文件&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;cat /proc/&lt;span class=&#34;k&#34;&gt;$(&lt;/span&gt;pidof sshd&lt;span class=&#34;k&#34;&gt;)&lt;/span&gt;/oom_adj
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;&lt;img src=&#34;https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%86%85%E5%AD%98%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-4.png&#34;
+	width=&#34;710&#34;
+	height=&#34;140&#34;
+	srcset=&#34;https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%86%85%E5%AD%98%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-4_hu_9215a8573334af99.png 480w, https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%86%85%E5%AD%98%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-4_hu_5b5bc8b386ef7c52.png 1024w&#34;
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;alt text&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;507&#34;
+		data-flex-basis=&#34;1217px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;p&gt;可以看到输出结果为：&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;2
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;3
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;cat: /proc/5836: Is a directory
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;cat: 5690: No such file or directory
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;cat: 873/oom_adj: No such file or directory
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;那么实际命令应该为：&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;cat /proc/5836 &lt;span class=&#34;m&#34;&gt;5690&lt;/span&gt; 873/oom_adj
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;查看$(pidof sshd)的输出结果&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;pidof sshd
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;&lt;img src=&#34;https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%86%85%E5%AD%98%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-5.png&#34;
+	width=&#34;416&#34;
+	height=&#34;70&#34;
+	srcset=&#34;https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%86%85%E5%AD%98%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-5_hu_b07c9f657795a953.png 480w, https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%86%85%E5%AD%98%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-5_hu_9e13346dbddbeaf8.png 1024w&#34;
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;alt text&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;594&#34;
+		data-flex-basis=&#34;1426px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;p&gt;那么系统里应该有三个 sshd 进程。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;遍历查看 sshd 进程的 oom_adj&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;2
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;3
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;4
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;k&#34;&gt;for&lt;/span&gt; pid in &lt;span class=&#34;k&#34;&gt;$(&lt;/span&gt;pidof sshd&lt;span class=&#34;k&#34;&gt;)&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;;&lt;/span&gt;&lt;span class=&#34;k&#34;&gt;do&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;nb&#34;&gt;echo&lt;/span&gt; &lt;span class=&#34;s2&#34;&gt;&amp;#34;pid is: &lt;/span&gt;&lt;span class=&#34;nv&#34;&gt;$pid&lt;/span&gt;&lt;span class=&#34;s2&#34;&gt;&amp;#34;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;cat /proc/&lt;span class=&#34;nv&#34;&gt;$pid&lt;/span&gt;/oom_adj
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;k&#34;&gt;done&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;&lt;img src=&#34;https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%86%85%E5%AD%98%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-6.png&#34;
+	width=&#34;664&#34;
+	height=&#34;344&#34;
+	srcset=&#34;https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%86%85%E5%AD%98%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-6_hu_7abaa951be539d5f.png 480w, https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%86%85%E5%AD%98%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-6_hu_7cb7394c7bedf37f.png 1024w&#34;
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;alt text&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;193&#34;
+		data-flex-basis=&#34;463px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;p&gt;可以看到三个进程的 oom_adj 分别是 0，0，-17。&lt;/p&gt;
+&lt;p&gt;再来查看一下三个进程分别是什么&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;ps aux &lt;span class=&#34;p&#34;&gt;|&lt;/span&gt; grep sshd
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;&lt;img src=&#34;https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%86%85%E5%AD%98%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-7.png&#34;
+	width=&#34;1722&#34;
+	height=&#34;174&#34;
+	srcset=&#34;https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%86%85%E5%AD%98%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-7_hu_b3a2363cbdc4ce7c.png 480w, https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%86%85%E5%AD%98%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-7_hu_c07d6a9362cdb8fe.png 1024w&#34;
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;alt text&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;989&#34;
+		data-flex-basis=&#34;2375px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;h2 id=&#34;如何查看内存使用情况&#34;&gt;如何查看内存使用情况
+&lt;/h2&gt;&lt;p&gt;通过了解内存空间的分布，以及内存的分配和回收，我对内存的的工作原理有了大概的认识。&lt;/p&gt;
+&lt;p&gt;那么在了解内存的工作原理之后，我们又该怎么查看系统内存使用情况呢？&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;第一个想到的应该是&lt;code&gt;free&lt;/code&gt;工具。下面是一个 free 的输出示例：&lt;/li&gt;
+&lt;/ol&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;2
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c1&#34;&gt;# 注意不同版本的free输出可能会有所不同&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;free
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;&lt;img src=&#34;https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%86%85%E5%AD%98%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-8.png&#34;
+	width=&#34;1120&#34;
+	height=&#34;138&#34;
+	srcset=&#34;https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%86%85%E5%AD%98%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-8_hu_3c016136e35adbcc.png 480w, https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%86%85%E5%AD%98%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-8_hu_cb2c0a3bc0a05f6f.png 1024w&#34;
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;alt text&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;811&#34;
+		data-flex-basis=&#34;1947px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;p&gt;可以看到，free输出的是一个表格，其中的数值都默认以字节为单位。表格总共有两行六列，这两行分别是物理内存 Mem 和交换分区 Swap 的使用情况，而六列中，每列数据的含义分别为：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;第一列，total 是总内存大小；&lt;/li&gt;
+&lt;li&gt;第二列，used 是已使用内存的大小，包含了共享内存；&lt;/li&gt;
+&lt;li&gt;第三列，free 是未使用的内存的大小；&lt;/li&gt;
+&lt;li&gt;第四列，shared 是共享内存的大小；&lt;/li&gt;
+&lt;li&gt;第五列，buff/cache 是缓存和缓冲区的大小；&lt;/li&gt;
+&lt;li&gt;第六列，available 是新进程可用内存的大小。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;这里尤其注意一下，最后一列的可用内存 available。available 不仅包含未使用内存，还包括了可回收的缓存，所以一般会比未使用内存更大。不过，并不是所有缓存都可以回收，因为有些缓存可能正在使用中。&lt;/p&gt;
+&lt;p&gt;不过，我们知道，free 显示的是整个系统的内存使用情况。&lt;/p&gt;
+&lt;ol start=&#34;2&#34;&gt;
+&lt;li&gt;如果想要查看进程的内存使用情况，可以用 top 或者 ps 等工具。比如，下面是&lt;code&gt;top&lt;/code&gt;的输出示例：&lt;/li&gt;
+&lt;/ol&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;2
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c1&#34;&gt;# 按下M切换到内存排序&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;top
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;&lt;img src=&#34;https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%86%85%E5%AD%98%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-9.png&#34;
+	width=&#34;1312&#34;
+	height=&#34;682&#34;
+	srcset=&#34;https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%86%85%E5%AD%98%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-9_hu_e5b7dda27f833192.png 480w, https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%86%85%E5%AD%98%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-9_hu_d12c19372c0d2cba.png 1024w&#34;
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;alt text&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;192&#34;
+		data-flex-basis=&#34;461px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;p&gt;top 输出界面的顶端，也显示了系统整体的内存使用情况，这些数据数据跟free类似，就不再重复了。接下来，看下面的内容，跟内存相关的几列数据，比如VIRT、RES、SHR以及%MEM等。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;VIRT 是进程虚拟内存的大小，只要是进程申请过的内存，即便还没有真正分配物理内存，也会计算在内。&lt;/li&gt;
+&lt;li&gt;RES 是常驻内存的大小，也就是进程实际使用的物理内存大小，但不包括 Swap 和共享内存。&lt;/li&gt;
+&lt;li&gt;SHR 是共享内存的大小，比如与其他进程共同使用的共享内存、加载的动态链接库以及程序的代码段等。&lt;/li&gt;
+&lt;li&gt;%MEM 是进程使用物理内存系统总内存的百分比。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;除了这些基本信息，在查看 top 输出时，还需要注意两点。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;第一&lt;/strong&gt;，虚拟内存通常并不会分配全部物理内存。从上面的输出，可以发现每个进程的虚拟内存都比常驻内存大得多。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;第二&lt;/strong&gt;，共享内存 SHR 并不一定是共享的，比方说，程序的代码段、非共享的动态链接库，也都算在 SHR 里。当然，SHR 也包括了进程间真正共享的内存。所以在计算多个进程的内存使用时，不要把所有进程的 SHR 直接相加得出结果。&lt;/p&gt;
+&lt;h2 id=&#34;小结&#34;&gt;小结
+&lt;/h2&gt;&lt;p&gt;今天，我们梳理了 Linux 内存的工作原理。对普通进程来说，它能看到的其实是内核提供的虚拟内存，这些虚拟内存还需要通过页表，由系统映射成物理内存。&lt;/p&gt;
+&lt;p&gt;当进程通过 malloc() 申请内存后，内存并不会立即分配，而是在首次访问时，才通过缺页异常陷入内核中分配内存。&lt;/p&gt;
+&lt;p&gt;由于进程的虚拟地址空间比物理内存大很多，Linux 还提供了一系列的机制，应对内存不足的问题，比如缓存的回收、交换分区 Swap 以及 OOM 等。&lt;/p&gt;
+&lt;p&gt;当需要了解系统或者进程的内存使用情况时，可以用 free 和 top 、ps 等性能工具。它们都是分析性能问题时最常用的性能工具。&lt;/p&gt;
+</description>
+        </item>
+        <item>
+        <title>[Linux]性能调优-CPU篇（套路篇）- 2</title>
+        <link>https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%A5%97%E8%B7%AF%E7%AF%87-2/</link>
+        <pubDate>Sun, 25 Jan 2026 15:58:37 +0800</pubDate>
+        
+        <guid>https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%A5%97%E8%B7%AF%E7%AF%87-2/</guid>
+        <description>&lt;h2&gt;CPU 性能优化的几个思路&lt;/h2&gt;
+&lt;p&gt;在找到 CPU 的性能瓶颈后，下一步要做的就是优化了，也就是找出充分利用 CPU 的方法，以便完成更多的工作。&lt;/p&gt;
+&lt;h2 id=&#34;性能优化方法论&#34;&gt;性能优化方法论
+&lt;/h2&gt;&lt;p&gt;在我们历经千辛万苦，通过各种性能方法，终于找到引发性能问题的瓶颈后，是不是立刻就要开始优化了呢？别急，动手之前，可以先看看下面这三个问题。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;第一，即然要做性能优化，那要怎么判断它是不是有效呢？特别是优化后，到底能提升多少性能呢？&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;第二，性能问题通常不是独立的，如果有多个性能问题同时发生，应该先优化哪个？&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;第三，提升性能的方法并不是唯一的，当有多种方法可以选择时，会用哪一种呢？是不是总选那个最大程度提升性能的方法就行了呢？&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;如果可以轻松回答这三个问题，那么二话不说就可以开始优化。&lt;/p&gt;
+&lt;p&gt;比如，在前面的不可中断进程案例中，通过性能分析，我们发现是因为一个进程的&lt;strong&gt;直接 I/O&lt;/strong&gt; ，导致了 iowait 高达 90%。那是不是用“&lt;strong&gt;直接 I/O 换成缓存 I/O&lt;/strong&gt;”的方法，就可以立即优化了呢？&lt;/p&gt;
+&lt;p&gt;按照上面讲的，我们来思考这三点问题。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;第一个问题，直接 I/O 换成缓存 I/O，可以把 iowait 从 90% 降到接近 0，性能提升很明显。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;第二个问题，我们没有发现其他性能问题，直接 I/O 是唯一的性能瓶颈，所以不用挑选优化对象。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;第三个问题，缓存 I/O 是我们目前用到的最简单的优化方法，而且这样优化并不会影响应用的功能。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;这三个问题很容易就能立即回答，所以立即优化没有问题。&lt;/p&gt;
+&lt;p&gt;但是，很多现实情况，并不像我举的例子那么简单。性能评估可能有多重指标，性能问题可能会多个同时发生，而且，优化某一个指标的性能，可能又导致其他指标性能的下降。&lt;/p&gt;
+&lt;p&gt;&lt;u&gt;那么，面对这种复杂的情况，我们该怎么办呢？&lt;/u&gt;&lt;/p&gt;
+&lt;p&gt;接下来，我们就来深入分析这三个问题。&lt;/p&gt;
+&lt;h3 id=&#34;怎么评估性能优化的效果&#34;&gt;怎么评估性能优化的效果？
+&lt;/h3&gt;&lt;p&gt;首先，来看第一个问题，怎么评估性能优化的效果。&lt;/p&gt;
+&lt;p&gt;我们解决性能问题的目的，自然是想得到一个性能提升的效果。为了评估这个效果，我们需要对系统的性能指标进行量化，并且要分别测试出优化前、后的性能指标，用前后指标的变化来对比呈现效果。我把这个方法叫做性能评估“三步走”。&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;
+&lt;p&gt;确定性能的量化指标。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;测试优化前的性能指标。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;测试优化后的性能指标。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;先看第一步，性能的量化指标有很多，比如 CPU 使用率、应用程序的吞吐量、客户端请求的延迟等，都可以评估性能。那我们应该选择什么指标来评估呢？&lt;/p&gt;
+&lt;p&gt;建议是&lt;strong&gt;不要局限在单一维度的指标&lt;/strong&gt;上，你至少要从应用程序和系统资源这两个维度，分别选择不同的指标。比如，以 Web 应用为例：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;应用程序的维度，我们可以用吞吐量和请求延迟来评估应用程序的性能。&lt;/li&gt;
+&lt;li&gt;系统资源的维度，我们可以用 CPU 使用率来评估系统的 CPU 使用情况。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;之所以从这两个不同维度选择指标，主要是因为应用程序和系统资源这两者间相辅相成的关系。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;好的应用程序是性能优化的最终目的和结果，系统优化总是为应用程序服务的。所以必须要使用应用程序的指标，来评估性能优化的整体效果。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;系统资源的使用情况是影响应用程序性能的根源。所以，需要用系统资源的指标，来观察和分析瓶颈的来源。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;至于接下来的两个步骤，主要是为了对比优化前后的性能，更直观地呈现效果。如果第一步，是从两个不同维度选择了多个指标，那么在性能测试时，就需要获得这些指标的具体数值。&lt;/p&gt;
+&lt;p&gt;还是以刚刚的 Web 应用为例，对应上面提到的几个指标，我们可以选择 ab 等工具，测试 Web 应用的并发送请求数和响应延迟。而测试的同时，还可以用&lt;code&gt;vmstat&lt;/code&gt;、&lt;code&gt;pidstat&lt;/code&gt;等性能工具，观察系统和进程的 CPU 使用率。这样，我们就同时获得了应用程序和系统资源这两个维度的指标数值。&lt;/p&gt;
+&lt;p&gt;不过，在进行性能测试时，有两个特别重要的地方需要注意一下。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;第一&lt;/strong&gt;，要避免性能测试工具干扰应用程序的性能。通常，对 Web 应用来说，性能测试工具跟目标应用程序要在不同的机器上运行。&lt;/p&gt;
+&lt;p&gt;比如，在之前的 Nginx 案例中，我每次都会强调要用两台虚拟机，其中一台运行 Nginx 服务，而另一台运行模拟客户端的工具，就是为了避免这个影响。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;第二&lt;/strong&gt;，避免外部环境的变化影响性能指标的评估。这要求优化前、后的应用程序，都运行在相同配置的机器上，并且它们的外部依赖也要完全一致。&lt;/p&gt;
+&lt;p&gt;比如，还是拿 Nginx 来说，就可以运行在同一台机器上，并用相同参数的客户端工具来进行性能测试。&lt;/p&gt;
+&lt;h3 id=&#34;多个性能问题同时存在要怎么选择&#34;&gt;多个性能问题同时存在，要怎么选择？
+&lt;/h3&gt;&lt;p&gt;再来看第二个问题，开篇词里老师就说过，系统性能总是牵一发而动全身，所以性能问题通常也不是独立存在的。那当多个性能问题同时发生的时候，应该先去优化哪一个呢？&lt;/p&gt;
+&lt;p&gt;在性能测试的领域，流传很广的一个说法是“二八原则”，也就是说 80% 的问题都是由 20% 的代码导致的。只要找出这 20% 的位置，就可以优化 80% 的性能。所以，&lt;strong&gt;并不是所有的性能问题都值得优化&lt;/strong&gt;。&lt;/p&gt;
+&lt;p&gt;老师的建议是，动手优化之前先动脑，先把所有这些性能问题给分析一遍，找出最重要的、可以最大程度提升性能的问题，从它开始优化，这样的好处是，不仅性能提升的收益最大，而且很可能其他问题都不用优化，就已经满足了性能要求。&lt;/p&gt;
+&lt;p&gt;那关键就在于，怎么判断出哪个性能问题最重要。这其实还是我们性能分析要解决的核心问题，只不过这里要分析的对象，从原来的一个问题，变成了多个问题，思路还是一样的。&lt;/p&gt;
+&lt;p&gt;所以，依然可以用前面讲过的方法挨个分析，分别找出它们的瓶颈。分析完所有问题后，再按照因果等关系，排除掉有因果关联的性能问题。最后，再对剩下的性能问题进行优化。&lt;/p&gt;
+&lt;p&gt;如果剩下的问题还有好几个，就得分别进行性能测试了。比较不同的优化效果后，选择能明显提升性能的那个问题进行修复。这个过程通常会花费较多的时间，这里，推荐两个可以简化这个过程的方法。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;第一&lt;/strong&gt;，如果发现是系统资源达到了瓶颈，比如 CPU 使用率达到了 100%，那么首先优化的一定是系统资源使用问题。完成系统资源瓶颈的优化后，我们才要考虑其他问题。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;第二&lt;/strong&gt;，针对不同类型的指标，首先去优化那些由瓶颈导致的，性能指标变化幅度最大的问题。比如产生瓶颈后，用户 CPU 使用率升高了 10%，而系统 CPU 使用率却升高了 50%，这个时候就应该首先优先系统 CPU 的使用。&lt;/p&gt;
+&lt;h3 id=&#34;有多重优化方法时要如何选择&#34;&gt;有多重优化方法时，要如何选择？
+&lt;/h3&gt;&lt;p&gt;接下来看第三个问题，当多种方法都可用时，应该选哪一种呢？是不是最大提升性能的方法，一定最好呢？&lt;/p&gt;
+&lt;p&gt;一般情况下，当然想选能最大提升性能的方法，这其实也是性能优化的目的。&lt;/p&gt;
+&lt;p&gt;但要注意，显示情况要考虑的因素却没那么简单。最直观来说，&lt;strong&gt;性能优化并非没有成本&lt;/strong&gt;。性能优化通常会带来复杂度的提升，降低程序的可维护性，还可能在优化一个指标时，引发其他指标的异常。也就是说很可能优化了一个指标，另一个指标的性能却变差了。&lt;/p&gt;
+&lt;p&gt;一个很典型的例子就是老师将在网络部分讲到的 DPDK（Data Plane Development Kit）。DPDK 是一种优化网络处理速度的方法，它通过绕开内核网络协议栈的方法，提升网络的处理能力。&lt;/p&gt;
+&lt;p&gt;不过它有一个很典型的要求，就是要独占一个 CPU 以及一定数量的内存大页，并且总是以 100% 的 CPU 使用率运行。所以，如果你的 CPU 核数很少，就有点得不偿失了。&lt;/p&gt;
+&lt;p&gt;所以，在考虑选哪个性能优化方法时，要综合多方面的因素。切记，不要想着“一步登天”，试图一次性解决所有问题；也不要只会“拿来主义”，把其他应用的优化方法原封不动拿来用，却不经过任何思考和分析。&lt;/p&gt;
+&lt;h2 id=&#34;cpu-优化&#34;&gt;CPU 优化
+&lt;/h2&gt;&lt;p&gt;清楚了性能优化最基本的三个问题后，接下来从应用程序和系统的角度，分别看看如何才能降低 CPU 使用率，提高 CPU 的并行处理能力。&lt;/p&gt;
+&lt;h3 id=&#34;应用程序优化&#34;&gt;应用程序优化
+&lt;/h3&gt;&lt;p&gt;首先，从应用程序的角度来说，降低 CPU 使用率的最好方法当然是，排除所有不必要的工作，只保留最核心的逻辑。比如减少循环的层次、减少递归、减少动态内存分配等等。&lt;/p&gt;
+&lt;p&gt;除此之外，应用程序的性能优化也包括很多方法：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;编译器优化：很多编译器都会提供优化选项，适当开启它们，在编译阶段你就可以获得编译器的帮助，来提升性能。比如， gcc 就提供了优化选项 -O2，开启后会自动对应用程序的代码进行优化。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;算法优化：使用复杂度更低的算法，可以显著加快处理速度。比如，在数据比较大的情况下，可以用 O(nlogn) 的排序算法（如快排、归并排序等），代替 O(n^2) 的排序算法（如冒泡、插入排序等）。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;异步处理：使用异步处理，可以避免程序因为等待某个资源而一致阻塞，从而提高程序的并发能力。比如，把轮询替换为事件通知，就可以避免轮训耗费的 CPU 的问题。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;多线程代替多进程：前面讲过，相对于进程的上下文切换，线程的上下文切换并不切换进程地址空间，因此可以降低上下文切换的成本。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;善用缓存：经常访问的数据或者计算过程中的步骤，可以放到内存中缓存起来，这样在下次用时就能直接从内存中获取，加快程序的处理速度。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;系统优化&#34;&gt;系统优化
+&lt;/h3&gt;&lt;p&gt;从系统角度来说，优化 CPU 的运行，一方面要充分利用 CPU 缓存的本地性，加速缓存访问；另一方面，就是要控制进程的 CPU 使用情况，减少进程间的相互影响。&lt;/p&gt;
+&lt;p&gt;具体来说，系统层面的 CPU 优化方法也有不少，这里同样列举了最常见的一些方法，方便记忆和使用。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;CPU 绑定：把进程绑定到一个或者多个 CPU 上，可以提高 CPU 缓存的命中率，减少跨 CPU 调度带来的上下文切换问题。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;CPU 独占：跟 CPU 绑定类似，进一步将 CPU 分组，并通过 CPU 亲和性机制为其分配进程。这样，这些 CPU 就由指定的进程独占，换句话说，不允许其他进程再来使用这些 CPU。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;优先级调整：使用 nice 调整进程的优先级，正值调低优先级，负值调高优先级。在这里，适当降低非核心应用的优先级，增高核心应用的优先级，可以确保核心应用得到优先处理。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;为进程设置资源限制：使用 Linux cgroups 来设置进程的 CPU 使用上限，可以防止由于某个应用自身的问题，而耗尽系统资源。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;NUMA（Non-Uniform Memory Access）优化：支持 NUMA 的处理器会被划分为多个 node，每个 node 都有自己的本地内存空间。NUMA 优化，其实就是让 CPU 尽可能只访问本地内存。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;中断负载均衡：无论是软中断还是硬中断，它们的中断处理程序都可能会耗费大量的 CPU。开启 irqbalance 服务或者配置 smp_affinity，就可以把中断处理过程自动均衡到多个 CPU 上。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;千万避免过早优化&#34;&gt;千万避免过早优化
+&lt;/h2&gt;&lt;p&gt;因为，一方面，优化会带来复杂性的提升，降低可维护性；另一方面，需求不是一成不变的。针对当前情况进行的优化，很可能并不适应快速变化的新需求。这样，在新需求出现时，这些复杂的优化，反而可能阻碍新功能的开发。&lt;/p&gt;
+&lt;p&gt;所以，性能优化最好是逐步完善，动态进行，不追求一步到位，而要首先保证能满足当前的性能要求。当发现性能不满足要求或者出现性能瓶颈时，再根据性能评估的结果，选择最重要的性能问题进行优化。&lt;/p&gt;
+&lt;h2 id=&#34;总结&#34;&gt;总结
+&lt;/h2&gt;&lt;p&gt;发现性能问题后，不要急于动手优化，而要先找出最重要的、可以获得最大性能提升的问题，然后再从应用程序和系统两个方面入手优化。&lt;/p&gt;
+&lt;p&gt;这样不仅可以获得最大的性能提升，而且很可能不需要优化其他问题，就已经满足了性能要求。&lt;/p&gt;
+&lt;p&gt;但是记住，一定要忍住“把 CPU 性能优化到极致”的冲动，因为 CPU 并不是唯一的性能因素。在后续的文章中，我还会介绍更多的性能问题，比如内存、网络、I/O 甚至是架构设计的问题。&lt;/p&gt;
+</description>
+        </item>
+        <item>
         <title>[Linux]性能调优-CPU篇（案例篇）- 3</title>
         <link>https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-3/</link>
         <pubDate>Fri, 23 Jan 2026 17:56:32 +0800</pubDate>
