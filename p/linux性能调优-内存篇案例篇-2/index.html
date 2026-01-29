@@ -1,0 +1,950 @@
+<!DOCTYPE html>
+<html lang="en-us" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="内存泄漏了，我该如何定位和处理？ 首先回顾一下 Linux 内存的工作原理。\n对普通进程来说，能看到的其实是内核提供的虚拟内存，这些虚拟内存还需要通过页表，由系统映射为物理内存。\n">
+<title>[Linux]性能调优-内存篇（案例篇）- 2</title>
+
+<link rel='canonical' href='https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%86%85%E5%AD%98%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-2/'>
+
+<link rel="stylesheet" href="/scss/style.min.6a692fd055deae459f2a9767f57f3855ba80cafd5041317f24f7360f6ca47cdf.css"><meta property='og:title' content="[Linux]性能调优-内存篇（案例篇）- 2">
+<meta property='og:description' content="内存泄漏了，我该如何定位和处理？ 首先回顾一下 Linux 内存的工作原理。\n对普通进程来说，能看到的其实是内核提供的虚拟内存，这些虚拟内存还需要通过页表，由系统映射为物理内存。\n">
+<meta property='og:url' content='https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%86%85%E5%AD%98%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-2/'>
+<meta property='og:site_name' content='リンボの個人ブログ'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:published_time' content='2026-01-29T15:42:54&#43;08:00'/><meta property='article:modified_time' content='2026-01-29T15:42:54&#43;08:00'/>
+<meta name="twitter:title" content="[Linux]性能调优-内存篇（案例篇）- 2">
+<meta name="twitter:description" content="内存泄漏了，我该如何定位和处理？ 首先回顾一下 Linux 内存的工作原理。\n对普通进程来说，能看到的其实是内核提供的虚拟内存，这些虚拟内存还需要通过页表，由系统映射为物理内存。\n">
+    <link rel="shortcut icon" href="/favicon.ico" />
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        
+            
+            <figure class="site-avatar">
+                <a href="/">
+                
+                    
+                    
+                    
+                        
+                        <img src="/img/avatar_hu_de528bff5d5e9598.png" width="300"
+                            height="300" class="site-logo" loading="lazy" alt="Avatar">
+                    
+                
+                </a>
+                
+                    <span class="emoji">🏖️</span>
+                
+            </figure>
+            
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">リンボの個人ブログ</a></h1>
+            <h2 class="site-description">努力不一定能获得回报，但不努力一定不会有回报。</h2>
+        </div>
+    </header><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-home" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <polyline points="5 12 3 12 12 3 21 12 19 12" />
+  <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7" />
+  <path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6" />
+</svg>
+
+
+
+                
+                <span>主页</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/%E5%85%B3%E4%BA%8E/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/archives/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/search/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-search" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="10" cy="10" r="7" />
+  <line x1="21" y1="21" x2="15" y2="15" />
+</svg>
+
+
+
+                
+                <span>搜索</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav id="TableOfContents">
+  <ol>
+    <li><a href="#内存的分配和回收">内存的分配和回收</a></li>
+    <li><a href="#案例">案例</a></li>
+    <li><a href="#小结">小结</a></li>
+  </ol>
+</nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            <a href="/categories/linux/" >
+                Linux
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%86%85%E5%AD%98%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-2/">[Linux]性能调优-内存篇（案例篇）- 2</a>
+        </h2>
+    
+        
+    </div>
+
+    
+    
+    
+    
+    <footer class="article-time">
+        
+            <div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                <time class="article-time--published">2026-01-29</time>
+            </div>
+        
+
+        
+    </footer>
+    
+
+    
+</div>
+
+</header>
+
+    <section class="article-content">
+    
+    
+    <h2>内存泄漏了，我该如何定位和处理？</h2>
+<p>首先回顾一下 Linux 内存的工作原理。</p>
+<p>对普通进程来说，能看到的其实是内核提供的虚拟内存，这些虚拟内存还需要通过页表，由系统映射为物理内存。</p>
+<p>当进程通过 malloc() 申请虚拟内存后，系统并不会立即为其分配物理内存，而是在首次访问时，才通过缺页异常陷入内核中分配内存。</p>
+<p>为了协调 CPU 与磁盘见的性能差异，Linux 还会使用 Cache 和 Buffer，分别把文件和磁盘读写的数据缓存到内存中。</p>
+<p>对应用程序来说，动态内存的分配和回收，是既核心又复杂的一个逻辑功能模块。管理内存的过程中，也很容易发生“事故”。比如，</p>
+<ul>
+<li>没正确回收分配后的内存，导致了泄漏。</li>
+<li>访问的是已分配内存外的地址，导致程序异常退出，等等。</li>
+</ul>
+<p>那么，内存泄漏到底是怎么发生的，以及发生内存泄漏之后该如何排查和定位。</p>
+<p>说起内存泄漏，这就要先从内存的分配和回收说起了。</p>
+<h2 id="内存的分配和回收">内存的分配和回收
+</h2><p>那么，应用程序中，都有哪些方法来分配内存呢？用完后，又该怎么释放还给系统呢？</p>
+<p>在前面进程的内存空间中，就提到过，用户空间内存包括多个不同的内存段，比如只读段、数据段、堆、栈以及文件映射段等。这些内存段正是应用程序使用内存的基本方式。</p>
+<p>举个例子，在程序中定义了一个局部变量，比如一个整数数组<em>int data[64]</em>，就定义了一个可以存储 64 个整数的内存段。由于这是一个局部变量，它会从内存空间的栈中分配内存。</p>
+<p><u>栈内存由系统自动分配和管理。一旦程序运行超出了这个局部变量的作用域，栈内存就会被系统自动回收，所以不会产生内存泄漏的问题。</u></p>
+<p>再比如，很多时候，我们事先并不知道数据大小，所以要用标准库函数 <code>malloc()</code>，在程序中动态分配内存。这时候，系统就会从内存空间的堆中分配内存。</p>
+<p><u>堆内存由应用程序自己来分配和管理。</u>除非程序退出，这些内存并不会被系统自动释放，而是需要应用程序明确调用库函数*free()*来释放它们。如果应用程序没有正确释放堆内存，就会造成内存泄漏。</p>
+<p>这是两个栈和堆的例子，那么，其他内存段是否也会导致内存泄漏呢？经过我们前面的学习，这个问题并不难回答。</p>
+<ul>
+<li>
+<p>只读段，包括程序的代码和常量，由于是只读的，不会再去分配新的内存，所以也不会产生内存泄漏。</p>
+</li>
+<li>
+<p>数据段，包括全局变量和静态变量，这些变量在定义时就已经确定了大小，所以也不会造成内存泄露。</p>
+</li>
+<li>
+<p>最后一个内存映射段，包括动态链接库和共享内存，其中共享内存由程序动态分配和管理。所以，如果程序在分配后忘了回收，就会导致跟堆内存类似的泄漏问题。</p>
+</li>
+</ul>
+<p><strong>内存泄漏的危害非常大，这些忘记释放的内存，不仅应用程序自己不能访问，系统也不能把它们再次分配给其他应用</strong>。内存泄漏不断累积，甚至会耗尽系统内存。</p>
+<p>虽然，系统最终可以通过 OOM（Out of Memory）机制杀死进程，但进程在 OOM 前，可能引发了一连串的反应，导致严重的性能问题。</p>
+<p>比如，其他需要内存的进程，可能无法分配新的内存；内存不足，又会触发系统的缓存回收以及 SWAP 机制，从而进一步导致 I/O 的性能问题等等。</p>
+<p>内存泄漏的危害这么大，那我们应该怎么检测这种问题呢？特别是，如果你已经发现了内存泄漏，该如何定位和处理呢。</p>
+<p>接下来，我们就用一个计算斐波那契数列的案例，来看看内存泄漏问题的定位和处理方法。</p>
+<p>斐波那契数列是一个这样的数列：0、1、1、2、3、5、8…，也就是除了前两个数是 0 和 1，其他数都由前面两数相加得到，用数学公式来表示就是 F(n)=F(n-1)+F(n-2)，（n&gt;=2），F(0)=0, F(1)=1。</p>
+<h2 id="案例">案例
+</h2><ul>
+<li>系统环境：ubuntu 18.04</li>
+<li>机器配置：2 CPU，8 GB 内存</li>
+<li>预先安装 sysstat、Docker 以及 bcc 软件包</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># install sysstat docker</span>
+</span></span><span class="line"><span class="cl">sudo apt-get install -y sysstat docker.io
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Install bcc</span>
+</span></span><span class="line"><span class="cl">sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 4052245BD4284CDD
+</span></span><span class="line"><span class="cl"><span class="nb">echo</span> <span class="s2">&#34;deb https://repo.iovisor.org/apt/bionic bionic main&#34;</span> <span class="p">|</span> sudo tee /etc/apt/sources.list.d/iovisor.list
+</span></span><span class="line"><span class="cl">sudo apt-get update
+</span></span><span class="line"><span class="cl">sudo apt-get install -y bcc-tools libbcc-examples linux-headers-<span class="k">$(</span>uname -r<span class="k">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>sysstat 软件包中的 vmstat ，可以观察内存的变化情况；</li>
+<li>Docker 运行案例程序。</li>
+<li><a class="link" href="https://github.com/iovisor/bcc"  target="_blank" rel="noopener"
+    >bcc</a> 软件包，提供了一系列的 Linux 性能分析工具，常用来动态追踪进程和内核的行为。它提供的所有工具都位于 /usr/share/bcc/tools 这个目录中。</li>
+</ul>
+<blockquote>
+<p>注意：bcc-tools 需要内核版本为 4.1 或者更高，如果你使用的是 CentOS7，或者其他内核版本比较旧的系统，那么你需要手动升级内核版本后再安装。</p>
+</blockquote>
+<ol>
+<li>打开一个终端，SSH 登录到机器上，安装上述工具。</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># install sysstat docker</span>
+</span></span><span class="line"><span class="cl">sudo apt-get install -y sysstat docker.io
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Install bcc</span>
+</span></span><span class="line"><span class="cl">sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 4052245BD4284CDD
+</span></span><span class="line"><span class="cl"><span class="nb">echo</span> <span class="s2">&#34;deb https://repo.iovisor.org/apt/bionic bionic main&#34;</span> <span class="p">|</span> sudo tee /etc/apt/sources.list.d/iovisor.list
+</span></span><span class="line"><span class="cl">sudo apt-get update
+</span></span><span class="line"><span class="cl">sudo apt-get install -y bcc-tools libbcc-examples linux-headers-<span class="k">$(</span>uname -r<span class="k">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="2">
+<li>切换 root 账号</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo su root
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="3">
+<li>运行 docker 案例</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">docker run --name<span class="o">=</span>app -itd feisky/app:mem-leak
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="4">
+<li>查看容器日志</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">docker logs app
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>输出结果：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="nv">2th</span> <span class="o">=</span>&gt; <span class="m">1</span>
+</span></span><span class="line"><span class="cl"><span class="nv">3th</span> <span class="o">=</span>&gt; <span class="m">2</span>
+</span></span><span class="line"><span class="cl"><span class="nv">4th</span> <span class="o">=</span>&gt; <span class="m">3</span>
+</span></span><span class="line"><span class="cl"><span class="nv">5th</span> <span class="o">=</span>&gt; <span class="m">5</span>
+</span></span><span class="line"><span class="cl"><span class="nv">6th</span> <span class="o">=</span>&gt; <span class="m">8</span>
+</span></span><span class="line"><span class="cl"><span class="nv">7th</span> <span class="o">=</span>&gt; <span class="m">13</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>从输出中，我们可以发现，这个案例会输出斐波那契数列的一系列数值。实际上，这些数值每隔 1 秒输出一次。</p>
+<p>知道了这些，我们应该怎样检查内存情况，判断有没有泄漏发生呢？首先想到的可能是 top 工具，不过，top 虽然能观察系统和进程的内存占用状况，但今天的案例并不合适。内存泄漏问题，我们更应该关注<strong>内存使用的变化趋势</strong>。</p>
+<p>所以，今天推荐使用的是 vmstat 工具。</p>
+<ol start="5">
+<li>运行 vmstat 命令，等待一段时间，观察内存的变化情况。（如果忘记了 vmstat 里各指标的含义，可以查询 man vmstat 查询。）</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 每隔3秒输出一组数据</span>
+</span></span><span class="line"><span class="cl">$ vmstat <span class="m">3</span>
+</span></span><span class="line"><span class="cl">procs -----------memory---------- ---swap-- -----io---- -system-- ------cpu-----
+</span></span><span class="line"><span class="cl">r  b   swpd   free   buff  cache   si   so    bi    bo   in   cs us sy id wa st
+</span></span><span class="line"><span class="cl">procs -----------memory---------- ---swap-- -----io---- -system-- ------cpu-----
+</span></span><span class="line"><span class="cl">r  b   swpd   free   buff  cache   si   so    bi    bo   in   cs us sy id wa st
+</span></span><span class="line"><span class="cl"><span class="m">0</span>  <span class="m">0</span>      <span class="m">0</span> <span class="m">6601824</span>  <span class="m">97620</span> <span class="m">1098784</span>    <span class="m">0</span>    <span class="m">0</span>     <span class="m">0</span>     <span class="m">0</span>   <span class="m">62</span>  <span class="m">322</span>  <span class="m">0</span>  <span class="m">0</span> <span class="m">100</span>  <span class="m">0</span>  <span class="m">0</span>
+</span></span><span class="line"><span class="cl"><span class="m">0</span>  <span class="m">0</span>      <span class="m">0</span> <span class="m">6601700</span>  <span class="m">97620</span> <span class="m">1098788</span>    <span class="m">0</span>    <span class="m">0</span>     <span class="m">0</span>     <span class="m">0</span>   <span class="m">57</span>  <span class="m">251</span>  <span class="m">0</span>  <span class="m">0</span> <span class="m">100</span>  <span class="m">0</span>  <span class="m">0</span>
+</span></span><span class="line"><span class="cl"><span class="m">0</span>  <span class="m">0</span>      <span class="m">0</span> <span class="m">6601320</span>  <span class="m">97620</span> <span class="m">1098788</span>    <span class="m">0</span>    <span class="m">0</span>     <span class="m">0</span>     <span class="m">3</span>   <span class="m">52</span>  <span class="m">306</span>  <span class="m">0</span>  <span class="m">0</span> <span class="m">100</span>  <span class="m">0</span>  <span class="m">0</span>
+</span></span><span class="line"><span class="cl"><span class="m">0</span>  <span class="m">0</span>      <span class="m">0</span> <span class="m">6601452</span>  <span class="m">97628</span> <span class="m">1098788</span>    <span class="m">0</span>    <span class="m">0</span>     <span class="m">0</span>    <span class="m">27</span>   <span class="m">63</span>  <span class="m">326</span>  <span class="m">0</span>  <span class="m">0</span> <span class="m">100</span>  <span class="m">0</span>  <span class="m">0</span>
+</span></span><span class="line"><span class="cl"><span class="m">2</span>  <span class="m">0</span>      <span class="m">0</span> <span class="m">6601328</span>  <span class="m">97628</span> <span class="m">1098788</span>    <span class="m">0</span>    <span class="m">0</span>     <span class="m">0</span>    <span class="m">44</span>   <span class="m">52</span>  <span class="m">299</span>  <span class="m">0</span>  <span class="m">0</span> <span class="m">100</span>  <span class="m">0</span>  <span class="m">0</span>
+</span></span><span class="line"><span class="cl"><span class="m">0</span>  <span class="m">0</span>      <span class="m">0</span> <span class="m">6601080</span>  <span class="m">97628</span> <span class="m">1098792</span>    <span class="m">0</span>    <span class="m">0</span>     <span class="m">0</span>     <span class="m">0</span>   <span class="m">56</span>  <span class="m">285</span>  <span class="m">0</span>  <span class="m">0</span> <span class="m">100</span>  <span class="m">0</span>  <span class="m">0</span> 
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>从输出中你可以看到，内存的 free 列在不停的变化，并且是下降趋势；而 buffer 和 cache 基本保持不变。</p>
+<p>未使用内存在逐渐减小，而 buffer 和 cache 基本不变，这说明，系统中使用的内存一致在升高。但这并不能说明有内存泄漏，因为应用程序运行中需要的内存也可能会增大。比如说，程序中如果用了一个动态增长的数组来缓存计算结果，占用内存自然会增长。</p>
+<p>那怎么确定是不是内存泄漏呢？或者换句话说，有没有简单方法找出让内存增长的进程，并定位增长内存用在哪儿呢？</p>
+<p>根据前面内容，应该可以想到通过 top 或 ps 来观察进程的内存使用情况，然后找出内存使用一直增长的进程，然后通过 pmap 查看进程的内存分布。</p>
+<p>但这种方法并不太好用，因为要判断内存的变化情况，还需要写一个脚本，来处理 top 或者 ps 的输出。</p>
+<p>这里，介绍一个<u>专门用来检测内存泄漏的工具</u>，<strong>memleak</strong>。memleak可以跟踪系统或指定进程的内存分配、释放请求，然后定期输出一个未释放内存和相应调用栈的汇总情况（默认 5 秒）。</p>
+<p>当然，memleak 是 bcc 软件包中的一个工具，执行 /usr/share/bcc/tools/memleak 就可以运行它。</p>
+<ol start="6">
+<li>展示 app 进程的每个内存分配请求的大小以及地址</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># -a 表示显示每个内存分配请求的大小以及地址</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># -p 指定案例应用的PID号</span>
+</span></span><span class="line"><span class="cl">/usr/share/bcc/tools/memleak -a -p <span class="k">$(</span>pidof app<span class="k">)</span> 
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>输出结果：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">WARNING: Couldn<span class="s1">&#39;t find .text section in /app
+</span></span></span><span class="line"><span class="cl"><span class="s1">WARNING: BCC can&#39;</span>t handle sym look ups <span class="k">for</span> /app
+</span></span><span class="line"><span class="cl">    <span class="nv">addr</span> <span class="o">=</span> 7f8f704732b0 <span class="nv">size</span> <span class="o">=</span> <span class="m">8192</span>
+</span></span><span class="line"><span class="cl">    <span class="nv">addr</span> <span class="o">=</span> 7f8f704772d0 <span class="nv">size</span> <span class="o">=</span> <span class="m">8192</span>
+</span></span><span class="line"><span class="cl">    <span class="nv">addr</span> <span class="o">=</span> 7f8f704712a0 <span class="nv">size</span> <span class="o">=</span> <span class="m">8192</span>
+</span></span><span class="line"><span class="cl">    <span class="nv">addr</span> <span class="o">=</span> 7f8f704752c0 <span class="nv">size</span> <span class="o">=</span> <span class="m">8192</span>
+</span></span><span class="line"><span class="cl">    <span class="m">32768</span> bytes in <span class="m">4</span> allocations from stack
+</span></span><span class="line"><span class="cl">        <span class="o">[</span>unknown<span class="o">]</span> <span class="o">[</span>app<span class="o">]</span>
+</span></span><span class="line"><span class="cl">        <span class="o">[</span>unknown<span class="o">]</span> <span class="o">[</span>app<span class="o">]</span>
+</span></span><span class="line"><span class="cl">        start_thread+0xdb <span class="o">[</span>libpthread-2.27.so<span class="o">]</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>从 memleak 的输出可以看到，案例应用在不停地分配内存，并且这些分配的地址没有被回收。</p>
+<p>这里有一个问题，Couldn’t find .text section in /app，所以调用栈不能正常输出，最后的调用栈部分只能看到 [unknown] 的标志。</p>
+<p>为什么会有这个错误呢？实际上，这是由于案例应用运行在容器中导致的。memleak 工具运行在容器之外，并不能直接访问进程路径 /app。</p>
+<p>比方说，在终端直接运行 ls 命令，就会发现，这个路径确实不存在：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">ls /app
+</span></span><span class="line"><span class="cl">ls: cannot access <span class="s1">&#39;/app&#39;</span>: No such file or directory
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>最简单的方法，就是在容器外部构建相同路径的文件以及依赖库。这个案例只有一个二进制文件，所以只要把案例应用的二进制文件放到 /app 路径中，就可以修复这个问题。</p>
+<ol start="7">
+<li>复制 app 二进制文件</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">docker cp app:/app /app
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="8">
+<li>重新运行 memleak 工具</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">/usr/share/bcc/tools/memleak -p <span class="k">$(</span>pidof app<span class="k">)</span> -a 
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>输出结果：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">Attaching to pid 12512, Ctrl+C to quit.
+</span></span><span class="line"><span class="cl"><span class="o">[</span>03:00:41<span class="o">]</span> Top <span class="m">10</span> stacks with outstanding allocations:
+</span></span><span class="line"><span class="cl">    <span class="nv">addr</span> <span class="o">=</span> 7f8f70863220 <span class="nv">size</span> <span class="o">=</span> <span class="m">8192</span>
+</span></span><span class="line"><span class="cl">    <span class="nv">addr</span> <span class="o">=</span> 7f8f70861210 <span class="nv">size</span> <span class="o">=</span> <span class="m">8192</span>
+</span></span><span class="line"><span class="cl">    <span class="nv">addr</span> <span class="o">=</span> 7f8f7085b1e0 <span class="nv">size</span> <span class="o">=</span> <span class="m">8192</span>
+</span></span><span class="line"><span class="cl">    <span class="nv">addr</span> <span class="o">=</span> 7f8f7085f200 <span class="nv">size</span> <span class="o">=</span> <span class="m">8192</span>
+</span></span><span class="line"><span class="cl">    <span class="nv">addr</span> <span class="o">=</span> 7f8f7085d1f0 <span class="nv">size</span> <span class="o">=</span> <span class="m">8192</span>
+</span></span><span class="line"><span class="cl">    <span class="m">40960</span> bytes in <span class="m">5</span> allocations from stack
+</span></span><span class="line"><span class="cl">        fibonacci+0x1f <span class="o">[</span>app<span class="o">]</span>
+</span></span><span class="line"><span class="cl">        child+0x4f <span class="o">[</span>app<span class="o">]</span>
+</span></span><span class="line"><span class="cl">        start_thread+0xdb <span class="o">[</span>libpthread-2.27.so<span class="o">]</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>这一次，终于看到了内存分配的调用栈，原来是 fibonacci() 函数分配的内存没释放。</p>
+<p>定位了内存泄漏的来源，下一步自然就应该查看源码，想办法修复它。我们一起来看案例应用的源代码 <a class="link" href="https://github.com/feiskyer/linux-perf-examples/blob/master/mem-leak/app.c"  target="_blank" rel="noopener"
+    >app.c</a>：</p>
+<ol start="9">
+<li>查看源码</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">docker <span class="nb">exec</span> app cat /app.c
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>输出结果：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="kt">long</span> <span class="kt">long</span> <span class="o">*</span><span class="nf">fibonacci</span><span class="p">(</span><span class="kt">long</span> <span class="kt">long</span> <span class="o">*</span><span class="n">n0</span><span class="p">,</span> <span class="kt">long</span> <span class="kt">long</span> <span class="o">*</span><span class="n">n1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="c1">//分配1024个长整数空间方便观测内存的变化情况
+</span></span></span><span class="line"><span class="cl">    <span class="kt">long</span> <span class="kt">long</span> <span class="o">*</span><span class="n">v</span> <span class="o">=</span> <span class="p">(</span><span class="kt">long</span> <span class="kt">long</span> <span class="o">*</span><span class="p">)</span> <span class="nf">calloc</span><span class="p">(</span><span class="mi">1024</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="kt">long</span> <span class="kt">long</span><span class="p">));</span>
+</span></span><span class="line"><span class="cl">    <span class="o">*</span><span class="n">v</span> <span class="o">=</span> <span class="o">*</span><span class="n">n0</span> <span class="o">+</span> <span class="o">*</span><span class="n">n1</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">v</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="o">*</span><span class="nf">child</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="n">arg</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="kt">long</span> <span class="kt">long</span> <span class="n">n0</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="kt">long</span> <span class="kt">long</span> <span class="n">n1</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="kt">long</span> <span class="kt">long</span> <span class="o">*</span><span class="n">v</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">n</span> <span class="o">=</span> <span class="mi">2</span><span class="p">;</span> <span class="n">n</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">;</span> <span class="n">n</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="n">v</span> <span class="o">=</span> <span class="nf">fibonacci</span><span class="p">(</span><span class="o">&amp;</span><span class="n">n0</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">n1</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">        <span class="n">n0</span> <span class="o">=</span> <span class="n">n1</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="n">n1</span> <span class="o">=</span> <span class="o">*</span><span class="n">v</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="nf">printf</span><span class="p">(</span><span class="s">&#34;%dth =&gt; %lld</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="o">*</span><span class="n">v</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">        <span class="nf">sleep</span><span class="p">(</span><span class="mi">1</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>可以发现，child() 调用了 fibonacci() 函数，但并没有释放 fibonacci() 返回的内存。所以，想要修复泄漏问题，在 child() 中加一个释放函数就可以了，比如：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="kt">void</span> <span class="o">*</span><span class="nf">child</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="n">arg</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="p">...</span>
+</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">n</span> <span class="o">=</span> <span class="mi">2</span><span class="p">;</span> <span class="n">n</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">;</span> <span class="n">n</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="n">v</span> <span class="o">=</span> <span class="nf">fibonacci</span><span class="p">(</span><span class="o">&amp;</span><span class="n">n0</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">n1</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">        <span class="n">n0</span> <span class="o">=</span> <span class="n">n1</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="n">n1</span> <span class="o">=</span> <span class="o">*</span><span class="n">v</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="nf">printf</span><span class="p">(</span><span class="s">&#34;%dth =&gt; %lld</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="o">*</span><span class="n">v</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">        <span class="nf">free</span><span class="p">(</span><span class="n">v</span><span class="p">);</span>    <span class="c1">// 释放内存
+</span></span></span><span class="line"><span class="cl">        <span class="nf">sleep</span><span class="p">(</span><span class="mi">1</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span> 
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>老师把修复后的代码放到了 <a class="link" href="https://github.com/feiskyer/linux-perf-examples/blob/master/mem-leak/app-fix.c"  target="_blank" rel="noopener"
+    >app-fix.c</a>，也打包成了一个 Docker 镜像。</p>
+<ol start="10">
+<li>清理原来的案例应用</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">docker rm -f app
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="11">
+<li>运行修复后的应用</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">docker run --name<span class="o">=</span>app -itd feisky/app:mem-leak-fix
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="12">
+<li>重新执行 memleak 工具，验证内存泄漏是否修复</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">/usr/share/bcc/tools/memleak -a -p <span class="k">$(</span>pidof app<span class="k">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>输出结果：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">Attaching to pid 18808, Ctrl+C to quit.
+</span></span><span class="line"><span class="cl"><span class="o">[</span>10:23:18<span class="o">]</span> Top <span class="m">10</span> stacks with outstanding allocations:
+</span></span><span class="line"><span class="cl"><span class="o">[</span>10:23:23<span class="o">]</span> Top <span class="m">10</span> stacks with outstanding allocations:
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="小结">小结
+</h2><p>总结一下本章内容。</p>
+<p>应用程序可以访问的用户内存空间，由只读段、数据段、堆、栈以及文件映射段等组成。其中，堆内存和文件映射段，需要应用程序来动态管理内存段，所以我们必须小心处理。不仅要会用标准库函数 malloc() 来动态分配内存，还要记得在用完内存，调用函数 free() 来释放它们。</p>
+<p>今天的案例比较简单，只用加一个 free() 调用就能修复内存泄漏。不过，实际应用程序就复杂多了。比如说，</p>
+<ul>
+<li>
+<p>malloc() 和 free() 并不是成对出现，而是需要，在每个异常处理路径和成功路径上释放内存。</p>
+</li>
+<li>
+<p>在多线程程序中，一个线程中分配的内存，可能会在另一个线程中访问和释放。</p>
+</li>
+<li>
+<p>更复杂的是，在第三方的库函数中，隐式分配的内存可能需要应用程序显式释放。</p>
+</li>
+</ul>
+<p>所以，为了避免内存泄漏，最重要的一点就是养成良好的编程习惯，比如分配内存后，一定要先写好内存释放的代码，再去开发其他逻辑。还是那句话，有借有还，才能高效运转，再借不难。</p>
+<p>当然，如果已经完成了开发任务，还可以用 memleak 工具，检查应用程序的运行，内存是否泄漏。如果发生了内存泄漏情况，再根据 memleak 输出的应用程序调用栈，定位内存的分配位置，从而释放不再访问的内存。</p>
+
+</section>
+
+
+    <footer class="article-footer">
+    
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+<aside class="related-content--wrapper">
+    <h2 class="section-title">相关文章</h2>
+    <div class="related-content">
+        <div class="flex article-list--tile">
+            
+                
+<article class="">
+    <a href="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%86%85%E5%AD%98%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-1/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Linux]性能调优-内存篇（案例篇）- 1</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%86%85%E5%AD%98%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87-2/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Linux]性能调优-内存篇（基础篇）- 2</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%86%85%E5%AD%98%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Linux]性能调优-内存篇（基础篇）</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%A5%97%E8%B7%AF%E7%AF%87-2/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Linux]性能调优-CPU篇（套路篇）- 2</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%A5%97%E8%B7%AF%E7%AF%87/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Linux]性能调优-CPU篇（套路篇）</h2>
+        </div>
+    </a>
+</article>
+
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+            2025 - 
+        
+        2026 リンボの個人ブログ
+    </section>
+    
+    <section class="powerby">
+         <br />
+        
+    </section>
+</footer>
+
+
+    
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+    
+    <div class="pswp__bg"></div>
+
+    
+    <div class="pswp__scroll-wrap">
+
+        
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+
+        
+        <div class="pswp__ui pswp__ui--hidden">
+
+            <div class="pswp__top-bar">
+
+                
+
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+
+                <button class="pswp__button pswp__button--share" title="Share"></button>
+
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+
+                
+                
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                        <div class="pswp__preloader__cut">
+                            <div class="pswp__preloader__donut"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div>
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.js"integrity="sha256-ePwmChbbvXbsO02lbM3HoHbSHTHFAeChekF1xKJdleo="crossorigin="anonymous"
+                defer
+                >
+            </script><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe-ui-default.min.js"integrity="sha256-UKkzOn/w1mBxRmLLGrSeyB4e1xbrp4xylgAWb3M42pU="crossorigin="anonymous"
+                defer
+                >
+            </script><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/default-skin/default-skin.min.css"crossorigin="anonymous"
+            ><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.css"crossorigin="anonymous"
+            >
+
+            </main>
+        </div>
+        <script 
+                src="https://cdn.jsdelivr.net/npm/node-vibrant@3.1.6/dist/vibrant.min.js"integrity="sha256-awcR2jno4kI5X0zL8ex0vi2z&#43;KMkF24hUW8WePSA9HM="crossorigin="anonymous"
+                
+                >
+            </script><script type="text/javascript" src="/ts/main.1e9a3bafd846ced4c345d084b355fb8c7bae75701c338f8a1f8a82c780137826.js" defer></script>
+<script>
+    (function () {
+        const customFont = document.createElement('link');
+        customFont.href = "https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap";
+
+        customFont.type = "text/css";
+        customFont.rel = "stylesheet";
+
+        document.head.appendChild(customFont);
+    }());
+</script>
+
+    </body>
+</html>
