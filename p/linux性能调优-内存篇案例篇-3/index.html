@@ -1,0 +1,1157 @@
+<!DOCTYPE html>
+<html lang="en-us" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="为什么系统的Swap变高了 理论 上一篇，老师通过一个斐波那契数列的案例，带我们学习了内存泄漏的分析。如果在程序中直接或间接地分配了动态内存，一定要记得去释放它们，否则就会导致内存泄漏，严重时甚至耗尽系统内存。\n">
+<title>[Linux]性能调优-内存篇（案例篇）- 3</title>
+
+<link rel='canonical' href='https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%86%85%E5%AD%98%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-3/'>
+
+<link rel="stylesheet" href="/scss/style.min.6a692fd055deae459f2a9767f57f3855ba80cafd5041317f24f7360f6ca47cdf.css"><meta property='og:title' content="[Linux]性能调优-内存篇（案例篇）- 3">
+<meta property='og:description' content="为什么系统的Swap变高了 理论 上一篇，老师通过一个斐波那契数列的案例，带我们学习了内存泄漏的分析。如果在程序中直接或间接地分配了动态内存，一定要记得去释放它们，否则就会导致内存泄漏，严重时甚至耗尽系统内存。\n">
+<meta property='og:url' content='https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%86%85%E5%AD%98%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-3/'>
+<meta property='og:site_name' content='リンボの個人ブログ'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:published_time' content='2026-01-30T10:28:47&#43;08:00'/><meta property='article:modified_time' content='2026-01-30T10:28:47&#43;08:00'/>
+<meta name="twitter:title" content="[Linux]性能调优-内存篇（案例篇）- 3">
+<meta name="twitter:description" content="为什么系统的Swap变高了 理论 上一篇，老师通过一个斐波那契数列的案例，带我们学习了内存泄漏的分析。如果在程序中直接或间接地分配了动态内存，一定要记得去释放它们，否则就会导致内存泄漏，严重时甚至耗尽系统内存。\n">
+    <link rel="shortcut icon" href="/favicon.ico" />
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        
+            
+            <figure class="site-avatar">
+                <a href="/">
+                
+                    
+                    
+                    
+                        
+                        <img src="/img/avatar_hu_de528bff5d5e9598.png" width="300"
+                            height="300" class="site-logo" loading="lazy" alt="Avatar">
+                    
+                
+                </a>
+                
+                    <span class="emoji">🏖️</span>
+                
+            </figure>
+            
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">リンボの個人ブログ</a></h1>
+            <h2 class="site-description">努力不一定能获得回报，但不努力一定不会有回报。</h2>
+        </div>
+    </header><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-home" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <polyline points="5 12 3 12 12 3 21 12 19 12" />
+  <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7" />
+  <path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6" />
+</svg>
+
+
+
+                
+                <span>主页</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/%E5%85%B3%E4%BA%8E/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/archives/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/search/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-search" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="10" cy="10" r="7" />
+  <line x1="21" y1="21" x2="15" y2="15" />
+</svg>
+
+
+
+                
+                <span>搜索</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav id="TableOfContents">
+  <ol>
+    <li><a href="#理论">理论</a>
+      <ol>
+        <li><a href="#swap-原理">Swap 原理</a></li>
+        <li><a href="#numa-与-swap">NUMA 与 Swap</a></li>
+        <li><a href="#swappiness">swappiness</a></li>
+        <li><a href="#小结">小结</a></li>
+      </ol>
+    </li>
+    <li><a href="#案例">案例</a>
+      <ol>
+        <li><a href="#准备">准备</a>
+          <ol>
+            <li><a href="#配置-8gb-大小的-swap-文件">配置 8GB 大小的 Swap 文件</a></li>
+            <li><a href="#测试">测试</a></li>
+          </ol>
+        </li>
+        <li><a href="#小结-1">小结</a></li>
+      </ol>
+    </li>
+  </ol>
+</nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            <a href="/categories/linux/" >
+                Linux
+            </a>
+        
+            <a href="/categories/%E5%86%85%E5%AD%98%E7%AF%87/" >
+                内存篇
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%86%85%E5%AD%98%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-3/">[Linux]性能调优-内存篇（案例篇）- 3</a>
+        </h2>
+    
+        
+    </div>
+
+    
+    
+    
+    
+    <footer class="article-time">
+        
+            <div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                <time class="article-time--published">2026-01-30</time>
+            </div>
+        
+
+        
+    </footer>
+    
+
+    
+</div>
+
+</header>
+
+    <section class="article-content">
+    
+    
+    <h2>为什么系统的Swap变高了</h2>
+<h2 id="理论">理论
+</h2><p>上一篇，老师通过一个斐波那契数列的案例，带我们学习了内存泄漏的分析。如果在程序中直接或间接地分配了动态内存，一定要记得去释放它们，否则就会导致内存泄漏，严重时甚至耗尽系统内存。</p>
+<p>不过，反过来讲，当发生了内存泄漏时，或者运行了大内存的应用程序，导致系统的内存资源紧张时，系统又该如何应对呢？</p>
+<p>在内存基础篇我们已经学过，这其实会导致两种可能结果，内存回收和 OOM 杀死进程。</p>
+<p>先看后一个可能结果，内存资源紧张导致的 OOM（Out of Memory），相对容易理解，指的是系统杀死占用大量内存的进程，释放这些内存，再分配给其他更需要的进程。</p>
+<p>接下来看第一个可能结果，<u>内存回收，也就是系统释放掉可以回收的内存，比如老师前面讲过的缓存和缓冲区，就属于可回收内存。它们在内存管理中，通常被叫做文件页（File-backed Page）。</u></p>
+<p>大部分文件页都可以直接回收，以后有需要时，再从磁盘重新读取就可以了。而那些被应用程序修改过的，并且暂时还没写入磁盘的数据（也就是脏页），就得先写入磁盘，然后才能进行内存释放。</p>
+<p>这些脏页，一般可以通过两种方式写入磁盘。</p>
+<ul>
+<li>
+<p>可以在应用程序中，通过系统调用 fsync ，把脏页同步到磁盘中；</p>
+</li>
+<li>
+<p>也可以交给系统，由内核线程 pdflush 负责这些脏页的刷新。</p>
+</li>
+</ul>
+<p>除了缓存和缓冲区，通过内存映射获取的文件映射页，也是一种常见的文件页。它也可以被释放掉，下次再访问的时候，从文件重新获取。</p>
+<p>除了文件页外，还有没有其他的内存可以回收呢？比如应用程序动态分配的堆内存，也就是我们在内存管理中说到的<strong>匿名页（Anonymous Page）</strong>，是不是也可以回收呢？</p>
+<p>它们很可能还要再次被访问，不能直接回收，自然不能释放了。</p>
+<p>但是，如果这些内存在分配后很少被访问，似乎也是一种资源浪费。是不是可以把它们暂时先存在磁盘里，释放内存给其他需要的进程呢？</p>
+<p>其实，这正是 Linux 的 Swap 机制。Swap 把这些不常访问的内存先写到磁盘中，然后释放这些内存，给其他更需要的进程使用。再次访问这些内存时，重新从磁盘读入内存就可以了。</p>
+<h3 id="swap-原理">Swap 原理
+</h3><p>前面提到，Swap 说白了就是把一块磁盘空间或者一个本地文件（以下讲解以磁盘为例），当成内存来使用。它包括换出和换入两个过程。</p>
+<ul>
+<li>
+<p>所谓换出，就是把进程暂时不用的内存数据存储到磁盘中，并释放这些数据占用的内存。</p>
+</li>
+<li>
+<p>而换入，则是在进程再次访问这些内存的时候，把它们从磁盘读到内存中来。</p>
+</li>
+</ul>
+<p>所以，Swap 其实是把系统的可用内存变大了。这样，即使服务器的内存不足，也可以运行大内存的应用程序。</p>
+<p>当然，现在的内存便宜多了，服务器一般也会配置很大的内存，那是不是说 Swap 就没有用武之地了呢？</p>
+<p>当然不是。事实上，内存再大，对应用程序来说，也有不够用的时候。</p>
+<p>一个很典型的场景就是，即使内存不足时，有些应用程序也并不想被 OOM 杀死，而是希望能缓一段时间，等待人工介入，或者等系统自动释放其他进程的内存，再分配给它。</p>
+<p>除此之外，我们常见的笔记本电脑的休眠和快速开机的功能，也基于 Swap。休眠时，把系统的内存存入磁盘，这样等到再次开机时，只要从磁盘中加载内存就可以了。这样就省去了很多应用程序的初始化过程，加快了开机速度。</p>
+<p>话说回来，既然 Swap 是为了回收内存，（1）那么 Linux 到底在什么时候需要回收内存呢？（2）前面一直在说内存资源紧张，又该怎么来衡量内存是不是紧张呢？</p>
+<p>一个最容易想到的场景就是，有新的大块内存分配请求，但是剩余内存不足。这个时候系统就需要回收一部分内存（比如前面提到的缓存），进而尽可能地满足新内存需求。这个过程通常被称为<strong>直接内存回收</strong>。</p>
+<p>除了直接内存回收，还有一个专门的内核线程用来定期回收内存，也就是 <strong>kswapd0</strong>。为了衡量内存的使用情况，kswapd0 定义了三个内存阀值（watermark，也称为水位），分别是<code>页最小阀值（pages_min）</code>、<code>页低阀值（pages_low）</code>和<code>页高阀值（pages_high）</code>。剩余内存，则使用 pages_free 表示。</p>
+<p>这里，有一张图表示它们的关系。</p>
+<p><img src="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%86%85%E5%AD%98%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-3/image.png"
+	width="350"
+	height="233"
+	srcset="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%86%85%E5%AD%98%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-3/image_hu_44065bb120f8958f.png 480w, /p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%86%85%E5%AD%98%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-3/image_hu_afe1f563f11442d.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="150"
+		data-flex-basis="360px"
+	
+></p>
+<p>kswapd0 定期扫描内存的使用情况，并根据剩余内存落在这三个阀值的空间位置，进行内存的回收操作。</p>
+<ul>
+<li>
+<p>剩余内存小于<strong>页最小阀值</strong>，说明进程可用内存都耗尽了，只有内核才可以分配内存。</p>
+</li>
+<li>
+<p>剩余内存落在<strong>页最小阀值</strong>和<strong>页低阀值</strong>中间，说明内存压力比较大，剩余内存不多了。这时 kswapd0 会执行内存回收，直到剩余内存大于高阀值为止。</p>
+</li>
+<li>
+<p>剩余内存落在<strong>页低阀值</strong>和<strong>页高阀值</strong>中间，说明内存有一定压力，但还可以满足新内存请求。</p>
+</li>
+<li>
+<p>剩余内存大于<strong>页高阀值</strong>，说明剩余内存比较多，没有内存压力。</p>
+</li>
+</ul>
+<p>可以看到，一旦剩余内存小于页低阀值，就会触发内存的回收。这个页低阀值，其实可以通过内核选项 /proc/sys/vm/min_free_kbytes 来间接设置。min_free_kbytes 设置页最小阀值，而其他两个阀值，都是根据页最小阀值计算生的，计算方法如下：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="nv">pages_low</span> <span class="o">=</span> pages_min*5/4
+</span></span><span class="line"><span class="cl"><span class="nv">pages_high</span> <span class="o">=</span> pages_min*3/2
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="numa-与-swap">NUMA 与 Swap
+</h3><p>很多情况下，明明发现了 Swap 升高，可是在分析系统的内存使用时，却很可能发现，系统剩余内存还多着呢。为什么剩余内存很多的情况下，也会发生 Swap 呢？</p>
+<p>这正是处理器的 NUMA（Non-Uniform Memory Access）架构导致的。</p>
+<p>关于 NUMA，老师在 CPU 模块中简单提到过。在 NUMA 架构下，多个处理器被划分到不同 Node 上，且每个 Node 都拥有自己的本地内存空间。</p>
+<p>而同一个 Node 内部的内存空间，实际上又可以进一步分为不同的内存域（Zone），比如直接内存访问区（DMA）、普通内存区（NORMAL）、伪内存区（MOVABLE）等，如下图所示：</p>
+<p><img src="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%86%85%E5%AD%98%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-3/image-1.png"
+	width="388"
+	height="279"
+	srcset="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%86%85%E5%AD%98%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-3/image-1_hu_5a5a43eeb2f1b230.png 480w, /p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%86%85%E5%AD%98%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-3/image-1_hu_7de42b6b560002dc.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="139"
+		data-flex-basis="333px"
+	
+></p>
+<p>先不用特别关注这些内存域的具体含义，我们只要会<u>查看阈值的配置，以及缓存、匿名页的实际使用情况就够了。</u></p>
+<p>既然 NUMA 架构下的每个 Node 都有自己的本地内存空间，那么，在分析内存的使用时，我们也应该针对每个 Node 单独分析。</p>
+<ol>
+<li>通过 numactl 命令，来查看处理器在 Node 的分布情况，以及每个 Node 的内存使用情况。</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">numactl --hardware
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>输出结果：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">available: <span class="m">1</span> nodes <span class="o">(</span>0<span class="o">)</span>
+</span></span><span class="line"><span class="cl">node <span class="m">0</span> cpus: <span class="m">0</span> <span class="m">1</span>
+</span></span><span class="line"><span class="cl">node <span class="m">0</span> size: <span class="m">7977</span> MB
+</span></span><span class="line"><span class="cl">node <span class="m">0</span> free: <span class="m">4416</span> MB
+</span></span><span class="line"><span class="cl">...
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>这个界面显示系统中只有一个 Node，也就是 Node 0，而且编号为 0 和 1 的两个 CPU，都位于 Node 0 上。另外，Node 0 的内存大小为 7977 MB，剩余内存为 4416 MB。</p>
+<p>了解了 NUMA 的架构和 NUMA 内存的的查看方法后，这又跟 Swap 有什么关系呢？</p>
+<p>实际上，前面提到的三个内存阀值（页最小阀值、页低阀值和页高阀值），都可以通过内存域在 proc 文件系统中的接口 <code>/proc/zoneinfo</code> 来查看：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">cat /proc/zoneinfo
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>输出结果：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">...
+</span></span><span class="line"><span class="cl">Node 0, zone   Normal
+</span></span><span class="line"><span class="cl"> pages free     <span class="m">227894</span>
+</span></span><span class="line"><span class="cl">       min      <span class="m">14896</span>
+</span></span><span class="line"><span class="cl">       low      <span class="m">18620</span>
+</span></span><span class="line"><span class="cl">       high     <span class="m">22344</span>
+</span></span><span class="line"><span class="cl">...
+</span></span><span class="line"><span class="cl">     nr_free_pages <span class="m">227894</span>
+</span></span><span class="line"><span class="cl">     nr_zone_inactive_anon <span class="m">11082</span>
+</span></span><span class="line"><span class="cl">     nr_zone_active_anon <span class="m">14024</span>
+</span></span><span class="line"><span class="cl">     nr_zone_inactive_file <span class="m">539024</span>
+</span></span><span class="line"><span class="cl">     nr_zone_active_file <span class="m">923986</span>
+</span></span><span class="line"><span class="cl">...
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>这个输出中有大量指标，其中几个比较重要：</p>
+<ul>
+<li>
+<p>pages 处的 min、low、high，就是上面提到的三个内存阀值，而 free 是剩余内存页数，它跟后面的 nr_free_pages 相同。</p>
+</li>
+<li>
+<p>nr_zone_active_anon 和 nr_zone_inactive_anon，分别是活跃和非活跃的匿名页数。</p>
+</li>
+<li>
+<p>nr_zone_active_file 和 nr_zone_inactive_file，分别是活跃和非活跃的文件页数。</p>
+</li>
+</ul>
+<p>从这个输出结果可以看出，剩余内存远大于页高阀值，所以此时的 kswapd0 不会回收内存。</p>
+<p>当然，某个 Node 内存不足时，系统可以从其他 Node 寻找空闲内存，也可以从本地内存中回收内存。具体选择哪种模式，可以通过<code>/proc/sys/vm/zone_reclaim_mode</code>来调整。它支持以下几个选项：</p>
+<ul>
+<li>
+<p>默认的 0，也就是刚刚提到的模式，表示既可以从其他 Node 寻找空闲内存，也可以从本地回收内存。</p>
+</li>
+<li>
+<p>1、2、4 都表示只回收本地内存，2 表示可以回写脏数据回收内存，4 表示可以用 Swap 方式回收内存。</p>
+</li>
+</ul>
+<h3 id="swappiness">swappiness
+</h3><p>到这里，我们就可以理解内存回收的机制了。这些回收的内存既包括了文件页，又包括了匿名页。</p>
+<ul>
+<li>
+<p>对文件页的回收，当然就是直接回收缓存，或者把脏页写回磁盘后再回收。</p>
+</li>
+<li>
+<p>而对匿名页的回收，其实就是通过 Swap 机制，把它们写入磁盘后再释放内存。</p>
+</li>
+</ul>
+<p>不过，还有一个问。即然有两种不同的回收机制，那么在实际回收内存时，到底该先回收哪一种呢？</p>
+<p>其实，Linux 提供了一个<code>/proc/sys/vm/swappiness</code>选项，用来调整使用 Swap 的积极程度。</p>
+<p>swappiness 的范围是 0-100，数值越大，越积极使用 Swap，也就是更倾向于回收匿名页；数值越小，越消极使用 Swap，也就是更倾向回收文件页。</p>
+<p>虽然 swappiness 的范围是 0-100，不过要注意，这并不是内存的百分比，而是调整 Swap 积极程度的权重，即使把它设置成 0，当<a class="link" href="https://www.kernel.org/doc/Documentation/sysctl/vm.txt"  target="_blank" rel="noopener"
+    >剩余内存+文件页小于页高阀值</a>时，还是会发生 Swap。</p>
+<h3 id="小结">小结
+</h3><p>在内存资源紧张时，Linux 通过直接内存回收和定期扫描的方式，来释放文件页和匿名页，以便把内存分配给更需要的进程使用。</p>
+<ul>
+<li>
+<p>文件页的回收比较容易理解，直接清空，或者把脏数据写回磁盘后再释放。</p>
+</li>
+<li>
+<p>而对匿名页的回收，需要通过 Swap 换出到磁盘中，下次访问时，再从磁盘换入到内存中。</p>
+</li>
+</ul>
+<p>可以设置<code>/proc/sys/vm/min_free_kbytes</code>来调整系统定期回收内存的阀值（也就是页低阀值），还可以设置<code>/proc/sys/vm/swappiness</code>，来调整文件页和匿名页的回收倾向。</p>
+<p>在 NUMA 架构下，每个 Node 都有自己的本地内存空间，而当内存不足时，默认既可以从其他 Node 寻找空闲内存，也可以从本地内存回收。</p>
+<p>可以设置<code>/proc/sys/vm/zone_reclaim_mode</code>，来调整 NUMA 本地内存的回收策略。</p>
+<p>那么，当 Swap 使用升高时，要如何定位和分析呢？下面，来看一个磁盘 I/O 的案例，实战分析和演练。</p>
+<h2 id="案例">案例
+</h2><h3 id="准备">准备
+</h3><ul>
+<li>系统环境：ubuntu 18.04</li>
+<li>机器配置：2 CPU，8 GB 内存</li>
+<li>预安装 sysstat 工具</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">apt install -y sysstat
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol>
+<li>
+<p>打开两个终端，分别 SSH 登录到两台机器上，并安装上述工具。</p>
+</li>
+<li>
+<p>切换到 root 用户</p>
+</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo su root
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="3">
+<li>终端1：运行 free 命令，查看 Swap 的使用情况</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">free
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>输出结果：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">             total        used        free      shared  buff/cache   available
+</span></span><span class="line"><span class="cl">Mem:        <span class="m">8169348</span>      <span class="m">331668</span>     <span class="m">6715972</span>         <span class="m">696</span>     <span class="m">1121708</span>     <span class="m">7522896</span>
+</span></span><span class="line"><span class="cl">Swap:             <span class="m">0</span>           <span class="m">0</span>           <span class="m">0</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>从这个 free 输出可以看到，Swap 的大小是 0，这说明我的机器没有配置 Swap。</p>
+<p>为了继续 Swap 的案例，就需要先配置、开启 Swap。如果环境中已经开启了 Swap，那就可以略过下面的开启步骤，继续往后走。</p>
+<p>要开启 Swap，首先要清楚，Linux 本身支持两种类型的 Swap，即 Swap 分区和 Swap 文件。</p>
+<h4 id="配置-8gb-大小的-swap-文件">配置 8GB 大小的 Swap 文件
+</h4><ol>
+<li>创建 Swap 文件</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">fallocate -l 8G /mnt/swapfile
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="2">
+<li>修改权限只有根用户可以访问</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">chmod <span class="m">600</span> /mnt/swapfile
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="3">
+<li>配置 Swap 文件</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">mkswap /mnt/swapfile
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="4">
+<li>开启 Swap</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">swapon /mnt/swapfile
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="5">
+<li>执行 free 命令，确认 Swap 配置成功</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">free
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>输出结果：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">             total        used        free      shared  buff/cache   available
+</span></span><span class="line"><span class="cl">Mem:        <span class="m">8169348</span>      <span class="m">331668</span>     <span class="m">6715972</span>         <span class="m">696</span>     <span class="m">1121708</span>     <span class="m">7522896</span>
+</span></span><span class="line"><span class="cl">Swap:       <span class="m">8388604</span>           <span class="m">0</span>     <span class="m">8388604</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="测试">测试
+</h4><ol>
+<li>终端1：运行 dd 命令，模拟大文件的读取</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 写入空设备，实际上只有磁盘的读请求</span>
+</span></span><span class="line"><span class="cl">dd <span class="k">if</span><span class="o">=</span>/dev/sda1 <span class="nv">of</span><span class="o">=</span>/dev/null <span class="nv">bs</span><span class="o">=</span>1G <span class="nv">count</span><span class="o">=</span><span class="m">2048</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="2">
+<li>终端2：运行 sar 命令，查看内存各个指标的变化情况</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 间隔1秒输出一组数据</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># -r 表示显示内存使用情况，-S 表示显示 Swap 使用情况</span>
+</span></span><span class="line"><span class="cl">sar -r -S <span class="m">1</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>输出结果：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">04:39:56    kbmemfree   kbavail kbmemused  %memused kbbuffers  kbcached  kbcommit   %commit  kbactive   kbinact   kbdirty
+</span></span><span class="line"><span class="cl">04:39:57      <span class="m">6249676</span>   <span class="m">6839824</span>   <span class="m">1919632</span>     23.50    <span class="m">740512</span>     <span class="m">67316</span>   <span class="m">1691736</span>     10.22    <span class="m">815156</span>    <span class="m">841868</span>         <span class="m">4</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">04:39:56    kbswpfree kbswpused  %swpused  kbswpcad   %swpcad
+</span></span><span class="line"><span class="cl">04:39:57      <span class="m">8388604</span>         <span class="m">0</span>      0.00         <span class="m">0</span>      0.00
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">04:39:57    kbmemfree   kbavail kbmemused  %memused kbbuffers  kbcached  kbcommit   %commit  kbactive   kbinact   kbdirty
+</span></span><span class="line"><span class="cl">04:39:58      <span class="m">6184472</span>   <span class="m">6807064</span>   <span class="m">1984836</span>     24.30    <span class="m">772768</span>     <span class="m">67380</span>   <span class="m">1691736</span>     10.22    <span class="m">847932</span>    <span class="m">874224</span>        <span class="m">20</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">04:39:57    kbswpfree kbswpused  %swpused  kbswpcad   %swpcad
+</span></span><span class="line"><span class="cl">04:39:58      <span class="m">8388604</span>         <span class="m">0</span>      0.00         <span class="m">0</span>      0.00
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">…
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">04:44:06    kbmemfree   kbavail kbmemused  %memused kbbuffers  kbcached  kbcommit   %commit  kbactive   kbinact   kbdirty
+</span></span><span class="line"><span class="cl">04:44:07       <span class="m">152780</span>   <span class="m">6525716</span>   <span class="m">8016528</span>     98.13   <span class="m">6530440</span>     <span class="m">51316</span>   <span class="m">1691736</span>     10.22    <span class="m">867124</span>   <span class="m">6869332</span>         <span class="m">0</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">04:44:06    kbswpfree kbswpused  %swpused  kbswpcad   %swpcad
+</span></span><span class="line"><span class="cl">04:44:07      <span class="m">8384508</span>      <span class="m">4096</span>      0.05        <span class="m">52</span>      1.27
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>可以看到，sar 的输出结果是两个表格，第一个表格表示内存的使用情况，第二个表格表示 Swap 的使用情况。其中，各个指标名称前面的 kb 前缀，表示这些指标的单位是 KB。</p>
+<p>去掉前缀后，大部分指标我们都已经见过了，剩下几个新出现的指标：</p>
+<ul>
+<li>kbcommit，表示当前系统负载需要的内存。它实际上是为了保证系统内存不溢出，对需要内存的估计值。%commit，就是这个值相对总内存的百分比。</li>
+<li>kbactive，表示活跃内存，也就是最近使用的内存，一般不会被系统回收。</li>
+<li>kbinact，表示不活跃内存，也就是不常访问的内存，有可能会被系统回收。</li>
+</ul>
+<p>清楚了界面指标的含义后，再结合具体数值，来分析相关的现象。可以清楚地看到，总的内存使用率（%memused）在不断增长，从开始的 23%一直长到了 98%，并且主要内存都被缓冲区（kbbuffers）占用。具体来说：</p>
+<ul>
+<li>
+<p>刚开始，剩余内存（kbmemfree）不断减少，而缓冲区（kbbuffers）则不断增大，由此可见，剩余内存不断分配给了缓冲区。</p>
+</li>
+<li>
+<p>一段时间后，剩余内存已经很小，而缓冲区占用了大部分内存。这时候，Swap 的使用开始逐渐增大，缓冲区和剩余内存则只在小范围内波动。</p>
+</li>
+</ul>
+<p>为什么缓冲区在不停增大？这又是哪些进程导致的呢？</p>
+<p>显然，还得看看进程缓存的情况。在前面缓存的案例中我们学过，cachetop 正好能满足这一点。</p>
+<ol start="3">
+<li>终端2：按下 Ctrl+c 停止 sar 命令，然后运行 cachetop 命令，观察缓存的使用情况：</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">cachetop <span class="m">5</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>输出结果：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">12:28:28 Buffers MB: <span class="m">6349</span> / Cached MB: <span class="m">87</span> / Sort: HITS / Order: ascending
+</span></span><span class="line"><span class="cl">PID      UID      CMD              HITS     MISSES   DIRTIES  READ_HIT%  WRITE_HIT%
+</span></span><span class="line"><span class="cl">   <span class="m">18280</span> root     python                 <span class="m">22</span>        <span class="m">0</span>        <span class="m">0</span>     100.0%       0.0%
+</span></span><span class="line"><span class="cl">   <span class="m">18279</span> root     dd                  <span class="m">41088</span>    <span class="m">41022</span>        <span class="m">0</span>      50.0%      50.0%
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>通过 cachetop 的输出，我们看到，dd 进程的读写请求只有 50% 的命中率，并且未命中的缓存页数（MISSES）为 41022（单位是页）。这说明，正是案例开始时运行的 dd，导致了缓冲区使用升高。</p>
+<p>那么，为什么 Swap 也接着升高了呢？直观来说，缓冲区占了系统绝大部分内存，还属于可回收内存，内存不够用时，不应该先回收缓冲区吗？</p>
+<ol start="4">
+<li>终端2：按下 Ctrl+c ，停止 cachetop 命令。运行 watch 命令，观察 /proc/zoneinfo 中这几个指标的变化情况：</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># -d 表示高亮变化的字段</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># -A 表示仅显示Normal行以及之后的15行输出</span>
+</span></span><span class="line"><span class="cl">watch -d grep -A <span class="m">15</span> <span class="s1">&#39;Normal&#39;</span> /proc/zoneinfo
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>输出结果：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">Node 0, zone   Normal
+</span></span><span class="line"><span class="cl">  pages free     <span class="m">21328</span>
+</span></span><span class="line"><span class="cl">        min      <span class="m">14896</span>
+</span></span><span class="line"><span class="cl">        low      <span class="m">18620</span>
+</span></span><span class="line"><span class="cl">        high     <span class="m">22344</span>
+</span></span><span class="line"><span class="cl">        spanned  <span class="m">1835008</span>
+</span></span><span class="line"><span class="cl">        present  <span class="m">1835008</span>
+</span></span><span class="line"><span class="cl">        managed  <span class="m">1796710</span>
+</span></span><span class="line"><span class="cl">        protection: <span class="o">(</span>0, 0, 0, 0, 0<span class="o">)</span>
+</span></span><span class="line"><span class="cl">      nr_free_pages <span class="m">21328</span>
+</span></span><span class="line"><span class="cl">      nr_zone_inactive_anon <span class="m">79776</span>
+</span></span><span class="line"><span class="cl">      nr_zone_active_anon <span class="m">206854</span>
+</span></span><span class="line"><span class="cl">      nr_zone_inactive_file <span class="m">918561</span>
+</span></span><span class="line"><span class="cl">      nr_zone_active_file <span class="m">496695</span>
+</span></span><span class="line"><span class="cl">      nr_zone_unevictable <span class="m">2251</span>
+</span></span><span class="line"><span class="cl">      nr_zone_write_pending <span class="m">0</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>可以发现，剩余内存（pages_free）在一个小范围内不停地波动。当它小于页低阀值（pages_low）时，又会突然增大到一个页高阀值（pages_high）的值。</p>
+<p>再结合刚刚用 sar 看到的剩余内存和缓冲区的变化情况，我们可以推导出，剩余内存和缓冲区的波动变化，正是由于内存回收和缓存再次分配的循环往复。</p>
+<ul>
+<li>
+<p>当剩余内存小于页低阀值时，系统会回收一些缓存和匿名内存，使剩余内存增大。其中，缓存的回收导致 sar 中的缓冲区减小，而匿名内存的回收导致了 Swap 的使用增大。</p>
+</li>
+<li>
+<p>紧接着，由于 dd 还在继续，剩余内存又会重新分配给缓存，导致内存减少，缓冲区增大。</p>
+</li>
+</ul>
+<p>其中还有个有趣的现象，如果多次运行 dd 和 sar，你可能会发现，在多次的循环重复中，有时候是 Swap 用得比较多，有时候 Swap 很少，反而缓冲区的波动更大。</p>
+<p>换句话说，系统回收内存时，有时候会回收更多的文件页，有时候又回收了更多的匿名页。</p>
+<p>显然，系统回收不同类型内存的倾向，似乎不那么明显。想到前面提到的 swappiness，正是调整不同类型内存回收的配置选项。</p>
+<ol start="5">
+<li>终端2：按下 Ctrl+c 停止 watch 命令，然后运行下面命令，查看 swappiness 的配置：</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">cat /proc/sys/vm/swappiness
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>输出结果：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="m">60</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>swappiness 显示的是默认值 60，这是一个相对中和的配置，所以系统会根据实际运行情况，选择合适的回收类型，比如回收不活跃的匿名页，或者不活跃的文件页。</p>
+<p>到这里，我们已经找出了 Swap 发生的根源。另一个问题就是，刚才的 Swap 到底影响了哪些应用程序呢？换句话说，Swap 换出的是哪些进程的内存？</p>
+<p>这里还是推荐 proc 文件系统，用来查看进程 Swap 换出的虚拟内存大小，它保存在<code>/proc/pid/status</code>中的 VmSwap 中（推荐你执行 man proc 来查询其他字段的含义）。</p>
+<ol start="6">
+<li>终端2：使用 for、awk、sort 命令，按 VmSwap 使用量对进程排序，输出进程名称、进程ID以及SWAP用量</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="k">for</span> file in /proc/*/status <span class="p">;</span> <span class="k">do</span> awk <span class="s1">&#39;/VmSwap|Name|^Pid/{printf $2 &#34; &#34; $3}END{ print &#34;&#34;}&#39;</span> <span class="nv">$file</span><span class="p">;</span> <span class="k">done</span> <span class="p">|</span> sort -k <span class="m">3</span> -n -r <span class="p">|</span> head
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>输出结果：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">dockerd <span class="m">2226</span> <span class="m">10728</span> kB
+</span></span><span class="line"><span class="cl">docker-containe <span class="m">2251</span> <span class="m">8516</span> kB
+</span></span><span class="line"><span class="cl">snapd <span class="m">936</span> <span class="m">4020</span> kB
+</span></span><span class="line"><span class="cl">networkd-dispat <span class="m">911</span> <span class="m">836</span> kB
+</span></span><span class="line"><span class="cl">polkitd <span class="m">1004</span> <span class="m">44</span> kB
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>从这里可以看到，使用 Swap 比较多的是 dockerd 和 docker-containe 进程，所以，当 dockerd 再次访问这些换出到磁盘的内存时，也会比较慢。</p>
+<p>这也说明了一点，虽然缓存属于可回收内存，但在类似大文件拷贝这类场景下，系统还是会用 Swap 机制来回收匿名内存，而不仅仅是回收占用绝大部分内存的文件页。</p>
+<ol start="7">
+<li>终端1：关闭 swap</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">swapoff -a
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>实际上，关闭 Swap 后再重新打开，也是一种常用的 Swap 空间清理方法，比如：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">swapoff -a <span class="o">&amp;&amp;</span> swapon -a
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h5 id="生词">生词
+</h5><ul>
+<li>convert / kənˈvɜːrt / v、转变，转换</li>
+<li>write up 记录</li>
+<li>override / ˌoʊvərˈraɪd / v、覆盖；重写</li>
+<li>instead of / ɪnˈsted əv / 代替；而不是</li>
+<li>available / əˈveɪləb(ə)l / adj、可用的，可获得的；有空的，有闲暇的</li>
+<li>estimate / ˈestɪmət; ˈestɪmeɪt / v、估计；判断</li>
+<li>estimate of 估计，估算</li>
+<li>take into 考虑</li>
+<li>reclaimable / rɪˈkleɪməbəl / adj、可回收的；可教化的</li>
+<li>due to 由于；因为</li>
+<li>impact n、撞击，冲击力；巨大影响；v、冲击；挤入</li>
+<li>impact of 影响</li>
+<li>vary / ˈveri / v、不同；变化；改变</li>
+<li>function / ˈfʌŋkʃ(ə)n / n、功能；v、工作，运转</li>
+<li>percentage / pərˈsentɪdʒ / n、百分比，百分率；部分，比例</li>
+<li>workload / ˈwɜːrkloʊd / n、（人或组织的）工作量，工作负荷；</li>
+<li>guarantee / ˌɡærənˈtiː / v、确保；担保；保修；n、保证；保修单；</li>
+<li>reverse / rɪˈvɜːrs / v、逆转（决定、政策、趋势等）；反转；交换，互换（位置、功能）；</li>
+</ul>
+<h3 id="小结-1">小结
+</h3><p>在内存资源紧张时，Linux 会通过 Swap，把不常访问的匿名页换出到磁盘中，下次访问的时候再从磁盘换入到内存中。可以设置<code>/proc/sys/vm/min_free_kbytes</code>，来调整系统定期回收内存的阀值；也可以设置<code>/proc/sys/vm/swappiness</code>，来调整文件页和匿名页的回收倾向。</p>
+<p>当 Swap 变高时，可以用 sar、/proc/zoneinfo、/proc/pid/status 等方法，查看系统和进程的内存使用情况，进而找出 Swap 升高的根源和受影响的进程。</p>
+<p>反过来说，通常，降低 Swap 的使用，可以提高系统的整体性能。要怎么做呢？</p>
+<ul>
+<li>
+<p>禁止 Swap，现在服务器的内存足够大，所以除非有必要，禁用 Swap 就可以了。随着云计算的普及，大部分云平台中的虚拟机都默认禁止 Swap。</p>
+</li>
+<li>
+<p>如果实在需要用到 Swap，可以尝试降低 swappiness 的值，减少内存回收时 Swap 的使用倾向。</p>
+</li>
+<li>
+<p>响应延迟敏感的应用，如果它们可能在开启 Swap 的服务器中运行，还可以用库函数 mlock() 或者 mlockall() 锁定内存，阻止它们的内存换出。</p>
+</li>
+</ul>
+
+</section>
+
+
+    <footer class="article-footer">
+    
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+<aside class="related-content--wrapper">
+    <h2 class="section-title">相关文章</h2>
+    <div class="related-content">
+        <div class="flex article-list--tile">
+            
+                
+<article class="">
+    <a href="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%86%85%E5%AD%98%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-2/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Linux]性能调优-内存篇（案例篇）- 2</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%86%85%E5%AD%98%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-1/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Linux]性能调优-内存篇（案例篇）- 1</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%86%85%E5%AD%98%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87-2/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Linux]性能调优-内存篇（基础篇）- 2</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%86%85%E5%AD%98%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Linux]性能调优-内存篇（基础篇）</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-cpu%E7%AF%87%E5%A5%97%E8%B7%AF%E7%AF%87-2/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Linux]性能调优-CPU篇（套路篇）- 2</h2>
+        </div>
+    </a>
+</article>
+
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+            2025 - 
+        
+        2026 リンボの個人ブログ
+    </section>
+    
+    <section class="powerby">
+         <br />
+        
+    </section>
+</footer>
+
+
+    
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+    
+    <div class="pswp__bg"></div>
+
+    
+    <div class="pswp__scroll-wrap">
+
+        
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+
+        
+        <div class="pswp__ui pswp__ui--hidden">
+
+            <div class="pswp__top-bar">
+
+                
+
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+
+                <button class="pswp__button pswp__button--share" title="Share"></button>
+
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+
+                
+                
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                        <div class="pswp__preloader__cut">
+                            <div class="pswp__preloader__donut"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div>
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.js"integrity="sha256-ePwmChbbvXbsO02lbM3HoHbSHTHFAeChekF1xKJdleo="crossorigin="anonymous"
+                defer
+                >
+            </script><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe-ui-default.min.js"integrity="sha256-UKkzOn/w1mBxRmLLGrSeyB4e1xbrp4xylgAWb3M42pU="crossorigin="anonymous"
+                defer
+                >
+            </script><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/default-skin/default-skin.min.css"crossorigin="anonymous"
+            ><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.css"crossorigin="anonymous"
+            >
+
+            </main>
+        </div>
+        <script 
+                src="https://cdn.jsdelivr.net/npm/node-vibrant@3.1.6/dist/vibrant.min.js"integrity="sha256-awcR2jno4kI5X0zL8ex0vi2z&#43;KMkF24hUW8WePSA9HM="crossorigin="anonymous"
+                
+                >
+            </script><script type="text/javascript" src="/ts/main.1e9a3bafd846ced4c345d084b355fb8c7bae75701c338f8a1f8a82c780137826.js" defer></script>
+<script>
+    (function () {
+        const customFont = document.createElement('link');
+        customFont.href = "https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap";
+
+        customFont.type = "text/css";
+        customFont.rel = "stylesheet";
+
+        document.head.appendChild(customFont);
+    }());
+</script>
+
+    </body>
+</html>
