@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html lang="en-us" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="Linux 文件系统是怎么工作的？ 从这一节开始，我们将进入一个重要模块——文件系统和磁盘的 I/O 性能。\n同 CPU、内存一样，磁盘和文件系统的管理，也是操作系统最核心的功能。\n">
+<title>[Linux]性能调优-I/O篇（基础篇）</title>
+
+<link rel='canonical' href='https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-i/o%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/'>
+
+<link rel="stylesheet" href="/scss/style.min.6a692fd055deae459f2a9767f57f3855ba80cafd5041317f24f7360f6ca47cdf.css"><meta property='og:title' content="[Linux]性能调优-I/O篇（基础篇）">
+<meta property='og:description' content="Linux 文件系统是怎么工作的？ 从这一节开始，我们将进入一个重要模块——文件系统和磁盘的 I/O 性能。\n同 CPU、内存一样，磁盘和文件系统的管理，也是操作系统最核心的功能。\n">
+<meta property='og:url' content='https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-i/o%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/'>
+<meta property='og:site_name' content='リンボの個人ブログ'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:published_time' content='2026-02-01T17:08:13&#43;08:00'/><meta property='article:modified_time' content='2026-02-01T17:08:13&#43;08:00'/>
+<meta name="twitter:title" content="[Linux]性能调优-I/O篇（基础篇）">
+<meta name="twitter:description" content="Linux 文件系统是怎么工作的？ 从这一节开始，我们将进入一个重要模块——文件系统和磁盘的 I/O 性能。\n同 CPU、内存一样，磁盘和文件系统的管理，也是操作系统最核心的功能。\n">
+    <link rel="shortcut icon" href="/favicon.ico" />
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        
+            
+            <figure class="site-avatar">
+                <a href="/">
+                
+                    
+                    
+                    
+                        
+                        <img src="/img/avatar_hu_de528bff5d5e9598.png" width="300"
+                            height="300" class="site-logo" loading="lazy" alt="Avatar">
+                    
+                
+                </a>
+                
+                    <span class="emoji">🏖️</span>
+                
+            </figure>
+            
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">リンボの個人ブログ</a></h1>
+            <h2 class="site-description">努力不一定能获得回报，但不努力一定不会有回报。</h2>
+        </div>
+    </header><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-home" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <polyline points="5 12 3 12 12 3 21 12 19 12" />
+  <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7" />
+  <path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6" />
+</svg>
+
+
+
+                
+                <span>主页</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/%E5%85%B3%E4%BA%8E/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/archives/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/search/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-search" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="10" cy="10" r="7" />
+  <line x1="21" y1="21" x2="15" y2="15" />
+</svg>
+
+
+
+                
+                <span>搜索</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav id="TableOfContents">
+  <ol>
+    <li>
+      <ol>
+        <li><a href="#索引节点和目录项">索引节点和目录项</a></li>
+        <li><a href="#虚拟文件系统">虚拟文件系统</a></li>
+      </ol>
+    </li>
+    <li><a href="#文件系统-io">文件系统 I/O</a></li>
+    <li><a href="#性能观测">性能观测</a>
+      <ol>
+        <li><a href="#容量">容量</a></li>
+        <li><a href="#缓存">缓存</a></li>
+      </ol>
+    </li>
+    <li><a href="#小结">小结</a></li>
+  </ol>
+</nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            <a href="/categories/linux/" >
+                Linux
+            </a>
+        
+            <a href="/categories/i/o%E7%AF%87/" >
+                I/O篇
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-i/o%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/">[Linux]性能调优-I/O篇（基础篇）</a>
+        </h2>
+    
+        
+    </div>
+
+    
+    
+    
+    
+    <footer class="article-time">
+        
+            <div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                <time class="article-time--published">2026-02-01</time>
+            </div>
+        
+
+        
+    </footer>
+    
+
+    
+</div>
+
+</header>
+
+    <section class="article-content">
+    
+    
+    <h2>Linux 文件系统是怎么工作的？</h2>
+<p>从这一节开始，我们将进入一个重要模块——文件系统和磁盘的 I/O 性能。</p>
+<p>同 CPU、内存一样，磁盘和文件系统的管理，也是操作系统最核心的功能。</p>
+<ul>
+<li>磁盘为系统提供了最基本的持久化存储。</li>
+<li>文件系统则在磁盘的基础上，提供了一个用来管理文件的树状结构。</li>
+</ul>
+<p>那么，磁盘和文件系统是怎么工作的呢？又有哪些指标可以衡量它们的性能呢？</p>
+<p>今天，先来看看，Linux 文件系统的工作原理。</p>
+<h3 id="索引节点和目录项">索引节点和目录项
+</h3><p>文件系统，本身是对存储设备上的文件，进行组织管理的机制。组织方式不同，就会形成不同的文件系统。</p>
+<p>要记住最重要的一点，<strong>在 Linux 中一切皆文件</strong>。不仅普通的文件和目录，就连块设备、套接字、管道等，也要通过统一的文件系统来管理。</p>
+<p>为了方便管理，Linux 文件系统为每个文件都分配了两个数据结构，索引节点（index node）和目录项（directory entry）。它们主要用来记录文件的元信息和目录结构。</p>
+<ul>
+<li>
+<p>索引节点，简称为 inode，用来记录文件的元数据，比如 inode 编号、文件大小、访问权限、修改日期、数据的位置等。索引节点和文件一一对应，它跟文件内容一样，都会被持久化存储到磁盘中。所以记住，索引节点同样占磁盘空间。</p>
+</li>
+<li>
+<p>目录项，简称为 dentry，用来记录文件的名字、索引节点指针以及其他目录项的关联关系。多个关联的目录项，就构成了文件系统的目录结构。不过，不同于索引节点，目录项是由内核维护的一个内存数据结构，所以通常也被叫做目录项缓存。</p>
+</li>
+</ul>
+<p>换句话说，索引节点是每个文件的唯一标志，而目录项维护的正式文件系统的树状结构。目录项和索引节点的关系是多对一，可以简单理解为，一个文件可以有多个别名。</p>
+<p>举个例子，通过硬连接为文件创建别名，就会对应不同的目录项，不过这些目录项本质上还是链接同一个文件，所以，它们的索引节点相同。</p>
+<p>索引节点和目录项纪录了文件的元数据，以及文件间的目录关系，那么具体来说，文件数据到底是怎么存储的呢？是不是直接写到磁盘中就好了呢？</p>
+<p>实际上，磁盘读写的最小单位是扇区，然而扇区只有 512B 大小，如果每次都读写这么小的单位，效率一定很低。所以，文件系统又把连续的扇区组成了逻辑快，然后每次都以逻辑块为最小单元，来管理数据。常见的逻辑块大小为 4KB，也就是由连续的 8 个扇区组成。</p>
+<p>为了帮助我们理解目录项、索引节点以及文件数据的关系，老师画了一张示意图。可以对照着这张图，来回忆刚刚学的内容，把知识和细节串联起来。</p>
+<p><img src="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-i/o%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image.png"
+	width="836"
+	height="507"
+	srcset="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-i/o%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image_hu_6228e22404fc04a4.png 480w, /p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-i/o%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image_hu_ac3576eea69b367.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="164"
+		data-flex-basis="395px"
+	
+></p>
+<p>不过，这里有两点需要注意。</p>
+<p><strong>第一</strong>，目录项本身就是一个内存缓存，而索引节点则是存储在磁盘中的数据。在前面的 Buffer 和 Cache 原理中，老师曾经提到过，为了协调慢速磁盘与快速 CPu 的性能差异，文件内容会缓存到页缓存 Cache 中。</p>
+<p>那么，应该能想到，这些索引节点自然也会缓存到内存中，加速文件的访问。</p>
+<p><strong>第二</strong>，磁盘在执行文件系统格式化时，会被分成三个存储区域，超级块、索引节点区和数据块区。其中，</p>
+<ul>
+<li>超级块，存储整个文件系统的状态。</li>
+<li>索引节点区，用来存储索引节点。</li>
+<li>数据块区，则用来存储文件数据。</li>
+</ul>
+<h3 id="虚拟文件系统">虚拟文件系统
+</h3><p>目录项、索引节点，逻辑块以及超级块，构成了 Linux 文件系统的四大基本要素。不过为了支持各种不同的文件系统，Linux 内核在用户进程和文件系统的中间，又引入了一个抽象层，也就是虚拟文件系统 VFS（Virtual File System）。</p>
+<p>VFS 定义了一组所有文件系统都支持的数据结构和标准接口。这样，用户进程和内核中的其他子系统，只需要跟 VFS 提供的统一接口进程交互就可以了，而不需要再关心底层各种文件系统的实现细节。</p>
+<p>这里，老师画了一张 Linux 文件系统的架构图，帮我们更好地理解系统调用、VFS、缓存、文件系统以及块存储之间的关系。</p>
+<p><img src="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-i/o%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-1.png"
+	width="530"
+	height="590"
+	srcset="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-i/o%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-1_hu_2887704923a78b8.png 480w, /p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-i/o%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/image-1_hu_9098232ecd064c43.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="89"
+		data-flex-basis="215px"
+	
+></p>
+<p>通过这张图，可以看到，在 VFS 的下方，Linux 支持各种各样的文件系统，如 Ext4、XFS、NFS 等等。按照存储位置的不同，这些文件系统可以分为三类。</p>
+<ul>
+<li>
+<p>第一类是基于磁盘的文件系统，也就是把数据直接存储在计算机本地挂载的磁盘中。常见的 Ext4、XFS、OverlayFS 等，都是这类文件系统。</p>
+</li>
+<li>
+<p>第二类是基于内存的文件系统，也就是我能常说的虚拟文件系统，这类文件系统，不需要任何磁盘分配存储空间，但会占用内存。我们常用到的<code>/proc</code>文件系统，其实就是一种最常见的虚拟文件系统。此外，<code>/sys</code>文件系统也属于这一类，主要向用户空间导出层次化的内核对象。</p>
+</li>
+<li>
+<p>第三类是网络文件系统，也就是用来访问其他计算机数据的文件系统，比如 NFS、SMB、iSCSI 等。</p>
+</li>
+</ul>
+<p>这些文件系统，要先挂载到 VFS 目录树中的某个子目录（称为挂载点），然后才能访问其中的文件。拿第一类，也就是基于磁盘的文件系统为例，在安装系统时，要先挂载一个根目录（/），在根目录下再把其他文件系统（比如其他的磁盘分区、/proc 文件系统、/sys文件系统、NFS 等）挂载进来。</p>
+<h2 id="文件系统-io">文件系统 I/O
+</h2><p>把文件系统挂载到挂载点后，就能通过挂载点，再去访问它管理的文件了。VFS 提供了一组标准的文件访问接口。这些接口以系统调用的方式，提供给应用程序使用。</p>
+<p>就拿 cat 命令来说，它首先调用 open()，打开一个文件；然后调用 read()，读取文件的内容；最后再调用 write()，把文件内容输出到控制台的标准输出中：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="kt">int</span> <span class="nf">open</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">pathname</span><span class="p">,</span> <span class="kt">int</span> <span class="n">flags</span><span class="p">,</span> <span class="kt">mode_t</span> <span class="n">mode</span><span class="p">);</span> 
+</span></span><span class="line"><span class="cl"><span class="kt">ssize_t</span> <span class="nf">read</span><span class="p">(</span><span class="kt">int</span> <span class="n">fd</span><span class="p">,</span> <span class="kt">void</span> <span class="o">*</span><span class="n">buf</span><span class="p">,</span> <span class="kt">size_t</span> <span class="n">count</span><span class="p">);</span> 
+</span></span><span class="line"><span class="cl"><span class="kt">ssize_t</span> <span class="nf">write</span><span class="p">(</span><span class="kt">int</span> <span class="n">fd</span><span class="p">,</span> <span class="k">const</span> <span class="kt">void</span> <span class="o">*</span><span class="n">buf</span><span class="p">,</span> <span class="kt">size_t</span> <span class="n">count</span><span class="p">);</span> 
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>文件读写方式的各种差异，导致 I/O 的分类多种多样。最常见的有，缓冲与非缓冲 I/O、直接与非直接 I/O、阻塞与非阻塞 I/O 等。接下来，我们就详细看这四种分类。</p>
+<p><strong>第一种</strong>，根据是否利用标准库缓存，可以把文件 I/O 分为缓冲 I/O 与非缓冲 I/O。</p>
+<ul>
+<li>
+<p>缓冲 I/O，是指利用标准库缓存来加速文件的访问，而标准库内部再通过系统调度访问文件。</p>
+</li>
+<li>
+<p>非缓冲 I/O，是指直接通过系统调用来访问文件，不再经过标准库缓存。</p>
+</li>
+</ul>
+<p>注意，这里所说的“缓冲”，是指标准库内部实现的缓存。比方说，你可能见到过，很多程序遇到换行时才真正输出，而换行前的内容，其实就是被标准库暂时缓存了起来。</p>
+<p>无论缓冲 I/O 还是非缓冲 I/O，它们最终还是要经过系统调用来访问文件。而根据上一节内容，我们知道，系统调用后，还会通过页缓存，来减少磁盘的 I/O 操作。</p>
+<p><strong>第二种</strong>，根据是否利用操作系统的页缓存，可以把文件 I/O 分为直接 I/O 与非直接 I/O。</p>
+<ul>
+<li>
+<p>直接 I/O，是指跳过操作系统的页缓存，直接跟文件系统交互来访问文件。</p>
+</li>
+<li>
+<p>非直接 I/O 正好相反，文件读写时，先要经过系统的页缓存，然后再由内核或额外的系统调用，真正写入磁盘。</p>
+</li>
+</ul>
+<p>想要实现直接 I/O，需要在系统调用中，指定 O_DIRECT 标志。如果没有设置过，默认的是非直接 I/O。</p>
+<p>不过要注意，直接 I/O、非直接 I/O，本质上还是和文件系统交互。如果是在数据库等场景中，还会看到，跳过文件系统读写磁盘的情况，也就是我们通常所说的裸 I/O。</p>
+<p><strong>第三种</strong>，根据应用程序是否阻塞自身运行，可以把文件 I/O 分为阻塞 I/O 和非阻塞 I/O：</p>
+<ul>
+<li>
+<p>所谓阻塞 I/O，是指应用程序执行 I/O 操作后，如果没有获得响应，就会阻塞当前线程，自然就不能执行其他任务。</p>
+</li>
+<li>
+<p>所谓非阻塞 I/O，是指应用程序执行 I/O 操作后，不会阻塞当前的线程，可以继续执行其他的任务，随后再通过轮询或者事件通知的形式，获取调用的结果。</p>
+</li>
+</ul>
+<p>比方说，访问管道或者网络套接字时，设置 O_NONBLOCK 标志，就表示用非阻塞方式访问；而如果不做任何设置，默认的就是阻塞访问。</p>
+<p><strong>第四种</strong>，根据是否等待响应结果，可以把文件 I/O 分为同步和异步 I/O：</p>
+<ul>
+<li>
+<p>所谓同步 I/O，是指应用程序执行 I/O 操作后，要一直等到整个 I/O完成后，才能获得 I/O 响应。</p>
+</li>
+<li>
+<p>所谓异步 I/O，是指应用程序执行 I/O 操作后，不用等待完成和完成后的响应，而是继续执行就可以。等到这次 I/O 完成后，响应会用事件通知的方式，告诉应用程序。</p>
+</li>
+</ul>
+<p>举个例子，在操作文件时，如果设置了 O_SYNC 或者 O_DSYNC 标志，就代表同步 I/O。如果设置了 O_DSYNC，就要等文件数据写入磁盘后，才能返回；而 O_SYNC，则是在 O_DSYNC 基础上，要求文件元数据也要写入磁盘，才能返回。</p>
+<p>再比如，在访问管道或者网络套接字时，设置了 O_ASYNC，相应的 I/O 就是异步 I/O。这样，内核会再通过 SIGIO 或者 SIGPOLL，来通知进程文件是否可读写。</p>
+<p>你可能发现了，这里的好多概念也经常出现在网络编程中。比如非阻塞 I/O，通常会跟 select/poll 配合，用在网络套接字的 I/O 中。</p>
+<p>你也应该可以理解，“Linux 一切皆文件”的深刻含义。无论是普通文件和块设备、还是网络套接字和管道等，它们都通过统一的 VFS 接口来访问。</p>
+<h2 id="性能观测">性能观测
+</h2><p>接下来观察一下文件系统的性能情况。</p>
+<ol>
+<li>打开一个终端，SSH 登录到服务器上。</li>
+</ol>
+<h3 id="容量">容量
+</h3><p>对文件系统来说，最常见的一个问题就是空间不足。</p>
+<ol>
+<li>执行 df 命令，查看文件系统的磁盘空间使用情况。</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">df /dev/sda1
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>输出结果：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">$ df /dev/sda1 
+</span></span><span class="line"><span class="cl">Filesystem     1K-blocks    Used Available Use% Mounted on 
+</span></span><span class="line"><span class="cl">/dev/sda1       <span class="m">30308240</span> <span class="m">3167020</span>  <span class="m">27124836</span>  11% / 
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>可以看到，根文件系统只使用了 11% 的空间。这里还要注意，总空间用 1K-blocks 的数量来表示。</p>
+<ol start="2">
+<li>给 df 加上 -h 选项，以获得更好的可读性：</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">df -h /dev/sda1
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>输出结果：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">Filesystem      Size  Used Avail Use% Mounted on 
+</span></span><span class="line"><span class="cl">/dev/sda1        29G  3.1G   26G  11% / 
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>不过有时候，明明碰到了空间不足的问题，可是用 df 查看磁盘空间后，却发现剩余空间还有很多。这是怎么回事呢？</p>
+<p>这就要说到，老师刚刚强调的一个细节。除了文件数据，索引节点也占用磁盘空间。</p>
+<ol start="3">
+<li>运行 df 命令，加上 -i 参数，查看索引节点的使用情况。</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">df -i /dev/sda1
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>输出结果：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">Filesystem      Inodes  IUsed   IFree IUse% Mounted on 
+</span></span><span class="line"><span class="cl">/dev/sda1      <span class="m">3870720</span> <span class="m">157460</span> <span class="m">3713260</span>    5% / 
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>索引节点的容量，（也就是 Inode 个数）是在格式化磁盘时设定好的，一般由格式化工具自动生成。当你发现索引节点空间不足，但磁盘空间充足时，很可能就是过多小文件导致的。</p>
+<p>所以，一般来说，删除这些小文件，或者把它们移动到索引节点充足的其他磁盘中，就可以解决这个问题。</p>
+<h3 id="缓存">缓存
+</h3><p>在前面 Cache 案例中，老师已经介绍个，可以用 free 或 vmstat，来观察页缓存的大小。</p>
+<p>复习一下，free 输出的 Cache，是页缓存和可回收缓存的和，可以从 /proc/meminfo，直接得到它们的大小</p>
+<ol>
+<li>从 /proc/meminfo，获取页缓存和可回收缓存的大小</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">$ cat /proc/meminfo <span class="p">|</span> grep -E <span class="s2">&#34;SReclaimable|Cached&#34;</span> 
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>输出结果：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">Cached:           <span class="m">748316</span> kB 
+</span></span><span class="line"><span class="cl">SwapCached:            <span class="m">0</span> kB 
+</span></span><span class="line"><span class="cl">SReclaimable:     <span class="m">179508</span> kB 
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>话说回来，文件系统中的目录项和索引节点缓存，又该如何观察呢？</p>
+<p>实际上，内核使用 Slab 机制，管理目录项和索引节点的缓存。/proc/meminfo 只给出了 Slab 的整体大小，具体到每一种 Slab 缓存，还要查看 /proc/slabinfo 这个文件。</p>
+<ol start="2">
+<li>运行下面的命令，得到所有目录项和各种文件系统索引节点的缓存情况：</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">$ cat /proc/slabinfo <span class="p">|</span> grep -E <span class="s1">&#39;^#|dentry|inode&#39;</span> 
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>输出结果：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span><span class="lnt">9
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># name            &lt;active_objs&gt; &lt;num_objs&gt; &lt;objsize&gt; &lt;objperslab&gt; &lt;pagesperslab&gt; : tunables &lt;limit&gt; &lt;batchcount&gt; &lt;sharedfactor&gt; : slabdata &lt;active_slabs&gt; &lt;num_slabs&gt; &lt;sharedavail&gt; </span>
+</span></span><span class="line"><span class="cl">xfs_inode              <span class="m">0</span>      <span class="m">0</span>    <span class="m">960</span>   <span class="m">17</span>    <span class="m">4</span> : tunables    <span class="m">0</span>    <span class="m">0</span>    <span class="m">0</span> : slabdata      <span class="m">0</span>      <span class="m">0</span>      <span class="m">0</span> 
+</span></span><span class="line"><span class="cl">... 
+</span></span><span class="line"><span class="cl">ext4_inode_cache   <span class="m">32104</span>  <span class="m">34590</span>   <span class="m">1088</span>   <span class="m">15</span>    <span class="m">4</span> : tunables    <span class="m">0</span>    <span class="m">0</span>    <span class="m">0</span> : slabdata   <span class="m">2306</span>   <span class="m">2306</span>      0hugetlbfs_inode_cache     <span class="m">13</span>     <span class="m">13</span>    <span class="m">624</span>   <span class="m">13</span>    <span class="m">2</span> : tunables    <span class="m">0</span>    <span class="m">0</span>    <span class="m">0</span> : slabdata      <span class="m">1</span>      <span class="m">1</span>      <span class="m">0</span> 
+</span></span><span class="line"><span class="cl">sock_inode_cache    <span class="m">1190</span>   <span class="m">1242</span>    <span class="m">704</span>   <span class="m">23</span>    <span class="m">4</span> : tunables    <span class="m">0</span>    <span class="m">0</span>    <span class="m">0</span> : slabdata     <span class="m">54</span>     <span class="m">54</span>      <span class="m">0</span> 
+</span></span><span class="line"><span class="cl">shmem_inode_cache   <span class="m">1622</span>   <span class="m">2139</span>    <span class="m">712</span>   <span class="m">23</span>    <span class="m">4</span> : tunables    <span class="m">0</span>    <span class="m">0</span>    <span class="m">0</span> : slabdata     <span class="m">93</span>     <span class="m">93</span>      <span class="m">0</span> 
+</span></span><span class="line"><span class="cl">proc_inode_cache    <span class="m">3560</span>   <span class="m">4080</span>    <span class="m">680</span>   <span class="m">12</span>    <span class="m">2</span> : tunables    <span class="m">0</span>    <span class="m">0</span>    <span class="m">0</span> : slabdata    <span class="m">340</span>    <span class="m">340</span>      <span class="m">0</span> 
+</span></span><span class="line"><span class="cl">inode_cache        <span class="m">25172</span>  <span class="m">25818</span>    <span class="m">608</span>   <span class="m">13</span>    <span class="m">2</span> : tunables    <span class="m">0</span>    <span class="m">0</span>    <span class="m">0</span> : slabdata   <span class="m">1986</span>   <span class="m">1986</span>      <span class="m">0</span> 
+</span></span><span class="line"><span class="cl">dentry             <span class="m">76050</span> <span class="m">121296</span>    <span class="m">192</span>   <span class="m">21</span>    <span class="m">1</span> : tunables    <span class="m">0</span>    <span class="m">0</span>    <span class="m">0</span> : slabdata   <span class="m">5776</span>   <span class="m">5776</span>      <span class="m">0</span> 
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>这个界面中，dentry 行表示目录项缓存，inode_cache 行，表示 VFS 索引节点缓存。</p>
+<p>/proc/slabinfo 的列比较多，具体含义可以查询 man slabinfo。在实际性能分析中，我们更常用 <code>slabtop</code>，<u>来找到占用内存最多的缓存类型。</u></p>
+<ol start="3">
+<li>运行 slabtop 命令</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 按下c按照缓存大小排序，按下a按照活跃对象数排序 </span>
+</span></span><span class="line"><span class="cl">slabtop 
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>输出结果：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">Active / Total Objects <span class="o">(</span>% used<span class="o">)</span>    : <span class="m">277970</span> / <span class="m">358914</span> <span class="o">(</span>77.4%<span class="o">)</span> 
+</span></span><span class="line"><span class="cl">Active / Total Slabs <span class="o">(</span>% used<span class="o">)</span>      : <span class="m">12414</span> / <span class="m">12414</span> <span class="o">(</span>100.0%<span class="o">)</span> 
+</span></span><span class="line"><span class="cl">Active / Total Caches <span class="o">(</span>% used<span class="o">)</span>     : <span class="m">83</span> / <span class="m">135</span> <span class="o">(</span>61.5%<span class="o">)</span> 
+</span></span><span class="line"><span class="cl">Active / Total Size <span class="o">(</span>% used<span class="o">)</span>       : 57816.88K / 73307.70K <span class="o">(</span>78.9%<span class="o">)</span> 
+</span></span><span class="line"><span class="cl">Minimum / Average / Maximum Object : 0.01K / 0.20K / 22.88K 
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  OBJS ACTIVE  USE OBJ SIZE  SLABS OBJ/SLAB CACHE SIZE NAME 
+</span></span><span class="line"><span class="cl"><span class="m">69804</span>  <span class="m">23094</span>   0%    0.19K   <span class="m">3324</span>       <span class="m">21</span>     13296K dentry 
+</span></span><span class="line"><span class="cl"><span class="m">16380</span>  <span class="m">15854</span>   0%    0.59K   <span class="m">1260</span>       <span class="m">13</span>     10080K inode_cache 
+</span></span><span class="line"><span class="cl"><span class="m">58260</span>  <span class="m">55397</span>   0%    0.13K   <span class="m">1942</span>       <span class="m">30</span>      7768K kernfs_node_cache 
+</span></span><span class="line"><span class="cl">   <span class="m">485</span>    <span class="m">413</span>   0%    5.69K     <span class="m">97</span>        <span class="m">5</span>      3104K task_struct 
+</span></span><span class="line"><span class="cl">  <span class="m">1472</span>   <span class="m">1397</span>   0%    2.00K     <span class="m">92</span>       <span class="m">16</span>      2944K kmalloc-2048 
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>从这个结果可以看到，在我的系统中，目录项和索引节点占用了最多的 Slab 缓存。不过他们占用的内存其实并不大，加起来也只有 23MB 左右。</p>
+<h2 id="小结">小结
+</h2><p>这篇文章，梳理了 Linux 文件系统的工作原理。</p>
+<p>文件系统，是对存储设备上的文件，进行组织管理的一种机制。为了支持各类不同的文件系统，Linux 在各种文件系统实现上，抽象了一层虚拟文件系统（VFS）。</p>
+<p>VFS 定义了一组所有文件系统都支持的数据结构和标准接口。这样，用户进程和内核中的其他子系统，就只需要跟 VFS 提供的统一接口进行交互。</p>
+<p>为了降低慢速磁盘对性能的影响，文件系统又通过页缓存、目录项缓存以及索引节点缓存，缓和磁盘延迟对应用程序的影响。</p>
+
+</section>
+
+
+    <footer class="article-footer">
+    
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+<aside class="related-content--wrapper">
+    <h2 class="section-title">相关文章</h2>
+    <div class="related-content">
+        <div class="flex article-list--tile">
+            
+                
+<article class="">
+    <a href="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%86%85%E5%AD%98%E7%AF%87%E5%A5%97%E8%B7%AF%E7%AF%87/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Linux]性能调优-内存篇（套路篇）</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%86%85%E5%AD%98%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-3/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Linux]性能调优-内存篇（案例篇）- 3</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%86%85%E5%AD%98%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-2/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Linux]性能调优-内存篇（案例篇）- 2</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%86%85%E5%AD%98%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-1/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Linux]性能调优-内存篇（案例篇）- 1</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%86%85%E5%AD%98%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87-2/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Linux]性能调优-内存篇（基础篇）- 2</h2>
+        </div>
+    </a>
+</article>
+
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+            2025 - 
+        
+        2026 リンボの個人ブログ
+    </section>
+    
+    <section class="powerby">
+         <br />
+        
+    </section>
+</footer>
+
+
+    
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+    
+    <div class="pswp__bg"></div>
+
+    
+    <div class="pswp__scroll-wrap">
+
+        
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+
+        
+        <div class="pswp__ui pswp__ui--hidden">
+
+            <div class="pswp__top-bar">
+
+                
+
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+
+                <button class="pswp__button pswp__button--share" title="Share"></button>
+
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+
+                
+                
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                        <div class="pswp__preloader__cut">
+                            <div class="pswp__preloader__donut"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div>
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.js"integrity="sha256-ePwmChbbvXbsO02lbM3HoHbSHTHFAeChekF1xKJdleo="crossorigin="anonymous"
+                defer
+                >
+            </script><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe-ui-default.min.js"integrity="sha256-UKkzOn/w1mBxRmLLGrSeyB4e1xbrp4xylgAWb3M42pU="crossorigin="anonymous"
+                defer
+                >
+            </script><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/default-skin/default-skin.min.css"crossorigin="anonymous"
+            ><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.css"crossorigin="anonymous"
+            >
+
+            </main>
+        </div>
+        <script 
+                src="https://cdn.jsdelivr.net/npm/node-vibrant@3.1.6/dist/vibrant.min.js"integrity="sha256-awcR2jno4kI5X0zL8ex0vi2z&#43;KMkF24hUW8WePSA9HM="crossorigin="anonymous"
+                
+                >
+            </script><script type="text/javascript" src="/ts/main.1e9a3bafd846ced4c345d084b355fb8c7bae75701c338f8a1f8a82c780137826.js" defer></script>
+<script>
+    (function () {
+        const customFont = document.createElement('link');
+        customFont.href = "https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap";
+
+        customFont.type = "text/css";
+        customFont.rel = "stylesheet";
+
+        document.head.appendChild(customFont);
+    }());
+</script>
+
+    </body>
+</html>
