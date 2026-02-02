@@ -7,7 +7,82 @@
         <generator>Hugo -- gohugo.io</generator>
         <language>en-us</language>
         <copyright>リンボの個人ブログ</copyright>
-        <lastBuildDate>Sun, 01 Feb 2026 17:08:13 +0800</lastBuildDate><atom:link href="https://YLine-hub.github.io/categories/linux/index.xml" rel="self" type="application/rss+xml" /><item>
+        <lastBuildDate>Mon, 02 Feb 2026 17:34:34 +0800</lastBuildDate><atom:link href="https://YLine-hub.github.io/categories/linux/index.xml" rel="self" type="application/rss+xml" /><item>
+        <title>[Linux]性能调优-I/O篇（基础篇）- 2</title>
+        <link>https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-i/o%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87-2/</link>
+        <pubDate>Mon, 02 Feb 2026 17:34:34 +0800</pubDate>
+        
+        <guid>https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-i/o%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87-2/</guid>
+        <description>&lt;h2&gt;Linux 磁盘I/O是怎么工作的？&lt;/h2&gt;
+&lt;p&gt;上一节，我们学习了 Linux 文件系统的工作原理。&lt;/p&gt;
+&lt;p&gt;简单回顾一下，文件系统是对存储设备上的文件，进行组织管理的一种机制。而 Linux 在各种文件系统实现上，又抽象了一层虚拟文件系统 VFS，它定义了一组，所有文件系统都支持的，数据结构和标准接口。&lt;/p&gt;
+&lt;p&gt;这样，对应用程序来说，只需跟 VFS 提供的统一接口交互，而不需要关注文件系统的具体实现；对具体的文件系统来说，只需要按照 VFS 的标准，就可以无缝支持各种应用程序。&lt;/p&gt;
+&lt;p&gt;VFS 内部又通过目录项、索引节点、逻辑块以及超级块等数据结构，来管理文件。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;目录项，记录了文件的名字，以及文件与其他目录项之间的目录关系。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;索引节点，记录了文件的元数据。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;逻辑块，是由连续磁盘扇区构成的最小读写单元，用来存储文件数据。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;超级块，用来记录文件系统整体的状态，如索引节点和逻辑块的使用情况等。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;其中，目录项是一个内存缓存；而超级块、索引节点和逻辑块，都是存储在磁盘中的持久化数据。&lt;/p&gt;
+&lt;p&gt;那么，进一步想，磁盘又是怎么工作的呢？又有哪些指标可以用来衡量它的性能呢？&lt;/p&gt;
+&lt;h2 id=&#34;上篇&#34;&gt;上篇
+&lt;/h2&gt;&lt;h3 id=&#34;磁盘&#34;&gt;磁盘
+&lt;/h3&gt;&lt;p&gt;磁盘是可以持久化存储的设备，根据存储介质的不同，常见磁盘可以分为两类：机械磁盘和固态磁盘。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;第一类&lt;/strong&gt;，机械磁盘，也称为硬盘驱动器（Hard Disk Driver），通常缩写为 HDD。机械磁盘主要由盘片和读写磁头组成，数据就存储在盘片的环状磁道中。在读写数据前，需要移动读写磁头，定位到数据所在的磁道，然后才能访问数据。&lt;br&gt;显然，如果I/O 请求刚好连续，那就不需要磁道寻址，自然可以获得最佳性能。这其实就是我们熟悉的，连续 I/O 的工作原理。与之相对应的&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;第二类&lt;/strong&gt;，固态磁盘（Solid State Disk），通常缩写为 SSD，由固态电子元器件组成。固态磁盘不需要磁道寻址，所以，不管是连续 I/O，还是随机 I/O 的性能，都比机械磁盘要好得多。&lt;/p&gt;
+&lt;p&gt;其实，无论机械磁盘，还是固态磁盘，相同磁盘的随机 I/O 都要比连续 I/O 慢很多，原因也很明显。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;对机械磁盘来说，我们刚刚提到过的，由于随机 I/O 需要更多的磁头寻道和盘片旋转，它的性能自然要比连续 I/O 慢。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;而对固态磁盘来说，虽然它的随机性能比机械硬盘好很多，但同样存在“先擦除再写入”的限制。随机读写会导致大量的垃圾回收，所以相对应的，随机 I/O 的性能比起连续 I/O 来，也还是差了很多。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;此外，连续 I/O 还可以通过预读的方式，来减少 I/O 请求的次数，这也是其性能优异的一个原因。很多性能优化的方案，也都会从这个角度出发，来优化 I/O 性能。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;此外，机械磁盘和固态磁盘还分别有一个最小的读写单位。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;机械磁盘的最小读写单位是扇区，一般大小为 512 字节。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;而固态磁盘的最小读写单位是页，通常大小是 4KB、8KB 等。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;在上一节中，老师也提到过，如果每次都读写 512 字节这么小的单位的话，效率很低。所以，文件系统会把连续的扇区或页，组成逻辑块，然后以逻辑块作为最小单元来管理数据。常见的逻辑块的大小是 4KB，也就是说，连续 8 个扇区，或者单独的一个页，都可以组成一个逻辑块。&lt;/p&gt;
+&lt;p&gt;除了可以按照存储介质来分类，另一个常见的分类方法，是按照接口来分类，比如可以把硬盘分为 IDE（Integrated Drvie Electronics）、SCSI（Small Computer System Interface）、SAS（Serial Attached SCSI）、SATA（Serial ATA）、FC（Fibre。Channel）等。&lt;/p&gt;
+&lt;p&gt;不同的接口，往往分配不同的设备名称。比如，IDE 设备会分配一个 hd 前缀的设备名，SCSI 和 SATA 设备会分配一个 sd 前缀的设备名。如果是多块同类型的磁盘，就会按照 a、b、c 等的字母顺序来编号。&lt;/p&gt;
+&lt;p&gt;除了磁盘本身的分类外，当你把磁盘接入服务器后，按照不同的使用方式，又可以把它们划分为多种不同的架构。&lt;/p&gt;
+&lt;p&gt;最简单的，就是直接作为独立磁盘设备来使用。这些磁盘，往往还会根据需要，划分为不同的逻辑分区，每个分区再用数字编号。比如我们前面多次用到的 /dev/sda，还可以分成两个分区 /dev/sda1 和 /dev/sda2。&lt;/p&gt;
+&lt;h4 id=&#34;生词&#34;&gt;生词
+&lt;/h4&gt;&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;integrate / ˈɪntɪɡreɪt / v、合并；加入；adj、整合的&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;electronics / ɪˌlekˈtrɑːnɪks / n、电子学；电子设备，电子器件&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;serial / ˈsɪriəl / adj、一连串的；连续的；串行的；n、连续剧；期刊&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;attach / əˈtætʃ / v、系上；附上；赋予&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+</description>
+        </item>
+        <item>
         <title>[Linux]性能调优-I/O篇（基础篇）</title>
         <link>https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-i/o%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/</link>
         <pubDate>Sun, 01 Feb 2026 17:08:13 +0800</pubDate>
