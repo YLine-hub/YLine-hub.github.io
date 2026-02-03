@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="en-us" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="如何找出狂打日志的“内鬼”？ 前两节，我们学了文件系统和磁盘的 I/O 原理，先复习一下。\n文件系统，是对存储设备上的文件进行组织管理的一种机制。为了支持各类不同的文件系统，Linux 在各种文件系统上，抽象了一层虚拟文件系统 VFS。\n">
+<title>[Linux]性能调优-I/O篇（案例篇）</title>
+
+<link rel='canonical' href='https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-i/o%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87/'>
+
+<link rel="stylesheet" href="/scss/style.min.6a692fd055deae459f2a9767f57f3855ba80cafd5041317f24f7360f6ca47cdf.css"><meta property='og:title' content="[Linux]性能调优-I/O篇（案例篇）">
+<meta property='og:description' content="如何找出狂打日志的“内鬼”？ 前两节，我们学了文件系统和磁盘的 I/O 原理，先复习一下。\n文件系统，是对存储设备上的文件进行组织管理的一种机制。为了支持各类不同的文件系统，Linux 在各种文件系统上，抽象了一层虚拟文件系统 VFS。\n">
+<meta property='og:url' content='https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-i/o%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87/'>
+<meta property='og:site_name' content='リンボの個人ブログ'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:published_time' content='2026-02-03T13:39:46&#43;08:00'/><meta property='article:modified_time' content='2026-02-03T13:39:46&#43;08:00'/>
+<meta name="twitter:title" content="[Linux]性能调优-I/O篇（案例篇）">
+<meta name="twitter:description" content="如何找出狂打日志的“内鬼”？ 前两节，我们学了文件系统和磁盘的 I/O 原理，先复习一下。\n文件系统，是对存储设备上的文件进行组织管理的一种机制。为了支持各类不同的文件系统，Linux 在各种文件系统上，抽象了一层虚拟文件系统 VFS。\n">
+    <link rel="shortcut icon" href="/favicon.ico" />
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        
+            
+            <figure class="site-avatar">
+                <a href="/">
+                
+                    
+                    
+                    
+                        
+                        <img src="/img/avatar_hu_de528bff5d5e9598.png" width="300"
+                            height="300" class="site-logo" loading="lazy" alt="Avatar">
+                    
+                
+                </a>
+                
+                    <span class="emoji">🏖️</span>
+                
+            </figure>
+            
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">リンボの個人ブログ</a></h1>
+            <h2 class="site-description">努力不一定能获得回报，但不努力一定不会有回报。</h2>
+        </div>
+    </header><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-home" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <polyline points="5 12 3 12 12 3 21 12 19 12" />
+  <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7" />
+  <path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6" />
+</svg>
+
+
+
+                
+                <span>主页</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/%E5%85%B3%E4%BA%8E/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/archives/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/search/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-search" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="10" cy="10" r="7" />
+  <line x1="21" y1="21" x2="15" y2="15" />
+</svg>
+
+
+
+                
+                <span>搜索</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav id="TableOfContents">
+  <ol>
+    <li><a href="#案例">案例</a>
+      <ol>
+        <li><a href="#准备">准备</a></li>
+        <li><a href="#案例分析">案例分析</a></li>
+      </ol>
+    </li>
+  </ol>
+</nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            <a href="/categories/linux/" >
+                Linux
+            </a>
+        
+            <a href="/categories/i/o/" >
+                I/O
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-i/o%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87/">[Linux]性能调优-I/O篇（案例篇）</a>
+        </h2>
+    
+        
+    </div>
+
+    
+    
+    
+    
+    <footer class="article-time">
+        
+            <div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                <time class="article-time--published">2026-02-03</time>
+            </div>
+        
+
+        
+    </footer>
+    
+
+    
+</div>
+
+</header>
+
+    <section class="article-content">
+    
+    
+    <h2>如何找出狂打日志的“内鬼”？</h2>
+<p>前两节，我们学了文件系统和磁盘的 I/O 原理，先复习一下。</p>
+<p>文件系统，是对存储设备上的文件进行组织管理的一种机制。为了支持各类不同的文件系统，Linux 在各种文件系统上，抽象了一层虚拟文件系统 VFS。</p>
+<p>它定义了一组所有文件系统都支持的数据结构和标准接口。这样，应用程序和内核中的其他子系统，就只需要跟 VFS 提供的统一接口进行交互。</p>
+<p>在文件系统的下层，为了支持各种不同类型的存储设备，Linux 又在各种存储设备的基础上，抽象了一个通用块层。</p>
+<p>通用块层，为文件系统和应用程序提供了访问块设备的标准；同时，为各种块设备的驱动程序提供了统一的框架。此外，通用块层还会对文件系统和应用程序发送过来的 I/O 请求进行排队，并通过重新排序、请求合并等方式，提高磁盘读写的效率。</p>
+<p>通用块层的下一层，自然就是设备层了，包括各种块设备的驱动程序以及物理存储设备。</p>
+<p>文件系统、通用块层以及设备层，就构成了 Linux 的存储 I/O 栈。存储系统的 I/O，通常是整个系统中最慢的一环。所以，Linux 采用多种缓存机制，来优化 I/O 的效率，比方说，</p>
+<ul>
+<li>
+<p>为了优化文件访问的性能，采用页缓存、索引节点缓存、目录项缓存等多种缓存机制，减少对下层块设备的直接调用。</p>
+</li>
+<li>
+<p>同样的，为了优化块设备的访问效率，使用缓冲块设备的数据。</p>
+</li>
+</ul>
+<p>不过，在碰到文件系统和磁盘的 I/O 问题时，具体应该怎么定位和分析呢？今天就以一个最常见的应用程序记录大量日志的案例，来分析这种情况。</p>
+<h2 id="案例">案例
+</h2><h3 id="准备">准备
+</h3><ul>
+<li>系统环境：ubuntu 18.04</li>
+<li>机器配置：2 CPU，8 GB内存</li>
+<li>预先安装 docker、sysstat 等工具</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">apt install docker.io sysstat
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>这个案例，是一个用 Python 开发的小应用，为了方便，老师把他打包成了一个 Docker 镜像。这样，只要运行 Docker 命令，就可以启动它。</p>
+<ol>
+<li>
+<p>打开一个终端，SSH 登录到机器中，并安装上述工具。</p>
+</li>
+<li>
+<p>切换到 root 用户</p>
+</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo su root
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="案例分析">案例分析
+</h3><ol>
+<li>执行 docker 命令，运行今天的目标应用：</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">docker run -v /tmp:/tmp --name<span class="o">=</span>app -itd feisky/logapp
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="2">
+<li>运行 ps 命令，确认案例应用正常运行。如果操作无误，应该可以在 ps 输出中，看到一个 app.py 的进程：</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">ps -ef <span class="p">|</span> grep /app.py
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>输出结果：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root     <span class="m">18940</span> <span class="m">18921</span> <span class="m">73</span> 14:41 pts/0    00:00:02 python /app.py 
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>接着，我们来看看系统有没有性能问题。要观察哪些性能指标呢？前面文章中，我们知道 CPU、内存和磁盘 I/O 等系统资源，很容易出现资源瓶颈，这就是我们观察的方向了。我们来观察一下这些资源的使用情况。</p>
+<p>我们可以先用 top，来观察 CPU 和内存的使用情况；然后再用 iostat，来观察磁盘的 I/O 情况。</p>
+<ol start="3">
+<li>运行 top 命令，观察 CPU 和内存的使用情况；</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 按1切换到每个CPU的使用情况 </span>
+</span></span><span class="line"><span class="cl">top 
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>输出结果：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">top - 14:43:43 up <span class="m">1</span> day,  1:39,  <span class="m">2</span> users,  load average: 2.48, 1.09, 0.63 
+</span></span><span class="line"><span class="cl">Tasks: <span class="m">130</span> total,   <span class="m">2</span> running,  <span class="m">74</span> sleeping,   <span class="m">0</span> stopped,   <span class="m">0</span> zombie 
+</span></span><span class="line"><span class="cl">%Cpu0  :  0.7 us,  6.0 sy,  0.0 ni,  0.7 id, 92.7 wa,  0.0 hi,  0.0 si,  0.0 st 
+</span></span><span class="line"><span class="cl">%Cpu1  :  0.0 us,  0.3 sy,  0.0 ni, 92.3 id,  7.3 wa,  0.0 hi,  0.0 si,  0.0 st 
+</span></span><span class="line"><span class="cl">KiB Mem :  <span class="m">8169308</span> total,   <span class="m">747684</span> free,   <span class="m">741336</span> used,  <span class="m">6680288</span> buff/cache 
+</span></span><span class="line"><span class="cl">KiB Swap:        <span class="m">0</span> total,        <span class="m">0</span> free,        <span class="m">0</span> used.  <span class="m">7113124</span> avail Mem 
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  PID USER      PR  NI    VIRT    RES    SHR S  %CPU %MEM     TIME+ COMMAND 
+</span></span><span class="line"><span class="cl"><span class="m">18940</span> root      <span class="m">20</span>   <span class="m">0</span>  <span class="m">656108</span> <span class="m">355740</span>   <span class="m">5236</span> R   6.3  4.4   0:12.56 python 
+</span></span><span class="line"><span class="cl"><span class="m">1312</span> root      <span class="m">20</span>   <span class="m">0</span>  <span class="m">236532</span>  <span class="m">24116</span>   <span class="m">9648</span> S   0.3  0.3   9:29.80 python3 
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>观察 top 的输出，发现 CPU0 的使用率非常高，它的系统 CPU 使用率（sys%）为 6%，而 iowait 超过了90%。这说明 CPU0 上，可能正在运行 I/O 密集型的进程。不过，究竟是什么原因呢？</p>
+<p>接着我们来看，进程部分的 CPU 使用情况。你会发现，python 进程的 CPU 使用率已经达到了 6%，而其余进程的 CPU 使用率都比较低，不超过 0.3%。看起来 python 是个可疑进程。记下 python 进程的 PID 号 18940，稍后分析。</p>
+<p>最后再看内存的使用情况，总内存 8G，剩余内存只有 730 MB，而 Buffer/Cache 占用内存高达 6GB 之多，这说明内存主要被缓存占用。虽然大部分缓存可回收，我们还是得了解下缓存的去处，确认缓存使用都是合理的。</p>
+<p>到了这一步，基本可以判断出，CPU 使用率中的 iowait 是一个潜在瓶颈，而内存部分的缓存占用比较大，那磁盘 I/O 又是怎么样的情况呢？</p>
+<ol start="4">
+<li>停止 top 命令，再运行 iostat 命令，观察 I/O 的使用情况：</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># -d表示显示I/O性能指标，-x表示显示扩展统计（即所有I/O指标） </span>
+</span></span><span class="line"><span class="cl">iostat -x -d <span class="m">1</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>输出结果：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">Device            r/s     w/s     rkB/s     wkB/s   rrqm/s   wrqm/s  %rrqm  %wrqm r_await w_await aqu-sz rareq-sz wareq-sz  svctm  %util 
+</span></span><span class="line"><span class="cl">loop0            0.00    0.00      0.00      0.00     0.00     0.00   0.00   0.00    0.00    0.00   0.00     0.00     0.00   0.00   0.00 
+</span></span><span class="line"><span class="cl">sdb              0.00    0.00      0.00      0.00     0.00     0.00   0.00   0.00    0.00    0.00   0.00     0.00     0.00   0.00   0.00 
+</span></span><span class="line"><span class="cl">sda              0.00   64.00      0.00  32768.00     0.00     0.00   0.00   0.00    0.00 7270.44 1102.18     0.00   512.00  15.50  99.20
+</span></span></code></pre></td></tr></table>
+</div>
+</div>
+</section>
+
+
+    <footer class="article-footer">
+    
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+<aside class="related-content--wrapper">
+    <h2 class="section-title">相关文章</h2>
+    <div class="related-content">
+        <div class="flex article-list--tile">
+            
+                
+<article class="">
+    <a href="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-i/o%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87-2/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Linux]性能调优-I/O篇（基础篇）- 2</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-i/o%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Linux]性能调优-I/O篇（基础篇）</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%86%85%E5%AD%98%E7%AF%87%E5%A5%97%E8%B7%AF%E7%AF%87/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Linux]性能调优-内存篇（套路篇）</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%86%85%E5%AD%98%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-3/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Linux]性能调优-内存篇（案例篇）- 3</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%86%85%E5%AD%98%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-2/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Linux]性能调优-内存篇（案例篇）- 2</h2>
+        </div>
+    </a>
+</article>
+
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+            2025 - 
+        
+        2026 リンボの個人ブログ
+    </section>
+    
+    <section class="powerby">
+         <br />
+        
+    </section>
+</footer>
+
+
+    
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+    
+    <div class="pswp__bg"></div>
+
+    
+    <div class="pswp__scroll-wrap">
+
+        
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+
+        
+        <div class="pswp__ui pswp__ui--hidden">
+
+            <div class="pswp__top-bar">
+
+                
+
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+
+                <button class="pswp__button pswp__button--share" title="Share"></button>
+
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+
+                
+                
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                        <div class="pswp__preloader__cut">
+                            <div class="pswp__preloader__donut"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div>
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.js"integrity="sha256-ePwmChbbvXbsO02lbM3HoHbSHTHFAeChekF1xKJdleo="crossorigin="anonymous"
+                defer
+                >
+            </script><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe-ui-default.min.js"integrity="sha256-UKkzOn/w1mBxRmLLGrSeyB4e1xbrp4xylgAWb3M42pU="crossorigin="anonymous"
+                defer
+                >
+            </script><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/default-skin/default-skin.min.css"crossorigin="anonymous"
+            ><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.css"crossorigin="anonymous"
+            >
+
+            </main>
+        </div>
+        <script 
+                src="https://cdn.jsdelivr.net/npm/node-vibrant@3.1.6/dist/vibrant.min.js"integrity="sha256-awcR2jno4kI5X0zL8ex0vi2z&#43;KMkF24hUW8WePSA9HM="crossorigin="anonymous"
+                
+                >
+            </script><script type="text/javascript" src="/ts/main.1e9a3bafd846ced4c345d084b355fb8c7bae75701c338f8a1f8a82c780137826.js" defer></script>
+<script>
+    (function () {
+        const customFont = document.createElement('link');
+        customFont.href = "https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap";
+
+        customFont.type = "text/css";
+        customFont.rel = "stylesheet";
+
+        document.head.appendChild(customFont);
+    }());
+</script>
+
+    </body>
+</html>
