@@ -1,0 +1,1130 @@
+<!DOCTYPE html>
+<html lang="en-us" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="为什么我的磁盘I/O延迟很高？ 上一节，我们研究了一个狂打日志引发 I/O 性能问题的案例，先来简单回顾一下。\n日志，是了解应用程序内部运行情况，最常用也是最有效的工具。日志一般会分为调试、信息、警告、错误等多个不同级别。\n">
+<title>[Linux]性能调优-I/O篇（案例篇）- 2</title>
+
+<link rel='canonical' href='https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-i/o%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-2/'>
+
+<link rel="stylesheet" href="/scss/style.min.6a692fd055deae459f2a9767f57f3855ba80cafd5041317f24f7360f6ca47cdf.css"><meta property='og:title' content="[Linux]性能调优-I/O篇（案例篇）- 2">
+<meta property='og:description' content="为什么我的磁盘I/O延迟很高？ 上一节，我们研究了一个狂打日志引发 I/O 性能问题的案例，先来简单回顾一下。\n日志，是了解应用程序内部运行情况，最常用也是最有效的工具。日志一般会分为调试、信息、警告、错误等多个不同级别。\n">
+<meta property='og:url' content='https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-i/o%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-2/'>
+<meta property='og:site_name' content='リンボの個人ブログ'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:published_time' content='2026-02-04T10:53:46&#43;08:00'/><meta property='article:modified_time' content='2026-02-04T10:53:46&#43;08:00'/>
+<meta name="twitter:title" content="[Linux]性能调优-I/O篇（案例篇）- 2">
+<meta name="twitter:description" content="为什么我的磁盘I/O延迟很高？ 上一节，我们研究了一个狂打日志引发 I/O 性能问题的案例，先来简单回顾一下。\n日志，是了解应用程序内部运行情况，最常用也是最有效的工具。日志一般会分为调试、信息、警告、错误等多个不同级别。\n">
+    <link rel="shortcut icon" href="/favicon.ico" />
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        
+            
+            <figure class="site-avatar">
+                <a href="/">
+                
+                    
+                    
+                    
+                        
+                        <img src="/img/avatar_hu_de528bff5d5e9598.png" width="300"
+                            height="300" class="site-logo" loading="lazy" alt="Avatar">
+                    
+                
+                </a>
+                
+                    <span class="emoji">🏖️</span>
+                
+            </figure>
+            
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">リンボの個人ブログ</a></h1>
+            <h2 class="site-description">努力不一定能获得回报，但不努力一定不会有回报。</h2>
+        </div>
+    </header><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-home" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <polyline points="5 12 3 12 12 3 21 12 19 12" />
+  <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7" />
+  <path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6" />
+</svg>
+
+
+
+                
+                <span>主页</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/%E5%85%B3%E4%BA%8E/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/archives/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/search/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-search" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="10" cy="10" r="7" />
+  <line x1="21" y1="21" x2="15" y2="15" />
+</svg>
+
+
+
+                
+                <span>搜索</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav id="TableOfContents">
+  <ol>
+    <li><a href="#案例">案例</a>
+      <ol>
+        <li><a href="#准备">准备</a></li>
+        <li><a href="#案例分析">案例分析</a></li>
+      </ol>
+    </li>
+    <li><a href="#小结">小结</a></li>
+    <li><a href="#思考">思考</a></li>
+  </ol>
+</nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            <a href="/categories/linux/" >
+                Linux
+            </a>
+        
+            <a href="/categories/i/o/" >
+                I/O
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-i/o%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-2/">[Linux]性能调优-I/O篇（案例篇）- 2</a>
+        </h2>
+    
+        
+    </div>
+
+    
+    
+    
+    
+    <footer class="article-time">
+        
+            <div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                <time class="article-time--published">2026-02-04</time>
+            </div>
+        
+
+        
+    </footer>
+    
+
+    
+</div>
+
+</header>
+
+    <section class="article-content">
+    
+    
+    <h2>为什么我的磁盘I/O延迟很高？</h2>
+<p>上一节，我们研究了一个狂打日志引发 I/O 性能问题的案例，先来简单回顾一下。</p>
+<p>日志，是了解应用程序内部运行情况，最常用也是最有效的工具。日志一般会分为调试、信息、警告、错误等多个不同级别。</p>
+<p>通常，生产环境只用开启警告级别的日志，这一般不会导致 I/O 问题。但在偶尔排查问题时，可能需要我们开启调试日志。调试结束后，很可能忘了把日志级别调回去。这时，大量的调试日志就可能会引发 I/O 性能问题。</p>
+<p>可以用 iostat，确认是否有 I/O 性能瓶颈。再用 strace 和 lsof，来定位应用程序以及它正在写入的日志文件路径。最后通过应用程序的接口调整日志级别，完美解决 I/O 问题。</p>
+<p>不过，如果应用程序没有动态调整日志级别的功能，还需要修改应用配置并重启应用，以便让配置生效。</p>
+<p>本节，我们再来看一个新的案例。这次案例是一个基于 Python Flask 框架的 Web 应用，它提供了一个查单词热度的 API，但是 API 的响应速度并不让人满意。</p>
+<h2 id="案例">案例
+</h2><h3 id="准备">准备
+</h3><ul>
+<li>系统环境：ubuntu 18.04</li>
+<li>机器配置：2 CPU，8 GB 内存</li>
+<li>预先安装 docker、sysstat 等工具</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">apt install docker.io sysstat
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>为了方便运行，老师把它打包成了一个 Docker 镜像，这样，只需要运行 Docker 命令就可以启动它。</p>
+<p>今天的案例需要两台虚拟机，其中一台是案例分析的目标机器，运行 Flask 应用，它的 IP 地址是 192.168.0.10；而另一台作为客户端，请求单词的热度。</p>
+<p><img src="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-i/o%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-2/image.png"
+	width="1752"
+	height="1040"
+	srcset="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-i/o%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-2/image_hu_f2526f3e74dbffab.png 480w, /p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-i/o%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-2/image_hu_40945c6e6659973a.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="168"
+		data-flex-basis="404px"
+	
+></p>
+<ol>
+<li>打开两个终端，分别 SSH 登录到这两台虚拟机，并在第一台虚拟机中，安装上述工具。</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">apt install docker.io sysstat
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="2">
+<li>切换 root 用户</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo su root
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="案例分析">案例分析
+</h3><ol>
+<li>终端1：运行 docker 命令，运行本次案例要分析的应用目标：</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">docker run --name<span class="o">=</span>app -p 10000:80 -itd feisky/word-pop 
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="2">
+<li>终端2：运行 curl 命令，访问 http://192.168.0.10:1000/，确认案例正常启动：</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">curl http://192.168.0.10:10000/ 
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>输出结果：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">hello world
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="3">
+<li>终端2：访问案例应用的单词热度接口</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">$ curl http://192.168.0.10:1000/popularity/word 
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>稍等一会儿，发现这个接口居然这么长时间都没有响应，这究竟是怎么回事呢？我们先回到终端一来分析一下</p>
+<ol start="4">
+<li>终端1：运行 df 命令，查看一下文件系统的使用情况。奇怪的是，这么简单的命令，居然也要等好久才有输出。</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">df
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>输出结果：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">Filesystem     1K-blocks    Used Available Use% Mounted on 
+</span></span><span class="line"><span class="cl">udev             <span class="m">4073376</span>       <span class="m">0</span>   <span class="m">4073376</span>   0% /dev 
+</span></span><span class="line"><span class="cl">tmpfs             <span class="m">816932</span>    <span class="m">1188</span>    <span class="m">815744</span>   1% /run 
+</span></span><span class="line"><span class="cl">/dev/sda1       <span class="m">30308240</span> <span class="m">8713640</span>  <span class="m">21578216</span>  29% / 
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>通过 df 我们知道，系统还有足够多的磁盘空间。那为什么响应会变慢呢？看来还是得观察一下，系统的资源使用情况，像是 CPU、内存和磁盘 I/O 等的具体使用情况。</p>
+<p>为了避免分析过程中 curl 请求突然结束，我们回到终端2，按 Ctrl + c 停止刚才的应用程序，然后，把 curl 命令放到一个循环里执行；这次我们还要加一个 time 命令，观察每次的执行时间。</p>
+<ol start="5">
+<li>终端2：执行以下命令</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="k">while</span> true<span class="p">;</span> <span class="k">do</span> <span class="nb">time</span> curl http://192.168.0.10:10000/popularity/word<span class="p">;</span> sleep 1<span class="p">;</span> <span class="k">done</span> 
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="6">
+<li>终端1：分析性能。运行 top 命令，观察 CPU 和内存的使用情况:</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">top
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>输出结果：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">top - 14:27:02 up 10:30,  <span class="m">1</span> user,  load average: 1.82, 1.26, 0.76 
+</span></span><span class="line"><span class="cl">Tasks: <span class="m">129</span> total,   <span class="m">1</span> running,  <span class="m">74</span> sleeping,   <span class="m">0</span> stopped,   <span class="m">0</span> zombie 
+</span></span><span class="line"><span class="cl">%Cpu0  :  3.5 us,  2.1 sy,  0.0 ni,  0.0 id, 94.4 wa,  0.0 hi,  0.0 si,  0.0 st 
+</span></span><span class="line"><span class="cl">%Cpu1  :  2.4 us,  0.7 sy,  0.0 ni, 70.4 id, 26.5 wa,  0.0 hi,  0.0 si,  0.0 st 
+</span></span><span class="line"><span class="cl">KiB Mem :  <span class="m">8169300</span> total,  <span class="m">3323248</span> free,   <span class="m">436748</span> used,  <span class="m">4409304</span> buff/cache 
+</span></span><span class="line"><span class="cl">KiB Swap:        <span class="m">0</span> total,        <span class="m">0</span> free,        <span class="m">0</span> used.  <span class="m">7412556</span> avail Mem 
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  PID USER      PR  NI    VIRT    RES    SHR S  %CPU %MEM     TIME+ COMMAND 
+</span></span><span class="line"><span class="cl"><span class="m">12280</span> root      <span class="m">20</span>   <span class="m">0</span>  <span class="m">103304</span>  <span class="m">28824</span>   <span class="m">7276</span> S  14.0  0.4   0:08.77 python 
+</span></span><span class="line"><span class="cl">   <span class="m">16</span> root      <span class="m">20</span>   <span class="m">0</span>       <span class="m">0</span>      <span class="m">0</span>      <span class="m">0</span> S   0.3  0.0   0:09.22 ksoftirqd/1 
+</span></span><span class="line"><span class="cl"><span class="m">1549</span> root      <span class="m">20</span>   <span class="m">0</span>  <span class="m">236712</span>  <span class="m">24480</span>   <span class="m">9864</span> S   0.3  0.3   3:31.38 python3 
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>观察 top 的输出可以发现，两个 CPU 的 iowait 都非常高。特别是 CPU0，iowait 已经高达 94 %，而剩余内存还有 3GB，看起来也是充足的。</p>
+<p>再往下看，进程部分有一个 python 进程的 CPU 使用率了稍微有点高，达到了 14%。虽然 14% 并不能成为性能瓶颈，不过有点嫌疑————可能跟 iowait 的升高有关。</p>
+<p>那这个 PID 号为 12280 的 python 进程，到底是不是我们的案例应用呢？</p>
+<ol start="7">
+<li>终端1：按下 Ctrl + c，停止 top 命令；然后执行 ps 命令，查找案例应用 app.py 的 PID 号：</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">ps aux <span class="p">|</span> grep app.py 
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>输出结果：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root     <span class="m">12222</span>  0.4  0.2  <span class="m">96064</span> <span class="m">23452</span> pts/0    Ss+  14:37   0:00 python /app.py 
+</span></span><span class="line"><span class="cl">root     <span class="m">12280</span> 13.9  0.3 <span class="m">102424</span> <span class="m">27904</span> pts/0    Sl+  14:37   0:09 /usr/local/bin/python /app.py 
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>从 ps 的输出，可以看到，这个 CPU 使用率较高的进程，正是我们的案例应用。不过先别着急分析 CPU 问题，毕竟 iowait 已经高达 94%，I/O 问题才是我们首要解决的。</p>
+<ol start="8">
+<li>终端1：运行 iostat 命令</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># -d 选项是指显示出 I/O 的性能指标；</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># -x 选项是指显示出扩展统计信息（即显示所有 I/O 指标）。</span>
+</span></span><span class="line"><span class="cl">iostat -d -x <span class="m">1</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>输出结果：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">Device            r/s     w/s     rkB/s     wkB/s   rrqm/s   wrqm/s  %rrqm  %wrqm r_await w_await aqu-sz rareq-sz wareq-sz  svctm  %util 
+</span></span><span class="line"><span class="cl">loop0            0.00    0.00      0.00      0.00     0.00     0.00   0.00   0.00    0.00    0.00   0.00     0.00     0.00   0.00   0.00 
+</span></span><span class="line"><span class="cl">sda              0.00   71.00      0.00  32912.00     0.00     0.00   0.00   0.00    0.00 18118.31 241.89     0.00   463.55  13.86  98.40 
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>再次观察 iostat 的输出，，可以发现，磁盘 sda 的 I/O 使用率已经达到了 98%，接近饱和了。而且，写请求的响应时间高达 18 秒，每秒的写数据为 32MB，显然写磁盘碰到了瓶颈。</p>
+<ol start="9">
+<li>终端1：运行 pidstat 命令，观察进程的 I/O 情况</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">pidstat -d <span class="m">1</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>输出结果：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">14:39:14      UID       PID   kB_rd/s   kB_wr/s kB_ccwr/s iodelay  Command 
+</span></span><span class="line"><span class="cl">14:39:15        <span class="m">0</span>     <span class="m">12280</span>      0.00 335716.00      0.00       <span class="m">0</span>  python 
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>从 pidstat 的输出，我们再次看到了 PID 号为 12280 的结果。这说明，正是案例应用引发 I/O 的性能瓶颈。</p>
+<p>走到这一步，你估计就觉得，接下来很简单了，上一个案例不是刚刚学过吗？无非就是，先用 strace 确认它是不是在写文件，再用 lsof 找出文件描述符对应的文件即可。到底是不是这样呢？我们不妨来试试。</p>
+<ol start="10">
+<li>终端1：执行 starce 命令：</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">strace -p <span class="m">12280</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>输出结果：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">strace: Process <span class="m">12280</span> attached 
+</span></span><span class="line"><span class="cl"><span class="k">select</span><span class="o">(</span>0, NULL, NULL, NULL, <span class="o">{</span><span class="nv">tv_sec</span><span class="o">=</span>0, <span class="nv">tv_usec</span><span class="o">=</span>567708<span class="o">})</span> <span class="o">=</span> <span class="m">0</span> <span class="o">(</span>Timeout<span class="o">)</span> 
+</span></span><span class="line"><span class="cl">stat<span class="o">(</span><span class="s2">&#34;/usr/local/lib/python3.7/importlib/_bootstrap.py&#34;</span>, <span class="o">{</span><span class="nv">st_mode</span><span class="o">=</span>S_IFREG<span class="p">|</span>0644, <span class="nv">st_size</span><span class="o">=</span>39278, ...<span class="o">})</span> <span class="o">=</span> <span class="m">0</span> 
+</span></span><span class="line"><span class="cl">stat<span class="o">(</span><span class="s2">&#34;/usr/local/lib/python3.7/importlib/_bootstrap.py&#34;</span>, <span class="o">{</span><span class="nv">st_mode</span><span class="o">=</span>S_IFREG<span class="p">|</span>0644, <span class="nv">st_size</span><span class="o">=</span>39278, ...<span class="o">})</span> <span class="o">=</span> <span class="m">0</span> 
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>从 strace 中，可以看到大量的 stat 系统调用，并且大都为 python 的文件，但是，请注意，这里并没有任何 write 系统调用。</p>
+<p>由于 strace 的输出比较多。我们可以用 grep，来过滤一下 write：</p>
+<ol start="11">
+<li>终端1：执行 strace 命令，过滤 write 关键词</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">strace -p <span class="m">12280</span> <span class="p">|</span> grep write
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>遗憾的是，这里仍然没有任何输出。</p>
+<p>难道此时已经没有性能问题了吗？重新执行刚才的 top 和 iostat 命令，发现，性能问题仍然存在。</p>
+<p>我们只好综合 strace、pidstat 和 iostat 这三个结果来分析了。很明显，发现了这里的矛盾：iostat 已经证明磁盘 I/O 有性能瓶颈，而 pidstat 也证明了，这个瓶颈是由 12280 号进程导致的，但 strace 跟踪这个进程，却没有找到任何 write 系统调用。</p>
+<p>文件写，明明应该有相应的 write 系统调用，但用现有工具却找不到痕迹，这时就该想想换工具的问题了。怎样才能知道哪里在写文件呢？</p>
+<p>这里就用到一个新工具了，<a class="link" href="https://github.com/iovisor/bcc/blob/master/tools/filetop.py"  target="_blank" rel="noopener"
+    >filetop</a>，它是<a class="link" href="https://github.com/iovisor/bcc"  target="_blank" rel="noopener"
+    >bcc</a>软件包的一部分，基于 Linux 内核的 eBPF（extended Berkely Packet Filters）机制，<u>主要跟踪内核中文件的读写情况，并输出线程 ID（TID）、读写大小、读写类型以及文件名称。</u></p>
+<ol start="12">
+<li>终端1：安装 bcc，可以参考它的 Github 网站：<a class="link" href="https://github.com/iovisor/bcc"  target="_blank" rel="noopener"
+    >bcc</a>。</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 4052245BD4284CDD 
+</span></span><span class="line"><span class="cl"><span class="nb">echo</span> <span class="s2">&#34;deb https://repo.iovisor.org/apt/</span><span class="k">$(</span>lsb_release -cs<span class="k">)</span><span class="s2"> </span><span class="k">$(</span>lsb_release -cs<span class="k">)</span><span class="s2"> main&#34;</span> <span class="p">|</span> sudo tee /etc/apt/sources.list.d/iovisor.list 
+</span></span><span class="line"><span class="cl">sudo apt-get update 
+</span></span><span class="line"><span class="cl">sudo apt-get install bcc-tools libbcc-examples linux-headers-<span class="k">$(</span>uname -r<span class="k">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>安装后，bcc 提供的所有工具，就全部安装到了 /usr/share/bcc/tools 这个目录中。</p>
+<ol start="13">
+<li>终端1：运行下面命令</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 切换到工具目录</span>
+</span></span><span class="line"><span class="cl"><span class="nb">cd</span> /usr/share/bcc/tools
+</span></span><span class="line"><span class="cl"><span class="c1"># -C 选项表示输出新内容时不情况屏幕</span>
+</span></span><span class="line"><span class="cl">./filetio -C
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>输出结果：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">TID    COMM             READS  WRITES R_Kb    W_Kb    T FILE 
+</span></span><span class="line"><span class="cl"><span class="m">514</span>    python           <span class="m">0</span>      <span class="m">1</span>      <span class="m">0</span>       <span class="m">2832</span>    R 669.txt 
+</span></span><span class="line"><span class="cl"><span class="m">514</span>    python           <span class="m">0</span>      <span class="m">1</span>      <span class="m">0</span>       <span class="m">2490</span>    R 667.txt 
+</span></span><span class="line"><span class="cl"><span class="m">514</span>    python           <span class="m">0</span>      <span class="m">1</span>      <span class="m">0</span>       <span class="m">2685</span>    R 671.txt 
+</span></span><span class="line"><span class="cl"><span class="m">514</span>    python           <span class="m">0</span>      <span class="m">1</span>      <span class="m">0</span>       <span class="m">2392</span>    R 670.txt 
+</span></span><span class="line"><span class="cl"><span class="m">514</span>    python           <span class="m">0</span>      <span class="m">1</span>      <span class="m">0</span>       <span class="m">2050</span>    R 672.txt 
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">...
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">TID    COMM             READS  WRITES R_Kb    W_Kb    T FILE 
+</span></span><span class="line"><span class="cl"><span class="m">514</span>    python           <span class="m">2</span>      <span class="m">0</span>      <span class="m">5957</span>    <span class="m">0</span>       R 651.txt 
+</span></span><span class="line"><span class="cl"><span class="m">514</span>    python           <span class="m">2</span>      <span class="m">0</span>      <span class="m">5371</span>    <span class="m">0</span>       R 112.txt 
+</span></span><span class="line"><span class="cl"><span class="m">514</span>    python           <span class="m">2</span>      <span class="m">0</span>      <span class="m">4785</span>    <span class="m">0</span>       R 861.txt 
+</span></span><span class="line"><span class="cl"><span class="m">514</span>    python           <span class="m">2</span>      <span class="m">0</span>      <span class="m">4736</span>    <span class="m">0</span>       R 213.txt 
+</span></span><span class="line"><span class="cl"><span class="m">514</span>    python           <span class="m">2</span>      <span class="m">0</span>      <span class="m">4443</span>    <span class="m">0</span>       R 45.txt 
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>可以看到，filetop 输出了 8 列内容，分别是线程 ID、线程命令行、读写次数、读写的大小（单位 KB）、文件类型以及读写的文件名称。</p>
+<p>这些内容，可能会看到很多动态链接库，不过这不是我们的重点，暂且忽略即可。我们的重点，是一个 python 应用，所有要特别关注 python 的相关内容。</p>
+<p>多观察一会儿，发现每隔一段时间，线程号为 514 的 python 应用就会写入大量的 txt 文件，在大量地读。</p>
+<p>线程号为 514 的线程，属于那个进程呢？我们可以用 ps 命令查看。</p>
+<ol start="14">
+<li>终端1：按下 Ctrl + c，停止 filetop；然后，运行下面的 ps 命令。</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">ps -efT <span class="p">|</span> grep <span class="m">514</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>输出结果：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root     <span class="m">12280</span>  <span class="m">514</span> <span class="m">14626</span> <span class="m">33</span> 14:47 pts/0    00:00:05 /usr/local/bin/python /app.py 
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>我们看到，这个线程正是案例应用 12280 的线程。但是 filetop 只给出了文件名称，却没有文件路径。</p>
+<p>这里需要用到<code>opensnoop</code>，它同属于 bcc 软件包，<u>可以动态跟踪内核中的 open 系统调用。</u></p>
+<ol start="15">
+<li>终端1：运行 opensnoop 命令</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">opensnoop
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>输出结果：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="m">12280</span>  python              <span class="m">6</span>   <span class="m">0</span> /tmp/9046db9e-fe25-11e8-b13f-0242ac110002/650.txt 
+</span></span><span class="line"><span class="cl"><span class="m">12280</span>  python              <span class="m">6</span>   <span class="m">0</span> /tmp/9046db9e-fe25-11e8-b13f-0242ac110002/651.txt 
+</span></span><span class="line"><span class="cl"><span class="m">12280</span>  python              <span class="m">6</span>   <span class="m">0</span> /tmp/9046db9e-fe25-11e8-b13f-0242ac110002/652.txt 
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>这次，通过 opensnoop 的输出，可以看到，这些 txt 路径位于 /tmp 目录下。还能看到，它打开的文件数量，按照数字编号，从 0.txt 依次增大到 999.txt ，这可远多于前面用 filetop 看到的数量。</p>
+<p>综合 filetop 和 opensnoop，我们可以进一步分析了。我们可以大胆猜测，案例应用在写入 1000 个 txt 文件后，又把这些内容读到内存中进行处理。我们来检查一下，这个目录是不是真有 1000 个文件：</p>
+<ol start="16">
+<li>终端1：运行 ls 命令，查看目录内的文件数量</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">ls /tmp/9046db9e-fe25-11e8-b13f-0242ac110002 <span class="p">|</span> wc -l 
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>输出结果：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">ls: cannot access <span class="s1">&#39;/tmp/9046db9e-fe25-11e8-b13f-0242ac110002&#39;</span>: No such file or directory 
+</span></span><span class="line"><span class="cl"><span class="m">0</span> 
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>操作后却发现，目录居然不存在了。怎么回事呢？我们回到 opensnoop 在观察一会儿：</p>
+<ol start="17">
+<li>终端1：运行 opensnoop 命令</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">opensnoop
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>输出结果：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="m">12280</span>  python              <span class="m">6</span>   <span class="m">0</span> /tmp/defee970-fe25-11e8-b13f-0242ac110002/261.txt 
+</span></span><span class="line"><span class="cl"><span class="m">12280</span>  python              <span class="m">6</span>   <span class="m">0</span> /tmp/defee970-fe25-11e8-b13f-0242ac110002/840.txt 
+</span></span><span class="line"><span class="cl"><span class="m">12280</span>  python              <span class="m">6</span>   <span class="m">0</span> /tmp/defee970-fe25-11e8-b13f-0242ac110002/136.txt 
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>原来，这时的路径以及变成另一个目录了。这说明，这些目录都是应用程序动态生成的，用完就删了。</p>
+<p>结合前面的所有分析，我们基本可以判断，案例应用会动态生成一批文件，用来临时存储数据，用完就会删除它们。但不幸的是，正是这些文件读写，引发了 I/O 的性能瓶颈，导致整个处理过程非常慢。</p>
+<p>当然，我们还需要验证这个猜想。查看应用程序的源码<a class="link" href="https://github.com/feiskyer/linux-perf-examples/blob/master/io-latency/app.py"  target="_blank" rel="noopener"
+    >app.py</a></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">@app.route<span class="o">(</span><span class="s2">&#34;/popularity/&lt;word&gt;&#34;</span><span class="o">)</span> 
+</span></span><span class="line"><span class="cl">def word_popularity<span class="o">(</span>word<span class="o">)</span>: 
+</span></span><span class="line"><span class="cl">  <span class="nv">dir_path</span> <span class="o">=</span> <span class="s1">&#39;/tmp/{}&#39;</span>.format<span class="o">(</span>uuid.uuid1<span class="o">())</span> 
+</span></span><span class="line"><span class="cl">  <span class="nv">count</span> <span class="o">=</span> <span class="m">0</span> 
+</span></span><span class="line"><span class="cl">  <span class="nv">sample_size</span> <span class="o">=</span> <span class="m">1000</span> 
+</span></span><span class="line"><span class="cl">   
+</span></span><span class="line"><span class="cl">  def save_to_file<span class="o">(</span>file_name, content<span class="o">)</span>: 
+</span></span><span class="line"><span class="cl">    with open<span class="o">(</span>file_name, <span class="s1">&#39;w&#39;</span><span class="o">)</span> as f: 
+</span></span><span class="line"><span class="cl">    f.write<span class="o">(</span>content<span class="o">)</span> 
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  try: 
+</span></span><span class="line"><span class="cl">    <span class="c1"># initial directory firstly </span>
+</span></span><span class="line"><span class="cl">    os.mkdir<span class="o">(</span>dir_path<span class="o">)</span> 
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c1"># save article to files </span>
+</span></span><span class="line"><span class="cl">    <span class="k">for</span> i in range<span class="o">(</span>sample_size<span class="o">)</span>: 
+</span></span><span class="line"><span class="cl">        <span class="nv">file_name</span> <span class="o">=</span> <span class="s1">&#39;{}/{}.txt&#39;</span>.format<span class="o">(</span>dir_path, i<span class="o">)</span> 
+</span></span><span class="line"><span class="cl">        <span class="nv">article</span> <span class="o">=</span> generate_article<span class="o">()</span> 
+</span></span><span class="line"><span class="cl">        save_to_file<span class="o">(</span>file_name, article<span class="o">)</span> 
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c1"># count word popularity </span>
+</span></span><span class="line"><span class="cl">    <span class="k">for</span> root, dirs, files in os.walk<span class="o">(</span>dir_path<span class="o">)</span>: 
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> file_name in files: 
+</span></span><span class="line"><span class="cl">            with open<span class="o">(</span><span class="s1">&#39;{}/{}&#39;</span>.format<span class="o">(</span>dir_path, file_name<span class="o">))</span> as f: 
+</span></span><span class="line"><span class="cl">                <span class="k">if</span> validate<span class="o">(</span>word, f.read<span class="o">())</span>: 
+</span></span><span class="line"><span class="cl">                    <span class="nv">count</span> <span class="o">+=</span> <span class="m">1</span> 
+</span></span><span class="line"><span class="cl">    finally: 
+</span></span><span class="line"><span class="cl">        <span class="c1"># clean files </span>
+</span></span><span class="line"><span class="cl">        shutil.rmtree<span class="o">(</span>dir_path, <span class="nv">ignore_errors</span><span class="o">=</span>True<span class="o">)</span> 
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> jsonify<span class="o">({</span><span class="s1">&#39;popularity&#39;</span>: count / sample_size * 100, <span class="s1">&#39;word&#39;</span>: word<span class="o">})</span> 
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>源码中可以看到，这个案例应用，在每个请求的处理过程中，都会生成一批临时文件，然后读入内存处理，最后把整个目录删除掉。</p>
+<p>这是一种常见的利用磁盘空间处理大量数据的技巧，不过，本次案例中的 I/O 请求太重，导致磁盘 I/O 利用率过高。</p>
+<p>要解决这一点，其实就是算法优化问题了。比如在内存充足时，就可以把所有数据都放到内存中处理，这样就能避免 I/O 的性能问题。</p>
+<p>可以检验一下。在终端2分别访问 http://192.168.0.10:10000/popularity/word 和 http://192.168.0.10:10000/popular/word ，对比前后的效果：</p>
+<ol start="18">
+<li>终端2：访问优化前的链接</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="nb">time</span> curl http://192.168.0.10:10000/popularity/word
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>输出结果：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="o">{</span> 
+</span></span><span class="line"><span class="cl">  <span class="s2">&#34;popularity&#34;</span>: 0.0, 
+</span></span><span class="line"><span class="cl">  <span class="s2">&#34;word&#34;</span>: <span class="s2">&#34;word&#34;</span> 
+</span></span><span class="line"><span class="cl"><span class="o">}</span> 
+</span></span><span class="line"><span class="cl">real    2m43.172s 
+</span></span><span class="line"><span class="cl">user    0m0.004s 
+</span></span><span class="line"><span class="cl">sys    0m0.007s
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="19">
+<li>访问优化后的链接</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="nb">time</span> curl http://192.168.0.10:10000/popular/word
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>输出结果</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="o">{</span>
+</span></span><span class="line"><span class="cl">  <span class="s2">&#34;popularity&#34;</span>: 0.0,
+</span></span><span class="line"><span class="cl">  <span class="s2">&#34;word&#34;</span>: <span class="s2">&#34;word&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="o">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">real    0m8.810s
+</span></span><span class="line"><span class="cl">user    0m0.010s
+</span></span><span class="line"><span class="cl">sys    0m0.000s 
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>新的接口只要 8 秒就可以返回，明显比一开始的 3 分钟好很多。</p>
+<p>当然，这只是优化的第一步，并且方法也不算完善，还可以进一步的优化。不过，在实际系统中，我们大都是类似的做法，先用最简单的方法，尽早解决线上问题，然后再继续思考更好的优化方法。</p>
+<h2 id="小结">小结
+</h2><p>本节，分析了一个响应过慢的单词热度案例。</p>
+<p>首先，我们用 top、iostat，分析了系统的 CPU 和磁盘使用情况。我们发现了磁盘 I/O 瓶颈，也知道了这个瓶颈是案例应用导致的。</p>
+<p>接着，我们试着照搬上一节案例的方法，用 strace 来观察进程的系统调用，不过这次很不走运，没找到任何 weite 系统调用。</p>
+<p>于是，我们有用了新的工具，借助动态追踪工具包 bcc 中的 filetop 和 opensnoop，找出了案例应用的问题，发现这个根源是大量读写临时文件。</p>
+<p>找出问题后，优化方法就相对比较简单了。如果内存充足时，最简单的方法，就是把数据都放在速度更快的内存中，这样就没有磁盘 I/O 的瓶颈了。当然，再进一步，可以利用 Trie 树等各种算法，进一步优化单词处理的效率。</p>
+<h2 id="思考">思考
+</h2><p>今天的案例中，iostat 已经证明，磁盘 I/O 出现了性能瓶颈， pidstat 也证明了这个瓶颈是由 12280 号进程导致的。但是，strace 跟踪这个进程，却没有发现任何 write 系统调用。</p>
+<p>这究竟是怎么回事？难道是因为案例使用的编程语言 Python 本身是解释型？还是说，因为案例运行在 Docker 中呢？</p>
+<p>当你发现性能工具的输出无法解释时，最好返回去想想，是不是分析中漏掉了什么线索，或者去翻翻工具手册，看看是不是某些默认选项导致的。</p>
+
+</section>
+
+
+    <footer class="article-footer">
+    
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+<aside class="related-content--wrapper">
+    <h2 class="section-title">相关文章</h2>
+    <div class="related-content">
+        <div class="flex article-list--tile">
+            
+                
+<article class="">
+    <a href="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-i/o%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Linux]性能调优-I/O篇（案例篇）</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-i/o%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87-2/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Linux]性能调优-I/O篇（基础篇）- 2</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-i/o%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Linux]性能调优-I/O篇（基础篇）</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%86%85%E5%AD%98%E7%AF%87%E5%A5%97%E8%B7%AF%E7%AF%87/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Linux]性能调优-内存篇（套路篇）</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%86%85%E5%AD%98%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-3/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Linux]性能调优-内存篇（案例篇）- 3</h2>
+        </div>
+    </a>
+</article>
+
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+            2025 - 
+        
+        2026 リンボの個人ブログ
+    </section>
+    
+    <section class="powerby">
+         <br />
+        
+    </section>
+</footer>
+
+
+    
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+    
+    <div class="pswp__bg"></div>
+
+    
+    <div class="pswp__scroll-wrap">
+
+        
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+
+        
+        <div class="pswp__ui pswp__ui--hidden">
+
+            <div class="pswp__top-bar">
+
+                
+
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+
+                <button class="pswp__button pswp__button--share" title="Share"></button>
+
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+
+                
+                
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                        <div class="pswp__preloader__cut">
+                            <div class="pswp__preloader__donut"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div>
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.js"integrity="sha256-ePwmChbbvXbsO02lbM3HoHbSHTHFAeChekF1xKJdleo="crossorigin="anonymous"
+                defer
+                >
+            </script><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe-ui-default.min.js"integrity="sha256-UKkzOn/w1mBxRmLLGrSeyB4e1xbrp4xylgAWb3M42pU="crossorigin="anonymous"
+                defer
+                >
+            </script><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/default-skin/default-skin.min.css"crossorigin="anonymous"
+            ><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.css"crossorigin="anonymous"
+            >
+
+            </main>
+        </div>
+        <script 
+                src="https://cdn.jsdelivr.net/npm/node-vibrant@3.1.6/dist/vibrant.min.js"integrity="sha256-awcR2jno4kI5X0zL8ex0vi2z&#43;KMkF24hUW8WePSA9HM="crossorigin="anonymous"
+                
+                >
+            </script><script type="text/javascript" src="/ts/main.1e9a3bafd846ced4c345d084b355fb8c7bae75701c338f8a1f8a82c780137826.js" defer></script>
+<script>
+    (function () {
+        const customFont = document.createElement('link');
+        customFont.href = "https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap";
+
+        customFont.type = "text/css";
+        customFont.rel = "stylesheet";
+
+        document.head.appendChild(customFont);
+    }());
+</script>
+
+    </body>
+</html>
