@@ -1,0 +1,1118 @@
+<!DOCTYPE html>
+<html lang="en-us" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="Redis 响应严重延迟，如何解决？ 上一节，我们一起分析了一个基于 MySQL 的商品搜索案例，先来回顾一下。\n在访问商品搜索接口时，我们发现接口的响应特别慢。通过对系统 CPU、内存和磁盘 I/O 等资源使用情况的分析，我们发现这时出现了磁盘的 I/O 瓶颈，并且正是案例应用导致的。\n">
+<title>[Linux]性能调优-I/O篇（案例篇）- 4</title>
+
+<link rel='canonical' href='https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-i/o%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-4/'>
+
+<link rel="stylesheet" href="/scss/style.min.6a692fd055deae459f2a9767f57f3855ba80cafd5041317f24f7360f6ca47cdf.css"><meta property='og:title' content="[Linux]性能调优-I/O篇（案例篇）- 4">
+<meta property='og:description' content="Redis 响应严重延迟，如何解决？ 上一节，我们一起分析了一个基于 MySQL 的商品搜索案例，先来回顾一下。\n在访问商品搜索接口时，我们发现接口的响应特别慢。通过对系统 CPU、内存和磁盘 I/O 等资源使用情况的分析，我们发现这时出现了磁盘的 I/O 瓶颈，并且正是案例应用导致的。\n">
+<meta property='og:url' content='https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-i/o%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-4/'>
+<meta property='og:site_name' content='リンボの個人ブログ'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:published_time' content='2026-02-05T15:04:46&#43;08:00'/><meta property='article:modified_time' content='2026-02-05T15:04:46&#43;08:00'/>
+<meta name="twitter:title" content="[Linux]性能调优-I/O篇（案例篇）- 4">
+<meta name="twitter:description" content="Redis 响应严重延迟，如何解决？ 上一节，我们一起分析了一个基于 MySQL 的商品搜索案例，先来回顾一下。\n在访问商品搜索接口时，我们发现接口的响应特别慢。通过对系统 CPU、内存和磁盘 I/O 等资源使用情况的分析，我们发现这时出现了磁盘的 I/O 瓶颈，并且正是案例应用导致的。\n">
+    <link rel="shortcut icon" href="/favicon.ico" />
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        
+            
+            <figure class="site-avatar">
+                <a href="/">
+                
+                    
+                    
+                    
+                        
+                        <img src="/img/avatar_hu_de528bff5d5e9598.png" width="300"
+                            height="300" class="site-logo" loading="lazy" alt="Avatar">
+                    
+                
+                </a>
+                
+                    <span class="emoji">🏖️</span>
+                
+            </figure>
+            
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">リンボの個人ブログ</a></h1>
+            <h2 class="site-description">努力不一定能获得回报，但不努力一定不会有回报。</h2>
+        </div>
+    </header><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-home" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <polyline points="5 12 3 12 12 3 21 12 19 12" />
+  <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7" />
+  <path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6" />
+</svg>
+
+
+
+                
+                <span>主页</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/%E5%85%B3%E4%BA%8E/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/archives/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/search/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-search" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="10" cy="10" r="7" />
+  <line x1="21" y1="21" x2="15" y2="15" />
+</svg>
+
+
+
+                
+                <span>搜索</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav id="TableOfContents">
+  <ol>
+    <li><a href="#案例">案例</a>
+      <ol>
+        <li><a href="#准备">准备</a></li>
+        <li><a href="#案例分析">案例分析</a>
+          <ol>
+            <li><a href="#问题一">问题一</a></li>
+            <li><a href="#问题二">问题二</a></li>
+          </ol>
+        </li>
+      </ol>
+    </li>
+    <li><a href="#小结">小结</a></li>
+  </ol>
+</nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            <a href="/categories/linux/" >
+                Linux
+            </a>
+        
+            <a href="/categories/i/o/" >
+                I/O
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-i/o%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-4/">[Linux]性能调优-I/O篇（案例篇）- 4</a>
+        </h2>
+    
+        
+    </div>
+
+    
+    
+    
+    
+    <footer class="article-time">
+        
+            <div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                <time class="article-time--published">2026-02-05</time>
+            </div>
+        
+
+        
+    </footer>
+    
+
+    
+</div>
+
+</header>
+
+    <section class="article-content">
+    
+    
+    <h2>Redis 响应严重延迟，如何解决？</h2>
+<p>上一节，我们一起分析了一个基于 MySQL 的商品搜索案例，先来回顾一下。</p>
+<p>在访问商品搜索接口时，我们发现接口的响应特别慢。通过对系统 CPU、内存和磁盘 I/O 等资源使用情况的分析，我们发现这时出现了磁盘的 I/O 瓶颈，并且正是案例应用导致的。</p>
+<p>接着，我们借助 pidstat，发现罪魁祸首是 mysqld 进程。我们又通过 strace、lsof，找出了 mysqld 正在读的文件。根据文件的名字和路径，我们找出了 mysqld 正在操作的数据库和数据表。综合这些信息，我们猜测这是一个没利用索引导致的慢查询问题。</p>
+<p>为了验证猜测，我们到 MySQL 命令行终端，使用数据库分析工具发现，案例应用访问的字段果然没有索引。既然猜测是正确的，那增加索引后，问题就自然解决了。</p>
+<p>从这个案例会发现，把应用程序的性能优化完全建立在系统缓存上。最好能在应用程序的内部分配内存，构建完全自主控制的缓存；或者使用第三方的缓存应用，比如 Memcached、Redis 等。</p>
+<p>Redis 是最常用的键值存储系统之一，常用作数据库、高速缓存和消息队列代理等。</p>
+<p>Redis 基于内存来存储数据，不过，为了保证在服务器异常时数据不会丢失，很多情况下，我们要为它配置持久话，而这就可以能会引发磁盘 I/O 的性能问题。</p>
+<p>本节，就来分析一个利用 Redis 作为缓存的案例。这同样是一个基于 Python Flask 的应用程序，它提供了一个查询缓存的接口，但接口的响应时间比较长，并不能满足线上系统的要求。</p>
+<h2 id="案例">案例
+</h2><h3 id="准备">准备
+</h3><ul>
+<li>系统环境：ubuntu 18.04</li>
+<li>机器配置：2 CPU，8GB 内存</li>
+<li>预先安装 docker、sysstat、git、make 等工具</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">apt install -y docker.io sysstat
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>今天的案例由 Python 应用 + Redis 两部分组成。其中，Python 应用是一个基于 Flask 的应用，它会利用 Redis，来管理应用程序的缓存，并对外提供三个 HTTP 接口：</p>
+<ul>
+<li>/：返回 hello redis；</li>
+<li>/init/：插入指定数量的缓存数据，如果不指定数量，默认的是 5000 条；</li>
+<li>缓存的键格式为 uuid；</li>
+<li>缓存的值为 good、bad 或 normal 三者之一</li>
+<li>/get_cache/&lt;type_name&gt;：查询指定值的缓存数据，并返回处理时间，其中，type_name 参数只支持 good，bad 和 normal（也就是找出具有相同 value 的 key 列表）。</li>
+</ul>
+<p>由于应用比较多，为了方便运行，老师把它们打包成了两个 Docker 镜像，并推送到了<a class="link" href="https://github.com/feiskyer/linux-perf-examples/tree/master/redis-slow"  target="_blank" rel="noopener"
+    >Github</a>上。</p>
+<p>今天的案例需要两台虚拟机，其中一台用作案例分析的目标机器，运行 Flask 应用，它的 IP 地址是 192.168.0.10；而另一台作为客户端，请求缓存查询接口。</p>
+<p><img src="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-i/o%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-4/image.png"
+	width="770"
+	height="519"
+	srcset="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-i/o%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-4/image_hu_dd8a10110e9fc90d.png 480w, /p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-i/o%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-4/image_hu_64fd68b31fe42f5d.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="148"
+		data-flex-basis="356px"
+	
+></p>
+<ol>
+<li>
+<p>打开两个终端，分别 SSH 登录到这两台虚拟机中，并在第一台虚拟机中安装上述工具。</p>
+</li>
+<li>
+<p>切换 root 用户</p>
+</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo su root
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="案例分析">案例分析
+</h3><ol>
+<li>终端1：执行下面的命令，运行本次案例要分析的目标应用</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 注意下面的随机字符串是容器ID，每次运行均会不同，并且你不需要关注它</span>
+</span></span><span class="line"><span class="cl">docker run --name<span class="o">=</span>redis -itd -p 10000:80 feisky/redis-server
+</span></span><span class="line"><span class="cl">docker run --name<span class="o">=</span>app --network<span class="o">=</span>container:redis -itd feisky/redis-app
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="2">
+<li>终端1：运行 docker ps 命令，确认两个容器都处于（Up）状态：</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">docker ps
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>输出结果：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">CONTAINER ID        IMAGE                 COMMAND                  CREATED             STATUS              PORTS                             NAMES
+</span></span><span class="line"><span class="cl">2c54eb252d05        feisky/redis-app      &#34;python /app.py&#34;         48 seconds ago      Up 47 seconds                                         app
+</span></span><span class="line"><span class="cl">ec41cb9e4dd5        feisky/redis-server   &#34;docker-entrypoint.s…&#34;   49 seconds ago      Up 48 seconds       6379/tcp, 0.0.0.0:10000-&gt;80/tcp   redis
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>本节应用在 10000 端口监听，所以可以通过 http://192.168.0.10:10000，来访问前面提到的三个接口。</p>
+<ol start="3">
+<li>终端2：使用 curl 工具，访问应用首页。</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">curl http://192.168.0.10:10000/
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>输出结果：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">hello redis
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>看到 hello redis 的输出，说明应用正常启动</p>
+<ol start="4">
+<li>终端2：执行 curl 命令，来调用应用的 /init 接口，初始化 Redis 缓存，并且插入 5000 条缓存信息。</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 案例插入5000条数据，在实践时可以根据磁盘的类型适当调整，比如使用SSD时可以调大，而HDD可以适当调小</span>
+</span></span><span class="line"><span class="cl">curl http://192.168.0.10:10000/init/5000
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>输出结果：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">{&#34;elapsed_seconds&#34;:30.26814079284668,&#34;keys_initialized&#34;:5000}
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="5">
+<li>终端2：访问应用的缓存查询接口</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">curl http://192.168.0.10:10000/get_cache
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>输出结果：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">{&#34;count&#34;:1677,&#34;data&#34;:[&#34;d97662fa-06ac-11e9-92c7-0242ac110002&#34;,...],&#34;elapsed_seconds&#34;:10.545469760894775,&#34;type&#34;:&#34;good&#34;}
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>我们看到，这个接口调用使用了 10 秒。这么长的响应时间，显然不能满足实际的应用需求。</p>
+<p>同样为了避免分析过程中客户端的请求结束，在进行性能分析前，我们先要把 curl 命令放到一个循环里来执行。</p>
+<ol start="6">
+<li>终端2：执行下面命令</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="k">while</span> true<span class="p">;</span> <span class="k">do</span> curl http://192.168.0.10:10000/get_cache<span class="p">;</span> <span class="k">done</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>接下来，再重新回到终端1，查找接口响应慢的”病因“。</p>
+<p>最近几个案例的现象都是响应很慢，这种情况下，我们自然先回怀疑，是不是系统资源出现了瓶颈。所以，先观察 CPU、内存和磁盘 I/O 等的使用情况肯定不会错。</p>
+<ol start="7">
+<li>终端1：执行 top 命令，分析系统的 CPU 使用情况：</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">top
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>输出结果：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">top - 12:46:18 up <span class="m">11</span> days,  8:49,  <span class="m">1</span> user,  load average: 1.36, 1.36, 1.04
+</span></span><span class="line"><span class="cl">Tasks: <span class="m">137</span> total,   <span class="m">1</span> running,  <span class="m">79</span> sleeping,   <span class="m">0</span> stopped,   <span class="m">0</span> zombie
+</span></span><span class="line"><span class="cl">%Cpu0  :  6.0 us,  2.7 sy,  0.0 ni,  5.7 id, 84.7 wa,  0.0 hi,  1.0 si,  0.0 st
+</span></span><span class="line"><span class="cl">%Cpu1  :  1.0 us,  3.0 sy,  0.0 ni, 94.7 id,  0.0 wa,  0.0 hi,  1.3 si,  0.0 st
+</span></span><span class="line"><span class="cl">KiB Mem :  <span class="m">8169300</span> total,  <span class="m">7342244</span> free,   <span class="m">432912</span> used,   <span class="m">394144</span> buff/cache
+</span></span><span class="line"><span class="cl">KiB Swap:        <span class="m">0</span> total,        <span class="m">0</span> free,        <span class="m">0</span> used.  <span class="m">7478748</span> avail Mem
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  PID USER      PR  NI    VIRT    RES    SHR S  %CPU %MEM     TIME+ COMMAND
+</span></span><span class="line"><span class="cl"> <span class="m">9181</span> root      <span class="m">20</span>   <span class="m">0</span>  <span class="m">193004</span>  <span class="m">27304</span>   <span class="m">8716</span> S   8.6  0.3   0:07.15 python
+</span></span><span class="line"><span class="cl"> <span class="m">9085</span> systemd+  <span class="m">20</span>   <span class="m">0</span>   <span class="m">28352</span>   <span class="m">9760</span>   <span class="m">1860</span> D   5.0  0.1   0:04.34 redis-server
+</span></span><span class="line"><span class="cl">  <span class="m">368</span> root      <span class="m">20</span>   <span class="m">0</span>       <span class="m">0</span>      <span class="m">0</span>      <span class="m">0</span> D   1.0  0.0   0:33.88 jbd2/sda1-8
+</span></span><span class="line"><span class="cl">  <span class="m">149</span> root       <span class="m">0</span> -20       <span class="m">0</span>      <span class="m">0</span>      <span class="m">0</span> I   0.3  0.0   0:10.63 kworker/0:1H
+</span></span><span class="line"><span class="cl"> <span class="m">1549</span> root      <span class="m">20</span>   <span class="m">0</span>  <span class="m">236716</span>  <span class="m">24576</span>   <span class="m">9864</span> S   0.3  0.3  91:37.30 python3
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>观察 top 的输出可以发现，CPU0 的 iowait 比较高，已经达到了 84%；而各个进程的 CPU 使用率都不太高，最高的 python 和 redis-server，也分别只有 8% 和 5%。再看内存，总内存 8GB，剩余内存还有 7GB 多，显然内存也没啥问题。</p>
+<p>综合 top 的信息，最有嫌疑的就是 iowait。所以，接下来还是要继续分析，是不是 I/O 问题。</p>
+<ol start="8">
+<li>终端1：按下 Ctrl + c，停止 top 命令；然后，执行 iostat 命令，查看有没有 I/O 性能问题</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">iostat -d -x <span class="m">1</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>输出结果：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">Device            r/s     w/s     rkB/s     wkB/s   rrqm/s   wrqm/s  %rrqm  %wrqm r_await w_await aqu-sz rareq-sz wareq-sz  svctm  %util
+</span></span><span class="line"><span class="cl">...
+</span></span><span class="line"><span class="cl">sda              0.00  492.00      0.00   2672.00     0.00   176.00   0.00  26.35    0.00    1.76   0.00     0.00     5.43   0.00   0.00
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>观察 iostat 的输出，发现磁盘 sda 每秒的写数据（skB/s）为 2.5 MB，I/O 使用率（%util）是 0。看来，虽然有些 I/O 操作，但并没有导致磁盘的 I/O 瓶颈。</p>
+<p>排查下来，CPU 和内存使用没问题，I/O 也没有瓶颈，接下来好像也没啥分析方向了？</p>
+<p>碰到这种情况，反思一下，是不是又漏掉什么有用的线索了。思考一下，从<strong>分析对象（案例应用）</strong>、<strong>系统原理</strong>和<strong>性能工具</strong>这三个方向下功夫，回忆它们的特性，查找现象的异常，再继续往下走。</p>
+<p>回想一下，本节的案例问题是从 Redis 缓存中查询数据慢。对查询来说，对应的 I/O 应该是磁盘的读操作，但刚才我们用 iostat 看到的却是写操作。虽说 I/O 本身并没有性能瓶颈，但这里的磁盘写也是比较奇怪。为什么会有磁盘写呢？那我们就得知道，到底是哪个进程在写磁盘。</p>
+<ol start="9">
+<li>终端1：运行 pidstat 命令，观察进程的 I/O 情况</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">pidstat -d <span class="m">1</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>输出结果：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">12:49:35      UID       PID   kB_rd/s   kB_wr/s kB_ccwr/s iodelay  Command
+</span></span><span class="line"><span class="cl">12:49:36        <span class="m">0</span>       <span class="m">368</span>      0.00     16.00      0.00      <span class="m">86</span>  jbd2/sda1-8
+</span></span><span class="line"><span class="cl">12:49:36      <span class="m">100</span>      <span class="m">9085</span>      0.00    636.00      0.00       <span class="m">1</span>  redis-server
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>从 pidstat 的输出，我们看到 I/O 最多的进程是 PID 为 9085 的 redis-server，并且它也刚好是在写磁盘。这说明，确实是 redis-server 在进行磁盘写。</p>
+<p>当然，光找到读写磁盘的进程还不够，我们还要再用 strace + lsof 组合，看看 redis-server 到底在写什么。</p>
+<ol start="10">
+<li>终端1：执行 strace 命令，并且指定 redis-server 的进程号 9085</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># -f表示跟踪子进程和子线程，-T表示显示系统调用的时长，-tt表示显示跟踪时间</span>
+</span></span><span class="line"><span class="cl">strace -f -T -tt -p <span class="m">9085</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>输出结果：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="o">[</span>pid  9085<span class="o">]</span> 14:20:16.826131 epoll_pwait<span class="o">(</span>5, <span class="o">[{</span>EPOLLIN, <span class="o">{</span><span class="nv">u32</span><span class="o">=</span>8, <span class="nv">u64</span><span class="o">=</span>8<span class="o">}}]</span>, 10128, 65, NULL, 8<span class="o">)</span> <span class="o">=</span> <span class="m">1</span> &lt;0.000055&gt;
+</span></span><span class="line"><span class="cl"><span class="o">[</span>pid  9085<span class="o">]</span> 14:20:16.826301 read<span class="o">(</span>8, <span class="s2">&#34;*2\r\n</span><span class="nv">$3</span><span class="s2">\r\nGET\r\n</span><span class="nv">$41</span><span class="s2">\r\nuuid:5b2e76cc-&#34;</span>..., 16384<span class="o">)</span> <span class="o">=</span> <span class="m">61</span> &lt;0.000071&gt;
+</span></span><span class="line"><span class="cl"><span class="o">[</span>pid  9085<span class="o">]</span> 14:20:16.826477 read<span class="o">(</span>3, 0x7fff366a5747, 1<span class="o">)</span> <span class="o">=</span> -1 EAGAIN <span class="o">(</span>Resource temporarily unavailable<span class="o">)</span> &lt;0.000063&gt;
+</span></span><span class="line"><span class="cl"><span class="o">[</span>pid  9085<span class="o">]</span> 14:20:16.826645 write<span class="o">(</span>8, <span class="s2">&#34;</span><span class="nv">$3</span><span class="s2">\r\nbad\r\n&#34;</span>, 9<span class="o">)</span> <span class="o">=</span> <span class="m">9</span> &lt;0.000173&gt;
+</span></span><span class="line"><span class="cl"><span class="o">[</span>pid  9085<span class="o">]</span> 14:20:16.826907 epoll_pwait<span class="o">(</span>5, <span class="o">[{</span>EPOLLIN, <span class="o">{</span><span class="nv">u32</span><span class="o">=</span>8, <span class="nv">u64</span><span class="o">=</span>8<span class="o">}}]</span>, 10128, 65, NULL, 8<span class="o">)</span> <span class="o">=</span> <span class="m">1</span> &lt;0.000032&gt;
+</span></span><span class="line"><span class="cl"><span class="o">[</span>pid  9085<span class="o">]</span> 14:20:16.827030 read<span class="o">(</span>8, <span class="s2">&#34;*2\r\n</span><span class="nv">$3</span><span class="s2">\r\nGET\r\n</span><span class="nv">$41</span><span class="s2">\r\nuuid:55862ada-&#34;</span>..., 16384<span class="o">)</span> <span class="o">=</span> <span class="m">61</span> &lt;0.000044&gt;
+</span></span><span class="line"><span class="cl"><span class="o">[</span>pid  9085<span class="o">]</span> 14:20:16.827149 read<span class="o">(</span>3, 0x7fff366a5747, 1<span class="o">)</span> <span class="o">=</span> -1 EAGAIN <span class="o">(</span>Resource temporarily unavailable<span class="o">)</span> &lt;0.000043&gt;
+</span></span><span class="line"><span class="cl"><span class="o">[</span>pid  9085<span class="o">]</span> 14:20:16.827285 write<span class="o">(</span>8, <span class="s2">&#34;</span><span class="nv">$3</span><span class="s2">\r\nbad\r\n&#34;</span>, 9<span class="o">)</span> <span class="o">=</span> <span class="m">9</span> &lt;0.000141&gt;
+</span></span><span class="line"><span class="cl"><span class="o">[</span>pid  9085<span class="o">]</span> 14:20:16.827514 epoll_pwait<span class="o">(</span>5, <span class="o">[{</span>EPOLLIN, <span class="o">{</span><span class="nv">u32</span><span class="o">=</span>8, <span class="nv">u64</span><span class="o">=</span>8<span class="o">}}]</span>, 10128, 64, NULL, 8<span class="o">)</span> <span class="o">=</span> <span class="m">1</span> &lt;0.000049&gt;
+</span></span><span class="line"><span class="cl"><span class="o">[</span>pid  9085<span class="o">]</span> 14:20:16.827641 read<span class="o">(</span>8, <span class="s2">&#34;*2\r\n</span><span class="nv">$3</span><span class="s2">\r\nGET\r\n</span><span class="nv">$41</span><span class="s2">\r\nuuid:53522908-&#34;</span>..., 16384<span class="o">)</span> <span class="o">=</span> <span class="m">61</span> &lt;0.000043&gt;
+</span></span><span class="line"><span class="cl"><span class="o">[</span>pid  9085<span class="o">]</span> 14:20:16.827784 read<span class="o">(</span>3, 0x7fff366a5747, 1<span class="o">)</span> <span class="o">=</span> -1 EAGAIN <span class="o">(</span>Resource temporarily unavailable<span class="o">)</span> &lt;0.000034&gt;
+</span></span><span class="line"><span class="cl"><span class="o">[</span>pid  9085<span class="o">]</span> 14:20:16.827945 write<span class="o">(</span>8, <span class="s2">&#34;</span><span class="nv">$4</span><span class="s2">\r\ngood\r\n&#34;</span>, 10<span class="o">)</span> <span class="o">=</span> <span class="m">10</span> &lt;0.000288&gt;
+</span></span><span class="line"><span class="cl"><span class="o">[</span>pid  9085<span class="o">]</span> 14:20:16.828339 epoll_pwait<span class="o">(</span>5, <span class="o">[{</span>EPOLLIN, <span class="o">{</span><span class="nv">u32</span><span class="o">=</span>8, <span class="nv">u64</span><span class="o">=</span>8<span class="o">}}]</span>, 10128, 63, NULL, 8<span class="o">)</span> <span class="o">=</span> <span class="m">1</span> &lt;0.000057&gt;
+</span></span><span class="line"><span class="cl"><span class="o">[</span>pid  9085<span class="o">]</span> 14:20:16.828486 read<span class="o">(</span>8, <span class="s2">&#34;*3\r\n</span><span class="nv">$4</span><span class="s2">\r\nSADD\r\n</span><span class="nv">$4</span><span class="s2">\r\ngood\r\n</span><span class="nv">$36</span><span class="s2">\r\n535&#34;</span>..., 16384<span class="o">)</span> <span class="o">=</span> <span class="m">67</span> &lt;0.000040&gt;
+</span></span><span class="line"><span class="cl"><span class="o">[</span>pid  9085<span class="o">]</span> 14:20:16.828623 read<span class="o">(</span>3, 0x7fff366a5747, 1<span class="o">)</span> <span class="o">=</span> -1 EAGAIN <span class="o">(</span>Resource temporarily unavailable<span class="o">)</span> &lt;0.000052&gt;
+</span></span><span class="line"><span class="cl"><span class="o">[</span>pid  9085<span class="o">]</span> 14:20:16.828760 write<span class="o">(</span>7, <span class="s2">&#34;*3\r\n</span><span class="nv">$4</span><span class="s2">\r\nSADD\r\n</span><span class="nv">$4</span><span class="s2">\r\ngood\r\n</span><span class="nv">$36</span><span class="s2">\r\n535&#34;</span>..., 67<span class="o">)</span> <span class="o">=</span> <span class="m">67</span> &lt;0.000060&gt;
+</span></span><span class="line"><span class="cl"><span class="o">[</span>pid  9085<span class="o">]</span> 14:20:16.828970 fdatasync<span class="o">(</span>7<span class="o">)</span> <span class="o">=</span> <span class="m">0</span> &lt;0.005415&gt;
+</span></span><span class="line"><span class="cl"><span class="o">[</span>pid  9085<span class="o">]</span> 14:20:16.834493 write<span class="o">(</span>8, <span class="s2">&#34;:1\r\n&#34;</span>, 4<span class="o">)</span> <span class="o">=</span> <span class="m">4</span> &lt;0.000250&gt;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>从系统调用来看，epoll_pwait、read、write、dfatasync 这些系统调用都比较频繁。那么，刚才观察到的写磁盘，应该就是 write 或者 fdatasync 导致的了。</p>
+<ol start="11">
+<li>终端1：执行 lsof 命令，查看进程 9085，找出这些系统调用的操作对象</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">lsof -p <span class="m">9085</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>输出结果：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">redis-ser <span class="m">9085</span> systemd-network    3r     FIFO   0,12      0t0 <span class="m">15447970</span> pipe
+</span></span><span class="line"><span class="cl">redis-ser <span class="m">9085</span> systemd-network    4w     FIFO   0,12      0t0 <span class="m">15447970</span> pipe
+</span></span><span class="line"><span class="cl">redis-ser <span class="m">9085</span> systemd-network    5u  a_inode   0,13        <span class="m">0</span>    <span class="m">10179</span> <span class="o">[</span>eventpoll<span class="o">]</span>
+</span></span><span class="line"><span class="cl">redis-ser <span class="m">9085</span> systemd-network    6u     sock    0,9      0t0 <span class="m">15447972</span> protocol: TCP
+</span></span><span class="line"><span class="cl">redis-ser <span class="m">9085</span> systemd-network    7w      REG    8,1  <span class="m">8830146</span>  <span class="m">2838532</span> /data/appendonly.aof
+</span></span><span class="line"><span class="cl">redis-ser <span class="m">9085</span> systemd-network    8u     sock    0,9      0t0 <span class="m">15448709</span> protocol: TCP
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>现在发现，描述符编号为 3 的是一个 pipe 管道，5 号是 eventpoll，7 号是一个普通文件，而 8 号是一个 TCP socket。</p>
+<p>结合磁盘写的现象，我们知道，只有 7 号普通文件才会产生磁盘写，而它操作的文件路径是 /data/appendonly.aof，相应的系统调用包括 write 和 fdatasync。</p>
+<p>如果对 Redis 的持久话比较熟，看到这个文件路径以及 fdatasync 的系统调用，应该能想到，这对应着正是 Redis 持久化配置中的 appendonly 和 appendfsync 选项。很可能是因为它们的配置不合理，导致磁盘写比较多。</p>
+<p>接下来就验证一下这个猜想，我们可以通过 Redis 的命令行工具，查询这两个选项的配置。</p>
+<ol start="12">
+<li>终端1：运行以下命令，查询 appendonly 和 appendfsync 的配置</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">docker <span class="nb">exec</span> -it redis redis-cli config get <span class="s1">&#39;append*&#39;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>输出结果：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">1<span class="o">)</span> <span class="s2">&#34;appendfsync&#34;</span>
+</span></span><span class="line"><span class="cl">2<span class="o">)</span> <span class="s2">&#34;always&#34;</span>
+</span></span><span class="line"><span class="cl">3<span class="o">)</span> <span class="s2">&#34;appendonly&#34;</span>
+</span></span><span class="line"><span class="cl">4<span class="o">)</span> <span class="s2">&#34;yes&#34;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>从这个结果可以发现，appendfsync 配置的是 always，而 appendonly 配置的是 yes。这两个选项的详细含义，可以从 <a class="link" href="https://redis.io/topics/persistence"  target="_blank" rel="noopener"
+    >Redis Persistence</a>的文档中查到，这里做一下简单介绍。</p>
+<p>Redis 提供了两种数据持久话的方式，分别是快照和追加文件。</p>
+<ul>
+<li>
+<p><strong>快照方式</strong>，会按照指定的时间间隔，生成数据的快照，并且保存到磁盘文件中。为了避免阻塞主进程，Redis 还会 fork 出一个子进程，来负责快照的保存。这种方式的性能好，无论是备份还是恢复，都比追加文件好很多。<br>不过，它的缺点也很明显。在数据量大时，fork 子进程需要用到比较大的内存，保存数据也很耗时。所以，需要设置一个比较长的时间间隔来应对，比如至少 5 分钟。这样，如果发生故障，丢失的就是几分钟的数据。</p>
+</li>
+<li>
+<p><strong>追加文件</strong>，则是用在文件末尾追加记录的方式，对 Redis 写入的数据，依次进行持久化，所以它的持久化也更安全。<br>此外，它提供了一个用 appendfsync 选项设置 fxync 的策略，确保写入的数据都落到磁盘中，具体选项包括 always、everysec、no 等。</p>
+</li>
+<li>
+<p>always 表示，每个操作都会执行一次 fsync，是最为安全的方式。</p>
+</li>
+<li>
+<p>everysec 表示，每秒钟调用一次 fsync，这样可以保证即使是最坏情况下，也只丢失 1 秒的数据；</p>
+</li>
+<li>
+<p>而 no 表示交给操作系统来处理。</p>
+</li>
+</ul>
+<p>回忆一下我们刚刚看到的配置，appendfsync 配置的是 always，意味着每次写数据时，都会调用一次 fsync，从而造成比较大的磁盘 I/O 压力。</p>
+<p>当然，还可以用 strace，观察这个系统调用的执行结果。</p>
+<ol start="13">
+<li>终端1：运行 strace 命令，通过 -e 选项指定 fdatasync。</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">strace -f -p <span class="m">9085</span> -T -tt -e fdatasync
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>输出结果：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">strace: Process <span class="m">9085</span> attached with <span class="m">4</span> threads
+</span></span><span class="line"><span class="cl"><span class="o">[</span>pid  9085<span class="o">]</span> 14:22:52.013547 fdatasync<span class="o">(</span>7<span class="o">)</span> <span class="o">=</span> <span class="m">0</span> &lt;0.007112&gt;
+</span></span><span class="line"><span class="cl"><span class="o">[</span>pid  9085<span class="o">]</span> 14:22:52.022467 fdatasync<span class="o">(</span>7<span class="o">)</span> <span class="o">=</span> <span class="m">0</span> &lt;0.008572&gt;
+</span></span><span class="line"><span class="cl"><span class="o">[</span>pid  9085<span class="o">]</span> 14:22:52.032223 fdatasync<span class="o">(</span>7<span class="o">)</span> <span class="o">=</span> <span class="m">0</span> &lt;0.006769&gt;
+</span></span><span class="line"><span class="cl">...
+</span></span><span class="line"><span class="cl"><span class="o">[</span>pid  9085<span class="o">]</span> 14:22:52.139629 fdatasync<span class="o">(</span>7<span class="o">)</span> <span class="o">=</span> <span class="m">0</span> &lt;0.008183&gt;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>从这里可以看到，每隔 10ms 左右，就会有一次 fdatasync 调用，并且每次调用本身也要消耗 7-8ms。</p>
+<p>不管哪种方式，都可以验证我们的猜想，配置确实不合理。这样，我们就找出了 Redis 正在进行写入的文件，也知道了产生大量 I/O 的原因。</p>
+<p>不过，回到最初的疑问，为什么查询时会有磁盘写呢？按理来说不应该只有数据的读取吗？这就需要我们再来审查一下 strace -f -T -tt -p 9085 的结果。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">read<span class="o">(</span>8, <span class="s2">&#34;*2\r\n</span><span class="nv">$3</span><span class="s2">\r\nGET\r\n</span><span class="nv">$41</span><span class="s2">\r\nuuid:53522908-&#34;</span>..., 16384<span class="o">)</span>
+</span></span><span class="line"><span class="cl">write<span class="o">(</span>8, <span class="s2">&#34;</span><span class="nv">$4</span><span class="s2">\r\ngood\r\n&#34;</span>, 10<span class="o">)</span>
+</span></span><span class="line"><span class="cl">read<span class="o">(</span>8, <span class="s2">&#34;*3\r\n</span><span class="nv">$4</span><span class="s2">\r\nSADD\r\n</span><span class="nv">$4</span><span class="s2">\r\ngood\r\n</span><span class="nv">$36</span><span class="s2">\r\n535&#34;</span>..., 16384<span class="o">)</span>
+</span></span><span class="line"><span class="cl">write<span class="o">(</span>7, <span class="s2">&#34;*3\r\n</span><span class="nv">$4</span><span class="s2">\r\nSADD\r\n</span><span class="nv">$4</span><span class="s2">\r\ngood\r\n</span><span class="nv">$36</span><span class="s2">\r\n535&#34;</span>..., 67<span class="o">)</span>
+</span></span><span class="line"><span class="cl">write<span class="o">(</span>8, <span class="s2">&#34;:1\r\n&#34;</span>, 4<span class="o">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>根据 lsof 的分析，文件描述符编号为 7 的是一个普通文件 /data/appendonly.aof，而编号为 8 的是 TCP socket。而观察上面的内容，8 号对应的 TCP 读写，是一个标准的“请求 - 响应”格式，即：</p>
+<ul>
+<li>从 socket 读取 GET uuid:53522908-&hellip; 后，响应 good；</li>
+<li>再从 socket 读取 SADD good 535&hellip; 后，响应 1。</li>
+</ul>
+<p>对 Redis 来说，SADD 是一个写操作，所以 Redis 还会把它保存到用于持久化的 appendonly.aof 文件中。</p>
+<p>观察更多的 strace 结果，发现每当 GET 返回 good 时，随后都会有一个 SADD 操作，这也就导致了，明明是查询接口，Redis 却又大量的磁盘写。</p>
+<p>到这里，我们就找出了 Redis 写磁盘的原因。不过，在下最终结论前，我们还需要确认一下，8 号 TCP socket 对应的 Redis 客户端，到底是不是我们的案例应用。</p>
+<p>我们可以给 lsof 命令加上 -i 选项，找出 TCP socket 对应的 TCP 连接信息。不过，由于 Redis 和 Python 应用都在容器中运行，我们需要进入容器的网络命名空间内部，才能看到完整的 TCP 连接。</p>
+<blockquote>
+<p>注意：下面的命令用到的 <a class="link" href="https://man7.org/linux/man-pages/man1/nsenter.1.html"  target="_blank" rel="noopener"
+    >nsenter</a> 工具，可以进入容器命名空间。如果你的系统没有安装，请运行下面命令安装 nsenter：<br>docker run &ndash;rm -v /usr/local/bin:/target jpetazzo/nsenter</p>
+</blockquote>
+<ol start="14">
+<li>终端1：进入容器命名空间</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 由于这两个容器共享同一个网络命名空间，所以我们只需要进入app的网络命名空间即可</span>
+</span></span><span class="line"><span class="cl"><span class="nv">PID</span><span class="o">=</span><span class="k">$(</span>docker inspect --format <span class="o">{{</span>.State.Pid<span class="o">}}</span> app<span class="k">)</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># -i表示显示网络套接字信息</span>
+</span></span><span class="line"><span class="cl">nsenter --target <span class="nv">$PID</span> --net -- lsof -i
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>输出结果：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">COMMAND    PID            USER   FD   TYPE   DEVICE SIZE/OFF NODE NAME
+</span></span><span class="line"><span class="cl">redis-ser <span class="m">9085</span> systemd-network    6u  IPv4 <span class="m">15447972</span>      0t0  TCP localhost:6379 <span class="o">(</span>LISTEN<span class="o">)</span>
+</span></span><span class="line"><span class="cl">redis-ser <span class="m">9085</span> systemd-network    8u  IPv4 <span class="m">15448709</span>      0t0  TCP localhost:6379-&gt;localhost:32996 <span class="o">(</span>ESTABLISHED<span class="o">)</span>
+</span></span><span class="line"><span class="cl">python    <span class="m">9181</span>            root    3u  IPv4 <span class="m">15448677</span>      0t0  TCP *:http <span class="o">(</span>LISTEN<span class="o">)</span>
+</span></span><span class="line"><span class="cl">python    <span class="m">9181</span>            root    5u  IPv4 <span class="m">15449632</span>      0t0  TCP localhost:32996-&gt;localhost:6379 <span class="o">(</span>ESTABLISHED<span class="o">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>这次我们可以看到，redis-server 的 8 号文件描述符，对应 TCP 连接 localhost:6379-&gt;localhost:32996。其中，localhost:6379 是 redis-server 自己的监听端口，自然 localhost:32996 就是 redis 的客户端。在观察最后一行，localhost:32996 对应的，正是我们的 Python 应用程序（进程号为 9181）。</p>
+<p>历经各种波折，我们总算找出了 Redis 响应延迟的潜在原因。总结一下，我们找到两个问题。</p>
+<ul>
+<li>
+<p><strong>问题一</strong>，Redis 配置的 appendfsync 是 always，这就导致 Redis 每次的写操作，都会触发 fdatasync 系统调用。本次案例，没必要用这么高频的同步写，使用默认的 1s 时间间隔，就足够了。</p>
+</li>
+<li>
+<p><strong>问题二</strong>，Python 应用在查询接口中会调用 Redis 的 SADD 命令，这很可能是不合理使用缓存导致的。</p>
+</li>
+</ul>
+<h4 id="问题一">问题一
+</h4><ol>
+<li>终端1：执行下面命令，把 appendfsync 改成 everysec</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">docker <span class="nb">exec</span> -it redis redis-cli config <span class="nb">set</span> appendfsync everysec
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>改完后，切换到终端二中查看，发现现在的请求时间，已经缩短到了 0.9s</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">{..., &#34;elapsed_seconds&#34;:0.9368953704833984,&#34;type&#34;:&#34;good&#34;}
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="问题二">问题二
+</h4><p>对于问题二，就要查看应用的源码了。点击<a class="link" href="https://github.com/feiskyer/linux-perf-examples/blob/master/redis-slow/app.py"  target="_blank" rel="noopener"
+    >Github</a>查看案例应用的源代码</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span><span class="lnt">9
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-py" data-lang="py"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">get_cache</span><span class="p">(</span><span class="n">type_name</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="s1">&#39;&#39;&#39;handler for /get_cache&#39;&#39;&#39;</span>
+</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">redis_client</span><span class="o">.</span><span class="n">scan_iter</span><span class="p">(</span><span class="s2">&#34;uuid:*&#34;</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">value</span> <span class="o">=</span> <span class="n">redis_client</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">value</span> <span class="o">==</span> <span class="n">type_name</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="n">redis_client</span><span class="o">.</span><span class="n">sadd</span><span class="p">(</span><span class="n">type_name</span><span class="p">,</span> <span class="n">key</span><span class="p">[</span><span class="mi">5</span><span class="p">:])</span>
+</span></span><span class="line"><span class="cl">    <span class="n">data</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">redis_client</span><span class="o">.</span><span class="n">smembers</span><span class="p">(</span><span class="n">type_name</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">    <span class="n">redis_client</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">type_name</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span><span class="s2">&#34;type&#34;</span><span class="p">:</span> <span class="n">type_name</span><span class="p">,</span> <span class="s1">&#39;count&#39;</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">),</span> <span class="s1">&#39;data&#39;</span><span class="p">:</span> <span class="n">data</span><span class="p">})</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>果然，Python 应用把 Redis 当成临时空间，用来存储查询过程中找到的数据。不过我们知道，这些数据放内存中就可以了，完全没必要再通过网络调用存储到 Redis 中。</p>
+<p>基于这个思路，老师把修改后的代码也推送到了相同的源码中，可以通过 http://192.168.0.10:10000/get_cache_data 这个接口来访问它。</p>
+<ol>
+<li>终端2：按 Ctrl + c 停止之前的 curl 命令；然后执行下面的 curl 命令，调用 http://192.168.0.10:10000/get_cache_data 新接口</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">$ <span class="k">while</span> true<span class="p">;</span> <span class="k">do</span> curl http://192.168.0.10:10000/get_cache_data<span class="p">;</span> <span class="k">done</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>输出结果：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">{...,&#34;elapsed_seconds&#34;:0.16034674644470215,&#34;type&#34;:&#34;good&#34;}
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>可以发现，解决第二个问题后，新接口的性能又有了进一步的提升，从刚才的 0.9s，再次缩短成了不到 0.2s。</p>
+<p>案例最后，清理案例应用：</p>
+<ol start="2">
+<li>终端1：执行以下命令清理案例应用</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">docker rm -f app redis
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="小结">小结
+</h2><p>本篇分析了一个 Redis 缓存的案例。</p>
+<p>我们先用 top、iostat，分析了系统的 CPU、内存和磁盘使用情况，不过却发现，系统资源并没有出现瓶颈。这个时候想要进一步分析的话，该从哪个方向入手呢？</p>
+<p>通过本篇案例发现，为了进一步分析，就需要对系统和应用程序的工作原理有一定的了解。</p>
+<p>比如，本篇的案例中，虽然磁盘 I/O 并没有出现瓶颈，但从 Redis 的原理来说，查缓存时不应该出现大量的磁盘 I/O 写操作。</p>
+<p>顺着这个思路，我们继续借助 pidstat、strace、lsof、nsenter 等一系列工具，找出了两个潜在问题，一个是 Redis 的不合理配置，另一个是 Python 应用对 Redis 的滥用。找到瓶颈后，相应的优化工作自然就比较轻松了。</p>
+
+</section>
+
+
+    <footer class="article-footer">
+    
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+<aside class="related-content--wrapper">
+    <h2 class="section-title">相关文章</h2>
+    <div class="related-content">
+        <div class="flex article-list--tile">
+            
+                
+<article class="">
+    <a href="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-io%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-3/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Linux]性能调优-IO篇（案例篇）- 3</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-i/o%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-2/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Linux]性能调优-I/O篇（案例篇）- 2</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-i/o%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Linux]性能调优-I/O篇（案例篇）</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-i/o%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87-2/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Linux]性能调优-I/O篇（基础篇）- 2</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-i/o%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Linux]性能调优-I/O篇（基础篇）</h2>
+        </div>
+    </a>
+</article>
+
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+            2025 - 
+        
+        2026 リンボの個人ブログ
+    </section>
+    
+    <section class="powerby">
+         <br />
+        
+    </section>
+</footer>
+
+
+    
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+    
+    <div class="pswp__bg"></div>
+
+    
+    <div class="pswp__scroll-wrap">
+
+        
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+
+        
+        <div class="pswp__ui pswp__ui--hidden">
+
+            <div class="pswp__top-bar">
+
+                
+
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+
+                <button class="pswp__button pswp__button--share" title="Share"></button>
+
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+
+                
+                
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                        <div class="pswp__preloader__cut">
+                            <div class="pswp__preloader__donut"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div>
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.js"integrity="sha256-ePwmChbbvXbsO02lbM3HoHbSHTHFAeChekF1xKJdleo="crossorigin="anonymous"
+                defer
+                >
+            </script><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe-ui-default.min.js"integrity="sha256-UKkzOn/w1mBxRmLLGrSeyB4e1xbrp4xylgAWb3M42pU="crossorigin="anonymous"
+                defer
+                >
+            </script><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/default-skin/default-skin.min.css"crossorigin="anonymous"
+            ><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.css"crossorigin="anonymous"
+            >
+
+            </main>
+        </div>
+        <script 
+                src="https://cdn.jsdelivr.net/npm/node-vibrant@3.1.6/dist/vibrant.min.js"integrity="sha256-awcR2jno4kI5X0zL8ex0vi2z&#43;KMkF24hUW8WePSA9HM="crossorigin="anonymous"
+                
+                >
+            </script><script type="text/javascript" src="/ts/main.1e9a3bafd846ced4c345d084b355fb8c7bae75701c338f8a1f8a82c780137826.js" defer></script>
+<script>
+    (function () {
+        const customFont = document.createElement('link');
+        customFont.href = "https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap";
+
+        customFont.type = "text/css";
+        customFont.rel = "stylesheet";
+
+        document.head.appendChild(customFont);
+    }());
+</script>
+
+    </body>
+</html>
