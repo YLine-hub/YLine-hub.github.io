@@ -1,0 +1,1396 @@
+<!DOCTYPE html>
+<html lang="en-us" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="一个SQL查询要15秒，这是怎么回事？ 上一节，我们分析了一个单词热度应用响应过慢的案例。当用 top、iostat 分析了系统的 CPU 和磁盘 I/O 使用情况后，我们发现系统出现了磁盘的 I/O 瓶颈，而且正式案例应用导致的。\n">
+<title>[Linux]性能调优-IO篇（案例篇）- 3</title>
+
+<link rel='canonical' href='https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-io%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-3/'>
+
+<link rel="stylesheet" href="/scss/style.min.6a692fd055deae459f2a9767f57f3855ba80cafd5041317f24f7360f6ca47cdf.css"><meta property='og:title' content="[Linux]性能调优-IO篇（案例篇）- 3">
+<meta property='og:description' content="一个SQL查询要15秒，这是怎么回事？ 上一节，我们分析了一个单词热度应用响应过慢的案例。当用 top、iostat 分析了系统的 CPU 和磁盘 I/O 使用情况后，我们发现系统出现了磁盘的 I/O 瓶颈，而且正式案例应用导致的。\n">
+<meta property='og:url' content='https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-io%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-3/'>
+<meta property='og:site_name' content='リンボの個人ブログ'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:published_time' content='2026-02-04T16:06:00&#43;08:00'/><meta property='article:modified_time' content='2026-02-04T16:06:00&#43;08:00'/>
+<meta name="twitter:title" content="[Linux]性能调优-IO篇（案例篇）- 3">
+<meta name="twitter:description" content="一个SQL查询要15秒，这是怎么回事？ 上一节，我们分析了一个单词热度应用响应过慢的案例。当用 top、iostat 分析了系统的 CPU 和磁盘 I/O 使用情况后，我们发现系统出现了磁盘的 I/O 瓶颈，而且正式案例应用导致的。\n">
+    <link rel="shortcut icon" href="/favicon.ico" />
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        
+            
+            <figure class="site-avatar">
+                <a href="/">
+                
+                    
+                    
+                    
+                        
+                        <img src="/img/avatar_hu_de528bff5d5e9598.png" width="300"
+                            height="300" class="site-logo" loading="lazy" alt="Avatar">
+                    
+                
+                </a>
+                
+                    <span class="emoji">🏖️</span>
+                
+            </figure>
+            
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">リンボの個人ブログ</a></h1>
+            <h2 class="site-description">努力不一定能获得回报，但不努力一定不会有回报。</h2>
+        </div>
+    </header><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-home" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <polyline points="5 12 3 12 12 3 21 12 19 12" />
+  <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7" />
+  <path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6" />
+</svg>
+
+
+
+                
+                <span>主页</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/%E5%85%B3%E4%BA%8E/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/archives/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/search/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-search" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="10" cy="10" r="7" />
+  <line x1="21" y1="21" x2="15" y2="15" />
+</svg>
+
+
+
+                
+                <span>搜索</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav id="TableOfContents">
+  <ol>
+    <li><a href="#案例">案例</a>
+      <ol>
+        <li><a href="#准备">准备</a></li>
+        <li><a href="#案例分析">案例分析</a></li>
+        <li><a href="#案例思考">案例思考</a></li>
+      </ol>
+    </li>
+    <li><a href="#小结">小结</a></li>
+    <li><a href="#思考">思考</a></li>
+  </ol>
+</nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            <a href="/categories/linux/" >
+                Linux
+            </a>
+        
+            <a href="/categories/i/o/" >
+                I/O
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-io%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-3/">[Linux]性能调优-IO篇（案例篇）- 3</a>
+        </h2>
+    
+        
+    </div>
+
+    
+    
+    
+    
+    <footer class="article-time">
+        
+            <div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                <time class="article-time--published">2026-02-04</time>
+            </div>
+        
+
+        
+    </footer>
+    
+
+    
+</div>
+
+</header>
+
+    <section class="article-content">
+    
+    
+    <h2>一个SQL查询要15秒，这是怎么回事？</h2>
+<p>上一节，我们分析了一个单词热度应用响应过慢的案例。当用 top、iostat 分析了系统的 CPU 和磁盘 I/O 使用情况后，我们发现系统出现了磁盘的 I/O 瓶颈，而且正式案例应用导致的。</p>
+<p>接着，在使用 strace 却没有任何发现后，又用了两个新的工具 filetop 和 opensnoop，分析它们对系统调用 write() 和 open() 的追踪结果。</p>
+<p>我们发信啊，阿你了应用正在读写大量的临时文件，因此产生了性能瓶颈。找出瓶颈后，我们又用把文件数据都放在内存的方法，解决了磁盘 I/O 的性能问题。</p>
+<p>当然，你可能会说，在实际应用中，大量数据肯定要存入数据库，而不会直接用文本文件的方式存储。不过数据库也不是万能的。当数据库出现性能问题时，又该如何分析和定位它的瓶颈呢？</p>
+<p>今天我们就一起分析一个数据库的案例。这时一个基于 Python Flask 的商品搜索应用，商品信息存在 MySQL 中。这个应用可以通过 MySQL 接口，根据客户端提供的商品名称，去数据库表中查询商品信息。</p>
+<h2 id="案例">案例
+</h2><h3 id="准备">准备
+</h3><ul>
+<li>系统环境：ubuntu 18.04</li>
+<li>机器配置：2 CPU，8GB 内存</li>
+<li>预先安装 docker、sysstat、git、make 等工具</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">apt install -y docker.io sysstat make git
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>其中，docker 和 sysstat 已经用过很多次，这里不再赘述；git 用来拉取本次案例所需脚本，这些脚本存储在 Github 代码仓库中；最后的 make 则是一个常用构建工具，这里用来运行今天的案例。</p>
+<p>案例总共由三个容器组成，包括一个 MySQL 数据库应用、一个商品搜索应用以及一个数据处理应用。其中，商品搜索应用以 HTTP 的形式提供了一个接口：</p>
+<ul>
+<li>/：返回 Index Page；</li>
+<li>/db/insert/products/：插入指定数量的商品信息；</li>
+<li>/products/：查询指定商品信息，并返回处理时间。</li>
+</ul>
+<p>本次案例需要两台虚拟机，其中一台作为案例分析的目标机器，运行 Flask 应用，它的 IP 地址是 192.168.0.10；另一台则是作为客户端，请求单词的热度。</p>
+<p><img src="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-io%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-3/image.png"
+	width="970"
+	height="525"
+	srcset="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-io%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-3/image_hu_9bf090e0b7cd91ef.png 480w, /p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-io%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-3/image_hu_579e4bdc6f1b1c69.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="184"
+		data-flex-basis="443px"
+	
+></p>
+<ol>
+<li>打开两个终端，分别 SSH 登录到这两台虚拟机中，并在第一台虚拟机中安装上述工具</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">apt install -y docker.io sysstat make git
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="2">
+<li>切换 root 用户</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo su root
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="案例分析">案例分析
+</h3><ol>
+<li>终端1：运行 git 命令，拉取本次案例所需脚本：</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">git clone https://github.com/feiskyer/linux-perf-examples
+</span></span><span class="line"><span class="cl"><span class="nb">cd</span> linux-perf-examples/mysql-slow
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="2">
+<li>终端1：执行下面命令，运行本次的目标应用</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">make run 
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>输出结果：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 注意下面的随机字符串是容器ID，每次运行均会不同，并且你不需要关注它，因为我们只会用到名字</span>
+</span></span><span class="line"><span class="cl">docker run --name<span class="o">=</span>mysql -itd -p 10000:80 -m 800m feisky/mysql:5.6
+</span></span><span class="line"><span class="cl">WARNING: Your kernel does not support swap limit capabilities or the cgroup is not mounted. Memory limited without swap.
+</span></span><span class="line"><span class="cl">4156780da5be0b9026bcf27a3fa56abc15b8408e358fa327f472bcc5add4453f
+</span></span><span class="line"><span class="cl">docker run --name<span class="o">=</span>dataservice -itd --privileged feisky/mysql-dataservice
+</span></span><span class="line"><span class="cl">f724d0816d7e47c0b2b1ff701e9a39239cb9b5ce70f597764c793b68131122bb
+</span></span><span class="line"><span class="cl">docker run --name<span class="o">=</span>app --network<span class="o">=</span>container:mysql -itd feisky/mysql-slow
+</span></span><span class="line"><span class="cl">81d3392ba25bb8436f6151662a13ff6182b6bc6f2a559fc2e9d873cd07224ab6
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="3">
+<li>终端1：运行 docker ps 命令，确认三个容器都处在运行（Up）状态：</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">docker ps
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>输出结果：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">CONTAINER ID        IMAGE                      COMMAND                  CREATED             STATUS              PORTS                             NAMES
+</span></span><span class="line"><span class="cl">9a4e3c580963        feisky/mysql-slow          <span class="s2">&#34;python /app.py&#34;</span>         <span class="m">42</span> seconds ago      Up <span class="m">36</span> seconds                                         app
+</span></span><span class="line"><span class="cl">2a47aab18082        feisky/mysql-dataservice   <span class="s2">&#34;python /dataservice…&#34;</span>   <span class="m">46</span> seconds ago      Up <span class="m">41</span> seconds                                         dataservice
+</span></span><span class="line"><span class="cl">4c3ff7b24748        feisky/mysql:5.6           <span class="s2">&#34;docker-entrypoint.s…&#34;</span>   <span class="m">47</span> seconds ago      Up <span class="m">46</span> seconds       3306/tcp, 0.0.0.0:10000-&gt;80/tcp   mysql
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>MySQL 数据库的启动过程，需要做一些初始化工作，这通常需要花费几分钟时间，可以运行 docker logs 命令，查看它的启动过程。</p>
+<ol start="4">
+<li>终端1：查看 docker 运行日志</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">docker logs -f mysql
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>输出结果：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">...
+</span></span><span class="line"><span class="cl">... <span class="o">[</span>Note<span class="o">]</span> mysqld: ready <span class="k">for</span> connections.
+</span></span><span class="line"><span class="cl">Version: <span class="s1">&#39;5.6.42-log&#39;</span>  socket: <span class="s1">&#39;/var/run/mysqld/mysqld.sock&#39;</span>  port: <span class="m">3306</span>  MySQL Community Server <span class="o">(</span>GPL<span class="o">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>看到这个输出时，说明 MySQL 初始化完成，可以接收外部请求了。</p>
+<p>而商品搜索应用则是在 10000 端口监听。</p>
+<ol start="5">
+<li>终端1：按 Ctrl + c，停止 docker logs 命令；然后，执行 curl 命令，确认它已经正常运行</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">curl http://127.0.0.1:10000/
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>输出结果：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">Index Page
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="6">
+<li>终端1：运行 make init 命令，初始化数据库，并插入 10000 条商品信息。这个过程比较慢。</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">make init
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>输出结果：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">docker <span class="nb">exec</span> -i mysql mysql -uroot -P3306 &lt; tables.sql
+</span></span><span class="line"><span class="cl">curl http://127.0.0.1:10000/db/insert/products/10000
+</span></span><span class="line"><span class="cl">insert <span class="m">10000</span> lines
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="7">
+<li>终端2：访问商品搜索接口，看看能不能找到想要的商品</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">$ curl http://192.168.0.10:10000/products/geektime
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>输出结果：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">Got data: <span class="o">()</span> in 15.364538192749023 sec
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>稍等一会儿，发现这个接口返回的是空数据，而且处理时间超过 15 秒，这么慢的响应速度让人无法忍受，到底出了什么问题？</p>
+<p>即然今天用了 MySQL，估计猜到会是慢查询的问题。</p>
+<p>不过别急，在具体分析前，为了避免在分析过程中客户端的请求结束，我们把 curl 命令放到循环里执行。同时为了避免给系统过大压力，我们设置在每次查询后，都先等待 5 秒，然后再开始新的请求。</p>
+<ol start="8">
+<li>终端2：执行下面命令</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">$ <span class="k">while</span> true<span class="p">;</span> <span class="k">do</span> curl http://192.168.0.10:10000/products/geektime<span class="p">;</span> sleep 5<span class="p">;</span> <span class="k">done</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>接下来，重新回到终端1中，分析接口响应速度慢的原因。不过，重回终端1后，发现系统响应也变慢了，随便执行一个命令，都得停顿一会儿才能看到输出。</p>
+<p>这跟上一节的现象很类似，看来，我们还是得观察一下系统的资源使用情况，比如 CPU、内存和磁盘 I/O 等的情况。</p>
+<ol start="9">
+<li>终端1：执行 top 命令，分析系统的 CPU 使用情况</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">top
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>输出结果：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">top - 12:02:15 up <span class="m">6</span> days,  8:05,  <span class="m">1</span> user,  load average: 0.66, 0.72, 0.59
+</span></span><span class="line"><span class="cl">Tasks: <span class="m">137</span> total,   <span class="m">1</span> running,  <span class="m">81</span> sleeping,   <span class="m">0</span> stopped,   <span class="m">0</span> zombie
+</span></span><span class="line"><span class="cl">%Cpu0  :  0.7 us,  1.3 sy,  0.0 ni, 35.9 id, 62.1 wa,  0.0 hi,  0.0 si,  0.0 st
+</span></span><span class="line"><span class="cl">%Cpu1  :  0.3 us,  0.7 sy,  0.0 ni, 84.7 id, 14.3 wa,  0.0 hi,  0.0 si,  0.0 st
+</span></span><span class="line"><span class="cl">KiB Mem :  <span class="m">8169300</span> total,  <span class="m">7238472</span> free,   <span class="m">546132</span> used,   <span class="m">384696</span> buff/cache
+</span></span><span class="line"><span class="cl">KiB Swap:        <span class="m">0</span> total,        <span class="m">0</span> free,        <span class="m">0</span> used.  <span class="m">7316952</span> avail Mem
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  PID USER      PR  NI    VIRT    RES    SHR S  %CPU %MEM     TIME+ COMMAND
+</span></span><span class="line"><span class="cl"><span class="m">27458</span> <span class="m">999</span>       <span class="m">20</span>   <span class="m">0</span>  <span class="m">833852</span>  <span class="m">57968</span>  <span class="m">13176</span> S   1.7  0.7   0:12.40 mysqld
+</span></span><span class="line"><span class="cl"><span class="m">27617</span> root      <span class="m">20</span>   <span class="m">0</span>   <span class="m">24348</span>   <span class="m">9216</span>   <span class="m">4692</span> S   1.0  0.1   0:04.40 python
+</span></span><span class="line"><span class="cl"> <span class="m">1549</span> root      <span class="m">20</span>   <span class="m">0</span>  <span class="m">236716</span>  <span class="m">24568</span>   <span class="m">9864</span> S   0.3  0.3  51:46.57 python3
+</span></span><span class="line"><span class="cl"><span class="m">22421</span> root      <span class="m">20</span>   <span class="m">0</span>       <span class="m">0</span>      <span class="m">0</span>      <span class="m">0</span> I   0.3  0.0   0:01.16 kworker/u
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>观察 top 的输出发现，两个 CPU 的 iowait 都比较高，特别是 CPU0，iowait 已经超过了 60%。而具体到各个进程，CPU 使用率并不高，最高也只有 1.7%。</p>
+<p>既然 CPU 的嫌疑不大，那问题应该还是出在了 I/O 上。</p>
+<ol start="10">
+<li>终端1：按下 Ctrl + c，停止 top 命令；然后运行 iostat 命令，看看有没有 I/O 性能问题</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">iostat -d -x <span class="m">1</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>输出结果：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">Device            r/s     w/s     rkB/s     wkB/s   rrqm/s   wrqm/s  %rrqm  %wrqm r_await w_await aqu-sz rareq-sz wareq-sz  svctm  %util
+</span></span><span class="line"><span class="cl">...
+</span></span><span class="line"><span class="cl">sda            273.00    0.00  32568.00      0.00     0.00     0.00   0.00   0.00    7.90    0.00   1.16   119.30     0.00   3.56  97.20
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>观察这个界面，我们发现，磁盘 sda 每秒的读数据为 32MB，而 I/O 使用率高达 97%，接近饱和，这说明，磁盘 sda 的读取确实碰到了性能瓶颈。</p>
+<p>那要怎么知道，这些 I/O 请求到底是哪些进程导致的呢？还是使用 pidstat</p>
+<ol start="11">
+<li>终端1：按下 Ctrl + c 停止 iostat 命令，然后运行 pidstat 命令，观察进程的 I/O 情况</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># -d 选项表示展示进程的I/O情况</span>
+</span></span><span class="line"><span class="cl">iostat -d <span class="m">1</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>输出结果：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">12:04:11      UID       PID   kB_rd/s   kB_wr/s kB_ccwr/s iodelay  Command
+</span></span><span class="line"><span class="cl">12:04:12      <span class="m">999</span>     <span class="m">27458</span>  32640.00      0.00      0.00       <span class="m">0</span>  mysqld
+</span></span><span class="line"><span class="cl">12:04:12        <span class="m">0</span>     <span class="m">27617</span>      4.00      4.00      0.00       <span class="m">3</span>  python
+</span></span><span class="line"><span class="cl">12:04:12        <span class="m">0</span>     <span class="m">27864</span>      0.00      4.00      0.00       <span class="m">0</span>  systemd-journal
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>从 pidstat 的输出可以看到，PID 为 27458 的 mysqld 进程正在进行大量的读，而且读取的速度是 32 MB/s，跟刚才 iostat 的发现一致。两个结果一对比，我们自然就找到了磁盘 I/O 瓶颈的根源，即 mysqld 进程。</p>
+<p>不过，这事儿还没完。我们自然要怀疑一下，为什么 mysqld 会去读取大量的磁盘数据呢？按照前面猜测，我们提到过，这有可能是个慢查询问题。</p>
+<p>可是，回想一下，慢查询的现象大多是 CPU 使用率高（比如 100%），但这里看到的却是 I/O 伪命题。看来，这并不是一个单纯的慢查询问题，我们有必要分析一下 MySQL 读取的数据。</p>
+<p>要分析进程的数据读取，当然还要靠上一节用到过的 strace + lsof 组合。</p>
+<ol start="12">
+<li>终端1：执行 strace 命令，并且制定 mysqld 的进程号 27458。因为 MySQL 是一个多线程的数据库应用，为了不漏掉这些线程的数据读取情况，还要加上 -f 参数</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">strace -f -p <span class="m">27458</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>输出结果：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="o">[</span>pid 28014<span class="o">]</span> read<span class="o">(</span>38, <span class="s2">&#34;934EiwT363aak7VtqF1mHGa4LL4Dhbks&#34;</span>..., 131072<span class="o">)</span> <span class="o">=</span> <span class="m">131072</span>
+</span></span><span class="line"><span class="cl"><span class="o">[</span>pid 28014<span class="o">]</span> read<span class="o">(</span>38, <span class="s2">&#34;hSs7KBDepBqA6m4ce6i6iUfFTeG9Ot9z&#34;</span>..., 20480<span class="o">)</span> <span class="o">=</span> <span class="m">20480</span>
+</span></span><span class="line"><span class="cl"><span class="o">[</span>pid 28014<span class="o">]</span> read<span class="o">(</span>38, <span class="s2">&#34;NRhRjCSsLLBjTfdqiBRLvN9K6FRfqqLm&#34;</span>..., 131072<span class="o">)</span> <span class="o">=</span> <span class="m">131072</span>
+</span></span><span class="line"><span class="cl"><span class="o">[</span>pid 28014<span class="o">]</span> read<span class="o">(</span>38, <span class="s2">&#34;AKgsik4BilLb7y6OkwQUjjqGeCTQTaRl&#34;</span>..., 24576<span class="o">)</span> <span class="o">=</span> <span class="m">24576</span>
+</span></span><span class="line"><span class="cl"><span class="o">[</span>pid 28014<span class="o">]</span> read<span class="o">(</span>38, <span class="s2">&#34;hFMHx7FzUSqfFI22fQxWCpSnDmRjamaW&#34;</span>..., 131072<span class="o">)</span> <span class="o">=</span> <span class="m">131072</span>
+</span></span><span class="line"><span class="cl"><span class="o">[</span>pid 28014<span class="o">]</span> read<span class="o">(</span>38, <span class="s2">&#34;ajUzLmKqivcDJSkiw7QWf2ETLgvQIpfC&#34;</span>..., 20480<span class="o">)</span> <span class="o">=</span> <span class="m">20480</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>观察一会，发现线程 28014 正在读取大量数据，且读取文件的描述符标号为 38。这儿的 38 又对应哪个文件呢？</p>
+<ol start="13">
+<li>终端1：执行 lsof 命令，并且制定线程号 28014，具体查看这个可疑线程和可疑文件</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">lsof -p <span class="m">28014</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>奇怪的是，lsof 并没有给任何输出。实际上，如果你查看 lsof 命令的返回值，就会发现，这个命令的执行失败了。</p>
+<p>我们知道，在 SHELL 中，特殊标量 $? 表示上一条命令退出时的返回值。查看这个特殊标量，发现它的返回值时 1。在 Linux 中，返回值为 0，才表示执行成功。返回值为 1，显然表表明执行失败。</p>
+<ol start="14">
+<li>终端1：查看上一条命令退出的返回值</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="nb">echo</span> <span class="nv">$?</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>输出结果：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">1
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>为什么 lsof 命令执行失败了呢？这里暂时先思考一下，还是那句话，遇到解释不了的，先去查查工具文档。</p>
+<p>事实上，通过查询 lsof 的文档，发现 -p 参数需要指定进程号，而我们刚才传入的是线程号，所以 lsof 失败了。</p>
+<p>mysqld 的进程号是 27458，而 28014 只是它的一个线程。而且，如果观察胰腺癌 mysqld 进程的线程，会发现，mysqld 其实还有很多正在运行的其他线程</p>
+<ol start="15">
+<li>终端1：运行 pstree 命令</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># -t表示显示线程，-a表示显示命令行参数</span>
+</span></span><span class="line"><span class="cl">pstree -t -a -p <span class="m">27458</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>输出结果：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">mysqld,27458 --log_bin<span class="o">=</span>on --sync_binlog<span class="o">=</span><span class="m">1</span>
+</span></span><span class="line"><span class="cl">...
+</span></span><span class="line"><span class="cl">  ├─<span class="o">{</span>mysqld<span class="o">}</span>,27922
+</span></span><span class="line"><span class="cl">  ├─<span class="o">{</span>mysqld<span class="o">}</span>,27923
+</span></span><span class="line"><span class="cl">  └─<span class="o">{</span>mysqld<span class="o">}</span>,28014
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>找到了原因，lsof 的问题就容易解决了。</p>
+<ol start="16">
+<li>终端1：运行 lsof 命令，查看 mysqld 进程</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">lsof -p <span class="m">27458</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>输出结果：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">COMMAND  PID USER   FD   TYPE DEVICE SIZE/OFF NODE NAME
+</span></span><span class="line"><span class="cl">...
+</span></span><span class="line"><span class="cl">​mysqld  <span class="m">27458</span>      <span class="m">999</span>   38u   REG    8,1 <span class="m">512440000</span> <span class="m">2601895</span> /var/lib/mysql/test/products.MYD
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>这次我们得到了 lsof 的输出。从输出中可以看到，mysqld 进程确实打开了大量文件，而根据文件描述符（FD）的编号，我们知道，描述符为 38 的是一个路径为 /var/lib/mysql/test/products.MYD 的文件。这里注意，38 后面的 u 表示，mysqld 以读写的方式访问文件。</p>
+<p>看到这个文件，熟悉 MySQL 的你应该就明白了：</p>
+<ul>
+<li>MYD 文件，是 MyISAM 引擎用来存储表数据的文件；</li>
+<li>文件名就是数据表的名字；</li>
+<li>而这个文件的父目录，也就是数据库的名字。</li>
+</ul>
+<p>换句话说，这个文件告诉我们，mysqld 在读取数据库 test 中的 products 表。</p>
+<ol start="17">
+<li>终端1：执行以下命令，查看 mysqld 在管理数据库 test 时的存储文件</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">docker <span class="nb">exec</span> -it mysql ls /var/lib/mysql/test/
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>输出结果：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">db.opt    products.MYD  products.MYI  products.frm
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>从这里可以发现，/var/lib/msyql/test/ 目录中有四个文件，每个文件的作用分别是：</p>
+<ul>
+<li>MYD 文件用来存储表的数据；</li>
+<li>MYI 文件用来存储表的索引；</li>
+<li>frm 文件用来存储表的元信息（比如表结构）；</li>
+<li>opt 文件则用来存储数据库的元信息（比如字符集、字符校验规则等）。</li>
+</ul>
+<p>当然，看到这些，可能还会有一个疑问，那就是，这些文件到底是不是 mysqld 正在使用的数据库文件呢？有没有可能是不再使用的就数据呢？其实这个很容易确认，查看一下 mysqld 配置的数据路径即可。</p>
+<ol start="18">
+<li>终端1：执行以下命令，确认 mysqld 配置数据路径</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">odcker <span class="nb">exec</span> -i -t mysql mysql -e <span class="s1">&#39;show global variables like &#34;%datadir%&#34;;&#39;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>输出结果：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-gdscript3" data-lang="gdscript3"><span class="line"><span class="cl"><span class="o">+---------------+-----------------+</span>
+</span></span><span class="line"><span class="cl"><span class="o">|</span> <span class="n">Variable_name</span> <span class="o">|</span> <span class="n">Value</span>           <span class="o">|</span>
+</span></span><span class="line"><span class="cl"><span class="o">+---------------+-----------------+</span>
+</span></span><span class="line"><span class="cl"><span class="o">|</span> <span class="n">datadir</span>       <span class="o">|</span> <span class="o">/</span><span class="k">var</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">mysql</span><span class="o">/</span> <span class="o">|</span>
+</span></span><span class="line"><span class="cl"><span class="o">+---------------+-----------------+</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>这里看到，/var/lib/mysql/ 确实是 mysqld 正在使用的数据存储目录。刚才分析得出的数据库 test 和数据表 products，都是正在使用。</p>
+<p>既然已经找出了数据库和表，接下来要做的，就是弄清楚数据库中正在执行什么样的 SQL 了。</p>
+<ol start="19">
+<li>终端1：进入 MySQL 的命令行界面</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">docker <span class="nb">exec</span> -i -t mysql mysql
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>输出结果：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">...
+</span></span><span class="line"><span class="cl">​
+</span></span><span class="line"><span class="cl">Type &#39;help;&#39; or &#39;\h&#39; for help. Type &#39;\c&#39; to clear the current input statement.
+</span></span><span class="line"><span class="cl">​
+</span></span><span class="line"><span class="cl">mysql&gt;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>下一步应该可以想到，那就是在 MySQL 命令行界面中，执行 show processlist 命令，来查看当前正在执行的 SQL 语句。</p>
+<p>不过，为了保证 SQL 语句不截断，这里我们可以执行 show full processlist 命令。</p>
+<ol start="20">
+<li>终端1：运行命令，查看正在执行的</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">mysql&gt; show full processlist<span class="p">;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>输出结果：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">+----+------+-----------------+------+---------+------+--------------+-----------------------------------------------------+
+</span></span><span class="line"><span class="cl"><span class="p">|</span> Id <span class="p">|</span> User <span class="p">|</span> Host            <span class="p">|</span> db   <span class="p">|</span> Command <span class="p">|</span> Time <span class="p">|</span> State        <span class="p">|</span> Info                                                <span class="p">|</span>
+</span></span><span class="line"><span class="cl">+----+------+-----------------+------+---------+------+--------------+-----------------------------------------------------+
+</span></span><span class="line"><span class="cl"><span class="p">|</span> <span class="m">27</span> <span class="p">|</span> root <span class="p">|</span> localhost       <span class="p">|</span> <span class="nb">test</span> <span class="p">|</span> Query   <span class="p">|</span>    <span class="m">0</span> <span class="p">|</span> init         <span class="p">|</span> show full processlist                               <span class="p">|</span>
+</span></span><span class="line"><span class="cl"><span class="p">|</span> <span class="m">28</span> <span class="p">|</span> root <span class="p">|</span> 127.0.0.1:42262 <span class="p">|</span> <span class="nb">test</span> <span class="p">|</span> Query   <span class="p">|</span>    <span class="m">1</span> <span class="p">|</span> Sending data <span class="p">|</span> <span class="k">select</span> * from products where <span class="nv">productName</span><span class="o">=</span><span class="s1">&#39;geektime&#39;</span> <span class="p">|</span>
+</span></span><span class="line"><span class="cl">+----+------+-----------------+------+---------+------+--------------+-----------------------------------------------------+
+</span></span><span class="line"><span class="cl"><span class="m">2</span> rows in <span class="nb">set</span> <span class="o">(</span>0.00 sec<span class="o">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>这个输出中，</p>
+<ul>
+<li>db 表示数据库的名字；</li>
+<li>Command 表示 SQL 类型；</li>
+<li>Time 表示执行时间；</li>
+<li>State 表示状态；</li>
+<li>而 Info 则包含了完整的 SQL 语句。</li>
+</ul>
+<p>多执行几次 show full processlist 命令，可以看到 select * from products where productName=&lsquo;geektime&rsquo; 这条 SQL 语句的执行时间比较长。</p>
+<p>案例开始时，我们在终端二查询的产品名称 http://192.168.0.10:10000/products/geektime，其中的 geektime 也符合这条查询语句的条件。</p>
+<p>我们知道，MySQL 的慢查询问题，很可能是没有利用好索引导致的，那这条语句是不是这样呢？我们又该怎么确认，查询语句是否利用了索引呢？</p>
+<p>其实，MySQL 内置的 explain 命令，就可以解决这个问题。</p>
+<ol start="21">
+<li>终端1：在 MySQL 终端中，运行 explain 命令</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 切换到test库</span>
+</span></span><span class="line"><span class="cl">mysql&gt; use test<span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># 执行explain命令</span>
+</span></span><span class="line"><span class="cl">mysql&gt; explain <span class="k">select</span> * from products where <span class="nv">productName</span><span class="o">=</span><span class="s1">&#39;geektime&#39;</span><span class="p">;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>输出结果：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">+----+-------------+----------+------+---------------+------+---------+------+-------+-------------+
+</span></span><span class="line"><span class="cl"><span class="p">|</span> id <span class="p">|</span> select_type <span class="p">|</span> table    <span class="p">|</span> <span class="nb">type</span> <span class="p">|</span> possible_keys <span class="p">|</span> key  <span class="p">|</span> key_len <span class="p">|</span> ref  <span class="p">|</span> rows  <span class="p">|</span> Extra       <span class="p">|</span>
+</span></span><span class="line"><span class="cl">+----+-------------+----------+------+---------------+------+---------+------+-------+-------------+
+</span></span><span class="line"><span class="cl"><span class="p">|</span>  <span class="m">1</span> <span class="p">|</span> SIMPLE      <span class="p">|</span> products <span class="p">|</span> ALL  <span class="p">|</span> NULL          <span class="p">|</span> NULL <span class="p">|</span> NULL    <span class="p">|</span> NULL <span class="p">|</span> <span class="m">10000</span> <span class="p">|</span> Using where <span class="p">|</span>
+</span></span><span class="line"><span class="cl">+----+-------------+----------+------+---------------+------+---------+------+-------+-------------+
+</span></span><span class="line"><span class="cl"><span class="m">1</span> row in <span class="nb">set</span> <span class="o">(</span>0.00 sec<span class="o">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>观察这次输出。有几个比较重要的字段需要注意：</p>
+<ul>
+<li>
+<p>select_type 表示查询类型，而这里的 SIMPLE 表示此查询不包括 UNION 查询或者子查询；</p>
+</li>
+<li>
+<p>table 表示数据表的名字，这里是 products；</p>
+</li>
+<li>
+<p>type 表示查询类型，这里的 ALL 表示全表查询，但索引查询应该是 index 类型才对；</p>
+</li>
+<li>
+<p>possible_keys 表示可能选用的索引，这里是 NULL；</p>
+</li>
+<li>
+<p>key 表示确切会使用的索引，这里也是 NULL；</p>
+</li>
+<li>
+<p>row 表示查询扫描的行数，这里是 10000。</p>
+</li>
+</ul>
+<p>根据这些信息，可以确定，这条查询语句没有使用索引，所以查询时，会扫描全表，并且扫描行数高达 10000 行。响应速度难么慢也就难怪了。</p>
+<p>走到这一步，应该很容易想到优化方法，没有索引那么久自己建立，给 productName 建立索引就可以了。不过，增加索引钱，需要先弄清楚，这个表结构到底长什么样儿。</p>
+<ol start="22">
+<li>终端1：执行下面 MySQL 命令，查询 products 表的结构</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">mysql&gt; show create table products<span class="p">;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>输出结果：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span><span class="lnt">9
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-mysql" data-lang="mysql"><span class="line"><span class="cl"><span class="p">...</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="o">|</span><span class="w"> </span><span class="n">products</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="k">CREATE</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="o">`</span><span class="n">products</span><span class="o">`</span><span class="w"> </span><span class="p">(</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="o">`</span><span class="n">id</span><span class="o">`</span><span class="w"> </span><span class="kt">int</span><span class="p">(</span><span class="mi">11</span><span class="p">)</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="no">NULL</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="o">`</span><span class="n">productCode</span><span class="o">`</span><span class="w"> </span><span class="kt">text</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="no">NULL</span><span class="w"> </span><span class="n">COMMENT</span><span class="w"> </span><span class="s1">&#39;产品代码&#39;</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="o">`</span><span class="n">productName</span><span class="o">`</span><span class="w"> </span><span class="kt">text</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="no">NULL</span><span class="w"> </span><span class="n">COMMENT</span><span class="w"> </span><span class="s1">&#39;产品名称&#39;</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">...</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="k">PRIMARY</span><span class="w"> </span><span class="k">KEY</span><span class="w"> </span><span class="p">(</span><span class="o">`</span><span class="n">id</span><span class="o">`</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">)</span><span class="w"> </span><span class="kp">ENGINE</span><span class="o">=</span><span class="n">MyISAM</span><span class="w"> </span><span class="k">DEFAULT</span><span class="w"> </span><span class="kp">CHARSET</span><span class="o">=</span><span class="n">utf8</span><span class="w"> </span><span class="n">ROW_FORMAT</span><span class="o">=</span><span class="n">DYNAMIC</span><span class="w"> </span><span class="o">|</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">...</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><p>看到，只有一个 id 主键，并不包括 productName 的索引。</p>
+<ol start="23">
+<li>终端1：给 productName 建立索引</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">mysql&gt; CREATE INDEX products_index ON products <span class="o">(</span>productName<span class="o">)</span><span class="p">;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>输出结果：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">ERROR <span class="m">1170</span> <span class="o">(</span>42000<span class="o">)</span>: BLOB/TEXT column <span class="s1">&#39;productName&#39;</span> used in key specification without a key length
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>不过，明显的 ERROR 表示这条命令运行失败了。根据错误信息，productName 是一个 BLOB/TEXT 类型，需要设置一个长度。所以，想要创建索引，就必须为 productName 指定一个前缀长度。</p>
+<p>那前缀长度设置为多大比较合适呢？这里其实有专门的算法，即通过计算前缀长度的选择性，来确定索引的长度。不过，我们可以稍微简化一下，直接使用一个固定数值（比如 64）</p>
+<ol start="24">
+<li>终端1：给 productName 创建索引，并指定长度为 64</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">mysql&gt; CREATE INDEX products_index ON products <span class="o">(</span>productName<span class="o">(</span>64<span class="o">))</span><span class="p">;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>输出结果：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">Query OK, <span class="m">10000</span> rows affected <span class="o">(</span>14.45 sec<span class="o">)</span>
+</span></span><span class="line"><span class="cl">Records: <span class="m">10000</span>  Duplicates: <span class="m">0</span>  Warnings: <span class="m">0</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>可以看到，索引已经建立好了。那么再检查一下，性能问题是否已经解决了。</p>
+<ol start="25">
+<li>终端2：查看还在执行的 curl 命令的结果</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">Got data: ()in 15.383180141448975 sec
+</span></span><span class="line"><span class="cl">Got data: ()in 15.384996891021729 sec
+</span></span><span class="line"><span class="cl">Got data: ()in 0.0021054744720458984 sec
+</span></span><span class="line"><span class="cl">Got data: ()in 0.003951072692871094 sec
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>显然，查询时间已经从 15 秒缩短到了 3 毫秒。看来，没有索引果然就是这次性能问题的罪魁祸首，解决了索引，就解决了查询慢的问题。</p>
+<h3 id="案例思考">案例思考
+</h3><p>到这里，商品搜索应用慢的问题已经完美解决了。但是，对于这个案例，还有一点需要说明一下。</p>
+<p>案例开始时，我们启动的几个容器应用。除了 MySQL 和商品搜索应用外，还有一个 DataService 应用。为什么这个案例开始时，要运行一个看起来毫不相关的应用呢？</p>
+<p>实际上，DataService 是一个严重影响 MySQL 性能的干扰应用。抛开上述索引优化方法不说，这个案例还有一种方法，也就是停止 DataService 应用。</p>
+<p>接下来，我们就删除数据库索引，回到原来的状态；然后停止 DataService 应用，看卡优化效果如何。</p>
+<ol>
+<li>
+<p>终端2：停止 curl 命令</p>
+</li>
+<li>
+<p>终端1：执行以下命令删除索引</p>
+</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 删除索引</span>
+</span></span><span class="line"><span class="cl">docker <span class="nb">exec</span> -i -t mysql mysql
+</span></span><span class="line"><span class="cl"><span class="c1"># 使用test数据库</span>
+</span></span><span class="line"><span class="cl">mysql&gt; use <span class="nb">test</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># 删除索引</span>
+</span></span><span class="line"><span class="cl">mysql&gt; DROP INDEX products_index ON products<span class="p">;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="3">
+<li>终端2：重新运行 curl 命令</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">$ <span class="k">while</span> true<span class="p">;</span> <span class="k">do</span> curl http://192.168.0.10:10000/products/geektime<span class="p">;</span> sleep 5<span class="p">;</span> <span class="k">done</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>输出结果：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">Got data: <span class="o">()</span>in 16.884345054626465 sec
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>发现处理时间又变慢了。</p>
+<ol start="4">
+<li>终端1：执行下面命令，停止 DataService 应用</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 停止 DataService 应用</span>
+</span></span><span class="line"><span class="cl">$ docker rm -f dataservice
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="5">
+<li>终端2：观察 curl 的结果</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">Got data: ()in 16.884345054626465 sec
+</span></span><span class="line"><span class="cl">Got data: ()in 15.238174200057983 sec
+</span></span><span class="line"><span class="cl">Got data: ()in 0.12604427337646484 sec
+</span></span><span class="line"><span class="cl">Got data: ()in 0.1101069450378418 sec
+</span></span><span class="line"><span class="cl">Got data: ()in 0.11235237121582031 sec
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>果然，停止 DataService 后，处理时间从 15 秒缩短到了 0.1 秒，虽然比不上增加索引后的 3 毫秒，但相对于 15 秒来说，优化效果还是非常明显的。</p>
+<p>那么，这种情况下，还有没有 I/O 瓶颈了呢？</p>
+<ol start="6">
+<li>终端1：运行 vmstat 命令（注意不是 iostat，稍后解释原因），观察 I/O 的变化情况</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">vmstat <span class="m">1</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>输出结果：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">procs -----------memory---------- ---swap-- -----io---- -system-- ------cpu-----
+</span></span><span class="line"><span class="cl"> r  b   swpd   free   buff  cache   si   so    bi    bo   in   cs us sy id wa st
+</span></span><span class="line"><span class="cl"> <span class="m">0</span>  <span class="m">1</span>      <span class="m">0</span> <span class="m">6809304</span>   <span class="m">1368</span> <span class="m">856744</span>    <span class="m">0</span>    <span class="m">0</span> <span class="m">32640</span>     <span class="m">0</span>   <span class="m">52</span>  <span class="m">478</span>  <span class="m">1</span>  <span class="m">0</span> <span class="m">50</span> <span class="m">49</span>  <span class="m">0</span>
+</span></span><span class="line"><span class="cl"> <span class="m">0</span>  <span class="m">1</span>      <span class="m">0</span> <span class="m">6776620</span>   <span class="m">1368</span> <span class="m">889456</span>    <span class="m">0</span>    <span class="m">0</span> <span class="m">32640</span>     <span class="m">0</span>   <span class="m">33</span>  <span class="m">490</span>  <span class="m">0</span>  <span class="m">0</span> <span class="m">50</span> <span class="m">49</span>  <span class="m">0</span>
+</span></span><span class="line"><span class="cl"> <span class="m">0</span>  <span class="m">0</span>      <span class="m">0</span> <span class="m">6747540</span>   <span class="m">1368</span> <span class="m">918576</span>    <span class="m">0</span>    <span class="m">0</span> <span class="m">29056</span>     <span class="m">0</span>   <span class="m">42</span>  <span class="m">568</span>  <span class="m">0</span>  <span class="m">0</span> <span class="m">56</span> <span class="m">44</span>  <span class="m">0</span>
+</span></span><span class="line"><span class="cl"> <span class="m">0</span>  <span class="m">0</span>      <span class="m">0</span> <span class="m">6747540</span>   <span class="m">1368</span> <span class="m">918576</span>    <span class="m">0</span>    <span class="m">0</span>     <span class="m">0</span>     <span class="m">0</span>   <span class="m">40</span>  <span class="m">141</span>  <span class="m">1</span>  <span class="m">0</span> <span class="m">100</span>  <span class="m">0</span>  <span class="m">0</span>
+</span></span><span class="line"><span class="cl"> <span class="m">0</span>  <span class="m">0</span>      <span class="m">0</span> <span class="m">6747160</span>   <span class="m">1368</span> <span class="m">918576</span>    <span class="m">0</span>    <span class="m">0</span>     <span class="m">0</span>     <span class="m">0</span>   <span class="m">40</span>  <span class="m">148</span>  <span class="m">0</span>  <span class="m">1</span> <span class="m">99</span>  <span class="m">0</span>  <span class="m">0</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>可以看到，磁盘读（bi）和 iowait（wa）刚开始还是挺大的，但没过多久，就都变成了 0。换句话说，I/O 瓶颈消失了。</p>
+<p>这时为什么呢？</p>
+<p>回过头来解释一下刚刚的操作，在查看 I/O 情况时，我并没用 iostat 命令，而是用了 vmstat。其实，相对于 iostat 来说，vmstat 可以同时提供 CPU、内存和 I/O 的使用情况。</p>
+<h2 id="小结">小结
+</h2><p>本节我们分析了一个商品搜索的应用程序。我们先是通过 top、iostat 分析了系统的 CPU 和磁盘使用情况，发现了磁盘的 I/O 瓶颈。</p>
+<p>接着，我们借助 pidstat，发现瓶颈时 mysqld 导致的。紧接着，我们又通过 strace、lsof，找出了 mysqld 正在读的文件。同时，根据文件的名字和路径，我们找出了 mysqld 正在操作的数据库和数据表。综合这些系信息，我们判断，这时一个没有利用索引导致的慢查询问题。</p>
+<p>于是，我们登录到 MySQL 命令行终端，用数据库分析工具进行验证，发现 MySQL 查询语句访问的字段，果然没有索引。所以，增加索引，就可以解决案例的性能问题了。</p>
+<h2 id="思考">思考
+</h2><p>最后，给你留一个思考题，也是我在案例最后部分提到过的，停止 DataService 后，商品搜索应用的处理时间，从 15 秒缩短到了 0.1 秒。这是为什么呢？</p>
+<p>可以先查看 <a class="link" href="https://github.com/feiskyer/linux-perf-examples/blob/master/mysql-slow/dataservice.py"  target="_blank" rel="noopener"
+    >dataservice.py</a> 的源码，你会发现，DataService 实际上是在读写一个仅包括 “data” 字符串的小文件。不过在读取文件前，它会先把 /proc/sys/vm/drop_caches 改成 1。</p>
+<p>还记得这个操作有什么作用吗？如果不记得，可以用 man 查询 proc 文件系统的文档。</p>
+
+</section>
+
+
+    <footer class="article-footer">
+    
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+<aside class="related-content--wrapper">
+    <h2 class="section-title">相关文章</h2>
+    <div class="related-content">
+        <div class="flex article-list--tile">
+            
+                
+<article class="">
+    <a href="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-i/o%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-2/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Linux]性能调优-I/O篇（案例篇）- 2</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-i/o%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Linux]性能调优-I/O篇（案例篇）</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-i/o%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87-2/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Linux]性能调优-I/O篇（基础篇）- 2</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-i/o%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Linux]性能调优-I/O篇（基础篇）</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%86%85%E5%AD%98%E7%AF%87%E5%A5%97%E8%B7%AF%E7%AF%87/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Linux]性能调优-内存篇（套路篇）</h2>
+        </div>
+    </a>
+</article>
+
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+            2025 - 
+        
+        2026 リンボの個人ブログ
+    </section>
+    
+    <section class="powerby">
+         <br />
+        
+    </section>
+</footer>
+
+
+    
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+    
+    <div class="pswp__bg"></div>
+
+    
+    <div class="pswp__scroll-wrap">
+
+        
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+
+        
+        <div class="pswp__ui pswp__ui--hidden">
+
+            <div class="pswp__top-bar">
+
+                
+
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+
+                <button class="pswp__button pswp__button--share" title="Share"></button>
+
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+
+                
+                
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                        <div class="pswp__preloader__cut">
+                            <div class="pswp__preloader__donut"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div>
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.js"integrity="sha256-ePwmChbbvXbsO02lbM3HoHbSHTHFAeChekF1xKJdleo="crossorigin="anonymous"
+                defer
+                >
+            </script><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe-ui-default.min.js"integrity="sha256-UKkzOn/w1mBxRmLLGrSeyB4e1xbrp4xylgAWb3M42pU="crossorigin="anonymous"
+                defer
+                >
+            </script><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/default-skin/default-skin.min.css"crossorigin="anonymous"
+            ><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.css"crossorigin="anonymous"
+            >
+
+            </main>
+        </div>
+        <script 
+                src="https://cdn.jsdelivr.net/npm/node-vibrant@3.1.6/dist/vibrant.min.js"integrity="sha256-awcR2jno4kI5X0zL8ex0vi2z&#43;KMkF24hUW8WePSA9HM="crossorigin="anonymous"
+                
+                >
+            </script><script type="text/javascript" src="/ts/main.1e9a3bafd846ced4c345d084b355fb8c7bae75701c338f8a1f8a82c780137826.js" defer></script>
+<script>
+    (function () {
+        const customFont = document.createElement('link');
+        customFont.href = "https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap";
+
+        customFont.type = "text/css";
+        customFont.rel = "stylesheet";
+
+        document.head.appendChild(customFont);
+    }());
+</script>
+
+    </body>
+</html>
