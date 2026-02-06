@@ -7,7 +7,171 @@
         <generator>Hugo -- gohugo.io</generator>
         <language>en-us</language>
         <copyright>リンボの個人ブログ</copyright>
-        <lastBuildDate>Thu, 05 Feb 2026 15:04:46 +0800</lastBuildDate><atom:link href="https://YLine-hub.github.io/categories/linux/index.xml" rel="self" type="application/rss+xml" /><item>
+        <lastBuildDate>Thu, 05 Feb 2026 21:15:41 +0800</lastBuildDate><atom:link href="https://YLine-hub.github.io/categories/linux/index.xml" rel="self" type="application/rss+xml" /><item>
+        <title>[Linux]性能调优-I/O篇（套路篇）</title>
+        <link>https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-i/o%E7%AF%87%E5%A5%97%E8%B7%AF%E7%AF%87/</link>
+        <pubDate>Thu, 05 Feb 2026 21:15:41 +0800</pubDate>
+        
+        <guid>https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-i/o%E7%AF%87%E5%A5%97%E8%B7%AF%E7%AF%87/</guid>
+        <description>&lt;h2&gt;如何迅速分析系统 I/O 的瓶颈在哪里？&lt;/h2&gt;
+&lt;p&gt;总结一下，如何“快准狠”定位系统的 I/O 瓶颈；并且梳理清楚，在不同场景下，指标工具怎么选，性能瓶颈又该如何定位。&lt;/p&gt;
+&lt;h2 id=&#34;性能指标&#34;&gt;性能指标
+&lt;/h2&gt;&lt;p&gt;先回顾一下，描述 I/O 的性能指标有哪些？可以回想一下文件系统和磁盘 I/O 的原理，结合下面这张 Linux 系统的 I/O 栈图。&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-i/o%E7%AF%87%E5%A5%97%E8%B7%AF%E7%AF%87/image.png&#34;
+	width=&#34;530&#34;
+	height=&#34;590&#34;
+	srcset=&#34;https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-i/o%E7%AF%87%E5%A5%97%E8%B7%AF%E7%AF%87/image_hu_dd173e387d4d8daf.png 480w, https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-i/o%E7%AF%87%E5%A5%97%E8%B7%AF%E7%AF%87/image_hu_34019bc80c58fd8b.png 1024w&#34;
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;alt text&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;89&#34;
+		data-flex-basis=&#34;215px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;h3 id=&#34;文件系统-io-性能指标&#34;&gt;文件系统 I/O 性能指标
+&lt;/h3&gt;&lt;ol&gt;
+&lt;li&gt;最容易想到的是&lt;strong&gt;存储空间的使用情况&lt;/strong&gt;，包括容量、使用量以及剩余空间等。我们通常也称这些为磁盘空间的使用量，因文件系统的数据最终还是存储在磁盘上。&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;不过要注意，这些知识文件系统向外展示的空间使用，而非在磁盘空间的真实用量，因为文件系统的元数据也会占用磁盘空间。&lt;/p&gt;
+&lt;p&gt;而且，如果配置了 RAID，从文件系统看到的使用量跟实际磁盘的占用空间，也会因为 RAID 级别的不同而不一样。比方说，配置 RAID10 后，从文件系统最多也只能看到所有磁盘容量的一般。&lt;/p&gt;
+&lt;ol start=&#34;2&#34;&gt;
+&lt;li&gt;
+&lt;p&gt;除了数据本身的存储空间，还有一个容易忽略的是&lt;strong&gt;索引节点的使用情况&lt;/strong&gt;，它也包括容量、使用量以及剩余量三个指标。如果文件系统中存储过多的小文件，就可能碰到索引节点容量已满的问题。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;其次，想到的是&lt;strong&gt;缓存使用情况&lt;/strong&gt;，包括页缓存、目录项缓存、索引节点缓存以及各个具体文件系统（如 ext4、XFS 等）的缓存。这些缓存会使用速度更快的内存，用来临时存储文件数据或者文件系统的元数据，从而可以减少访问慢速磁盘的次数。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;除了以上这两点，文件 I/O 也是很重要的性能指标，包括 IOPS（包括 r/s 和 w/s）、响应时间（延迟）以及吞吐量（B/s）等。在考察这类指标时，通常还要考虑实际文件的读写情况。比如，结合文件大小、文件数量、I/O 类型等，综合分析文件 I/O 的性能。&lt;/p&gt;
+&lt;p&gt;诚然，这些性能指标非常重要，但不幸的是，Linux 文件系统并没有提供，直接查看这些指标的方法。我们只能通过系统调用、动态跟踪或者基准测试等方法，间接进行观察、评估。&lt;/p&gt;
+&lt;h3 id=&#34;磁盘-io-性能指标&#34;&gt;磁盘 I/O 性能指标
+&lt;/h3&gt;&lt;p&gt;接下来，我们就来具体看看，哪些性能指标可以衡量磁盘 I/O 的性能。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;使用率&lt;/strong&gt;，是指磁盘忙处理 I/O 请求的百分比。过高的使用率（比如超过 60%）通常意味着磁盘 I/O 存在性能瓶颈。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;IOPS&lt;/strong&gt;（Input/Output Per Second），是指每秒的 I/O 请求数。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;吞吐量&lt;/strong&gt;，是指每秒的 I/O 请求大小。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;响应时间&lt;/strong&gt;，是指从发出 I/O 请求到收到响应的间隔时间。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;考察这些指标时，一定要注意综合 I/O 的具体场景来分析，比如读写类型（顺序还是随机）、读写比例、读写大小、存储类型（有无 RAID 以及 RAID 级别、本地存储还是网络存储）等。&lt;/p&gt;
+&lt;p&gt;不过，这里有一个大忌，就是把不同场景的 I/O 性能指标，直接进行分析对比。&lt;/p&gt;
+&lt;p&gt;除了这些指标外，在前面 Cache 和 Buffer 原理的文章中，老师多次提到的，**缓冲区（Buffer）**也是要重点掌握的指标，它经常出现在内存和磁盘问题的分析中。&lt;/p&gt;
+&lt;p&gt;文件系统和磁盘 I/O 这些指标都很有用，需要我们熟练掌握，老师也帮我们总结了一张图。&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-i/o%E7%AF%87%E5%A5%97%E8%B7%AF%E7%AF%87/image-1.png&#34;
+	width=&#34;2650&#34;
+	height=&#34;808&#34;
+	srcset=&#34;https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-i/o%E7%AF%87%E5%A5%97%E8%B7%AF%E7%AF%87/image-1_hu_6cb7196c45b7d0d1.png 480w, https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-i/o%E7%AF%87%E5%A5%97%E8%B7%AF%E7%AF%87/image-1_hu_464558ad344e1686.png 1024w&#34;
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;alt text&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;327&#34;
+		data-flex-basis=&#34;787px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;h2 id=&#34;性能工具&#34;&gt;性能工具
+&lt;/h2&gt;&lt;p&gt;掌握文件系统和磁盘 I/O 的性能指标后，我们还要知道，怎样去获取这些指标，也就是搞明白工具的使用问题。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;第一&lt;/strong&gt;，在文件系统的原理中，老师介绍了查看文件系统容量的工具 df。它既可以查看文件系统数据的空间容量，也可以查看索引节点的容量。至于文件系统缓存，我们通过 /proc/meminfo、/proc/slabinfo 以及 slabtop 等各种来源，观察页缓存、目录项缓存、索引节点缓存以及具体文件系统的缓存情况。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;第二&lt;/strong&gt;，在磁盘 I/O 原理中，我们分别用 iostat 和 pidstat 观察了磁盘和进程的 I/O 情况。它们都是最常用的 I/O 性能分析工具。通过 iostat，我们可以得到磁盘的 I/O 使用率、吞吐量、响应时间以及 IOPS 等性能指标；而通过 pidstat，则可以观察到进程的 I/O 吞吐量以及块设备 I/O 的延迟等。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;第三&lt;/strong&gt;，在狂打日志的案例中，我们先用 top 查看系统的 CPU 使用情况，发现 iowait 比较高；然后，又用 iostat 发现了磁盘的 I/O 使用率瓶颈，并用 pidstat 找出了大量 I/O 的进程；最后，通过 strace 和 lsof，我们找出了问题进程正在读写的文件，并最终锁定性能问题的来源————原来是进程在狂打日志。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;第四&lt;/strong&gt;，在磁盘 I/O 延迟的单词热度案例中，我们同样先用 top、iostat，发现磁盘有 I/O 瓶颈，并用 pidstat 找出了大量 I/O 的进程。可接下来，想要照搬上次操作的我们失败了。在随后的 strace 命令中，我们居然没看到 write 系统调用。于是，我们换了一个思路，用新工具 filetop 和 opensnoop，从内核中跟踪系统调用，最终找出瓶颈的来源。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;最后&lt;/strong&gt;，在 MySQL 和 Redis 的案例中，同样的思路，我们先用 top、iostat 以及 pidstat，确定并找出 I/O 性能问题的瓶颈来源，它们正是 mysqld 和 redis-server。随后，我们又用 strace + lsof 找出了它们正在读写的文件。&lt;/p&gt;
+&lt;p&gt;关于 MySQL 案例，根据 mysqld 正在读写的文件路径，再结合 MySQL 数据库引擎的原理，我们不仅找出了数据库和数据表的名称，还进一步发现了慢查询的问题，最终通过优化索引解决了性能瓶颈。&lt;/p&gt;
+&lt;p&gt;至于 Redis 案例，根据 redis-server 读写的文件，以及正在进行网络通信的 TCP Socket，再结合 Redis 的工作原理，我们发现 Redis 持久化选项配置有问题；从 TCP Socket 通信的数据中，我们还发现了客户端的不合理行为。于是，我们修改 Redis 配置选项，并优化了客户端使用 Redis 的方式，从而减少网络通信次数，解决性能问题。&lt;/p&gt;
+&lt;h2 id=&#34;性能指标和工具的联系&#34;&gt;性能指标和工具的联系
+&lt;/h2&gt;&lt;p&gt;同前面 CPU 和内存板块的学习一样，建议从指标和工具两个不同维度出发，整理记忆。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;从 I/O 指标出发，更容易把性能工具同系统工作原理关联起来，对性能问题有宏观的认识和把握。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;从性能工具出发，可以更快上手使用工具，迅速找出我们想观察的性能指标。特别是在工具有限的情况下，我们更要充分利用好手头的每一个工具，少量工具也要尽力挖掘出大量信息。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;第一个维度，从文件系统和磁盘 I/O 的性能指标出发。换句话说，当你想查看某个性能指标时，要清楚知道，哪些工具可以做到。&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;根据不同的性能指标，对提供指标的性能工具进行分类和理解。这样，在实际排查性能问题时，就可以清楚知道，什么工具可以提供想要的指标，而不是毫无根据地挨个尝试，撞运气。&lt;/p&gt;
+&lt;p&gt;虽然不需要把所有相关的工具背下来，但如果能够记清楚每隔指标对应的工具特性，实际操作起来，一定能更高效、灵活。&lt;/p&gt;
+&lt;p&gt;这里提供了 I/P 性能指标的工具表格，方便梳理关系和理解记忆。&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-i/o%E7%AF%87%E5%A5%97%E8%B7%AF%E7%AF%87/image-2.png&#34;
+	width=&#34;1705&#34;
+	height=&#34;1901&#34;
+	srcset=&#34;https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-i/o%E7%AF%87%E5%A5%97%E8%B7%AF%E7%AF%87/image-2_hu_b93aece6526af777.png 480w, https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-i/o%E7%AF%87%E5%A5%97%E8%B7%AF%E7%AF%87/image-2_hu_6cc5f11971004127.png 1024w&#34;
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;alt text&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;89&#34;
+		data-flex-basis=&#34;215px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;p&gt;下面，再来看第二个维度。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;第二个维度，从工具出发。也就是当你已经安装了某个工具后，要知道这个工具能提供哪些指标。&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;这在实际环境中，特别是生产环境中也是非常重要的。因为很多情况下，并没有权限安装新的工具包，只能最大化地利用好系统已有的工具，这就需要对它们有足够的了解。&lt;/p&gt;
+&lt;p&gt;具体到每个工具的使用方法，一般都支持丰富的配置选项。不过不用担心，这些配置选项并不用背下来。你只要知道有哪些工具，以及这些工具的基本功能是什么就够了。真正要用到的时候， 通过 man 命令，查它们的使用手册就可以了。&lt;/p&gt;
+&lt;p&gt;同样的，老师也将这些常用工具汇总成了一个表格，方便区分和理解。自然，也可以当成一个“工具指标”指南使用，需要时查表即可。&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-i/o%E7%AF%87%E5%A5%97%E8%B7%AF%E7%AF%87/image-3.png&#34;
+	width=&#34;910&#34;
+	height=&#34;1336&#34;
+	srcset=&#34;https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-i/o%E7%AF%87%E5%A5%97%E8%B7%AF%E7%AF%87/image-3_hu_660445fecfb32f8b.png 480w, https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-i/o%E7%AF%87%E5%A5%97%E8%B7%AF%E7%AF%87/image-3_hu_c6bc9c03722ade03.png 1024w&#34;
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;alt text&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;68&#34;
+		data-flex-basis=&#34;163px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;h2 id=&#34;如何迅速分析-io-的性能瓶颈&#34;&gt;如何迅速分析 I/O 的性能瓶颈
+&lt;/h2&gt;&lt;p&gt;在实际生产环境中，我们希望的是，尽可能快地定位系统的瓶颈，然后尽可能快地优化性能，也就是要又快又准地解决性能问题。&lt;/p&gt;
+&lt;p&gt;那有没有什么方法，可以又快又准地找出系统的 I/O 瓶颈呢？答案是肯定的。&lt;/p&gt;
+&lt;p&gt;还是那句话，找关联。多种性能指标间都有一定的关联性，不要完全孤立的看待他们。&lt;strong&gt;想弄清楚性能指标的关联性，就要通晓每种性能指标的工作原理&lt;/strong&gt;。这也是为什么老师在介绍每个性能指标时，都要穿插讲解相关的系统原理，要记住这一点。&lt;/p&gt;
+&lt;p&gt;以我们前面几期的案例为例，如果仔细对比前面的几个案例，从 I/O 延迟的案例到 MySQL 和 Redis 的案例，就会发现，虽然这些问题千差万别，但从 I/O 角度来分析，最开始的分析思路基本上类似，都是：&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;先用 iostat 发现磁盘 I/O 性能瓶颈；&lt;/li&gt;
+&lt;li&gt;再借助 pidstat ，定位出导致瓶颈的进程；&lt;/li&gt;
+&lt;li&gt;随后分析进程的 I/O 行为；&lt;/li&gt;
+&lt;li&gt;最后，结合应用程序的原理，分析这些 I/O 的来源。&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;&lt;strong&gt;所以，为了缩小排查范围，通常会先运行那几个支持指标较多的工具，如 iostat、vmstat、pidstat 等&lt;/strong&gt;。然后再根据观察到的现象，结合系统和应用程序的原理，寻找下一步的分析方向。我把这个过程画成了一张图，你可以保存下来参考使用。&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-i/o%E7%AF%87%E5%A5%97%E8%B7%AF%E7%AF%87/image-4.png&#34;
+	width=&#34;3732&#34;
+	height=&#34;1886&#34;
+	srcset=&#34;https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-i/o%E7%AF%87%E5%A5%97%E8%B7%AF%E7%AF%87/image-4_hu_e2f36923c1a9eb11.png 480w, https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-i/o%E7%AF%87%E5%A5%97%E8%B7%AF%E7%AF%87/image-4_hu_346bad9da7506163.png 1024w&#34;
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;alt text&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;197&#34;
+		data-flex-basis=&#34;474px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;p&gt;图中列出了最常用的几个文件系统和磁盘 I/O 性能分析工具，以及相应的分析流程，箭头则表示分析方向。这其中，iostat、vmstat、pidstat 是最核心的几个性能工具，它们也提供了最重要的 I/O 性能指标。举几个例子可能更容易理解。&lt;/p&gt;
+&lt;p&gt;例如，在前面讲过的 MySQL 和 Redis 案例中，我们就是通过 iostat 确认磁盘出现 I/O 性能瓶颈，然后用 pidstat 找出 I/O 最大的进程，接着借助 strace 找出该进程正在读写的文件，最后结合应用程序的原理，找出大量 I/O 的原因。&lt;/p&gt;
+&lt;p&gt;再如，当你用 iostat 发现磁盘有 I/O 性能瓶颈后，再用 pidstat 和 vmstat 检查，可能会发现 I/O 来自内核线程，如 Swap 使用大量升高。这种情况下，你就得进行内存分析了，先找出占用大量内存的进程，再设法减少内存的使用。&lt;/p&gt;
+&lt;h2 id=&#34;小结&#34;&gt;小结
+&lt;/h2&gt;&lt;p&gt;本节，我们一起复习了常见的文件系统和磁盘 I/O 性能指标，梳理了常见的 I/O 性能观测工具，并建立了性能指标和工具的关联。最后，我们还总结了快速分析 I/O 性能问题的思路。&lt;/p&gt;
+&lt;p&gt;还是那句话，虽然 I/O 的性能指标很多，相应的性能分析工具也有不少，但熟悉了各指标含义后，你就会自然找到它们的关联。顺着这个思路往下走，掌握常用的分析套路也并不难。&lt;/p&gt;
+</description>
+        </item>
+        <item>
         <title>[Linux]性能调优-I/O篇（案例篇）- 4</title>
         <link>https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-i/o%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-4/</link>
         <pubDate>Thu, 05 Feb 2026 15:04:46 +0800</pubDate>
