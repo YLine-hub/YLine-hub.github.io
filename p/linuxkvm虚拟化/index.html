@@ -1,0 +1,3481 @@
+<!DOCTYPE html>
+<html lang="en-us" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="虚拟化基础 术语与示例图 虚拟机 简介 虚拟计算机也称为“虚拟机”（VM，Virtual Machine），它是一种严密隔离且内含操作系统和应用的软件容器。\n特征 分区 隔离 封装 独立于硬件 Hypervisor 简介 Hypervisor 是一种运行在基础物理服务器vhe操作系统之间的中间软件层，其可以允许多个 VM 操作系统和 VM 应用共享宿主机底层的内存、CPU、磁盘等物理硬件，也可叫做 VMM（virtual machine monitor），即虚拟机监视器。\n">
+<title>[Linux]kvm虚拟化</title>
+
+<link rel='canonical' href='https://YLine-hub.github.io/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/'>
+
+<link rel="stylesheet" href="/scss/style.min.6a692fd055deae459f2a9767f57f3855ba80cafd5041317f24f7360f6ca47cdf.css"><meta property='og:title' content="[Linux]kvm虚拟化">
+<meta property='og:description' content="虚拟化基础 术语与示例图 虚拟机 简介 虚拟计算机也称为“虚拟机”（VM，Virtual Machine），它是一种严密隔离且内含操作系统和应用的软件容器。\n特征 分区 隔离 封装 独立于硬件 Hypervisor 简介 Hypervisor 是一种运行在基础物理服务器vhe操作系统之间的中间软件层，其可以允许多个 VM 操作系统和 VM 应用共享宿主机底层的内存、CPU、磁盘等物理硬件，也可叫做 VMM（virtual machine monitor），即虚拟机监视器。\n">
+<meta property='og:url' content='https://YLine-hub.github.io/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/'>
+<meta property='og:site_name' content='リンボの個人ブログ'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:published_time' content='2026-02-14T00:00:44&#43;08:00'/><meta property='article:modified_time' content='2026-02-14T00:00:44&#43;08:00'/>
+<meta name="twitter:title" content="[Linux]kvm虚拟化">
+<meta name="twitter:description" content="虚拟化基础 术语与示例图 虚拟机 简介 虚拟计算机也称为“虚拟机”（VM，Virtual Machine），它是一种严密隔离且内含操作系统和应用的软件容器。\n特征 分区 隔离 封装 独立于硬件 Hypervisor 简介 Hypervisor 是一种运行在基础物理服务器vhe操作系统之间的中间软件层，其可以允许多个 VM 操作系统和 VM 应用共享宿主机底层的内存、CPU、磁盘等物理硬件，也可叫做 VMM（virtual machine monitor），即虚拟机监视器。\n">
+    <link rel="shortcut icon" href="/favicon.ico" />
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        
+            
+            <figure class="site-avatar">
+                <a href="/">
+                
+                    
+                    
+                    
+                        
+                        <img src="/img/avatar_hu_de528bff5d5e9598.png" width="300"
+                            height="300" class="site-logo" loading="lazy" alt="Avatar">
+                    
+                
+                </a>
+                
+                    <span class="emoji">🏖️</span>
+                
+            </figure>
+            
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">リンボの個人ブログ</a></h1>
+            <h2 class="site-description">努力不一定能获得回报，但不努力一定不会有回报。</h2>
+        </div>
+    </header><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-home" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <polyline points="5 12 3 12 12 3 21 12 19 12" />
+  <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7" />
+  <path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6" />
+</svg>
+
+
+
+                
+                <span>主页</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/%E5%85%B3%E4%BA%8E/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/archives/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/search/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-search" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="10" cy="10" r="7" />
+  <line x1="21" y1="21" x2="15" y2="15" />
+</svg>
+
+
+
+                
+                <span>搜索</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav id="TableOfContents">
+  <ol>
+    <li><a href="#虚拟化基础">虚拟化基础</a>
+      <ol>
+        <li><a href="#术语与示例图">术语与示例图</a></li>
+        <li><a href="#虚拟机">虚拟机</a>
+          <ol>
+            <li><a href="#简介">简介</a></li>
+            <li><a href="#特征">特征</a></li>
+          </ol>
+        </li>
+        <li><a href="#hypervisor">Hypervisor</a>
+          <ol>
+            <li><a href="#简介-1">简介</a></li>
+            <li><a href="#系统调用与虚拟场景的系统调用">系统调用与虚拟场景的系统调用</a></li>
+          </ol>
+        </li>
+        <li><a href="#虚拟化的两种风格">虚拟化的两种风格</a>
+          <ol>
+            <li><a href="#表现样式">表现样式</a></li>
+            <li><a href="#架构差异">架构差异</a></li>
+            <li><a href="#特点">特点</a></li>
+          </ol>
+        </li>
+      </ol>
+    </li>
+    <li><a href="#kvm-简介">kvm 简介</a>
+      <ol>
+        <li><a href="#官方网址">官方网址</a></li>
+        <li><a href="#原理介绍">原理介绍</a>
+          <ol>
+            <li><a href="#前提">前提</a></li>
+            <li><a href="#实现原理">实现原理</a></li>
+          </ol>
+        </li>
+        <li><a href="#管理软件">管理软件</a></li>
+        <li><a href="#环境支持">环境支持</a></li>
+      </ol>
+    </li>
+    <li><a href="#部署kvm熟练">部署KVM[熟练]</a>
+      <ol>
+        <li><a href="#基础环境">基础环境</a>
+          <ol>
+            <li><a href="#前提-1">前提</a></li>
+            <li><a href="#异常处理">异常处理</a></li>
+            <li><a href="#验证效果">验证效果</a></li>
+          </ol>
+        </li>
+        <li><a href="#环境部署">环境部署</a>
+          <ol>
+            <li><a href="#kvm工具包">kvm工具包</a></li>
+            <li><a href="#libvirt">libvirt</a></li>
+            <li><a href="#ubuntu-安装-kvm">ubuntu 安装 kvm</a></li>
+          </ol>
+        </li>
+      </ol>
+    </li>
+    <li><a href="#命令创建虚拟机熟练">命令创建虚拟机[熟练]</a>
+      <ol>
+        <li><a href="#基础知识">基础知识</a></li>
+        <li><a href="#配置结构">配置结构</a></li>
+        <li><a href="#初始化熟练">初始化[熟练]</a>
+          <ol>
+            <li><a href="#创建磁盘">创建磁盘</a></li>
+            <li><a href="#创建虚拟机-1">创建虚拟机</a></li>
+            <li><a href="#连接虚拟机">连接虚拟机</a></li>
+            <li><a href="#虚拟机管理">虚拟机管理</a></li>
+            <li><a href="#配置解析">配置解析</a></li>
+            <li><a href="#基础功能">基础功能</a></li>
+            <li><a href="#其他功能">其他功能</a></li>
+          </ol>
+        </li>
+      </ol>
+    </li>
+  </ol>
+</nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            <a href="/categories/linux/" >
+                Linux
+            </a>
+        
+            <a href="/categories/kvm/" >
+                Kvm
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/">[Linux]kvm虚拟化</a>
+        </h2>
+    
+        
+    </div>
+
+    
+    
+    
+    
+    <footer class="article-time">
+        
+            <div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                <time class="article-time--published">2026-02-14</time>
+            </div>
+        
+
+        
+    </footer>
+    
+
+    
+</div>
+
+</header>
+
+    <section class="article-content">
+    
+    
+    <h2 id="虚拟化基础">虚拟化基础
+</h2><h3 id="术语与示例图">术语与示例图
+</h3><p><img src="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image.png"
+	width="918"
+	height="420"
+	srcset="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image_hu_3939cd9f8b8565b9.png 480w, /p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image_hu_fafac5e71a47d6ac.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="218"
+		data-flex-basis="524px"
+	
+></p>
+<h3 id="虚拟机">虚拟机
+</h3><h4 id="简介">简介
+</h4><p>虚拟计算机也称为“虚拟机”（VM，Virtual Machine），它是一种严密隔离且内含操作系统和应用的软件容器。</p>
+<h4 id="特征">特征
+</h4><ul>
+<li>分区</li>
+<li>隔离</li>
+<li>封装</li>
+<li>独立于硬件</li>
+</ul>
+<h3 id="hypervisor">Hypervisor
+</h3><h4 id="简介-1">简介
+</h4><p>Hypervisor 是一种运行在基础物理服务器vhe操作系统之间的中间软件层，其可以允许多个 VM 操作系统和 VM 应用共享宿主机底层的内存、CPU、磁盘等物理硬件，也可叫做 VMM（virtual machine monitor），即虚拟机监视器。</p>
+<p><font color=red>注意：其实在<code>术语与示例图</code>中的 <code>vmware workstation</code> 与 <code>kvm 环境</code> 就是 Hypervisor，其实也就是用来管理虚拟机的软件。</font></p>
+<h4 id="系统调用与虚拟场景的系统调用">系统调用与虚拟场景的系统调用
+</h4><ol>
+<li>系统调用</li>
+</ol>
+<p><img src="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-2.png"
+	width="593"
+	height="209"
+	srcset="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-2_hu_b410963a4002a508.png 480w, /p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-2_hu_da414c9a18696b2c.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="283"
+		data-flex-basis="680px"
+	
+></p>
+<blockquote>
+<p>为了协调多任务，操作系统被分成了两段：
+内核空间：接近硬件，主要执行特权指令
+用户空间：执行普通的指令
+用户空间的执行想要执行某些特权指令，就需要进行&quot;系统调用&quot;</p>
+</blockquote>
+<ol start="2">
+<li>虚拟场景下的系统调用</li>
+</ol>
+<p><img src="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-3.png"
+	width="559"
+	height="337"
+	srcset="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-3_hu_92c470b86259c957.png 480w, /p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-3_hu_bfb4788902a6b859.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="165"
+		data-flex-basis="398px"
+	
+></p>
+<h3 id="虚拟化的两种风格">虚拟化的两种风格
+</h3><h4 id="表现样式">表现样式
+</h4><p><img src="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-1.png"
+	width="447"
+	height="144"
+	srcset="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-1_hu_eb74b29927921593.png 480w, /p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-1_hu_2d827caa079e130b.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="310"
+		data-flex-basis="745px"
+	
+></p>
+<h4 id="架构差异">架构差异
+</h4><ol>
+<li>Type-I：也成为裸机 Hypervisor。</li>
+</ol>
+<blockquote>
+<p>Type - I 的 Hypervisor 直接运行在硬件之上，没有宿主机操作系统，直接控制硬件资源和客户机。</p>
+</blockquote>
+<ol start="2">
+<li>Type-II：也叫宿主机形 Hypervisor。</li>
+</ol>
+<blockquote>
+<p>Type - II 的 Hypervisor 运行在一个宿主机操作系统之上，作为宿主机操作系统中的一个应用程序，客户机则是在宿主机操作系统上的一个进程。</p>
+</blockquote>
+<h4 id="特点">特点
+</h4><ol>
+<li>Type - I：</li>
+</ol>
+<p>由于直接运行在硬件上，没有中间的宿主操作系统层，Type - I Hypervisor <u>具有较低的系统开销和更高的性能效率，能更充分地利用硬件资源</u>，适合对性能要求较高的生产环境。</p>
+<ol start="2">
+<li>Type - II：</li>
+</ol>
+<p>运行在宿主操作系统之上，虚拟机访问硬件资源需要经过宿主操作系统的内核，<u>会带来一定的性能损耗</u>。在一些对性能要求不特别苛刻的场景，如开发测试环境或个人使用场景中，这种性能损耗通常是可以接受的。</p>
+<h2 id="kvm-简介">kvm 简介
+</h2><h3 id="官方网址">官方网址
+</h3><p><a class="link" href="https://www.linux-kvm.org/page/Main_Page"  target="_blank" rel="noopener"
+    >https://www.linux-kvm.org/page/Main_Page</a></p>
+<h3 id="原理介绍">原理介绍
+</h3><h4 id="前提">前提
+</h4><blockquote>
+<p>KVM 本身不执行任何硬件模拟，需要使用一个客户空间的程序通过 /dev/kvm 接口设置一个客户机虚拟服务器的地址空间，向它提供模拟的 I/O，并将它的视频现实映射会宿主的显示屏。目前这个应用程序通常使用 QEMU。</p>
+</blockquote>
+<h4 id="实现原理">实现原理
+</h4><p><img src="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-4.png"
+	width="640"
+	height="173"
+	srcset="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-4_hu_c5169f1a16e658be.png 480w, /p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-4_hu_662d8d07fdb4b0ab.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="369"
+		data-flex-basis="887px"
+	
+></p>
+<blockquote>
+<p>kvm依赖于HVM技术，只能运行在支持硬件虚拟化的CPU上，也就是说CPU支持VT-x或AMD-v，并且只支持x86_64bits系统。只要基于硬件的操作系统内核一旦装载了kvm模块，那么kvm模块就和linux内核组合成了hypervisor，变成了type-I模型的虚拟机。
+kvm类似于寄生虫，linux内核一旦被寄宿，就没有自主权，跟着kvm一起变成hypervisor的一部分。原来的用户空间就变成了hypervisor的管理控制台运行位置，而kvm以字符设备/dev/kvm的形式作为kvm整个的调用管理接口。
+kvm创建的虚拟机就是一个进程，ps查看，kill杀死</p>
+</blockquote>
+<h3 id="管理软件">管理软件
+</h3><p>KVM 是运行在单机的系统，比如运行在A宿主机上的虚拟机，是不允许操作B宿主机上的虚拟机。如果实现多机的环境，需要其他软件实现跨主机的统一管理。常见的虚拟化管理平台如下：</p>
+<p>参考资料：http://www.linux-kvm.org/page/Management_Tools</p>
+<ol>
+<li>
+<p><code>oVirt</code>：功能强大，是Redhat虚拟化管理平台RHEV的开源版本。http://www.ovirt.org/</p>
+</li>
+<li>
+<p><code>WebVirtMgr</code>：virt-manager的Web模式的替代品,管理单主机的虚拟机。https://www.webvirtmgr.net</p>
+</li>
+<li>
+<p><code>OpenStack</code>：<strong>最主流</strong>的开源虚拟化管理平台,基于Python语言开发实现，适合大型企业。https://www.openstack.org/</p>
+</li>
+<li>
+<p><code>Proxmox virtualization environment</code>：简称PVE，是一个开源免费的基于Linux的企业级虚拟化方案，功能不输专业收费的VMware。是一个完整
+的企业虚拟化开源平台。借助内置的Web界面，您可以轻松管理VM和容器，软件定义的存储和网络，高可用性集群以及单个解决方案上的多个开箱即用工具。</p>
+</li>
+<li>
+<p><code>VMware vSphere</code>：VMware 公司商业化，只用于管理ESXi 的虚拟机，不能管理KVM虚拟机。</p>
+</li>
+</ol>
+<h3 id="环境支持">环境支持
+</h3><ul>
+<li>查看当前系统是否支持kvm(ubuntu 22.04)</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">grep -i kvm /boot/config-5.15.0-119-generic
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-5.png"
+	width="531"
+	height="419"
+	srcset="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-5_hu_d5ee40b2f34e990d.png 480w, /p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-5_hu_4c6f3e57b540e684.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="126"
+		data-flex-basis="304px"
+	
+></p>
+<p>可以看到目前内核是支持kvm功能的。</p>
+<h2 id="部署kvm熟练">部署KVM[熟练]
+</h2><h3 id="基础环境">基础环境
+</h3><h4 id="前提-1">前提
+</h4><ol>
+<li>
+<p>有一台创建好的虚拟机</p>
+</li>
+<li>
+<p>勾选虚拟化引擎</p>
+</li>
+</ol>
+<p><img src="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-6.png"
+	width="876"
+	height="309"
+	srcset="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-6_hu_223fba9968c11dd.png 480w, /p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-6_hu_ead8afd993f91255.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="283"
+		data-flex-basis="680px"
+	
+></p>
+<h4 id="异常处理">异常处理
+</h4><h5 id="发生异常">发生异常
+</h5><p>点击启动虚拟机之后，会发生如下提示：</p>
+<p><img src="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-7.png"
+	width="556"
+	height="256"
+	srcset="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-7_hu_7f1c7b01f9b8d5f9.png 480w, /p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-7_hu_204467372cf6977c.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="217"
+		data-flex-basis="521px"
+	
+></p>
+<p>出现报错，表示不支持虚拟化</p>
+<p>原因：开启了Hyper-V功能</p>
+<h5 id="处理异常">处理异常
+</h5><ol>
+<li>确保任务管理其虚拟化已开启</li>
+</ol>
+<p><img src="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-11.png"
+	width="877"
+	height="629"
+	srcset="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-11_hu_3c838368d8c6a310.png 480w, /p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-11_hu_1b1a045dfb3ade64.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="139"
+		data-flex-basis="334px"
+	
+></p>
+<ol start="2">
+<li>关闭 虚拟化服务</li>
+</ol>
+<p><img src="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-10.png"
+	width="468"
+	height="170"
+	srcset="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-10_hu_e0a13c77e84c1933.png 480w, /p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-10_hu_58f27e6b887be16a.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="275"
+		data-flex-basis="660px"
+	
+></p>
+<ol start="3">
+<li>使用管理员身份运行cmd</li>
+</ol>
+<p><img src="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-8.png"
+	width="757"
+	height="496"
+	srcset="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-8_hu_f416625ea53128a7.png 480w, /p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-8_hu_d1a3c1cf0b4e5b15.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="152"
+		data-flex-basis="366px"
+	
+></p>
+<ol start="4">
+<li>执行如下命令</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 禁用Hyper-V Hypervisor</span>
+</span></span><span class="line"><span class="cl">bcdedit /set hypervisorlaunchtype off
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-9.png"
+	width="466"
+	height="147"
+	srcset="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-9_hu_776c04f17a1a0778.png 480w, /p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-9_hu_d2c70ec01a7ecd8a.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="317"
+		data-flex-basis="760px"
+	
+></p>
+<ol start="5">
+<li>执行命令，查看虚拟化的安全性是否是未启用状态</li>
+</ol>
+<p><img src="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-12.png"
+	width="695"
+	height="438"
+	srcset="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-12_hu_790a0588146932ef.png 480w, /p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-12_hu_79fa3cf48042e61f.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="158"
+		data-flex-basis="380px"
+	
+></p>
+<p>如果不是，进入下一步</p>
+<ol start="6">
+<li>进入 组策略方法=&gt;计算机配置=&gt;管理模板=&gt;系统=&gt;设备防护=&gt;启用基于虚拟化的安全性=&gt;禁用=&gt;重启电脑</li>
+</ol>
+<p>打开运行界面，输入gpedit.msc，即可进入组策略方法。</p>
+<p><img src="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-13.png"
+	width="1032"
+	height="605"
+	srcset="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-13_hu_e388191620d5f476.png 480w, /p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-13_hu_436d138816745571.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="170"
+		data-flex-basis="409px"
+	
+></p>
+<ol start="6">
+<li>重启主机后，重新打开虚拟机即可。</li>
+</ol>
+<h5 id="单词">单词
+</h5><ul>
+<li>仮想（かそう）虚拟；假想</li>
+<li>プラットフォーム paltform 平台；基础架构；操作系统</li>
+<li>サポート　支持；支援；援助；帮助；赞助</li>
+<li>続行（ぞっこう）　继续；持续</li>
+<li>せずに　不；没</li>
+<li>管理員（かんりいん）</li>
+</ul>
+<h4 id="验证效果">验证效果
+</h4><ul>
+<li>确保CPU支持HVM</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">egrep <span class="s1">&#39;(vmx|svm)&#39;</span> /proc/cpuinfo
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-14.png"
+	width="1327"
+	height="629"
+	srcset="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-14_hu_697a606707d14407.png 480w, /p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-14_hu_5c85988c4651299c.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="210"
+		data-flex-basis="506px"
+	
+></p>
+<p><font color=red>注意：<br>存在几颗CPU，上面的内容就会显示几行</font>。<br>Intel CPU<font color=red> 对应</font> vmx；<br>AMD CPU<font color=red> 对应</font> svm；</p>
+<ul>
+<li>确认支持模块</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">lsmod <span class="p">|</span> egrep <span class="s1">&#39;kvm|Module&#39;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-15.png"
+	width="348"
+	height="84"
+	srcset="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-15_hu_568de13166db7891.png 480w, /p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-15_hu_b0448d984e78d6bf.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="414"
+		data-flex-basis="994px"
+	
+></p>
+<h3 id="环境部署">环境部署
+</h3><h4 id="kvm工具包">kvm工具包
+</h4><ul>
+<li>常见工具包</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">qemu-kvm:
+</span></span><span class="line"><span class="cl">    为kvm提供底层仿真支持
+</span></span><span class="line"><span class="cl">libvirt-daemon:
+</span></span><span class="line"><span class="cl">    libvirtd守护进程，管理虚拟机
+</span></span><span class="line"><span class="cl">libvirt-client:
+</span></span><span class="line"><span class="cl">    用户端软件，提供客户端管理命令
+</span></span><span class="line"><span class="cl">libvirt-daemon-driver-qemu:
+</span></span><span class="line"><span class="cl">    libvirtd连接qemu的驱动
+</span></span><span class="line"><span class="cl">libvirt:
+</span></span><span class="line"><span class="cl">    使用最多的KVM虚拟化管理工具和应用程序接口，即通过libvirt调用KVM创建虚拟机，
+</span></span><span class="line"><span class="cl">libvirt:
+</span></span><span class="line"><span class="cl">    是KVM通用的访问API，其不但能管理KVM，还能管理VMware、Xen、Hyper-V、virtualBox等虚拟化方案。
+</span></span><span class="line"><span class="cl">virt-manager:
+</span></span><span class="line"><span class="cl">    图形界面管理工具,其底层也是调用libvirt API来完成对虚拟机的操作，包括虚拟机的创建、删除、启动、停止以及一些简单的监控功能等。
+</span></span><span class="line"><span class="cl">virt-install:
+</span></span><span class="line"><span class="cl">    虚拟机命令行安装工具
+</span></span><span class="line"><span class="cl">virsh:
+</span></span><span class="line"><span class="cl">    命令行工具是基于 libvirt API 创建的命令行工具，它可以作为图形化的 virt-manager 应用的备选工具。
+</span></span><span class="line"><span class="cl">    virsh 命令可以被用来创建虚拟化任务管理脚本，如安装、启动和停止虚拟机。
+</span></span><span class="line"><span class="cl">virt-viewer:
+</span></span><span class="line"><span class="cl">    通过 VNC 和 SPICE 协议显示虚拟机器图形控制台的最小工具。该工具在其同名软件包中：virtviewer
+</span></span><span class="line"><span class="cl">cockpit:
+</span></span><span class="line"><span class="cl">    CentOS 和Ubuntu 专门提供的基于Web的虚拟机管理界面
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="libvirt">libvirt
+</h4><h5 id="介绍">介绍
+</h5><p>libvirt 程序包是一个与虚拟机监控程序相独立的虚拟化应用程序接口，它可以与操作系统的一系列虚拟化性能进行交互。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">libvirt 程序包提供：
+</span></span><span class="line"><span class="cl">    一个稳定的通用层来安全地管理主机上的虚拟机。
+</span></span><span class="line"><span class="cl">    一个管理本地系统和连网主机的通用接口。
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h5 id="镜像准备">镜像准备
+</h5><ul>
+<li>Centos7-minial</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">https://mirrors.aliyun.com/centos/7/isos/x86_64/CentOS-7-x86_64-Minimal-2009.iso
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>Rocky9-minial</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">https://mirrors.aliyun.com/rockylinux/9/isos/x86_64/Rocky-9-latest-x86_64-minimal.iso
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>Windows-server 2008</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">ed2k://|file|cn_windows_server_2008_r2_standard_enterprise_datacenter_and_web_with_sp1_vl_build_x64_dvd_617396.iso|3368962048|7C210CAC37A05F459758BCC1F4478F9E|/
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>windows-server 2016</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-gdscript3" data-lang="gdscript3"><span class="line"><span class="cl"><span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">download</span><span class="o">.</span><span class="n">microsoft</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">download</span><span class="o">/</span><span class="n">B</span><span class="o">/</span><span class="mi">5</span><span class="o">/</span><span class="n">F</span><span class="o">/</span><span class="n">B5F1A996</span><span class="o">-</span><span class="n">B590</span><span class="o">-</span><span class="mi">45</span><span class="n">FD</span><span class="o">-</span><span class="n">BA99</span><span class="o">-</span><span class="n">DE7E745A0882</span><span class="o">/</span><span class="mf">14393.0</span><span class="o">.</span><span class="mi">161119</span><span class="o">-</span><span class="mf">1705.</span><span class="n">RS1_REFRESH_SERVER_EVAL_X64FRE_ZH</span><span class="o">-</span><span class="n">CN</span><span class="o">.</span><span class="n">ISO</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>windows-server 2022</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-gdscript3" data-lang="gdscript3"><span class="line"><span class="cl"><span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">software</span><span class="o">-</span><span class="k">static</span><span class="o">.</span><span class="n">download</span><span class="o">.</span><span class="n">prss</span><span class="o">.</span><span class="n">microsoft</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">pr</span><span class="o">/</span><span class="n">download</span><span class="o">/</span><span class="mf">20348.1</span><span class="o">.</span><span class="mi">210507</span><span class="o">-</span><span class="mf">1500.</span><span class="n">fe_release_amd64fre_SERVER_LOF_PACKAGES_OEM</span><span class="o">.</span><span class="n">iso</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>windows-server 2025</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-gdscript3" data-lang="gdscript3"><span class="line"><span class="cl"><span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">software</span><span class="o">-</span><span class="k">static</span><span class="o">.</span><span class="n">download</span><span class="o">.</span><span class="n">prss</span><span class="o">.</span><span class="n">microsoft</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">dbazure</span><span class="o">/</span><span class="mi">888969</span><span class="n">d5</span><span class="o">-</span><span class="n">f34g</span><span class="o">-</span><span class="mf">4e03</span><span class="o">-</span><span class="n">ac9d</span><span class="o">-</span><span class="mi">1</span><span class="n">f9786c66749</span><span class="o">/</span><span class="mf">26100.1</span><span class="o">.</span><span class="mi">240331</span><span class="o">-</span><span class="mf">1435.</span><span class="n">ge_release_amd64fre_SERVER_LOF_PACKAGES_OEM</span><span class="o">.</span><span class="n">iso</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="ubuntu-安装-kvm">ubuntu 安装 kvm
+</h4><h5 id="ubuntu-安装-kvm-1">ubuntu 安装 kvm
+</h5><ol>
+<li>安装 kvm</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">apt install -y qemu-kvm libvirt-daemon-system libvirt-clients bridge-utils virtinst virt-manager virt-viewer cpu-checker
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="2">
+<li>验证</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">brctl show
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-16.png"
+	width="476"
+	height="62"
+	srcset="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-16_hu_7e227aa0f2d2d361.png 480w, /p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-16_hu_154e6939b39dd5c8.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="767"
+		data-flex-basis="1842px"
+	
+></p>
+<ol start="3">
+<li>确认虚拟化效果</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 添加CPU的虚拟化支持再执行,验证是否支持kvm,只有Ubuntu支持,CentOS 不支持</span>
+</span></span><span class="line"><span class="cl">kvm-ok
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-17.png"
+	width="220"
+	height="57"
+	srcset="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-17_hu_6ecc1d70c7c26e79.png 480w, /p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-17_hu_d07f8478b0a780a6.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="385"
+		data-flex-basis="926px"
+	
+></p>
+<p>上图表示开启了CPU虚拟化功能</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 如果没有开启CPU虚拟化功能会提示以下信息</span>
+</span></span><span class="line"><span class="cl">root@ubuntu24-13:~# kvm-ok
+</span></span><span class="line"><span class="cl">INFO: Your CPU does not support KVM extensions
+</span></span><span class="line"><span class="cl">KVM acceleration can NOT be used
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="4">
+<li>查看路由信息</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">route -n
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-21.png"
+	width="562"
+	height="104"
+	srcset="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-21_hu_a60cc3996553ef9c.png 480w, /p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-21_hu_91f6617f4fb67405.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="540"
+		data-flex-basis="1296px"
+	
+></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">ps aux <span class="p">|</span> grep -v grep <span class="p">|</span> grep dns
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>grep -v grep 表示不匹配grep</li>
+</ul>
+<p><img src="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-22.png"
+	width="1420"
+	height="57"
+	srcset="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-22_hu_9de42ed6664e1ab9.png 480w, /p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-22_hu_30e6f76962cca56c.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="2491"
+		data-flex-basis="5978px"
+	
+></p>
+<blockquote>
+<p>结果显示：<br>
+安装完毕软件后，KVM 默认创建了一个 virbr0的虚拟网卡，为虚机网卡提供 NAT 访问外网的功能<br>
+关于该网段的信息是通过dnsmasq服务来提供dns和dhcp服务的</p>
+</blockquote>
+<h6 id="新語">新語
+</h6><ul>
+<li>invert / ɪnˈvɜːrt / v、使倒置，使反转；使颠倒；修改；n、倒拱；管道内底</li>
+</ul>
+<h5 id="ubuntu-安装-cockpit">ubuntu 安装 cockpit
+</h5><ol>
+<li>安装软件</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">apt install -y cockpit cockpit-machines
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="2">
+<li>默认情况下，该软件禁用了root用户登录</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">vim /etc/cockpit/disallowed-users
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>/etc/cockpit/disallowed-users</code></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># List of users which are not allowed to login to Cockpit</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># root # 注释掉该行，允许root登录</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="3">
+<li>重启主机服务</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">systemctl restart cockpit
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="4">
+<li>检查服务</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">systemctl status cockpit.socket
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="5">
+<li>检查端口</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">netstat -tnulp <span class="p">|</span> grep <span class="m">9090</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-25.png"
+	width="639"
+	height="45"
+	srcset="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-25_hu_cea854f11de2fc21.png 480w, /p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-25_hu_cf52b54c086617f.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="1420"
+		data-flex-basis="3408px"
+	
+></p>
+<h5 id="ubuntu-查看-cockpit">ubuntu 查看 cockpit
+</h5><ol>
+<li>使用物理主机访问：http://192.168.172.100:9090，并点击詳細設定（しょうさいせってい）</li>
+</ol>
+<p><img src="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-18.png"
+	width="1012"
+	height="589"
+	srcset="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-18_hu_cf8e2873edae459d.png 480w, /p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-18_hu_d7addf43b005ae91.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="171"
+		data-flex-basis="412px"
+	
+></p>
+<ol start="2">
+<li>点击 192.168.172.100に進む</li>
+</ol>
+<p><img src="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-19.png"
+	width="769"
+	height="532"
+	srcset="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-19_hu_301a861f5d12805f.png 480w, /p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-19_hu_1b3b276403c09444.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="144"
+		data-flex-basis="346px"
+	
+></p>
+<ol start="3">
+<li>输入系统用户root与密码，如果提示禁止登录的化，需要开启root登录的配置，参考上一节</li>
+</ol>
+<p><img src="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-20.png"
+	width="1178"
+	height="877"
+	srcset="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-20_hu_b50b3ab3b22ad31d.png 480w, /p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-20_hu_7227fc85c70fe27b.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="134"
+		data-flex-basis="322px"
+	
+></p>
+<ol start="4">
+<li>进入主界面</li>
+</ol>
+<p><img src="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-24.png"
+	width="1175"
+	height="877"
+	srcset="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-24_hu_552903ee62d463b4.png 480w, /p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-24_hu_644e1d9a1da8e8e6.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="133"
+		data-flex-basis="321px"
+	
+></p>
+<h5 id="创建虚拟机">创建虚拟机
+</h5><ol>
+<li>在宿主机中创建一个目录用来存放镜像</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">mkdir -p /data/images
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="2">
+<li>上传镜像到目录中</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">ls /data/images
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-23.png"
+	width="290"
+	height="44"
+	srcset="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-23_hu_d2d5ac0f8573541d.png 480w, /p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-23_hu_c12fd8cc492986f9.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="659"
+		data-flex-basis="1581px"
+	
+></p>
+<h2 id="命令创建虚拟机熟练">命令创建虚拟机[熟练]
+</h2><h3 id="基础知识">基础知识
+</h3><ul>
+<li>工具体系</li>
+</ul>
+<p><img src="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-26.png"
+	width="713"
+	height="320"
+	srcset="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-26_hu_a0b3141ab44c8a66.png 480w, /p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-26_hu_a7ec5f8e530302f9.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="222"
+		data-flex-basis="534px"
+	
+></p>
+<h3 id="配置结构">配置结构
+</h3><p>安装完kvm之后，会形成一个专用的目录结构</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">ls /etc/libvirt
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-27.png"
+	width="950"
+	height="55"
+	srcset="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-27_hu_732ccbcb933d1816.png 480w, /p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-27_hu_4702602f117e09a.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="1727"
+		data-flex-basis="4145px"
+	
+></p>
+<p><font color=red>注意：qemu目录是我们创建虚拟机后，保存虚拟机配置文件的目录。</font></p>
+<h3 id="初始化熟练">初始化[熟练]
+</h3><h4 id="创建磁盘">创建磁盘
+</h4><ul>
+<li>命令格式</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 用此工具创建的磁盘文件显示和实际占用的空间都是很小的</span>
+</span></span><span class="line"><span class="cl">qemu-img create -f 磁盘格式 磁盘名称 磁盘大小
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol>
+<li>为centos-7虚拟机创建磁盘</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">qemu-img create -f raw /opt/centos-7-x86_64.raw 10G
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-28.png"
+	width="537"
+	height="58"
+	srcset="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-28_hu_f92cfb0781f2ad5d.png 480w, /p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-28_hu_a594df9c8ae15265.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="925"
+		data-flex-basis="2222px"
+	
+></p>
+<ol start="2">
+<li>查看该文件大小</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">ll -h /opt/
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-29.png"
+	width="457"
+	height="103"
+	srcset="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-29_hu_a48eafef7f3df106.png 480w, /p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-29_hu_c8c8672b43f005f.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="443"
+		data-flex-basis="1064px"
+	
+></p>
+<p>可以看到这个文件的大小是10G</p>
+<ol start="3">
+<li>查看该目录实际使用的存储</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">du -sh /opt/
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-30.png"
+	width="248"
+	height="57"
+	srcset="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-30_hu_b2e9c885ef9c3c94.png 480w, /p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-30_hu_ff0a17a0d574f57.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="435"
+		data-flex-basis="1044px"
+	
+></p>
+<p>可以看到这个目录，实际只占用8K存储</p>
+<h4 id="创建虚拟机-1">创建虚拟机
+</h4><ol>
+<li>创建虚拟机</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virt-install --virt-type kvm --name CentOS-7-x86_64 --memory <span class="m">1024</span> --cdrom<span class="o">=</span>/data/images/CentOS-7-x86_64-Minimal-2009.iso --disk<span class="o">=</span>/opt/centos-7-x86_64.raw --network <span class="nv">network</span><span class="o">=</span>default --graphics vnc,listen<span class="o">=</span>0.0.0.0 --noautoconsole
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>参数解析：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span><span class="lnt">9
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">参数解析：
+</span></span><span class="line"><span class="cl">--virt-type kvm 指定创建的虚拟机基于的虚拟化技术
+</span></span><span class="line"><span class="cl">--name CentOS-7-x86_64 指定创建虚拟机的名字，推荐<span class="s2">&#34;简洁&#34;</span>
+</span></span><span class="line"><span class="cl">--ram <span class="m">1024</span> 指定创建虚拟机的内存大小
+</span></span><span class="line"><span class="cl">--cdrom<span class="o">=</span>XX.iso 指定创建虚拟机使用的系统镜像
+</span></span><span class="line"><span class="cl">--disk <span class="nv">path</span><span class="o">=</span>XX.raw 指定创建虚拟机使用的虚拟磁盘
+</span></span><span class="line"><span class="cl">--network <span class="nv">network</span><span class="o">=</span>default 指定创建虚拟机使用的网络类型
+</span></span><span class="line"><span class="cl">--graphics vnc,listen<span class="o">=</span>0.0.0.0 指定访问虚拟机使用的客户端配置信息
+</span></span><span class="line"><span class="cl">--noautoconsole 禁用配置的客户端自动连接虚拟机
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-31.png"
+	width="1057"
+	height="146"
+	srcset="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-31_hu_5d9decffd3c1245c.png 480w, /p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-31_hu_4f6ef31f4c0923ad.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="723"
+		data-flex-basis="1737px"
+	
+></p>
+<ol start="2">
+<li>查看网络状态</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">netstat -tnulp
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-32.png"
+	width="720"
+	height="248"
+	srcset="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-32_hu_9949da237b190484.png 480w, /p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-32_hu_a644173a2a7ed2b2.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="290"
+		data-flex-basis="696px"
+	
+></p>
+<p>可以看到5900端口处于监听状态。</p>
+<h4 id="连接虚拟机">连接虚拟机
+</h4><h5 id="realvnc-viewer">RealVNC Viewer
+</h5><p>使用工具：<a class="link" href="https://www.realvnc.com/en/connect/download/viewer/"  target="_blank" rel="noopener"
+    >RealVNC Viewer</a></p>
+<p><img src="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-33.png"
+	width="886"
+	height="633"
+	srcset="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-33_hu_1fcd7072edbacbc3.png 480w, /p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-33_hu_efd724837e6eb33b.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="139"
+		data-flex-basis="335px"
+	
+></p>
+<ol>
+<li>创建新的连接</li>
+</ol>
+<p><img src="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-34.png"
+	width="292"
+	height="343"
+	srcset="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-34_hu_cc8830c7b39f2214.png 480w, /p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-34_hu_428b84b0c118c681.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="85"
+		data-flex-basis="204px"
+	
+></p>
+<ol start="2">
+<li>输入连接的ip</li>
+</ol>
+<p><img src="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-35.png"
+	width="466"
+	height="633"
+	srcset="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-35_hu_2d00b92d039799b7.png 480w, /p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-35_hu_39c4da8b284d01bc.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="73"
+		data-flex-basis="176px"
+	
+></p>
+<p>端口默认连接5900，所以不用输入。</p>
+<ol start="3">
+<li>双击图标进行连接</li>
+</ol>
+<p><img src="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-36.png"
+	width="886"
+	height="633"
+	srcset="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-36_hu_4013ec4110f50923.png 480w, /p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-36_hu_80cf53f20a6353c0.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="139"
+		data-flex-basis="335px"
+	
+></p>
+<ol start="4">
+<li>点击继续</li>
+</ol>
+<p><img src="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-37.png"
+	width="480"
+	height="346"
+	srcset="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-37_hu_2b25f3d6e71d3855.png 480w, /p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-37_hu_e0a2b0afa13c3a87.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="138"
+		data-flex-basis="332px"
+	
+></p>
+<ol start="5">
+<li>进入虚拟机</li>
+</ol>
+<p><img src="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-38.png"
+	width="1023"
+	height="800"
+	srcset="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-38_hu_df01d1f70f00a8b1.png 480w, /p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-38_hu_7eb552d8e3a28527.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="127"
+		data-flex-basis="306px"
+	
+></p>
+<ol start="6">
+<li>配置网络</li>
+</ol>
+<p><img src="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-39.png"
+	width="1024"
+	height="768"
+	srcset="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-39_hu_19cc107edcb9cc3f.png 480w, /p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-39_hu_a7a7857c3e27014c.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="133"
+		data-flex-basis="320px"
+	
+></p>
+<ol start="7">
+<li>配置root密码和用户，等待安装</li>
+</ol>
+<p><img src="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-40.png"
+	width="1024"
+	height="800"
+	srcset="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-40_hu_fd095d2c206e76be.png 480w, /p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-40_hu_5cf9741b4616f6b0.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="128"
+		data-flex-basis="307px"
+	
+></p>
+<ol start="8">
+<li>通过 virsh 重启虚拟机</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virsh start CentOS-7-x86_64
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-43.png"
+	width="356"
+	height="62"
+	srcset="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-43_hu_c214f4ab3903b199.png 480w, /p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-43_hu_ec32b62a9c8f7d95.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="574"
+		data-flex-basis="1378px"
+	
+></p>
+<ol start="9">
+<li>查看网络情况</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">ip a
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-44.png"
+	width="821"
+	height="239"
+	srcset="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-44_hu_67d2d3e952b3d960.png 480w, /p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-44_hu_5f7193c11b49f5f8.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="343"
+		data-flex-basis="824px"
+	
+></p>
+<p>发现有两个ip，这是因为刚刚添加了一个静态 ip，但是系统本身还有一个随机分配的ip。</p>
+<ol start="10">
+<li>编辑网卡文件</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">vi /etc/sysconfig/network-scripts/ifcfg-eth0
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-45.png"
+	width="357"
+	height="314"
+	srcset="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-45_hu_bbf649b8bb3415e4.png 480w, /p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-45_hu_5f097c615c5615f3.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="113"
+		data-flex-basis="272px"
+	
+></p>
+<p>将该项修改为static，即</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="nv">BOOTPROTO</span><span class="o">=</span><span class="s2">&#34;static&#34;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="11">
+<li>重启网络</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">systemctl restart network
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="12">
+<li>再次查看网络情况，只显示一个ip</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">ip a 
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-46.png"
+	width="824"
+	height="209"
+	srcset="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-46_hu_eacc8188b73718a4.png 480w, /p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-46_hu_fd2bbb5f73e7430a.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="394"
+		data-flex-basis="946px"
+	
+></p>
+<ol start="13">
+<li>检测能否正常上网</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">ping -c3 www.baidu.com
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>发现无法知道www.baidu.com这个域名</p>
+<p><img src="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-47.png"
+	width="378"
+	height="32"
+	srcset="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-47_hu_d62bafcb4c55ec3c.png 480w, /p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-47_hu_540ff6004e282cd6.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="1181"
+		data-flex-basis="2835px"
+	
+></p>
+<p>那么就是dns没有配置</p>
+<ol start="14">
+<li>在刚才的网络配置文件中添加以下内容</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="nv">DNS1</span><span class="o">=</span><span class="s2">&#34;192.168.122.1&#34;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-48.png"
+	width="352"
+	height="325"
+	srcset="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-48_hu_163b995526a22d1d.png 480w, /p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-48_hu_d2adbc04765ca890.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="108"
+		data-flex-basis="259px"
+	
+></p>
+<ol start="15">
+<li>重启网络后再次测试</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">ping -c3 www.baidu.com
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-49.png"
+	width="640"
+	height="143"
+	srcset="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-49_hu_de67144db6029024.png 480w, /p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-49_hu_81f1f0859dfb5d17.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="447"
+		data-flex-basis="1074px"
+	
+></p>
+<h4 id="虚拟机管理">虚拟机管理
+</h4><p>vnc中虚拟机是不会重启的，需要在宿主机系统中，使用命令开启虚拟机。</p>
+<ol>
+<li>查看虚拟机状态</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virsh list
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-41.png"
+	width="245"
+	height="94"
+	srcset="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-41_hu_80905e03bdd77796.png 480w, /p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-41_hu_9868a1165a017c7.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="260"
+		data-flex-basis="625px"
+	
+></p>
+<p>默认情况下是看不了关闭的虚拟机。</p>
+<ol start="2">
+<li>查看虚拟机状态（全部）</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virsh list --all
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-42.png"
+	width="304"
+	height="198"
+	srcset="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-42_hu_ca5c26feece23f4.png 480w, /p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-42_hu_d50a33aa70b96ff1.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="153"
+		data-flex-basis="368px"
+	
+></p>
+<ol start="3">
+<li>启动虚拟机</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virsh start CentOS-7-x86_64
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-43.png"
+	width="356"
+	height="62"
+	srcset="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-43_hu_c214f4ab3903b199.png 480w, /p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-43_hu_ec32b62a9c8f7d95.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="574"
+		data-flex-basis="1378px"
+	
+></p>
+<p>这时候，显示除了 Id 为 2，之后就有两种管理虚拟机的方式 id 和 name。</p>
+<ol start="4">
+<li>虚拟机：查看网络情况</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">ip a
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-46.png"
+	width="824"
+	height="209"
+	srcset="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-46_hu_eacc8188b73718a4.png 480w, /p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-46_hu_fd2bbb5f73e7430a.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="394"
+		data-flex-basis="946px"
+	
+></p>
+<p>可以看到此时的网卡为eth0</p>
+<ol start="5">
+<li>宿主机：查看网络情况</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">ip a
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-50.png"
+	width="857"
+	height="365"
+	srcset="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-50_hu_425d05ab9b1a2dab.png 480w, /p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-50_hu_5d4d8fae66a8a569.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="234"
+		data-flex-basis="563px"
+	
+></p>
+<p>可以看到此时宿主机中多了一块网卡</p>
+<ol start="6">
+<li>宿主机：查看虚拟网卡情况</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">brctl show
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-51.png"
+	width="476"
+	height="67"
+	srcset="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-51_hu_e467b3daca993cba.png 480w, /p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-51_hu_f4d2939e85999ea1.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="710"
+		data-flex-basis="1705px"
+	
+></p>
+<p>可以看到虚拟网卡此时对应上了刚刚出现的那张网卡</p>
+<ol start="7">
+<li>宿主机与虚拟机网络状况示例图</li>
+</ol>
+<p><img src="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-52.png"
+	width="601"
+	height="395"
+	srcset="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-52_hu_9e5fdda03b8bb6b8.png 480w, /p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-52_hu_dfbc9962d54cfa7.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="152"
+		data-flex-basis="365px"
+	
+></p>
+<h4 id="配置解析">配置解析
+</h4><h5 id="配置目录">配置目录
+</h5><ol>
+<li>宿主机：检查进程</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">ps aux <span class="p">|</span> grep -v grep <span class="p">|</span> grep CentOS
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-53.png"
+	width="1038"
+	height="390"
+	srcset="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-53_hu_f5fa4555b6341033.png 480w, /p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-53_hu_26e42dcf6e97037f.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="266"
+		data-flex-basis="638px"
+	
+></p>
+<p>可以看到，虚拟机本质上是宿主机上的一个进程</p>
+<ol start="2">
+<li>宿主机：查看虚拟机的配置文件</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">ls /etc/libvirt/qemu
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-54.png"
+	width="314"
+	height="67"
+	srcset="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-54_hu_fcc92435ecd6dc6c.png 480w, /p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-54_hu_7b59d02dceddbb7.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="468"
+		data-flex-basis="1124px"
+	
+></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">tree /etc/libvirt/qemu
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-55.png"
+	width="470"
+	height="161"
+	srcset="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-55_hu_7bb4d6db7dd07452.png 480w, /p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-55_hu_2b4e72d0fc8ba82.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="291"
+		data-flex-basis="700px"
+	
+></p>
+<blockquote>
+<ol>
+<li>我们创建的虚拟机配置文件都在 /etc/libvirt/qemu 目录下。</li>
+<li>这个目录下的 networks 目录是存放虚拟机的网络配置，文件名称是 default.xml。</li>
+<li>CentOS-7-x86_64.xml 是我们定义的虚拟机的配置文件，原则上，这个文件只能用 virsh edit 进行编辑。</li>
+</ol>
+</blockquote>
+<h5 id="配置文件">配置文件
+</h5><ol>
+<li>查看配置文件</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">cat /etc/libvirt/qemu/CentOS-7-x86_64.xml
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>CentOS-7-x86_64.xml</code></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">  1
+</span><span class="lnt">  2
+</span><span class="lnt">  3
+</span><span class="lnt">  4
+</span><span class="lnt">  5
+</span><span class="lnt">  6
+</span><span class="lnt">  7
+</span><span class="lnt">  8
+</span><span class="lnt">  9
+</span><span class="lnt"> 10
+</span><span class="lnt"> 11
+</span><span class="lnt"> 12
+</span><span class="lnt"> 13
+</span><span class="lnt"> 14
+</span><span class="lnt"> 15
+</span><span class="lnt"> 16
+</span><span class="lnt"> 17
+</span><span class="lnt"> 18
+</span><span class="lnt"> 19
+</span><span class="lnt"> 20
+</span><span class="lnt"> 21
+</span><span class="lnt"> 22
+</span><span class="lnt"> 23
+</span><span class="lnt"> 24
+</span><span class="lnt"> 25
+</span><span class="lnt"> 26
+</span><span class="lnt"> 27
+</span><span class="lnt"> 28
+</span><span class="lnt"> 29
+</span><span class="lnt"> 30
+</span><span class="lnt"> 31
+</span><span class="lnt"> 32
+</span><span class="lnt"> 33
+</span><span class="lnt"> 34
+</span><span class="lnt"> 35
+</span><span class="lnt"> 36
+</span><span class="lnt"> 37
+</span><span class="lnt"> 38
+</span><span class="lnt"> 39
+</span><span class="lnt"> 40
+</span><span class="lnt"> 41
+</span><span class="lnt"> 42
+</span><span class="lnt"> 43
+</span><span class="lnt"> 44
+</span><span class="lnt"> 45
+</span><span class="lnt"> 46
+</span><span class="lnt"> 47
+</span><span class="lnt"> 48
+</span><span class="lnt"> 49
+</span><span class="lnt"> 50
+</span><span class="lnt"> 51
+</span><span class="lnt"> 52
+</span><span class="lnt"> 53
+</span><span class="lnt"> 54
+</span><span class="lnt"> 55
+</span><span class="lnt"> 56
+</span><span class="lnt"> 57
+</span><span class="lnt"> 58
+</span><span class="lnt"> 59
+</span><span class="lnt"> 60
+</span><span class="lnt"> 61
+</span><span class="lnt"> 62
+</span><span class="lnt"> 63
+</span><span class="lnt"> 64
+</span><span class="lnt"> 65
+</span><span class="lnt"> 66
+</span><span class="lnt"> 67
+</span><span class="lnt"> 68
+</span><span class="lnt"> 69
+</span><span class="lnt"> 70
+</span><span class="lnt"> 71
+</span><span class="lnt"> 72
+</span><span class="lnt"> 73
+</span><span class="lnt"> 74
+</span><span class="lnt"> 75
+</span><span class="lnt"> 76
+</span><span class="lnt"> 77
+</span><span class="lnt"> 78
+</span><span class="lnt"> 79
+</span><span class="lnt"> 80
+</span><span class="lnt"> 81
+</span><span class="lnt"> 82
+</span><span class="lnt"> 83
+</span><span class="lnt"> 84
+</span><span class="lnt"> 85
+</span><span class="lnt"> 86
+</span><span class="lnt"> 87
+</span><span class="lnt"> 88
+</span><span class="lnt"> 89
+</span><span class="lnt"> 90
+</span><span class="lnt"> 91
+</span><span class="lnt"> 92
+</span><span class="lnt"> 93
+</span><span class="lnt"> 94
+</span><span class="lnt"> 95
+</span><span class="lnt"> 96
+</span><span class="lnt"> 97
+</span><span class="lnt"> 98
+</span><span class="lnt"> 99
+</span><span class="lnt">100
+</span><span class="lnt">101
+</span><span class="lnt">102
+</span><span class="lnt">103
+</span><span class="lnt">104
+</span><span class="lnt">105
+</span><span class="lnt">106
+</span><span class="lnt">107
+</span><span class="lnt">108
+</span><span class="lnt">109
+</span><span class="lnt">110
+</span><span class="lnt">111
+</span><span class="lnt">112
+</span><span class="lnt">113
+</span><span class="lnt">114
+</span><span class="lnt">115
+</span><span class="lnt">116
+</span><span class="lnt">117
+</span><span class="lnt">118
+</span><span class="lnt">119
+</span><span class="lnt">120
+</span><span class="lnt">121
+</span><span class="lnt">122
+</span><span class="lnt">123
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">&lt;!--
+</span></span><span class="line"><span class="cl">WARNING: THIS IS AN AUTO-GENERATED FILE. CHANGES TO IT ARE LIKELY TO BE
+</span></span><span class="line"><span class="cl">OVERWRITTEN AND LOST. Changes to this xml configuration should be made using:
+</span></span><span class="line"><span class="cl">virsh edit CentOS-7-x86_64 提示我们只能用virsh edit进行编辑这个文件
+</span></span><span class="line"><span class="cl">or other application using the libvirt API.
+</span></span><span class="line"><span class="cl">--&gt;
+</span></span><span class="line"><span class="cl">&lt;domain <span class="nv">type</span><span class="o">=</span><span class="s1">&#39;kvm&#39;</span>&gt; <span class="c1"># domain完全指虚拟机系统。type一项指明了使用的是哪种虚拟 化技术 </span>
+</span></span><span class="line"><span class="cl">    <span class="c1"># 下面几项是虚拟机的全局配置信息： 虚拟机名称和uuid信息 </span>
+</span></span><span class="line"><span class="cl">    &lt;name&gt;CentOS-7-x86_64&lt;/name&gt; <span class="c1"># 名字不允许包含空格 </span>
+</span></span><span class="line"><span class="cl">    &lt;uuid&gt;405f68cb-d55a-4b18-a916-f213afed2e57&lt;/uuid&gt; 
+</span></span><span class="line"><span class="cl">    <span class="c1"># 内存信息 </span>
+</span></span><span class="line"><span class="cl">    &lt;memory <span class="nv">unit</span><span class="o">=</span><span class="s1">&#39;KiB&#39;</span>&gt;1048576&lt;/memory&gt;
+</span></span><span class="line"><span class="cl">    &lt;currentMemory <span class="nv">unit</span><span class="o">=</span><span class="s1">&#39;KiB&#39;</span>&gt;1048576&lt;/currentMemory&gt; 
+</span></span><span class="line"><span class="cl">    <span class="c1"># cpu信息 </span>
+</span></span><span class="line"><span class="cl">    &lt;vcpu <span class="nv">placement</span><span class="o">=</span><span class="s1">&#39;static&#39;</span>&gt;1&lt;/vcpu&gt;
+</span></span><span class="line"><span class="cl">    &lt;os&gt;
+</span></span><span class="line"><span class="cl">        &lt;<span class="nb">type</span> <span class="nv">arch</span><span class="o">=</span><span class="s1">&#39;x86_64&#39;</span> <span class="nv">machine</span><span class="o">=</span><span class="s1">&#39;pc-i440fx-rhel7.0.0&#39;</span>&gt;hvm&lt;/type&gt; 
+</span></span><span class="line"><span class="cl">        <span class="c1"># type 表示全虚拟化还是半虚拟化，hvm表示全虚拟化 </span>
+</span></span><span class="line"><span class="cl">        &lt;boot <span class="nv">dev</span><span class="o">=</span><span class="s1">&#39;hd&#39;</span> /&gt; <span class="c1"># 表示虚拟机从哪里开机 </span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># boot 怎么启动的，如&#34;fd&#34;表示从文件启动, &#34;hd&#34;从硬盘启动, &#34;cdrom&#34;从光驱启动 和 &#34;network&#34;从</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># 网络启动 </span>
+</span></span><span class="line"><span class="cl">        <span class="c1">#可以重复多行，指定不同的值，作为一个启动设备列表。 </span>
+</span></span><span class="line"><span class="cl">        <span class="c1">#The dev attribute takes one of the values &#34;fd&#34;, &#34;hd&#34;, &#34;cdrom&#34; or &#34;network&#34; </span>
+</span></span><span class="line"><span class="cl">    &lt;/os&gt;
+</span></span><span class="line"><span class="cl">    &lt;features&gt; <span class="c1"># 表示硬件资源(处理器)特性 </span>
+</span></span><span class="line"><span class="cl">        &lt;acpi /&gt;
+</span></span><span class="line"><span class="cl">        &lt;apic /&gt;
+</span></span><span class="line"><span class="cl">    &lt;/features&gt;
+</span></span><span class="line"><span class="cl">    &lt;cpu <span class="nv">mode</span><span class="o">=</span><span class="s1">&#39;custom&#39;</span> <span class="nv">match</span><span class="o">=</span><span class="s1">&#39;exact&#39;</span>&gt;
+</span></span><span class="line"><span class="cl">        &lt;model <span class="nv">fallback</span><span class="o">=</span><span class="s1">&#39;allow&#39;</span>&gt;SandyBridge&lt;/model&gt;
+</span></span><span class="line"><span class="cl">    &lt;/cpu&gt; 
+</span></span><span class="line"><span class="cl">    <span class="c1"># 时钟信息 </span>
+</span></span><span class="line"><span class="cl">    &lt;clock <span class="nv">offset</span><span class="o">=</span><span class="s1">&#39;utc&#39;</span>&gt; <span class="c1"># utc表示时间模式，localtime表示使用本地时间 </span>
+</span></span><span class="line"><span class="cl">        &lt;timer <span class="nv">name</span><span class="o">=</span><span class="s1">&#39;rtc&#39;</span> <span class="nv">tickpolicy</span><span class="o">=</span><span class="s1">&#39;catchup&#39;</span> /&gt;
+</span></span><span class="line"><span class="cl">        &lt;timer <span class="nv">name</span><span class="o">=</span><span class="s1">&#39;pit&#39;</span> <span class="nv">tickpolicy</span><span class="o">=</span><span class="s1">&#39;delay&#39;</span> /&gt;
+</span></span><span class="line"><span class="cl">        &lt;timer <span class="nv">name</span><span class="o">=</span><span class="s1">&#39;hpet&#39;</span> <span class="nv">present</span><span class="o">=</span><span class="s1">&#39;no&#39;</span> /&gt;
+</span></span><span class="line"><span class="cl">    &lt;/clock&gt; 
+</span></span><span class="line"><span class="cl">    <span class="c1"># 突发事件处理机制 </span>
+</span></span><span class="line"><span class="cl">    &lt;on_poweroff&gt;destroy&lt;/on_poweroff&gt;
+</span></span><span class="line"><span class="cl">    &lt;on_reboot&gt;restart&lt;/on_reboot&gt;
+</span></span><span class="line"><span class="cl">    &lt;on_crash&gt;restart&lt;/on_crash&gt; 
+</span></span><span class="line"><span class="cl">    注意：
+</span></span><span class="line"><span class="cl">        突发事件处理定义了当发生poweroff时，直接destroy虚拟机。当虚拟机reboot、crash的时候，会 自动采用重启操作，还可以自定义 
+</span></span><span class="line"><span class="cl">        
+</span></span><span class="line"><span class="cl">    <span class="c1"># 虚拟机管理配置(内存和磁盘) </span>
+</span></span><span class="line"><span class="cl">    &lt;pm&gt;
+</span></span><span class="line"><span class="cl">        &lt;suspend-to-mem <span class="nv">enabled</span><span class="o">=</span><span class="s1">&#39;no&#39;</span> /&gt;
+</span></span><span class="line"><span class="cl">        &lt;suspend-to-disk <span class="nv">enabled</span><span class="o">=</span><span class="s1">&#39;no&#39;</span> /&gt;
+</span></span><span class="line"><span class="cl">    &lt;/pm&gt; 
+</span></span><span class="line"><span class="cl">    <span class="c1"># 虚拟机设备信息 </span>
+</span></span><span class="line"><span class="cl">    注意： 在虚拟化技术或者云计算中，都使用image一词来表示虚拟磁盘 
+</span></span><span class="line"><span class="cl">    &lt;devices&gt; <span class="c1">#在&lt;device&gt;&lt;/device&gt;中的都是虚拟外设 </span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># 模拟器信息 </span>
+</span></span><span class="line"><span class="cl">        &lt;emulator&gt;/usr/libexec/qemu-kvm&lt;/emulator&gt; 
+</span></span><span class="line"><span class="cl">        <span class="c1"># 虚拟机磁盘信息 </span>
+</span></span><span class="line"><span class="cl">        &lt;disk <span class="nv">type</span><span class="o">=</span><span class="s1">&#39;file&#39;</span> <span class="nv">device</span><span class="o">=</span><span class="s1">&#39;disk&#39;</span>&gt;
+</span></span><span class="line"><span class="cl">            &lt;driver <span class="nv">name</span><span class="o">=</span><span class="s1">&#39;qemu&#39;</span> <span class="nv">type</span><span class="o">=</span><span class="s1">&#39;raw&#39;</span> /&gt;
+</span></span><span class="line"><span class="cl">            &lt;<span class="nb">source</span> <span class="nv">file</span><span class="o">=</span><span class="s1">&#39;/opt/CentOS-7-x86_64.raw&#39;</span> /&gt;
+</span></span><span class="line"><span class="cl">            &lt;target <span class="nv">dev</span><span class="o">=</span><span class="s1">&#39;vda&#39;</span> <span class="nv">bus</span><span class="o">=</span><span class="s1">&#39;virtio&#39;</span> /&gt;
+</span></span><span class="line"><span class="cl">            &lt;address <span class="nv">type</span><span class="o">=</span><span class="s1">&#39;pci&#39;</span> <span class="nv">domain</span><span class="o">=</span><span class="s1">&#39;0x0000&#39;</span> <span class="nv">bus</span><span class="o">=</span><span class="s1">&#39;0x00&#39;</span> <span class="nv">slot</span><span class="o">=</span><span class="s1">&#39;0x06&#39;</span> <span class="k">function</span><span class="o">=</span><span class="s1">&#39;0x0&#39;</span> /&gt;
+</span></span><span class="line"><span class="cl">        &lt;/disk&gt;
+</span></span><span class="line"><span class="cl">        &lt;disk
+</span></span><span class="line"><span class="cl">            <span class="nv">type</span><span class="o">=</span><span class="s1">&#39;file&#39;</span> <span class="nv">device</span><span class="o">=</span><span class="s1">&#39;cdrom&#39;</span>&gt;
+</span></span><span class="line"><span class="cl">            &lt;driver <span class="nv">name</span><span class="o">=</span><span class="s1">&#39;qemu&#39;</span> <span class="nv">type</span><span class="o">=</span><span class="s1">&#39;raw&#39;</span> /&gt;
+</span></span><span class="line"><span class="cl">            &lt;target <span class="nv">dev</span><span class="o">=</span><span class="s1">&#39;hda&#39;</span> <span class="nv">bus</span><span class="o">=</span><span class="s1">&#39;ide&#39;</span> /&gt;
+</span></span><span class="line"><span class="cl">            &lt;<span class="nb">readonly</span> /&gt;
+</span></span><span class="line"><span class="cl">            &lt;address <span class="nv">type</span><span class="o">=</span><span class="s1">&#39;drive&#39;</span> <span class="nv">controller</span><span class="o">=</span><span class="s1">&#39;0&#39;</span> <span class="nv">bus</span><span class="o">=</span><span class="s1">&#39;0&#39;</span> <span class="nv">target</span><span class="o">=</span><span class="s1">&#39;0&#39;</span> <span class="nv">unit</span><span class="o">=</span><span class="s1">&#39;0&#39;</span> /&gt;
+</span></span><span class="line"><span class="cl">        &lt;/disk&gt;
+</span></span><span class="line"><span class="cl">        <span class="c1"># 虚拟机控制器配置信息 </span>
+</span></span><span class="line"><span class="cl">        &lt;controller <span class="nv">type</span><span class="o">=</span><span class="s1">&#39;usb&#39;</span> <span class="nv">index</span><span class="o">=</span><span class="s1">&#39;0&#39;</span> <span class="nv">model</span><span class="o">=</span><span class="s1">&#39;ich9-ehci1&#39;</span>&gt;
+</span></span><span class="line"><span class="cl">            &lt;address <span class="nv">type</span><span class="o">=</span><span class="s1">&#39;pci&#39;</span> <span class="nv">domain</span><span class="o">=</span><span class="s1">&#39;0x0000&#39;</span> <span class="nv">bus</span><span class="o">=</span><span class="s1">&#39;0x00&#39;</span> <span class="nv">slot</span><span class="o">=</span><span class="s1">&#39;0x05&#39;</span> <span class="k">function</span><span class="o">=</span><span class="s1">&#39;0x7&#39;</span> /&gt;
+</span></span><span class="line"><span class="cl">        &lt;/controller&gt;
+</span></span><span class="line"><span class="cl">        ... 
+</span></span><span class="line"><span class="cl">        &lt;controller <span class="nv">type</span><span class="o">=</span><span class="s1">&#39;virtio-serial&#39;</span> <span class="nv">index</span><span class="o">=</span><span class="s1">&#39;0&#39;</span>&gt;
+</span></span><span class="line"><span class="cl">            &lt;address <span class="nv">type</span><span class="o">=</span><span class="s1">&#39;pci&#39;</span> <span class="nv">domain</span><span class="o">=</span><span class="s1">&#39;0x0000&#39;</span> <span class="nv">bus</span><span class="o">=</span><span class="s1">&#39;0x00&#39;</span> <span class="nv">slot</span><span class="o">=</span><span class="s1">&#39;0x04&#39;</span> <span class="k">function</span><span class="o">=</span><span class="s1">&#39;0x0&#39;</span> /&gt;
+</span></span><span class="line"><span class="cl">        &lt;/controller&gt;
+</span></span><span class="line"><span class="cl">        <span class="c1"># 虚拟机网络接口配置信息 </span>
+</span></span><span class="line"><span class="cl">        &lt;interface <span class="nv">type</span><span class="o">=</span><span class="s1">&#39;network&#39;</span>&gt;
+</span></span><span class="line"><span class="cl">            &lt;mac <span class="nv">address</span><span class="o">=</span><span class="s1">&#39;52:54:00:72:25:64&#39;</span> /&gt;
+</span></span><span class="line"><span class="cl">            &lt;<span class="nb">source</span> <span class="nv">network</span><span class="o">=</span><span class="s1">&#39;default&#39;</span> /&gt;
+</span></span><span class="line"><span class="cl">            &lt;model <span class="nv">type</span><span class="o">=</span><span class="s1">&#39;virtio&#39;</span> /&gt;
+</span></span><span class="line"><span class="cl">            &lt;address <span class="nv">type</span><span class="o">=</span><span class="s1">&#39;pci&#39;</span> <span class="nv">domain</span><span class="o">=</span><span class="s1">&#39;0x0000&#39;</span> <span class="nv">bus</span><span class="o">=</span><span class="s1">&#39;0x00&#39;</span> <span class="nv">slot</span><span class="o">=</span><span class="s1">&#39;0x03&#39;</span> <span class="k">function</span><span class="o">=</span><span class="s1">&#39;0x0&#39;</span> /&gt;
+</span></span><span class="line"><span class="cl">        &lt;/interface&gt;
+</span></span><span class="line"><span class="cl">        <span class="c1"># 虚拟机的网卡的mac地址，前面的52:54:00地址是固定的，后面的三项是随机的。 </span>
+</span></span><span class="line"><span class="cl">        
+</span></span><span class="line"><span class="cl">        <span class="c1"># 虚拟机串口配置信息，可以不用更改 </span>
+</span></span><span class="line"><span class="cl">        &lt;serial <span class="nv">type</span><span class="o">=</span><span class="s1">&#39;pty&#39;</span>&gt;
+</span></span><span class="line"><span class="cl">            &lt;target <span class="nv">port</span><span class="o">=</span><span class="s1">&#39;0&#39;</span> /&gt;
+</span></span><span class="line"><span class="cl">        &lt;/serial&gt; 
+</span></span><span class="line"><span class="cl">        <span class="c1"># 虚拟机终端配置信息 </span>
+</span></span><span class="line"><span class="cl">        &lt;console <span class="nv">type</span><span class="o">=</span><span class="s1">&#39;pty&#39;</span>&gt;
+</span></span><span class="line"><span class="cl">            &lt;target <span class="nv">type</span><span class="o">=</span><span class="s1">&#39;serial&#39;</span> <span class="nv">port</span><span class="o">=</span><span class="s1">&#39;0&#39;</span> /&gt;
+</span></span><span class="line"><span class="cl">        &lt;/console&gt; 
+</span></span><span class="line"><span class="cl">        <span class="c1"># 虚拟机渠道配置信息 </span>
+</span></span><span class="line"><span class="cl">        &lt;channel <span class="nv">type</span><span class="o">=</span><span class="s1">&#39;unix&#39;</span>&gt;
+</span></span><span class="line"><span class="cl">            &lt;target <span class="nv">type</span><span class="o">=</span><span class="s1">&#39;virtio&#39;</span> <span class="nv">name</span><span class="o">=</span><span class="s1">&#39;org.qemu.guest_agent.0&#39;</span> /&gt;
+</span></span><span class="line"><span class="cl">        &lt;address <span class="nv">type</span><span class="o">=</span><span class="s1">&#39;virtio-serial&#39;</span>
+</span></span><span class="line"><span class="cl">            <span class="nv">controller</span><span class="o">=</span><span class="s1">&#39;0&#39;</span> <span class="nv">bus</span><span class="o">=</span><span class="s1">&#39;0&#39;</span> <span class="nv">port</span><span class="o">=</span><span class="s1">&#39;1&#39;</span> /&gt;
+</span></span><span class="line"><span class="cl">        &lt;/channel&gt; 
+</span></span><span class="line"><span class="cl">        <span class="c1"># 虚拟机输入输出设备信息 </span>
+</span></span><span class="line"><span class="cl">        &lt;input <span class="nv">type</span><span class="o">=</span><span class="s1">&#39;tablet&#39;</span> <span class="nv">bus</span><span class="o">=</span><span class="s1">&#39;usb&#39;</span>&gt;
+</span></span><span class="line"><span class="cl">            &lt;address <span class="nv">type</span><span class="o">=</span><span class="s1">&#39;usb&#39;</span> <span class="nv">bus</span><span class="o">=</span><span class="s1">&#39;0&#39;</span> <span class="nv">port</span><span class="o">=</span><span class="s1">&#39;1&#39;</span> /&gt;
+</span></span><span class="line"><span class="cl">        &lt;/input&gt;
+</span></span><span class="line"><span class="cl">        &lt;input <span class="nv">type</span><span class="o">=</span><span class="s1">&#39;mouse&#39;</span> <span class="nv">bus</span><span class="o">=</span><span class="s1">&#39;ps2&#39;</span> /&gt;
+</span></span><span class="line"><span class="cl">        &lt;input <span class="nv">type</span><span class="o">=</span><span class="s1">&#39;keyboard&#39;</span> <span class="nv">bus</span><span class="o">=</span><span class="s1">&#39;ps2&#39;</span> /&gt; 
+</span></span><span class="line"><span class="cl">        <span class="c1"># vnc方式登录，端口号自动分配 可以通过virsh vncdisplay来查询[vncdisplay domainId] </span>
+</span></span><span class="line"><span class="cl">        
+</span></span><span class="line"><span class="cl">        <span class="c1"># 虚拟机图形设备信息 </span>
+</span></span><span class="line"><span class="cl">        &lt;graphics <span class="nv">type</span><span class="o">=</span><span class="s1">&#39;vnc&#39;</span> <span class="nv">port</span><span class="o">=</span><span class="s1">&#39;-1&#39;</span> <span class="nv">autoport</span><span class="o">=</span><span class="s1">&#39;yes&#39;</span> <span class="nv">listen</span><span class="o">=</span><span class="s1">&#39;0.0.0.0&#39;</span>&gt;
+</span></span><span class="line"><span class="cl">            &lt;listen <span class="nv">type</span><span class="o">=</span><span class="s1">&#39;address&#39;</span> <span class="nv">address</span><span class="o">=</span><span class="s1">&#39;0.0.0.0&#39;</span> /&gt;
+</span></span><span class="line"><span class="cl">        &lt;/graphics&gt; 
+</span></span><span class="line"><span class="cl">        <span class="c1"># 虚拟机声音设备信息 </span>
+</span></span><span class="line"><span class="cl">        &lt;video&gt;
+</span></span><span class="line"><span class="cl">            &lt;model <span class="nv">type</span><span class="o">=</span><span class="s1">&#39;cirrus&#39;</span> <span class="nv">vram</span><span class="o">=</span><span class="s1">&#39;16384&#39;</span> <span class="nv">heads</span><span class="o">=</span><span class="s1">&#39;1&#39;</span> <span class="nv">primary</span><span class="o">=</span><span class="s1">&#39;yes&#39;</span> /&gt;
+</span></span><span class="line"><span class="cl">            &lt;address <span class="nv">type</span><span class="o">=</span><span class="s1">&#39;pci&#39;</span> <span class="nv">domain</span><span class="o">=</span><span class="s1">&#39;0x0000&#39;</span> <span class="nv">bus</span><span class="o">=</span><span class="s1">&#39;0x00&#39;</span> <span class="nv">slot</span><span class="o">=</span><span class="s1">&#39;0x02&#39;</span> <span class="k">function</span><span class="o">=</span><span class="s1">&#39;0x0&#39;</span> /&gt;
+</span></span><span class="line"><span class="cl">        &lt;/video&gt;
+</span></span><span class="line"><span class="cl">        <span class="c1"># 虚拟机存储信息 </span>
+</span></span><span class="line"><span class="cl">        &lt;memballoon <span class="nv">model</span><span class="o">=</span><span class="s1">&#39;virtio&#39;</span>&gt;
+</span></span><span class="line"><span class="cl">            &lt;address <span class="nv">type</span><span class="o">=</span><span class="s1">&#39;pci&#39;</span> <span class="nv">domain</span><span class="o">=</span><span class="s1">&#39;0x0000&#39;</span> <span class="nv">bus</span><span class="o">=</span><span class="s1">&#39;0x00&#39;</span> <span class="nv">slot</span><span class="o">=</span><span class="s1">&#39;0x07&#39;</span> <span class="k">function</span><span class="o">=</span><span class="s1">&#39;0x0&#39;</span> /&gt;
+</span></span><span class="line"><span class="cl">        &lt;/memballoon&gt;
+</span></span><span class="line"><span class="cl">    &lt;/devices&gt;
+</span></span><span class="line"><span class="cl">&lt;/domain&gt;
+</span></span><span class="line"><span class="cl"><span class="c1"># 虚拟机网络文件</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="基础功能">基础功能
+</h4><h5 id="检查">检查
+</h5><p>命令解析</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virsh list 列出所有活动的虚拟机
+</span></span><span class="line"><span class="cl">virsh list --all 列出所有活动和不活的的虚拟机
+</span></span><span class="line"><span class="cl">virsh list --transient 列出所有临时的虚拟机
+</span></span><span class="line"><span class="cl">virsh list --persistent 列出所有永久的虚拟机
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>示例：</p>
+<ul>
+<li>查看所有运行中的虚拟机</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virsh list
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>查看所有的虚拟机，无论运行与否</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virsh list --all
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h5 id="创建">创建
+</h5><p>虚拟机创建的方式除了初始方法，还有一种经常使用的方法&ndash;使用配置文件，而使用配置文件的话，会有两种创建方式：</p>
+<ol>
+<li>临时创建</li>
+</ol>
+<ul>
+<li>借助于现成的配置文件和之前创建的虚拟机数据，创建一个新虚拟机，他会自动清除</li>
+<li>步骤：配置文件-创建虚拟机-查看</li>
+<li>命令：virsh create file_name.xml</li>
+</ul>
+<ol start="2">
+<li>正规创建</li>
+</ol>
+<ul>
+<li>借助于现成的配置文件在虚拟机管理程序中注册一个新的虚拟机，他不会自动清除</li>
+<li>步骤：配置文件-注册虚拟机-开启虚拟机-查看</li>
+<li>命令：virsh define file_name.xml</li>
+</ul>
+<h6 id="临时创建">临时创建
+</h6><ol>
+<li>拷贝文件</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="nb">cd</span> /etc/libvirt/qemu
+</span></span><span class="line"><span class="cl">cp CentOS-7-x86_64.xml CentOS-7-x86_64-1.xml
+</span></span><span class="line"><span class="cl">ls
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-56.png"
+	width="514"
+	height="177"
+	srcset="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-56_hu_34f29898af399440.png 480w, /p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-56_hu_69c151c468f82743.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="290"
+		data-flex-basis="696px"
+	
+></p>
+<ol start="2">
+<li>修改配置文件</li>
+</ol>
+<p><font color=red>注意：<br>主要修改的地方： <font color=black>虚拟机的名字</font>和<font color=black>uuid</font>；<br>虚拟机磁盘不需要修改，如果要修改的话，一个新建的虚拟磁盘里面因为没有<font color=black>boot</font>文件，就会报错；<br>网卡什么的尽量不要更改，更改后即使可以，但是启动不成功</font></p>
+<p><img src="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-57.png"
+	width="655"
+	height="257"
+	srcset="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-57_hu_589f5408812c5516.png 480w, /p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-57_hu_20d58ba29a3c3140.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="254"
+		data-flex-basis="611px"
+	
+></p>
+<ol start="3">
+<li>查看两个配置文件的区别，验证只有name和uuid不一样</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">diff CentOS-7-x86_64.xml CentOS-7-x86_64-1.xml
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-59.png"
+	width="511"
+	height="135"
+	srcset="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-59_hu_856f81fcf2e8b325.png 480w, /p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-59_hu_746b1b55a42bbad5.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="378"
+		data-flex-basis="908px"
+	
+></p>
+<ol start="4">
+<li>关闭占用磁盘文件的虚拟机</li>
+</ol>
+<p><font color=red>注意：因为一个运行中的vm是占用硬件磁盘的，所以会导致资源冲突，为了避免资源冲突，我们将另外一个虚拟机关闭</font></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virsh shutdown <span class="m">1</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-58.png"
+	width="318"
+	height="188"
+	srcset="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-58_hu_3dbb1260bc5104cd.png 480w, /p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-58_hu_3faa3ce87be339e1.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="169"
+		data-flex-basis="405px"
+	
+></p>
+<ol start="5">
+<li>使用配置文件临时创建虚拟机</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virsh create CentOS-7-x86_64-1.xml
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-60.png"
+	width="449"
+	height="67"
+	srcset="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-60_hu_578a2142c4c116e8.png 480w, /p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-60_hu_998d8c60d73014e3.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="670"
+		data-flex-basis="1608px"
+	
+></p>
+<ol start="6">
+<li>查看所有虚拟机</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virsh list --all
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-61.png"
+	width="304"
+	height="102"
+	srcset="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-61_hu_596870b3e21d136f.png 480w, /p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-61_hu_889cc04e6a935cc4.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="298"
+		data-flex-basis="715px"
+	
+></p>
+<p>可以看到临时创建出来的虚拟机已经启动了，并且能直接用VNC连接。</p>
+<ol start="7">
+<li>查看临时虚拟机</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virsh list --transient
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-62.png"
+	width="341"
+	height="88"
+	srcset="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-62_hu_704a53e7f1eef29.png 480w, /p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-62_hu_d84da2bdbc1ccef9.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="387"
+		data-flex-basis="930px"
+	
+></p>
+<ol start="8">
+<li>关闭临时虚拟机，并查看所有虚拟机</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virsh shutdown <span class="m">2</span>
+</span></span><span class="line"><span class="cl">virsh list --all
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-63.png"
+	width="319"
+	height="186"
+	srcset="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-63_hu_bac4b1be5cac079b.png 480w, /p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-63_hu_8502dbfc4cc67195.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="171"
+		data-flex-basis="411px"
+	
+></p>
+<p>可以看到，临时虚拟机关闭以后，就没有记录了。</p>
+<p>临时虚拟机关闭以后自动删除，永久虚拟机就算关闭了还会继续存在。</p>
+<h6 id="永久创建">永久创建
+</h6><ol>
+<li>拷贝配置文件</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">cp CentOS-7-x86_64.xml CentOS-7-x86_64-2.xml
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="2">
+<li>修改配置文件</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">vim CentOS-7-x86_64-2.xml
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-64.png"
+	width="645"
+	height="170"
+	srcset="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-64_hu_5298c6440cbf130c.png 480w, /p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-64_hu_649392ce8da8bffb.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="379"
+		data-flex-basis="910px"
+	
+></p>
+<ol start="3">
+<li>查看修改的配置文件和原文件区别</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">diff CentOS-7-x86_64.xml CentOS-7-x86_64-2.xml
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-65.png"
+	width="513"
+	height="135"
+	srcset="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-65_hu_a6fd69a429d69c58.png 480w, /p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-65_hu_9a656539a95968a3.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="380"
+		data-flex-basis="912px"
+	
+></p>
+<p>可以看到修改后的文件和原文件区别是name和uuid。</p>
+<ol start="4">
+<li>注册虚拟机</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virsh define CentOS-7-x86_64-2.xml
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-66.png"
+	width="441"
+	height="70"
+	srcset="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-66_hu_72898d582ff7155d.png 480w, /p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-66_hu_8c646647a10713f1.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="630"
+		data-flex-basis="1512px"
+	
+></p>
+<ol start="5">
+<li>查看所有虚拟机</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virsh list --all
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-67.png"
+	width="307"
+	height="111"
+	srcset="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-67_hu_c025047b2f0e3ff5.png 480w, /p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-67_hu_a35c5ed91f919f7.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="276"
+		data-flex-basis="663px"
+	
+></p>
+<p>可以看到注册的这个虚拟机默认处于关闭状态。</p>
+<ol start="6">
+<li>启动虚拟机</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virsh start CentOS-7-x86_64-2
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-68.png"
+	width="392"
+	height="68"
+	srcset="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-68_hu_626b3e3d1fc77512.png 480w, /p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-68_hu_bbfabad1c0b51f0c.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="576"
+		data-flex-basis="1383px"
+	
+></p>
+<p>启动成功。</p>
+<ol start="7">
+<li>查看永久虚拟机</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virsh list --persistent --all
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-69.png"
+	width="393"
+	height="111"
+	srcset="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-69_hu_dd4b25241f431646.png 480w, /p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-69_hu_61c445306c323863.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="354"
+		data-flex-basis="849px"
+	
+></p>
+<h5 id="登录">登录
+</h5><blockquote>
+<p>当我们虚拟机过多的时候，如果想用VNC来连接的话，就不够了，但是还想用VNC怎么办？</p>
+</blockquote>
+<p>思路：执行 &lsquo;virsh domdisplay 虚拟机名称&rsquo; 来获取虚拟机的地址。</p>
+<ol>
+<li>查看运行的地址</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virsh domdisplay <span class="m">3</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-70.png"
+	width="315"
+	height="57"
+	srcset="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-70_hu_5722ba699b4d8d58.png 480w, /p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-70_hu_496603052d85d1f0.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="552"
+		data-flex-basis="1326px"
+	
+></p>
+<p><font color=red>注意：后面的数字 n 代表虚拟机启动的端口号，特指 VNC 端口号 5900+n</font></p>
+<ol start="2">
+<li>使用 VNC 连接</li>
+</ol>
+<p><img src="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-71.png"
+	width="466"
+	height="633"
+	srcset="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-71_hu_254077b57a87d5f6.png 480w, /p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-71_hu_bb070e4ae0004cbf.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="73"
+		data-flex-basis="176px"
+	
+></p>
+<h5 id="使用-console-登录">使用 console 登录
+</h5><blockquote>
+<p>默认情况下，新安装的虚拟机，是无法通过 virsh console 命令连入虚拟机中，这时我们需要开启虚拟机的 console 功能。我们可以通过 grubby 来配置 grub 信息。</p>
+</blockquote>
+<ol>
+<li>宿主机：使用 console 连接虚拟机</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virsh console <span class="m">3</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-72.png"
+	width="306"
+	height="83"
+	srcset="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-72_hu_f4eec1a0e3c59b26.png 480w, /p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-72_hu_7770c4a76a7630e2.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="368"
+		data-flex-basis="884px"
+	
+></p>
+<p>可以看到，并没有连接到虚拟机上，只能按 (Ctrl + ]) 来退出。</p>
+<ol start="2">
+<li>VNC：使用 VNC 登录到虚拟机，添加ttyS0的许可</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">grubby --update-kernel<span class="o">=</span>ALL --args<span class="o">=</span><span class="s2">&#34;console=ttyS0&#34;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-73.png"
+	width="569"
+	height="35"
+	srcset="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-73_hu_aeb8936238f7ddaa.png 480w, /p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-73_hu_142ae0b79abbbf54.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="1625"
+		data-flex-basis="3901px"
+	
+></p>
+<ol start="3">
+<li>VNC：重启虚拟机</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">reboot
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="4">
+<li>宿主机：查看虚拟机状态</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virsh list
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-74.png"
+	width="281"
+	height="98"
+	srcset="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-74_hu_5a882a1b2af8f670.png 480w, /p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-74_hu_43634e53a0459122.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="286"
+		data-flex-basis="688px"
+	
+></p>
+<ol start="5">
+<li>宿主机：连接虚拟机</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virsh console <span class="m">3</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>这时候，界面可能看上去还是卡着，按下回车即可。</p>
+<p><img src="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-75.png"
+	width="325"
+	height="154"
+	srcset="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-75_hu_78668b9a6f63059.png 480w, /p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-75_hu_9547436976e0435f.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="211"
+		data-flex-basis="506px"
+	
+></p>
+<h4 id="其他功能">其他功能
+</h4><h5 id="挂起">挂起
+</h5><ul>
+<li>命令格式</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virsh supend &lt; vmhost_name or vmhost_id &gt;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>也就是暂停</p>
+<ol>
+<li>宿主机：挂起虚拟机</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virsh <span class="nb">suspend</span> <span class="m">3</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-76.png"
+	width="298"
+	height="68"
+	srcset="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-76_hu_b1a98861fd145649.png 480w, /p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-76_hu_df7755d09df0be0f.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="438"
+		data-flex-basis="1051px"
+	
+></p>
+<ol start="2">
+<li>宿主机：查看所有虚拟机</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virsh list --all
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-77.png"
+	width="304"
+	height="104"
+	srcset="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-77_hu_be95ff260b6c2c54.png 480w, /p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-77_hu_f5c6178f2af51f4c.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="292"
+		data-flex-basis="701px"
+	
+></p>
+<ol start="3">
+<li>查看vnc画面，vnc界面卡死，但是虚拟机并没有关机</li>
+</ol>
+<p><img src="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-78.png"
+	width="539"
+	height="145"
+	srcset="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-78_hu_93627f3fbf0eae5d.png 480w, /p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-78_hu_63315065bb48493e.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="371"
+		data-flex-basis="892px"
+	
+></p>
+<h5 id="恢复">恢复
+</h5><ul>
+<li>命令格式</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virsh resume &lt; vmhost_name or vmhost_id &gt;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol>
+<li>宿主机：恢复虚拟机</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virsh resume <span class="m">3</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-79.png"
+	width="286"
+	height="62"
+	srcset="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-79_hu_96627f29546f6c48.png 480w, /p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-79_hu_d236f98e82c2565a.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="461"
+		data-flex-basis="1107px"
+	
+></p>
+<ol start="2">
+<li>宿主机：查看所有虚拟机状态</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virsh list --all
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-80.png"
+	width="299"
+	height="106"
+	srcset="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-80_hu_42e040dc64fb516e.png 480w, /p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-80_hu_dcfbb5517111ce4e.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="282"
+		data-flex-basis="676px"
+	
+></p>
+<h5 id="新語-1">新語
+</h5><ul>
+<li>suspend / səˈspend / v、暂停，中止；</li>
+<li>pause / pɔːz / n、暂停，停顿；v、暂停，停顿</li>
+<li>resume / rɪˈzuːm / v、恢复</li>
+</ul>
+<h5 id="关机">关机
+</h5><ul>
+<li>命令格式</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virsh shutdown &lt; vmhost_name or vmhost_id &gt;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><font color=red>注意：shutdown 方法依赖于 acpid 服务，Acpid 是一个用户空间的服务进程，它充当 linux 内核与应用程序之间通信的接口，负责将 kernel 中的电源管理事件转发给应用程序。所以要保证我们的操作系统有acpid服务。</font></p>
+<ul>
+<li>centos 安装 acpid 服务</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 对 ubuntu 来说，它会自动安装相关软件并运行该服务</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># 对 centos 来说，它需要手动安装并启动</span>
+</span></span><span class="line"><span class="cl">yum install acpid -y
+</span></span><span class="line"><span class="cl">systemctl start acpid
+</span></span><span class="line"><span class="cl">systemctl <span class="nb">enable</span> cpid
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol>
+<li>宿主机：关闭虚拟机</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virsh shutdown <span class="m">3</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-81.png"
+	width="303"
+	height="63"
+	srcset="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-81_hu_adf62d0e8168f1d4.png 480w, /p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-81_hu_6f24d92193222fd.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="480"
+		data-flex-basis="1154px"
+	
+></p>
+<ol start="2">
+<li>宿主机：查看所有虚拟机</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virsh list --all
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-82.png"
+	width="304"
+	height="104"
+	srcset="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-82_hu_43e3f70d8da4734a.png 480w, /p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-82_hu_a7098872514d5a52.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="292"
+		data-flex-basis="701px"
+	
+></p>
+<p>使用shutdown关闭的时候，一定要避免资源冲突，特别是基于同一个配置文件创建出来的虚拟机。如果shutdown不管用的情况话，使用kill方式关闭或者强制删除方法，示例如下：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">pa aux <span class="p">|</span> grep CnetOS
+</span></span><span class="line"><span class="cl"><span class="nb">kill</span> <span class="m">6589</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h5 id="强制关机">强制关机
+</h5><ul>
+<li>命令格式</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virsh destroy &lt; vmhost_name or vmhost_id &gt;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol>
+<li>宿主机：强制关闭id为4的主机</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virsh destroy <span class="m">4</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-83.png"
+	width="300"
+	height="65"
+	srcset="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-83_hu_a51cc9b90cbc050.png 480w, /p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-83_hu_fde4b1ebff5add71.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="461"
+		data-flex-basis="1107px"
+	
+></p>
+<ol start="2">
+<li>宿主机：查看所有虚拟机的状态</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virsh list --all
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-84.png"
+	width="306"
+	height="107"
+	srcset="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-84_hu_1db884fbe40f9f12.png 480w, /p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-84_hu_76d0bcabf20543dd.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="285"
+		data-flex-basis="686px"
+	
+></p>
+<h5 id="删除主机">删除主机
+</h5><ul>
+<li>命令格式</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virsh undefine &lt; vmhost_name &gt;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol>
+<li>宿主机：删除虚拟机CentOS-7-x86_64-2</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virsh undefine CentOS-7-x86_64-2
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-85.png"
+	width="406"
+	height="65"
+	srcset="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-85_hu_2ec927a4cc7e69fd.png 480w, /p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-85_hu_22d4497155e98865.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="624"
+		data-flex-basis="1499px"
+	
+></p>
+<ol start="2">
+<li>宿主机：查看所有虚拟机</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virsh list --all
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-86.png"
+	width="300"
+	height="92"
+	srcset="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-86_hu_9561cfcd9447fa61.png 480w, /p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-86_hu_990e8f080dd00ced.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="326"
+		data-flex-basis="782px"
+	
+></p>
+<ol start="3">
+<li>同时其配置文件也会被删除</li>
+</ol>
+<p><img src="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-87.png"
+	width="383"
+	height="66"
+	srcset="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-87_hu_5761485e21390567.png 480w, /p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/image-87_hu_5140efb8f9d5abfd.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="580"
+		data-flex-basis="1392px"
+	
+></p>
+<p>如上图，CentOS-7-x86_64-2.xml 已经消失。</p>
+<p><font color=red>注意：正在运行中的虚拟机会在关闭虚拟机的时候，彻底消失</font></p>
+
+</section>
+
+
+    <footer class="article-footer">
+    
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+<aside class="related-content--wrapper">
+    <h2 class="section-title">相关文章</h2>
+    <div class="related-content">
+        <div class="flex article-list--tile">
+            
+                
+<article class="">
+    <a href="/p/linuxps1%E7%BE%8E%E5%8C%96/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Linux]PS1美化</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/linuxubuntu-22.04%E7%89%A9%E7%90%86%E6%9C%BA%E4%BD%BF%E7%94%A8%E6%97%A0%E7%BA%BF%E7%BD%91%E5%8D%A1%E8%BF%9E%E6%8E%A5wifi/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Linux]ubuntu 22.04物理机使用无线网卡连接wifi</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E7%BD%91%E7%BB%9C%E7%AF%87%E5%A5%97%E8%B7%AF%E7%AF%87/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Linux]性能调优-网络篇（套路篇）</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E7%BD%91%E7%BB%9C%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Linux]性能调优-网络篇（基础篇）</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E7%BD%91%E7%BB%9C%E7%AF%87/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Linux]性能调优-网络篇</h2>
+        </div>
+    </a>
+</article>
+
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+            2025 - 
+        
+        2026 リンボの個人ブログ
+    </section>
+    
+    <section class="powerby">
+         <br />
+        
+    </section>
+</footer>
+
+
+    
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+    
+    <div class="pswp__bg"></div>
+
+    
+    <div class="pswp__scroll-wrap">
+
+        
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+
+        
+        <div class="pswp__ui pswp__ui--hidden">
+
+            <div class="pswp__top-bar">
+
+                
+
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+
+                <button class="pswp__button pswp__button--share" title="Share"></button>
+
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+
+                
+                
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                        <div class="pswp__preloader__cut">
+                            <div class="pswp__preloader__donut"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div>
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.js"integrity="sha256-ePwmChbbvXbsO02lbM3HoHbSHTHFAeChekF1xKJdleo="crossorigin="anonymous"
+                defer
+                >
+            </script><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe-ui-default.min.js"integrity="sha256-UKkzOn/w1mBxRmLLGrSeyB4e1xbrp4xylgAWb3M42pU="crossorigin="anonymous"
+                defer
+                >
+            </script><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/default-skin/default-skin.min.css"crossorigin="anonymous"
+            ><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.css"crossorigin="anonymous"
+            >
+
+            </main>
+        </div>
+        <script 
+                src="https://cdn.jsdelivr.net/npm/node-vibrant@3.1.6/dist/vibrant.min.js"integrity="sha256-awcR2jno4kI5X0zL8ex0vi2z&#43;KMkF24hUW8WePSA9HM="crossorigin="anonymous"
+                
+                >
+            </script><script type="text/javascript" src="/ts/main.1e9a3bafd846ced4c345d084b355fb8c7bae75701c338f8a1f8a82c780137826.js" defer></script>
+<script>
+    (function () {
+        const customFont = document.createElement('link');
+        customFont.href = "https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap";
+
+        customFont.type = "text/css";
+        customFont.rel = "stylesheet";
+
+        document.head.appendChild(customFont);
+    }());
+</script>
+
+    </body>
+</html>
