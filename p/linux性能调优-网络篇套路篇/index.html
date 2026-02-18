@@ -208,6 +208,15 @@
   <ol>
     <li><a href="#性能指标回顾">性能指标回顾</a></li>
     <li><a href="#网络基准测试">网络基准测试</a></li>
+    <li><a href="#各协议层的性能测试">各协议层的性能测试</a>
+      <ol>
+        <li><a href="#转发性能">转发性能</a></li>
+        <li><a href="#tcpudp-性能">TCP/UDP 性能</a></li>
+        <li><a href="#http-性能">HTTP 性能</a></li>
+        <li><a href="#应用负载性能">应用负载性能</a></li>
+      </ol>
+    </li>
+    <li><a href="#小结">小结</a></li>
   </ol>
 </nav>
         </div>
@@ -316,7 +325,548 @@
 <p>最后的 PPS，则是以网络包为单位的网络传输速率，通常用在需要大量转发的场景中。而对 TCP 或者 Web 服务来说，更多会用并发连接数和每秒请求数（QPS，Query Per Second）等指标，它们更能反应实际应用和程序的性能。</p>
 <h2 id="网络基准测试">网络基准测试
 </h2><p>熟悉了网络的性能指标后，接下来，我们再来看看，如何通过性能测试来确定这些指标的基准值。</p>
-<p>可以先思考一个问题。我们已经知道，Linux 网络基于 TCP/IP 协议栈，而不同协议层的行为显然不同。</p>
+<p>可以先思考一个问题。我们已经知道，Linux 网络基于 TCP/IP 协议栈，而不同协议层的行为显然不同。<u>那么，测试之前，应该要弄清楚，要评估的网络性能，究竟属于协议栈的哪一层？换句话说，你的应用程序基于协议栈的哪一层呢？</u></p>
+<p>根据前面学过的 TCP/IP 协议栈的原理，这个问题应该不难回答。比如：</p>
+<ul>
+<li>
+<p>基于 HTTP 或者 HTTPS 的 Web 应用程序，显然属于应用层，需要我们测试 HTTP/HTTPS 的性能；</p>
+</li>
+<li>
+<p>而对于大多数游戏服务器来说，为了支持更大的同时在线人数，通常会基于 TCP 或 UDP，与客户端进行交互，这时就需要我们测试 TCP/UDP 的性能；</p>
+</li>
+<li>
+<p>当然，还有一些场景，是把 Linux 作为一个软交换机或者路由器来用的。这种情况下，更关注网络包的处理能力（即 PPS），重点关注网络层的转发性能。</p>
+</li>
+</ul>
+<p>接下来，就从下往上，了解不同协议层的网络性能测试方法。不过要注意，低层协议是其上的各层网络协议的基础。自然，低层协议的性能，也就决定了高层的网络性能。</p>
+<p>注意，以下所有的测试方法，都需要两台 Linux 虚拟机。其中一台，可以当作待测试的目标机器；而另一台，则可以当作正在运行网络服务的客户段，用来运行测试工具。</p>
+<h2 id="各协议层的性能测试">各协议层的性能测试
+</h2><h3 id="转发性能">转发性能
+</h3><p>我们首先来看，网络接口层和网络层，它们主要负责网络包的封装、寻址、路由以及发送和接收。在这两个网络协议层中，每秒可处理的网络包数 PPS，就是最重要的性能指标。<u>特别是 64B 小包的处理能力，值得我们特别关注。</u>那么，如何来测试网络包的处理能力呢？</p>
+<p>说到网络包相关的测试，可能会觉得陌生。不过，其实在专栏开头的 CPU 性能篇中，我们就接触过一个相关工具，也就是软中断案例中的 hping3。</p>
+<p>今天再来介绍另一个更常用的工具，Linux 内核自带的高性能网络测试工具 <a class="link" href="https://wiki.linuxfoundation.org/networking/pktgen"  target="_blank" rel="noopener"
+    >pktgen</a>。pktgen 支持丰富的自定义选项，方便你根据实际需要构造所需网络包，从而更准确地测试出目标服务器地性能。</p>
+<p>不过，在 Linux 系统中，并不能直接找到 pktgen 命令。因为 pktgen 作为一个内核线程来运行，需要加载 pktgen 内核模块后，再通过 /proc 文件系统来交互。下面就是 pktgen 启动地两个内核线程和 /proc 文件系统的交互文件：</p>
+<ol>
+<li>加载 pktgen 内核模块</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">modprobe pktgen
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="2">
+<li>查看内核线程</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">ps -ef <span class="p">|</span> grep -v grep <span class="p">|</span> grep pktgen
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E7%BD%91%E7%BB%9C%E7%AF%87%E5%A5%97%E8%B7%AF%E7%AF%87/image.png"
+	width="468"
+	height="61"
+	srcset="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E7%BD%91%E7%BB%9C%E7%AF%87%E5%A5%97%E8%B7%AF%E7%AF%87/image_hu_bfa0479dc7d7a22d.png 480w, /p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E7%BD%91%E7%BB%9C%E7%AF%87%E5%A5%97%E8%B7%AF%E7%AF%87/image_hu_97e31c242861e7ab.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="767"
+		data-flex-basis="1841px"
+	
+></p>
+<ol start="3">
+<li>查看内核线城和 /proc 文件系统的交互文件</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">ls /proc/net/pktgen
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E7%BD%91%E7%BB%9C%E7%AF%87%E5%A5%97%E8%B7%AF%E7%AF%87/image-1.png"
+	width="289"
+	height="47"
+	srcset="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E7%BD%91%E7%BB%9C%E7%AF%87%E5%A5%97%E8%B7%AF%E7%AF%87/image-1_hu_d9f5315104a3bd9c.png 480w, /p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E7%BD%91%E7%BB%9C%E7%AF%87%E5%A5%97%E8%B7%AF%E7%AF%87/image-1_hu_4846e48dff7712ee.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="614"
+		data-flex-basis="1475px"
+	
+></p>
+<p>pktgen 在每个 CPU 上启动一个内核线程，并可以通过 /proc/net/pktgen 下面的同名文件，跟这些线程交互；而 pgctrl 则主要用来控制这次测试的开启和停止。</p>
+<blockquote>
+<p>如果 modprobe 命令执行失败，说明内核没有配置CONFIG_NET_PKTGEN选项。这就需要配置 pktgen 内核模块（即 CONFIG_NET_PKTGEN=m ）后，重新编译内核，才可以使用。</p>
+</blockquote>
+<p>在使用 pktgen 测试网络性能时，需要先给每个内核线程 kpktgend_X 以及测试网卡，配置 pktgen 选项，然后再通过 pgctrl 启动测试。</p>
+<p>以发包测试为例，假设发包机器使用的网卡是 eth0，二目标机器的 IP 地址为 192.168.0.30.MAC 地址为 11:11:11:11:11:11。</p>
+<p><img src="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E7%BD%91%E7%BB%9C%E7%AF%87%E5%A5%97%E8%B7%AF%E7%AF%87/image-2.png"
+	width="1310"
+	height="466"
+	srcset="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E7%BD%91%E7%BB%9C%E7%AF%87%E5%A5%97%E8%B7%AF%E7%AF%87/image-2_hu_41826ae0b3760655.png 480w, /p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E7%BD%91%E7%BB%9C%E7%AF%87%E5%A5%97%E8%B7%AF%E7%AF%87/image-2_hu_4cbd1170435fdb9e.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="281"
+		data-flex-basis="674px"
+	
+></p>
+<p>发包示例：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 定义一个工具函数，方便后面配置各种测试选项</span>
+</span></span><span class="line"><span class="cl"><span class="k">function</span> pgset<span class="o">()</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">    <span class="nb">local</span> result
+</span></span><span class="line"><span class="cl">    <span class="nb">echo</span> <span class="nv">$1</span> &gt; <span class="nv">$PGDEV</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="nv">result</span><span class="o">=</span><span class="sb">`</span>cat <span class="nv">$PGDEV</span> <span class="p">|</span> fgrep <span class="s2">&#34;Result: OK:&#34;</span><span class="sb">`</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="o">[</span> <span class="s2">&#34;</span><span class="nv">$result</span><span class="s2">&#34;</span> <span class="o">=</span> <span class="s2">&#34;&#34;</span> <span class="o">]</span><span class="p">;</span> <span class="k">then</span>
+</span></span><span class="line"><span class="cl">         cat <span class="nv">$PGDEV</span> <span class="p">|</span> fgrep Result:
+</span></span><span class="line"><span class="cl">    <span class="k">fi</span>
+</span></span><span class="line"><span class="cl"><span class="o">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 为0号线程绑定eth0网卡</span>
+</span></span><span class="line"><span class="cl"><span class="nv">PGDEV</span><span class="o">=</span>/proc/net/pktgen/kpktgend_0
+</span></span><span class="line"><span class="cl">pgset <span class="s2">&#34;rem_device_all&#34;</span>   <span class="c1"># 清空网卡绑定</span>
+</span></span><span class="line"><span class="cl">pgset <span class="s2">&#34;add_device eth0&#34;</span>  <span class="c1"># 添加eth0网卡</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 配置eth0网卡的测试选项</span>
+</span></span><span class="line"><span class="cl"><span class="nv">PGDEV</span><span class="o">=</span>/proc/net/pktgen/eth0
+</span></span><span class="line"><span class="cl">pgset <span class="s2">&#34;count 1000000&#34;</span>    <span class="c1"># 总发包数量</span>
+</span></span><span class="line"><span class="cl">pgset <span class="s2">&#34;delay 5000&#34;</span>       <span class="c1"># 不同包之间的发送延迟(单位纳秒)</span>
+</span></span><span class="line"><span class="cl">pgset <span class="s2">&#34;clone_skb 0&#34;</span>      <span class="c1"># SKB包复制</span>
+</span></span><span class="line"><span class="cl">pgset <span class="s2">&#34;pkt_size 64&#34;</span>      <span class="c1"># 网络包大小</span>
+</span></span><span class="line"><span class="cl">pgset <span class="s2">&#34;dst 192.168.172.101&#34;</span> <span class="c1"># 目的IP</span>
+</span></span><span class="line"><span class="cl">pgset <span class="s2">&#34;dst_mac 00:0c:29:0c:bd:50&#34;</span>  <span class="c1"># 目的MAC</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 启动测试</span>
+</span></span><span class="line"><span class="cl"><span class="nv">PGDEV</span><span class="o">=</span>/proc/net/pktgen/pgctrl
+</span></span><span class="line"><span class="cl">pgset <span class="s2">&#34;start&#34;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>注意：可以使用 type 命令或者 declare -f 命令查看函数内容</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="nb">type</span> pgset
+</span></span><span class="line"><span class="cl"><span class="c1"># 或者</span>
+</span></span><span class="line"><span class="cl"><span class="nb">declare</span> -f pgset
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>稍等一会儿，测试完成后，结果可以从 /proc 文件系统中获取。通过下面代码段中的内容，我们可以查看刚才的测试报告：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">$ cat /proc/net/pktgen/eth0
+</span></span><span class="line"><span class="cl">Params: count <span class="m">1000000</span>  min_pkt_size: <span class="m">64</span>  max_pkt_size: <span class="m">64</span>
+</span></span><span class="line"><span class="cl">     frags: <span class="m">0</span>  delay: <span class="m">0</span>  clone_skb: <span class="m">0</span>  ifname: eth0
+</span></span><span class="line"><span class="cl">     flows: <span class="m">0</span> flowlen: <span class="m">0</span>
+</span></span><span class="line"><span class="cl">...
+</span></span><span class="line"><span class="cl">Current:
+</span></span><span class="line"><span class="cl">     pkts-sofar: <span class="m">1000000</span>  errors: <span class="m">0</span>
+</span></span><span class="line"><span class="cl">     started: 1534853256071us  stopped: 1534861576098us idle: 70673us
+</span></span><span class="line"><span class="cl">...
+</span></span><span class="line"><span class="cl">Result: OK: 8320027<span class="o">(</span>c8249354+d70673<span class="o">)</span> usec, <span class="m">1000000</span> <span class="o">(</span>64byte,0frags<span class="o">)</span>
+</span></span><span class="line"><span class="cl">  120191pps 61Mb/sec <span class="o">(</span>61537792bps<span class="o">)</span> errors: <span class="m">0</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>可以看到，测试报告主要分为三个部分：</p>
+<ul>
+<li>第一部分的 Params 是测试选项；</li>
+<li>第二部分的 Current 是测试进度，其中，packts so far（pkts-sofar）表示已经发送了 100 万个包，也就表明测试已完成。</li>
+<li>第三部分的 Result 是测试结果，包含测试所用时间、网络包数量和分片、PPS、吞吐量以及错误数。</li>
+</ul>
+<p>根据上面的结果，我们发现，PPS 为 12万，吞吐量为 61Mb/S，没有发生错误。那么。12 万的 PPS 好不好呢？</p>
+<p>作为对比，可以计算以下千兆交换机的 PPS。交换机可以达到线速（满负载时，无差错转发），它的 PPS 就是 1000Mbit 除以以太网帧的大小，即 1000Mbps/((64+20)*8bit) = 1.5 Mpps（其中，20B 为以太网帧前导和帧间距的大小）。</p>
+<p>即使是千兆交换机的 PPS，也可以达到 150 万PPS，比我们测试得到的 12 万大多了。所以，看到这个数值并不用担心，现在的多核服务器和万兆网卡已经很普遍了，稍作优化就可以达到数百万的 PPS。而且如果用到上节讲的 DPDK 或 XDP，还能达到千万数量级。</p>
+<h3 id="tcpudp-性能">TCP/UDP 性能
+</h3><p>接下来，再来看 TCP 和 UDP 的性能测试方法。说到 TCP 和 UDP 的测试，需要用到 iperf 或者 netperf。</p>
+<p>当刚拿到虚拟机时，首先要做的，应该就是用 iperf，测试一下网络性能是否符合预期。</p>
+<p>iperf 和 netperf 都是最常用的网络性能测试工具，测试 TCP 和 UPD 的吞吐量。它们都以客户端和服务器通信的方式，测试一段时间内的平均吞吐量。</p>
+<p>接下来，就以 iperf 为例，看一下 TCP 性能的测试方法。</p>
+<ol>
+<li>安装 iperf3</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># Ubuntu</span>
+</span></span><span class="line"><span class="cl">apt-get install iperf3
+</span></span><span class="line"><span class="cl"><span class="c1"># CentOS</span>
+</span></span><span class="line"><span class="cl">yum install iperf3
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="2">
+<li>目标机器：启动 iperf 服务端</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># -s表示启动服务端，-i表示汇报间隔，-p表示监听端口</span>
+</span></span><span class="line"><span class="cl">$ iperf3 -s -i <span class="m">1</span> -p <span class="m">10000</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="3">
+<li>发包机器：运行 iperf 客户端，运行测试</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># -c表示启动客户端，192.168.0.30为目标服务器的IP</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># -b表示目标带宽(单位是bits/s)</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># -t表示测试时间</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># -P表示并发数，-p表示目标服务器监听端口</span>
+</span></span><span class="line"><span class="cl">$ iperf3 -c 192.168.0.30 -b 1G -t <span class="m">15</span> -P <span class="m">2</span> -p <span class="m">10000</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>稍等一会（15秒）测试结束后，回到目标服务器，查看 iperf 的报告</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="o">[</span> ID<span class="o">]</span> Interval           Transfer     Bandwidth
+</span></span><span class="line"><span class="cl">...
+</span></span><span class="line"><span class="cl"><span class="o">[</span>SUM<span class="o">]</span>   0.00-15.04  sec  0.00 Bytes  0.00 bits/sec                  sender
+</span></span><span class="line"><span class="cl"><span class="o">[</span>SUM<span class="o">]</span>   0.00-15.04  sec  1.51 GBytes   <span class="m">860</span> Mbits/sec                  receiver
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>最后的 SUM 行就是测试的汇总结果，包括测试时间、数据传输量以及带宽等。按照发送和接收，这一部分又分为了 sender 和 receiver 两行。</p>
+<p>从测试结果可以看到，这台机器 TCP 接收的带宽（吞吐量）为 860 Mb/s，跟目标的 1Gb/s 相比，还是有些差距的。</p>
+<h3 id="http-性能">HTTP 性能
+</h3><p>从传输层再往上，到了应用层。有些应用程序，会基于 TCP 或 UDP 构建服务。当然，也有大量的应用，基于应用层的协议来构建服务，HTTP 就是最常用的一个应用层协议。比如，常用的 Apache、Nginx 等各种 Web 服务，都是基于 HTPP。</p>
+<p>要测试 HTTP 的性能，也有大量的工具可以使用，比如 ab、webbench 等，都是常用的 HTTP 压力测试工具。其中，ab 是 Apache 自带的 HTTP 压测工具，主要测试 HTTP 服务的每秒请求数、请求延迟、吞吐量以及请求延迟的分布情况等。</p>
+<ol>
+<li>安装 ab 工具</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># Ubuntu</span>
+</span></span><span class="line"><span class="cl">$ apt-get install -y apache2-utils
+</span></span><span class="line"><span class="cl"><span class="c1"># CentOS</span>
+</span></span><span class="line"><span class="cl">$ yum install -y httpd-tools
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="2">
+<li>目标机器：使用 Docker 启动一个 Nginx 服务。</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">docker run -p 80:80 -itd nginx
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="3">
+<li>发包机器：运行 ab 命令，测试 Nginx 性能</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># -c表示并发请求数为1000，-n表示总的请求数为10000</span>
+</span></span><span class="line"><span class="cl">$ ab -c <span class="m">1000</span> -n <span class="m">10000</span> http://192.168.0.30/
+</span></span><span class="line"><span class="cl">...
+</span></span><span class="line"><span class="cl">Server Software:        nginx/1.15.8
+</span></span><span class="line"><span class="cl">Server Hostname:        192.168.0.30
+</span></span><span class="line"><span class="cl">Server Port:            <span class="m">80</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">...
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">Requests per second:    1078.54 <span class="o">[</span><span class="c1">#/sec] (mean)</span>
+</span></span><span class="line"><span class="cl">Time per request:       927.183 <span class="o">[</span>ms<span class="o">]</span> <span class="o">(</span>mean<span class="o">)</span>
+</span></span><span class="line"><span class="cl">Time per request:       0.927 <span class="o">[</span>ms<span class="o">]</span> <span class="o">(</span>mean, across all concurrent requests<span class="o">)</span>
+</span></span><span class="line"><span class="cl">Transfer rate:          890.00 <span class="o">[</span>Kbytes/sec<span class="o">]</span> received
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">Connection Times <span class="o">(</span>ms<span class="o">)</span>
+</span></span><span class="line"><span class="cl">              min  mean<span class="o">[</span>+/-sd<span class="o">]</span> median   max
+</span></span><span class="line"><span class="cl">Connect:        <span class="m">0</span>   <span class="m">27</span> 152.1      <span class="m">1</span>    <span class="m">1038</span>
+</span></span><span class="line"><span class="cl">Processing:     <span class="m">9</span>  <span class="m">207</span> 843.0     <span class="m">22</span>    <span class="m">9242</span>
+</span></span><span class="line"><span class="cl">Waiting:        <span class="m">8</span>  <span class="m">207</span> 843.0     <span class="m">22</span>    <span class="m">9242</span>
+</span></span><span class="line"><span class="cl">Total:         <span class="m">15</span>  <span class="m">233</span> 857.7     <span class="m">23</span>    <span class="m">9268</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">Percentage of the requests served within a certain <span class="nb">time</span> <span class="o">(</span>ms<span class="o">)</span>
+</span></span><span class="line"><span class="cl">  50%     <span class="m">23</span>
+</span></span><span class="line"><span class="cl">  66%     <span class="m">24</span>
+</span></span><span class="line"><span class="cl">  75%     <span class="m">24</span>
+</span></span><span class="line"><span class="cl">  80%     <span class="m">26</span>
+</span></span><span class="line"><span class="cl">  90%    <span class="m">274</span>
+</span></span><span class="line"><span class="cl">  95%   <span class="m">1195</span>
+</span></span><span class="line"><span class="cl">  98%   <span class="m">2335</span>
+</span></span><span class="line"><span class="cl">  99%   <span class="m">4663</span>
+</span></span><span class="line"><span class="cl"> 100%   <span class="m">9268</span> <span class="o">(</span>longest request<span class="o">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>可以看到，ab 的测试结果分为三个部分，分别是请求汇总、连接时间汇总还有请求延迟汇总。以上面的结果为例，我们具体来看。</p>
+<p>在请求汇总部分，可以看到：</p>
+<ul>
+<li>Request per second 为 1074；</li>
+<li>每个请求的延迟（Time per request）分为两行，第一行的 927 ms 表示平均延迟，包括了线程运行的调度时间和网络请求响应时间，而下一行的 0.927 ms，则表示实际请求的响应时间；</li>
+<li>Transfer rate 表示吞吐量（BPS）为 890 KB/s。</li>
+</ul>
+<p>连接时间汇总部分，则是分别展示了建立连接、请求、等待以及汇总等的各类时间，包括最小、最大、平均以及中值处理时间。</p>
+<p>最后的请求延迟汇总部分，则给出了不同时间段内处理请求的百分比，比如，90% 的请求，都可以在 274 ms 内完成。</p>
+<h3 id="应用负载性能">应用负载性能
+</h3><p>当你用 iperf 或者 ab 等测试工具，得到 TCP、HTTP 等的性能数据后，这些数据是否就能表示应用程序的实际性能呢？我想，答案应该是否定的。</p>
+<p>比如，你的应用程序基于 HTTP 协议，为最终用户提供一个 Web 服务。这时，使用 ab 工具，可以得到某个页面的访问性能，但这个结果跟用户的实际请求，很可能不一致。因为用户请求往往会附带各种各样的负载（payload），而这些负载会影响 Web 应用程序内部的处理逻辑，从而影响最终性能。</p>
+<p>那么，为了得到应用程序的实际性能，就要求性能工具本身可以模拟用户的请求负载，而 iperf、ab 这类工具就无能为力了。幸运的是，我们还饿可以用 wrk、TCPCopy、Jmeter 或者 LoadRunner 等实现这个目标。</p>
+<p>以 <a class="link" href="https://github.com/wg/wrk"  target="_blank" rel="noopener"
+    >wrk</a> 为例，它是一个 HTTP 性能测试工具，内置了 LuaJIT，方便你根据实际需求，生成所需的请求负载，或者自定义响应的处理方法。</p>
+<p>wrk 工具本身不提供 yum 或 apt 的安装方法，需要通过源码编译来安装。</p>
+<ul>
+<li>安装编译 wrk</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">$ git clone https://github.com/wg/wrk
+</span></span><span class="line"><span class="cl">$ <span class="nb">cd</span> wrk
+</span></span><span class="line"><span class="cl">$ apt-get install build-essential -y
+</span></span><span class="line"><span class="cl">$ make
+</span></span><span class="line"><span class="cl">$ sudo cp wrk /usr/local/bin/
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>wrk 的命令行参数比较简单。</p>
+<ul>
+<li>使用 wrk 重新测试前面已经启动的 Nginx 的性能。</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># -c表示并发连接数1000，-t表示线程数为2</span>
+</span></span><span class="line"><span class="cl">$ wrk -c <span class="m">1000</span> -t <span class="m">2</span> http://192.168.0.30/
+</span></span><span class="line"><span class="cl">Running 10s <span class="nb">test</span> @ http://192.168.0.30/
+</span></span><span class="line"><span class="cl">  <span class="m">2</span> threads and <span class="m">1000</span> connections
+</span></span><span class="line"><span class="cl">  Thread Stats   Avg      Stdev     Max   +/- Stdev
+</span></span><span class="line"><span class="cl">    Latency    65.83ms  174.06ms   1.99s    95.85%
+</span></span><span class="line"><span class="cl">    Req/Sec     4.87k   628.73     6.78k    69.00%
+</span></span><span class="line"><span class="cl">  <span class="m">96954</span> requests in 10.06s, 78.59MB <span class="nb">read</span>
+</span></span><span class="line"><span class="cl">  Socket errors: connect 0, <span class="nb">read</span> 0, write 0, timeout <span class="m">179</span>
+</span></span><span class="line"><span class="cl">Requests/sec:   9641.31
+</span></span><span class="line"><span class="cl">Transfer/sec:      7.82MB
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>这里使用 2 个线程、并发 1000 连接，重新测试了 Nginx 的性能。可以看到，每秒请求数为 9641，吞吐量为 7.82MB，平均延迟为 65ms，比前面 ab 的测试结果要好很多。</p>
+<p>这也说明，性能工具本身的性能，对性能测试也是至关重要的。不合适的性能工具，并不能准确测出应用程序的最佳性能。</p>
+<p>当然，wrk 最大的优势，是其内置的 LuaJIT，可以用来实现复杂场景的性能测试。wrk 在调用 Lua 脚本时，可以将 HTTP 请求分为三个阶段，即 setup、running、done，如下图所示：</p>
+<p><img src="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E7%BD%91%E7%BB%9C%E7%AF%87%E5%A5%97%E8%B7%AF%E7%AF%87/image-3.png"
+	width="621"
+	height="530"
+	srcset="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E7%BD%91%E7%BB%9C%E7%AF%87%E5%A5%97%E8%B7%AF%E7%AF%87/image-3_hu_2216ad086e006b9f.png 480w, /p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E7%BD%91%E7%BB%9C%E7%AF%87%E5%A5%97%E8%B7%AF%E7%AF%87/image-3_hu_dee12ab63808a4fa.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="117"
+		data-flex-basis="281px"
+	
+></p>
+<p>比如，可以在 setup 阶段，为请求设置认证参数（来自于 wrk 官方<a class="link" href="https://github.com/wg/wrk/blob/master/scripts/auth.lua"  target="_blank" rel="noopener"
+    >示例</a>）：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-lua" data-lang="lua"><span class="line"><span class="cl"><span class="c1">-- example script that demonstrates response handling and</span>
+</span></span><span class="line"><span class="cl"><span class="c1">-- retrieving an authentication token to set on all future</span>
+</span></span><span class="line"><span class="cl"><span class="c1">-- requests</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">token</span> <span class="o">=</span> <span class="kc">nil</span>
+</span></span><span class="line"><span class="cl"><span class="n">path</span>  <span class="o">=</span> <span class="s2">&#34;/authenticate&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">request</span> <span class="o">=</span> <span class="kr">function</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">   <span class="kr">return</span> <span class="n">wrk.format</span><span class="p">(</span><span class="s2">&#34;GET&#34;</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="kr">end</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">response</span> <span class="o">=</span> <span class="kr">function</span><span class="p">(</span><span class="n">status</span><span class="p">,</span> <span class="n">headers</span><span class="p">,</span> <span class="n">body</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">   <span class="kr">if</span> <span class="ow">not</span> <span class="n">token</span> <span class="ow">and</span> <span class="n">status</span> <span class="o">==</span> <span class="mi">200</span> <span class="kr">then</span>
+</span></span><span class="line"><span class="cl">      <span class="n">token</span> <span class="o">=</span> <span class="n">headers</span><span class="p">[</span><span class="s2">&#34;X-Token&#34;</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">      <span class="n">path</span>  <span class="o">=</span> <span class="s2">&#34;/resource&#34;</span>
+</span></span><span class="line"><span class="cl">      <span class="n">wrk.headers</span><span class="p">[</span><span class="s2">&#34;X-Token&#34;</span><span class="p">]</span> <span class="o">=</span> <span class="n">token</span>
+</span></span><span class="line"><span class="cl">   <span class="kr">end</span>
+</span></span><span class="line"><span class="cl"><span class="kr">end</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>而在执行测试时。通过 -s 选项，执行脚本的路径：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">wrk -c <span class="m">1000</span> -t <span class="m">2</span> -s auth.lua http://192.168.0.30/
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>wrk 需要你用 Lua 脚本，来构造请求负载。这对于大部分场景来说，可能已经足够了。不过，它的缺点也是，所有东西都需要代码来构造，并且工具本身不提供 GUI 环境。</p>
+<h2 id="小结">小结
+</h2><p>性能评估是优化网络性能的前提，只有在你发现网络性能瓶颈时，才需要进行网络性能优化。根据 TCP/IP 协议栈的原理，不同协议层关注的性能重点不完全一样，也就对应不同的性能测试方法。比如，</p>
+<ul>
+<li>
+<p>在应用层，你可以使用 wrk、Jmeter 等模拟用户的负载，测试应用程序的每秒请求数、处理延迟、错误数等；</p>
+</li>
+<li>
+<p>而在传输层，则可以使用 iperf 等工具，测试 TCP 的吞吐情况；</p>
+</li>
+<li>
+<p>再向下，你还可以用 Linux 内核自带的 pktgen ，测试服务器的 PPS。</p>
+</li>
+</ul>
+<p>由于低层协议是高层协议的基础。所以，一般情况下，我们需要从上到下，对每个协议层进行性能测试，然后根据性能测试的结果，结合 Linux 网络协议栈的原理，找出导致性能瓶颈的根源，进而优化网络性能。</p>
 
 </section>
 
@@ -367,6 +917,19 @@
             
                 
 <article class="">
+    <a href="/p/linuxrocky-9-minimal%E7%89%A9%E7%90%86%E6%9C%BA%E4%BD%BF%E7%94%A8%E6%97%A0%E7%BA%BF%E7%BD%91%E5%8D%A1%E8%BF%9E%E6%8E%A5wifi/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Linux]Rocky 9 Minimal物理机使用无线网卡连接wifi</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
     <a href="/p/linuxps1%E7%BE%8E%E5%8C%96/">
         
         
@@ -386,19 +949,6 @@
 
         <div class="article-details">
             <h2 class="article-title">[Linux]kvm虚拟化</h2>
-        </div>
-    </a>
-</article>
-
-            
-                
-<article class="">
-    <a href="/p/linuxubuntu-22.04%E7%89%A9%E7%90%86%E6%9C%BA%E4%BD%BF%E7%94%A8%E6%97%A0%E7%BA%BF%E7%BD%91%E5%8D%A1%E8%BF%9E%E6%8E%A5wifi/">
-        
-        
-
-        <div class="article-details">
-            <h2 class="article-title">[Linux]ubuntu 22.04物理机使用无线网卡连接wifi</h2>
         </div>
     </a>
 </article>
