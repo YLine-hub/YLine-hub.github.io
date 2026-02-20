@@ -1,0 +1,1396 @@
+<!DOCTYPE html>
+<html lang="en-us" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="上一节，我们学习了网络性能的评估方法，简单回顾以下，Linux 网络基于 TCP/IP 协议栈构建，而在协议栈的不同层，我们所关注的网络性能也不尽相同。\n在应用层，我们关注的是应用程序的并发连接数、每秒请求数、处理延迟、错误数等，可以使用 wrk、JMeter 等工具，模拟用户的负载，得到想要的测试结果。\n">
+<title>[Linux]性能调优-网络篇（案例篇）- 1</title>
+
+<link rel='canonical' href='https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E7%BD%91%E7%BB%9C%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-1/'>
+
+<link rel="stylesheet" href="/scss/style.min.6a692fd055deae459f2a9767f57f3855ba80cafd5041317f24f7360f6ca47cdf.css"><meta property='og:title' content="[Linux]性能调优-网络篇（案例篇）- 1">
+<meta property='og:description' content="上一节，我们学习了网络性能的评估方法，简单回顾以下，Linux 网络基于 TCP/IP 协议栈构建，而在协议栈的不同层，我们所关注的网络性能也不尽相同。\n在应用层，我们关注的是应用程序的并发连接数、每秒请求数、处理延迟、错误数等，可以使用 wrk、JMeter 等工具，模拟用户的负载，得到想要的测试结果。\n">
+<meta property='og:url' content='https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E7%BD%91%E7%BB%9C%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-1/'>
+<meta property='og:site_name' content='リンボの個人ブログ'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:published_time' content='2026-02-19T00:36:55&#43;08:00'/><meta property='article:modified_time' content='2026-02-19T00:36:55&#43;08:00'/>
+<meta name="twitter:title" content="[Linux]性能调优-网络篇（案例篇）- 1">
+<meta name="twitter:description" content="上一节，我们学习了网络性能的评估方法，简单回顾以下，Linux 网络基于 TCP/IP 协议栈构建，而在协议栈的不同层，我们所关注的网络性能也不尽相同。\n在应用层，我们关注的是应用程序的并发连接数、每秒请求数、处理延迟、错误数等，可以使用 wrk、JMeter 等工具，模拟用户的负载，得到想要的测试结果。\n">
+    <link rel="shortcut icon" href="/favicon.ico" />
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        
+            
+            <figure class="site-avatar">
+                <a href="/">
+                
+                    
+                    
+                    
+                        
+                        <img src="/img/avatar_hu_de528bff5d5e9598.png" width="300"
+                            height="300" class="site-logo" loading="lazy" alt="Avatar">
+                    
+                
+                </a>
+                
+                    <span class="emoji">🏖️</span>
+                
+            </figure>
+            
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">リンボの個人ブログ</a></h1>
+            <h2 class="site-description">努力不一定能获得回报，但不努力一定不会有回报。</h2>
+        </div>
+    </header><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-home" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <polyline points="5 12 3 12 12 3 21 12 19 12" />
+  <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7" />
+  <path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6" />
+</svg>
+
+
+
+                
+                <span>主页</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/%E5%85%B3%E4%BA%8E/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/archives/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/search/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-search" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="10" cy="10" r="7" />
+  <line x1="21" y1="21" x2="15" y2="15" />
+</svg>
+
+
+
+                
+                <span>搜索</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav id="TableOfContents">
+  <ol>
+    <li><a href="#域名与-dns-解析">域名与 DNS 解析</a></li>
+    <li><a href="#案例准备">案例准备</a>
+      <ol>
+        <li><a href="#案例-1dns-解析失败">案例 1：DNS 解析失败</a></li>
+        <li><a href="#案例-2dns-解析不稳定">案例 2：DNS 解析不稳定</a></li>
+      </ol>
+    </li>
+    <li><a href="#小结">小结</a></li>
+  </ol>
+</nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            <a href="/categories/linux/" >
+                Linux
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E7%BD%91%E7%BB%9C%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-1/">[Linux]性能调优-网络篇（案例篇）- 1</a>
+        </h2>
+    
+        
+    </div>
+
+    
+    
+    
+    
+    <footer class="article-time">
+        
+            <div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                <time class="article-time--published">2026-02-19</time>
+            </div>
+        
+
+        
+    </footer>
+    
+
+    
+</div>
+
+</header>
+
+    <section class="article-content">
+    
+    
+    <p>上一节，我们学习了网络性能的评估方法，简单回顾以下，Linux 网络基于 TCP/IP 协议栈构建，而在协议栈的不同层，我们所关注的网络性能也不尽相同。</p>
+<p>在<code>应用层</code>，我们关注的是应用程序的并发连接数、每秒请求数、处理延迟、错误数等，可以使用 wrk、JMeter 等工具，模拟用户的负载，得到想要的测试结果。</p>
+<p>而在<code>传输层</code>，我们关注的是 TCP、UDP 等传输层协议的工作状况，比如 TCP 连接数、TCP 重传、TCP 错误数等。此时，可以使用 iperf、netperf 等，来测试 TCP 或 UDP 的性能。</p>
+<p>再向下到<code>网络层</code>，我们关注的则是网络包的处理能力，即 PPS。Linux 内核自带的 pktgen，就可以帮我们测试这个指标。</p>
+<p>前面在评估网络性能（比如 HTTP 性能）时，我们在测试工具中指定了网络服务的 IP 地址。IP 地址是 TCP/IP 协议中，用来确定通信双方的一个重要标识。每个 IP 地址又包括了主机号和网络号两部分。相同网络号的主机组成一个子网；不同子网再通过路由器连接，组成一个庞大的网络。</p>
+<p>然而，IP 地址虽然方便了机器的通信，却给访问这些服务的人们，带来了很重的记忆负担。以为对人脑来说，IP 地址这串字符没有什么含义，不符合我们的记忆逻辑。</p>
+<p>不过，这不妨碍我们经常使用这个服务。为什么呢？因为还有更简单、方便的方式。我们可以通过域名访问，而不是必须依靠具体的 IP 地址，这其实正是域名系统 DNS 的由来。</p>
+<p>DNS（Domain Name System），即域名系统，是互联网中最基础的一项服务，主要提供域名和 IP 地址之间映射关系的查询服务。</p>
+<p>DNS 不仅方便了人们访问不同的互联网服务，更为很多应用提供了，动态服务发现和全局负载均衡（Global Server Load Balance，GSLB）的机制。这样，DNS 就可以选择离用户最近的 IP 来提供服务。即使后端服务的 IP 地址发生变化，用户依然可以用相同域名来访问。</p>
+<p>DNS 显然是我们工作中基础而重要的一个环节。那么，DNS 出现问题时，又该如何分析和排查呢？</p>
+<h2 id="域名与-dns-解析">域名与 DNS 解析
+</h2><p>域名我们本身都比较熟悉，由一串用点分割开的字符组成，被用作互联网中的某一台或某一组计算机的名称，目的就是为了方便识别，互联网中提供各种服务的主机位置。</p>
+<p>我们以极客时间的网站 time.geekbang.org 为例，来理解域名的含义。这个字符串中，最后面的 org 是顶级域名，中间的 geekbang 是二级域名，而最左边的 time 则是三级域名。</p>
+<p>如下图所示，注意点（.）是所有域名的跟，也就是说所有域名都以点作为后缀，也可以理解为，在域名解析的过程中，所有域名都以点结束。</p>
+<p><img src="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E7%BD%91%E7%BB%9C%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-1/image.png"
+	width="1324"
+	height="544"
+	srcset="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E7%BD%91%E7%BB%9C%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-1/image_hu_4c8d025ab6211f13.png 480w, /p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E7%BD%91%E7%BB%9C%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-1/image_hu_70c6104719446995.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="243"
+		data-flex-basis="584px"
+	
+></p>
+<p>通过理解这几个概念，可以看出，域名主要是为了方便让人记住，而 IP 地址是机器间的通信的真正机制。把域名转换为 IP 地址的服务，也就是我们开头提到的，域名解析服务（DNS），而对应的服务器就是域名服务器，网络协议则是 DNS 协议。</p>
+<p>这里注意，DNS 协议在 TCP/IP 栈中属于应用层，不过实际传输还是基于 UPD 或者 TCP协议（UDP 居多），并且域名服务器一般监听在端口 53 上。</p>
+<p>既然域名以分层的结构进行管理，相对应的，域名解析其实也是用递归的方式（从顶级开始，以此类推）发送给每个层级的域名服务器，直到得到解析结果。</p>
+<p>不过不用担心，递归查询的过程并不需要亲自操作，DNS 服务器会替我们完成，要做的只是预先配置一个可用的 DNS 服务器就可以了。</p>
+<p>当然，我们知道，通常来说，每级 DNS 服务器，都会有最近解析记录的缓存。当缓存命中时，直接用缓存中的记录应答就可以了。如果缓存过期或者不存在，才需要用刚刚提到的递归方式查询。</p>
+<p>所以，系统管理员在配置 Linux 系统的网络时，除了需要配置 IP 地址，还需要给它配置 DNS 服务器，这样它才可以通过域名来访问外部服务。</p>
+<ul>
+<li>查询系统配置的域名服务器</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">$ cat /etc/resolv.conf
+</span></span><span class="line"><span class="cl">nameserver 114.114.114.114
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>另外，DNS 服务器通过资源记录的方式，来管理所有数据，它支持 A、CNAME、MX、NS、PTR 等多种类的记录。比如：</p>
+<ul>
+<li>A 记录，用来把域名转换成 IP 地址；</li>
+<li>CNAME 记录，用来创建别名；</li>
+<li>而 NS 记录，则表示该域名对应的服务器地址。</li>
+</ul>
+<p>简单来说，当我们访问某个网址时，就需要通过 DNS 的 A 记录，查询该域名对应的 IP 地址，然后通过该 IP 来访问 Web 服务。</p>
+<ul>
+<li>查询极客时间网站域名的 A 记录</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">nslookup time.geekbang.org
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>可以看到，它的 IP 地址时 39.106.233.176:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 域名服务器及端口信息</span>
+</span></span><span class="line"><span class="cl">Server:    114.114.114.114
+</span></span><span class="line"><span class="cl">Address:  114.114.114.114#53
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 非权威查询结果</span>
+</span></span><span class="line"><span class="cl">Non-authoritative answer:
+</span></span><span class="line"><span class="cl">Name:  time.geekbang.org
+</span></span><span class="line"><span class="cl">Address: 39.106.233.17
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>这里要注意，由于 114.144.144.144 并不是直接管理 time.geekbang.org 的域名服务器，所以查询结果时非权威的。使用上面的命令，只能得到 114.114.114.114 查询的结果。</p>
+<p>前面还提到了，如果没有命中缓存，DNS 查询实际上是一个递归的过程，那有没有方法可以知道正规递归查询的执行呢？</p>
+<p>其实除了 nslookup，另外一个常用的 DNS 解析工具 dig，就提供了 trace 功能，可以展示递归查询的整个过程。</p>
+<ul>
+<li>展示 DNS 查询的过程</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># +trace 表示开启跟踪查询</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># +nodnssec 表示禁止 DNS 安全扩展</span>
+</span></span><span class="line"><span class="cl">dig +trace +nodnssec time.geekbang.org
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>输出结果：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="p">;</span> &lt;&lt;&gt;&gt; DiG 9.11.3-1ubuntu1.3-Ubuntu &lt;&lt;&gt;&gt; +trace +nodnssec time.geekbang.org
+</span></span><span class="line"><span class="cl"><span class="p">;;</span> global options: +cmd
+</span></span><span class="line"><span class="cl">.      <span class="m">322086</span>  IN  NS  m.root-servers.net.
+</span></span><span class="line"><span class="cl">.      <span class="m">322086</span>  IN  NS  a.root-servers.net.
+</span></span><span class="line"><span class="cl">.      <span class="m">322086</span>  IN  NS  i.root-servers.net.
+</span></span><span class="line"><span class="cl">.      <span class="m">322086</span>  IN  NS  d.root-servers.net.
+</span></span><span class="line"><span class="cl">.      <span class="m">322086</span>  IN  NS  g.root-servers.net.
+</span></span><span class="line"><span class="cl">.      <span class="m">322086</span>  IN  NS  l.root-servers.net.
+</span></span><span class="line"><span class="cl">.      <span class="m">322086</span>  IN  NS  c.root-servers.net.
+</span></span><span class="line"><span class="cl">.      <span class="m">322086</span>  IN  NS  b.root-servers.net.
+</span></span><span class="line"><span class="cl">.      <span class="m">322086</span>  IN  NS  h.root-servers.net.
+</span></span><span class="line"><span class="cl">.      <span class="m">322086</span>  IN  NS  e.root-servers.net.
+</span></span><span class="line"><span class="cl">.      <span class="m">322086</span>  IN  NS  k.root-servers.net.
+</span></span><span class="line"><span class="cl">.      <span class="m">322086</span>  IN  NS  j.root-servers.net.
+</span></span><span class="line"><span class="cl">.      <span class="m">322086</span>  IN  NS  f.root-servers.net.
+</span></span><span class="line"><span class="cl"><span class="p">;;</span> Received <span class="m">239</span> bytes from 114.114.114.114#53<span class="o">(</span>114.114.114.114<span class="o">)</span> in <span class="m">1340</span> ms
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">org.      <span class="m">172800</span>  IN  NS  a0.org.afilias-nst.info.
+</span></span><span class="line"><span class="cl">org.      <span class="m">172800</span>  IN  NS  a2.org.afilias-nst.info.
+</span></span><span class="line"><span class="cl">org.      <span class="m">172800</span>  IN  NS  b0.org.afilias-nst.org.
+</span></span><span class="line"><span class="cl">org.      <span class="m">172800</span>  IN  NS  b2.org.afilias-nst.org.
+</span></span><span class="line"><span class="cl">org.      <span class="m">172800</span>  IN  NS  c0.org.afilias-nst.info.
+</span></span><span class="line"><span class="cl">org.      <span class="m">172800</span>  IN  NS  d0.org.afilias-nst.org.
+</span></span><span class="line"><span class="cl"><span class="p">;;</span> Received <span class="m">448</span> bytes from 198.97.190.53#53<span class="o">(</span>h.root-servers.net<span class="o">)</span> in <span class="m">708</span> ms
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">geekbang.org.    <span class="m">86400</span>  IN  NS  dns9.hichina.com.
+</span></span><span class="line"><span class="cl">geekbang.org.    <span class="m">86400</span>  IN  NS  dns10.hichina.com.
+</span></span><span class="line"><span class="cl"><span class="p">;;</span> Received <span class="m">96</span> bytes from 199.19.54.1#53<span class="o">(</span>b0.org.afilias-nst.org<span class="o">)</span> in <span class="m">1833</span> ms
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">time.geekbang.org.  <span class="m">600</span>  IN  A  39.106.233.176
+</span></span><span class="line"><span class="cl"><span class="p">;;</span> Received <span class="m">62</span> bytes from 140.205.41.16#53<span class="o">(</span>dns10.hichina.com<span class="o">)</span> in <span class="m">4</span> ms
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>
+<p>第一部分，是从 114.114.114.114 查到的一些根域名服务器（.）的 NS 记录。</p>
+</li>
+<li>
+<p>第二部分，是从 NS 记录结果中选一个（h.root-servers.net），并查询顶级域名 org. 的 NS 记录。</p>
+</li>
+<li>
+<p>第三部分，是从 org. 的 NS 记录中选择一个（b0.org.afilias-nst.org），并查询二级域名 geekbang.org. 的 NS 服务器。</p>
+</li>
+<li>
+<p>第四部分，是从 geekbang.org. 的 NS 服务器（dns10.hichina.com）查询最终主机 time.geekbang.org. 的 A 记录。</p>
+</li>
+</ul>
+<p>这个输出里展示的各级域名的 NS 记录，其实就是各级域名服务器的地址。为了更清楚 DNS 解析的过程，更直观理解递归查询，老师将整个过程整理了一张流程图。</p>
+<p><img src="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E7%BD%91%E7%BB%9C%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-1/image-1.png"
+	width="1322"
+	height="740"
+	srcset="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E7%BD%91%E7%BB%9C%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-1/image-1_hu_ea9a916468952a81.png 480w, /p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E7%BD%91%E7%BB%9C%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-1/image-1_hu_bea52b2cb2c52d5f.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="178"
+		data-flex-basis="428px"
+	
+></p>
+<p>当然，不仅仅是发布到互联网的服务需要域名，很多时候，我们也希望能对局域网内部的主机进行域名解析（即内网域名，大多数情况下为主机名）。Linux 也支持这种行为。</p>
+<p>所以，你可以把主机名和 IP 地址的映射关系，写入本机的 /etc/hosts 文件中。这样，指定的主机名就可以在本地直接找到目标 IP。比如，你可以执行下面的命令来操作：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">$ cat /etc/hosts
+</span></span><span class="line"><span class="cl">127.0.0.1   localhost localhost.localdomain
+</span></span><span class="line"><span class="cl">::1         localhost6 localhost6.localdomain6
+</span></span><span class="line"><span class="cl">192.168.0.100 domain.com
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>或者，你还可以在内网中，搭建自定义的 DNS 服务器，专门用来解析内网中的域名。而内网 DNS 服务器，一般还会设置一个或多个上游 DNS 服务器，用来解析外网的域名。</p>
+<p>清楚域名与 DNS 解析的基本原理后，接下来，我就带你一起来看几个案例，实战分析 DNS 解析出现问题时，该如何定位。</p>
+<h2 id="案例准备">案例准备
+</h2><ul>
+<li>系统环境：ubuntu 22.04</li>
+<li>机器配置：2 CPU，8GB 内存</li>
+<li>预先安装 docker 等工具</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">apt install docker.io
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol>
+<li>打开一个终端，SSH 登录导 ubuntu 机器中，拉取案例中的 Docker 镜像：</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">docker pull feisky/dnsutils
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="2">
+<li>查看主机当前配置的 DNS 服务器</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">resolvectl status
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E7%BD%91%E7%BB%9C%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-1/image-2.png"
+	width="573"
+	height="179"
+	srcset="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E7%BD%91%E7%BB%9C%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-1/image-2_hu_33bf785243f21d71.png 480w, /p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E7%BD%91%E7%BB%9C%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-1/image-2_hu_d3261734d219ccfd.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="320"
+		data-flex-basis="768px"
+	
+></p>
+<p>可以看到，当前使用的 DNS 为 8.8.8.8</p>
+<h3 id="案例-1dns-解析失败">案例 1：DNS 解析失败
+</h3><ol>
+<li>首先，执行下面的命令，进入今天的第一个案例</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 进入案例环境的SHELL终端中</span>
+</span></span><span class="line"><span class="cl">$ docker run -it --rm -v <span class="k">$(</span>mktemp<span class="k">)</span>:/etc/resolv.conf feisky/dnsutils bash
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E7%BD%91%E7%BB%9C%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-1/image-3.png"
+	width="642"
+	height="31"
+	srcset="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E7%BD%91%E7%BB%9C%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-1/image-3_hu_9a0770a546ae7f28.png 480w, /p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E7%BD%91%E7%BB%9C%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-1/image-3_hu_219929fc827317f0.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="2070"
+		data-flex-basis="4970px"
+	
+></p>
+<ol start="2">
+<li>容器中：执行 DNS 查询命令，查看 time.geekbang.org 的 IP 地址</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">nslookup time.geekbang.org
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E7%BD%91%E7%BB%9C%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-1/image-4.png"
+	width="390"
+	height="36"
+	srcset="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E7%BD%91%E7%BB%9C%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-1/image-4_hu_3b59998e14661b81.png 480w, /p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E7%BD%91%E7%BB%9C%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-1/image-4_hu_78a1dab367ef4375.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="1083"
+		data-flex-basis="2600px"
+	
+></p>
+<p>发现，这个命令阻塞很久后，还是失败了，报了 connection timed out 和 no servers could be reached 错误。</p>
+<p>看到这里，第一反应是网络不通了，到底是不是这样呢？我们用 ping 工具检查试试。</p>
+<ol start="3">
+<li>容器中：测试本地到 8.8.8.8 的连通性</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">ping -c3 8.8.8.8
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E7%BD%91%E7%BB%9C%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-1/image-5.png"
+	width="441"
+	height="122"
+	srcset="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E7%BD%91%E7%BB%9C%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-1/image-5_hu_fd0cdc6202569d7e.png 480w, /p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E7%BD%91%E7%BB%9C%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-1/image-5_hu_2918e6e1a075041e.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="361"
+		data-flex-basis="867px"
+	
+></p>
+<p>可以看到，网络是通的。那么要怎么知道 nslookup 命令失败的原因呢？最简单的一种，就是开启 nslookup 的调试输出，查看查询过程中的详细步骤</p>
+<ol start="4">
+<li>容器中：开启 nslookup 的调试输出</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">nslookup -debug time.geekbang.org
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E7%BD%91%E7%BB%9C%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-1/image-6.png"
+	width="633"
+	height="46"
+	srcset="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E7%BD%91%E7%BB%9C%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-1/image-6_hu_21146c923be095a4.png 480w, /p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E7%BD%91%E7%BB%9C%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-1/image-6_hu_7e51063e3ccbc5fd.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="1376"
+		data-flex-basis="3302px"
+	
+></p>
+<p>丛输出中可以看到，nslookup 连接回环地址（127.0.0.1 和 ::1）的 53 端口失败。这里就有问题了，为什么会去连接回环地址，而不是我们先前看到的 8.8.8.8 呢？</p>
+<ol start="5">
+<li>容器中：查看 DNS 服务器的配置</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">cat /etc/resolv.conf
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E7%BD%91%E7%BB%9C%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-1/image-7.png"
+	width="297"
+	height="30"
+	srcset="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E7%BD%91%E7%BB%9C%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-1/image-7_hu_cfc447b9af908999.png 480w, /p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E7%BD%91%E7%BB%9C%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-1/image-7_hu_1ee0309c210b02dd.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="990"
+		data-flex-basis="2376px"
+	
+></p>
+<p>可以看到没有任何输出，说明容器里确实没有配置 DNS 服务器。</p>
+<ol start="6">
+<li>容器中：配置 DNS 服务器</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="nb">echo</span> <span class="s2">&#34;nameserver 8.8.8.8&#34;</span> &gt; /etc/resolv.conf
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E7%BD%91%E7%BB%9C%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-1/image-8.png"
+	width="466"
+	height="34"
+	srcset="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E7%BD%91%E7%BB%9C%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-1/image-8_hu_de6ba48efb7229bb.png 480w, /p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E7%BD%91%E7%BB%9C%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-1/image-8_hu_b7e788d6f68c16bc.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="1370"
+		data-flex-basis="3289px"
+	
+></p>
+<ol start="7">
+<li>容器中：重新执行 nslookup 命令</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">nslookup time.geekbang.org
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E7%BD%91%E7%BB%9C%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-1/image-9.png"
+	width="337"
+	height="105"
+	srcset="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E7%BD%91%E7%BB%9C%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-1/image-9_hu_da73127649835f9b.png 480w, /p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E7%BD%91%E7%BB%9C%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-1/image-9_hu_6783514d1fc09318.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="320"
+		data-flex-basis="770px"
+	
+></p>
+<p>这次可以正常解析了。</p>
+<ol start="8">
+<li>容器中：退出容器</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="nb">exit</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="案例-2dns-解析不稳定">案例 2：DNS 解析不稳定
+</h3><ol>
+<li>执行命令，启动一个新的容器</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">docker run -it --rm --cap-add<span class="o">=</span>NET_ADMIN --dns 8.8.8.8 feisky/dnsutils bash
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E7%BD%91%E7%BB%9C%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-1/image-10.png"
+	width="659"
+	height="32"
+	srcset="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E7%BD%91%E7%BB%9C%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-1/image-10_hu_c1a55b90c98ac519.png 480w, /p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E7%BD%91%E7%BB%9C%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-1/image-10_hu_b6a0beb8b69998f9.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="2059"
+		data-flex-basis="4942px"
+	
+></p>
+<ol start="2">
+<li>容器中：运行 nslookup 命令，解析 time.geekbang.org 的 IP 地址，加一个 time 命令，输出解析所用时间。</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="nb">time</span> nslookup time.geekbang.org
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E7%BD%91%E7%BB%9C%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-1/image-11.png"
+	width="375"
+	height="180"
+	srcset="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E7%BD%91%E7%BB%9C%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-1/image-11_hu_3fdb57c45bf72d90.png 480w, /p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E7%BD%91%E7%BB%9C%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-1/image-11_hu_2dc9ba9a4887c7f8.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="208"
+		data-flex-basis="500px"
+	
+></p>
+<p>可以看到，解析用了 0.5 秒。</p>
+<p>而老师的案例中，他解析的非常慢，用了 10 秒。</p>
+<ul>
+<li>老师的输出结果</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">/# <span class="nb">time</span> nslookup time.geekbang.org
+</span></span><span class="line"><span class="cl">Server:    8.8.8.8
+</span></span><span class="line"><span class="cl">Address:  8.8.8.8#53
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">Non-authoritative answer:
+</span></span><span class="line"><span class="cl">Name:  time.geekbang.org
+</span></span><span class="line"><span class="cl">Address: 39.106.233.176
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">real  0m10.349s
+</span></span><span class="line"><span class="cl">user  0m0.004s
+</span></span><span class="line"><span class="cl">sys  0m0.0
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>而且，老师的结果中可能还会碰到下面的错误</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">/# <span class="nb">time</span> nslookup time.geekbang.org
+</span></span><span class="line"><span class="cl"><span class="p">;;</span> connection timed out<span class="p">;</span> no servers could be reached
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">real  0m15.011s
+</span></span><span class="line"><span class="cl">user  0m0.006s
+</span></span><span class="line"><span class="cl">sys  0m0.006s
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>换句话说，跟上一次案例类似，也会出现解析失败的情况。综合来看，现在 DNS 解析的结果不但比较慢，而且还会发生超时的情况。</p>
+<p>这是为什么呢？碰到这种问题该怎么处理呢？</p>
+<p>其实，根据前面的讲解，我们知道，DNS 解析，说白了就是客户端与服务器交互的过程，而且这个过程还使用了 UDP 协议。</p>
+<p>那么，对于整个流程来说，解析结果不稳定，就有很多种可能的情况了。比方说：</p>
+<ul>
+<li>
+<p>DNS 服务器本身就有问题，响应慢并且不稳定；</p>
+</li>
+<li>
+<p>或者是，客户端到 DNS 服务器的网络延迟比较大；</p>
+</li>
+<li>
+<p>再或者，DNS 请求或者响应包，在某些情况下被链路中的网络设备弄丢了。</p>
+</li>
+</ul>
+<p>根据上面 nslookup 的输出，可以看到，现在客户端连接的 DNS 是 8.8.8.8，这是 Google 提供的 DNS 服务。对 Google 我们还是比较放心的，DNS 服务器出问题的概率应该比较小。基本排除了 DNS 服务器的问题，那是不是第二种可能，本机到 DNS 服务器的延迟比较大呢？</p>
+<p>前面讲过，ping 可以用来测试服务器的延迟。</p>
+<ol start="3">
+<li>容器中，使用 ping 命令测试服务器延迟</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">ping -c3 8.8.8.8
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E7%BD%91%E7%BB%9C%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-1/image-12.png"
+	width="435"
+	height="120"
+	srcset="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E7%BD%91%E7%BB%9C%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-1/image-12_hu_cd6cbfa5ba70e80e.png 480w, /p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E7%BD%91%E7%BB%9C%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-1/image-12_hu_ca76443444466df5.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="362"
+		data-flex-basis="870px"
+	
+></p>
+<p>然而，老师的结果延迟却比较高</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">/# ping -c3 8.8.8.8
+</span></span><span class="line"><span class="cl">PING 8.8.8.8 <span class="o">(</span>8.8.8.8<span class="o">)</span>: <span class="m">56</span> data bytes
+</span></span><span class="line"><span class="cl"><span class="m">64</span> bytes from 8.8.8.8: <span class="nv">icmp_seq</span><span class="o">=</span><span class="m">0</span> <span class="nv">ttl</span><span class="o">=</span><span class="m">31</span> <span class="nv">time</span><span class="o">=</span>137.637 ms
+</span></span><span class="line"><span class="cl"><span class="m">64</span> bytes from 8.8.8.8: <span class="nv">icmp_seq</span><span class="o">=</span><span class="m">1</span> <span class="nv">ttl</span><span class="o">=</span><span class="m">31</span> <span class="nv">time</span><span class="o">=</span>144.743 ms
+</span></span><span class="line"><span class="cl"><span class="m">64</span> bytes from 8.8.8.8: <span class="nv">icmp_seq</span><span class="o">=</span><span class="m">2</span> <span class="nv">ttl</span><span class="o">=</span><span class="m">31</span> <span class="nv">time</span><span class="o">=</span>138.576 ms
+</span></span><span class="line"><span class="cl">--- 8.8.8.8 ping statistics ---
+</span></span><span class="line"><span class="cl"><span class="m">3</span> packets transmitted, <span class="m">3</span> packets received, 0% packet loss
+</span></span><span class="line"><span class="cl">round-trip min/avg/max/stddev <span class="o">=</span> 137.637/140.319/144.743/3.152 ms
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>从 ping 的输出可以看到，这里的延迟已经达到了 140 ms，这也就可以解释，为什么解析这么慢了。而且，多次运行 ping 命令测试，还会看到偶尔出现的丢包现象。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">$ ping -c3 8.8.8.8
+</span></span><span class="line"><span class="cl">PING 8.8.8.8 <span class="o">(</span>8.8.8.8<span class="o">)</span>: <span class="m">56</span> data bytes
+</span></span><span class="line"><span class="cl"><span class="m">64</span> bytes from 8.8.8.8: <span class="nv">icmp_seq</span><span class="o">=</span><span class="m">0</span> <span class="nv">ttl</span><span class="o">=</span><span class="m">30</span> <span class="nv">time</span><span class="o">=</span>134.032 ms
+</span></span><span class="line"><span class="cl"><span class="m">64</span> bytes from 8.8.8.8: <span class="nv">icmp_seq</span><span class="o">=</span><span class="m">1</span> <span class="nv">ttl</span><span class="o">=</span><span class="m">30</span> <span class="nv">time</span><span class="o">=</span>431.458 ms
+</span></span><span class="line"><span class="cl">--- 8.8.8.8 ping statistics ---
+</span></span><span class="line"><span class="cl"><span class="m">3</span> packets transmitted, <span class="m">2</span> packets received, 33% packet loss
+</span></span><span class="line"><span class="cl">round-trip min/avg/max/stddev <span class="o">=</span> 134.032/282.745/431.458/148.713 ms
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>这也进一步解释了，为什么 nslookup 偶尔会失败，正是网络链路中的丢包导致的。</p>
+<p>碰到这种问题该怎么办呢？显然，既然延迟太大，那就换一个延迟更小的 DNS 服务器，比如电信提供的 114.114.114.114。</p>
+<p>但是我这里不能连通 114.114.114.114，就换 223.5.5.5 了。</p>
+<p><img src="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E7%BD%91%E7%BB%9C%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-1/image-13.png"
+	width="437"
+	height="119"
+	srcset="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E7%BD%91%E7%BB%9C%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-1/image-13_hu_819af9e3264ccf49.png 480w, /p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E7%BD%91%E7%BB%9C%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-1/image-13_hu_19937fda172a778b.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="367"
+		data-flex-basis="881px"
+	
+></p>
+<p>可以看到这个延迟确实小了接近一半多。</p>
+<p>老师的机器中结果如下：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">/# ping -c3 114.114.114.114
+</span></span><span class="line"><span class="cl">PING 114.114.114.114 <span class="o">(</span>114.114.114.114<span class="o">)</span>: <span class="m">56</span> data bytes
+</span></span><span class="line"><span class="cl"><span class="m">64</span> bytes from 114.114.114.114: <span class="nv">icmp_seq</span><span class="o">=</span><span class="m">0</span> <span class="nv">ttl</span><span class="o">=</span><span class="m">67</span> <span class="nv">time</span><span class="o">=</span>31.130 ms
+</span></span><span class="line"><span class="cl"><span class="m">64</span> bytes from 114.114.114.114: <span class="nv">icmp_seq</span><span class="o">=</span><span class="m">1</span> <span class="nv">ttl</span><span class="o">=</span><span class="m">56</span> <span class="nv">time</span><span class="o">=</span>31.302 ms
+</span></span><span class="line"><span class="cl"><span class="m">64</span> bytes from 114.114.114.114: <span class="nv">icmp_seq</span><span class="o">=</span><span class="m">2</span> <span class="nv">ttl</span><span class="o">=</span><span class="m">56</span> <span class="nv">time</span><span class="o">=</span>31.250 ms
+</span></span><span class="line"><span class="cl">--- 114.114.114.114 ping statistics ---
+</span></span><span class="line"><span class="cl"><span class="m">3</span> packets transmitted, <span class="m">3</span> packets received, 0% packet loss
+</span></span><span class="line"><span class="cl">round-trip min/avg/max/stddev <span class="o">=</span> 31.130/31.227/31.302/0.072 ms
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="4">
+<li>容器中：修改 DNS 服务器</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="nb">echo</span> nameserver 223.5.5.5 &gt; /etc/resolv.conf
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E7%BD%91%E7%BB%9C%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-1/image-14.png"
+	width="465"
+	height="44"
+	srcset="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E7%BD%91%E7%BB%9C%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-1/image-14_hu_4eddadbd9328ec4.png 480w, /p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E7%BD%91%E7%BB%9C%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-1/image-14_hu_14fbc6f097cf1e81.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="1056"
+		data-flex-basis="2536px"
+	
+></p>
+<ol start="5">
+<li>容器中：再次执行 nslookup 解析命令</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="nb">time</span> nslookup time.geekbang.org 
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E7%BD%91%E7%BB%9C%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-1/image-15.png"
+	width="377"
+	height="181"
+	srcset="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E7%BD%91%E7%BB%9C%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-1/image-15_hu_1330dfd6f826f34c.png 480w, /p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E7%BD%91%E7%BB%9C%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-1/image-15_hu_e5b4a68d9611cf69.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="208"
+		data-flex-basis="499px"
+	
+></p>
+<p>可以看到，现在只需要 59 ms，比之前 0.5 秒要好很多。</p>
+<p>老师的机器中结果如下：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">/# <span class="nb">echo</span> nameserver 114.114.114.114 &gt; /etc/resolv.conf
+</span></span><span class="line"><span class="cl">/# <span class="nb">time</span> nslookup time.geekbang.org
+</span></span><span class="line"><span class="cl">Server:    114.114.114.114
+</span></span><span class="line"><span class="cl">Address:  114.114.114.114#53
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">Non-authoritative answer:
+</span></span><span class="line"><span class="cl">Name:  time.geekbang.org
+</span></span><span class="line"><span class="cl">Address: 39.106.233.176
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">real    0m0.064s
+</span></span><span class="line"><span class="cl">user    0m0.007s
+</span></span><span class="line"><span class="cl">sys     0m0.006s
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>到这里，问题看似就解决了。不过，如果多次运行 nslookup 命令，估计不是每次都是好结果了。比如，在老师的机器中，就经常需要 1s 甚至更多的时间。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">/# <span class="nb">time</span> nslookup time.geekbang.org
+</span></span><span class="line"><span class="cl">Server:    114.114.114.114
+</span></span><span class="line"><span class="cl">Address:  114.114.114.114#53
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">Non-authoritative answer:
+</span></span><span class="line"><span class="cl">Name:  time.geekbang.org
+</span></span><span class="line"><span class="cl">Address: 39.106.233.176
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">real  0m1.045s
+</span></span><span class="line"><span class="cl">user  0m0.007s
+</span></span><span class="line"><span class="cl">sys  0m0.004s
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>1s 的 DNS 解析时间还是太长了，对很多应用来说也是不可接受的。那么，该怎么解决这个问题呢？我想你一定已经想到了，那就是使用 DNS 缓存。这样，只有第一次查询时需要去 DNS 服务器请求，以后的查询，只要 DNS 记录不过期，使用缓存中的记录就可以了。</p>
+<p>不过要注意，我们使用的主流 Linux 发行版，除了最新版本的 Ubuntu （如 18.04 或者更新版本）外，其他版本并没有自动配置 DNS 缓存。</p>
+<p>所以，想要为系统开启 DNS 缓存，就需要你做额外的配置。比如，最简单的方法，就是使用 dnsmasq。</p>
+<p>dnsmasq 是最常用的 DNS 缓存服务之一，还经常作为 DHCP 服务来使用。它的安装和配置都比较简单，性能也可以满足绝大多数应用程序对 DNS 缓存的需求。</p>
+<ol start="6">
+<li>容器中：启动 dnsmasq</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">/# /etc/init.d/dnsmasq start
+</span></span><span class="line"><span class="cl"> * Starting DNS forwarder and DHCP server dnsmasq                    <span class="o">[</span> OK <span class="o">]</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E7%BD%91%E7%BB%9C%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-1/image-16.png"
+	width="1028"
+	height="31"
+	srcset="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E7%BD%91%E7%BB%9C%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-1/image-16_hu_a5ea962a5878ddec.png 480w, /p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E7%BD%91%E7%BB%9C%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-1/image-16_hu_f745b9a8795a4495.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="3316"
+		data-flex-basis="7958px"
+	
+></p>
+<ol start="7">
+<li>容器中：修改 /etc/resolv.conf，将 DNS 服务器改为 dnsmasq 的监听地址，这儿是 127.0.0.1。</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="nb">echo</span> nameserver 127.0.0.1 &gt; /etc/resolv.conf
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="8">
+<li>容器中：重新执行 nslookup 命令</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="nb">time</span> nslookup time.geekbang.org
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E7%BD%91%E7%BB%9C%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-1/image-17.png"
+	width="382"
+	height="361"
+	srcset="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E7%BD%91%E7%BB%9C%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-1/image-17_hu_c9ed9fbfbe32ab5b.png 480w, /p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E7%BD%91%E7%BB%9C%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-1/image-17_hu_f6adbe71e6716b69.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="105"
+		data-flex-basis="253px"
+	
+></p>
+<p>可以看到，只有第一次解析很慢，需要 0.6s，以后的每次解析都很快，只需要 4ms。并且，后面每次 DNS 解析需要的时间都很稳定。</p>
+<ol start="9">
+<li>容器中：退出容器</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="nb">exit</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="小结">小结
+</h2><p>在应用程序的开发过程中，我们必须考虑到 DNS 解析可能带来的性能问题，掌握常见的优化方法。这里，老师总结了几种常见的 DNS 优化方法。</p>
+<ul>
+<li>
+<p>对 DNS 解析的结果进行缓存。缓存是最有效的方法，但要注意，一旦缓存过期，还是要去 DNS 服务器重新获取新记录。不过，这对大部分应用程序来说都是可接受的。</p>
+</li>
+<li>
+<p>对 DNS 解析的结果进行预取。这是浏览器等 Web 应用中最常用的方法，也就是说，不等用户点击页面上的超链接，浏览器就会在后台自动解析域名，并把结果缓存起来。</p>
+</li>
+<li>
+<p>使用 HTTPDNS 取代常规的 DNS 解析。这是很多移动应用会选择的方法，特别是如今域名劫持普遍存在，使用 HTTP 协议绕过链路中的 DNS 服务器，就可以避免域名劫持的问题。</p>
+</li>
+<li>
+<p>基于 DNS 的全局负载均衡（GSLB）。这不仅为服务提供了负载均衡和高可用的功能，还可以根据用户的位置，返回距离最近的 IP 地址。</p>
+</li>
+</ul>
+
+</section>
+
+
+    <footer class="article-footer">
+    
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+<aside class="related-content--wrapper">
+    <h2 class="section-title">相关文章</h2>
+    <div class="related-content">
+        <div class="flex article-list--tile">
+            
+                
+<article class="">
+    <a href="/p/linuxrocky-9-minimal%E7%89%A9%E7%90%86%E6%9C%BA%E4%BD%BF%E7%94%A8%E6%97%A0%E7%BA%BF%E7%BD%91%E5%8D%A1%E8%BF%9E%E6%8E%A5wifi/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Linux]Rocky 9 Minimal物理机使用无线网卡连接wifi</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/linuxps1%E7%BE%8E%E5%8C%96/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Linux]PS1美化</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Linux]kvm虚拟化</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/linuxubuntu-22.04%E7%89%A9%E7%90%86%E6%9C%BA%E4%BD%BF%E7%94%A8%E6%97%A0%E7%BA%BF%E7%BD%91%E5%8D%A1%E8%BF%9E%E6%8E%A5wifi/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Linux]ubuntu 22.04物理机使用无线网卡连接wifi</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E7%BD%91%E7%BB%9C%E7%AF%87%E5%A5%97%E8%B7%AF%E7%AF%87/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Linux]性能调优-网络篇（套路篇）</h2>
+        </div>
+    </a>
+</article>
+
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+            2025 - 
+        
+        2026 リンボの個人ブログ
+    </section>
+    
+    <section class="powerby">
+         <br />
+        
+    </section>
+</footer>
+
+
+    
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+    
+    <div class="pswp__bg"></div>
+
+    
+    <div class="pswp__scroll-wrap">
+
+        
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+
+        
+        <div class="pswp__ui pswp__ui--hidden">
+
+            <div class="pswp__top-bar">
+
+                
+
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+
+                <button class="pswp__button pswp__button--share" title="Share"></button>
+
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+
+                
+                
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                        <div class="pswp__preloader__cut">
+                            <div class="pswp__preloader__donut"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div>
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.js"integrity="sha256-ePwmChbbvXbsO02lbM3HoHbSHTHFAeChekF1xKJdleo="crossorigin="anonymous"
+                defer
+                >
+            </script><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe-ui-default.min.js"integrity="sha256-UKkzOn/w1mBxRmLLGrSeyB4e1xbrp4xylgAWb3M42pU="crossorigin="anonymous"
+                defer
+                >
+            </script><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/default-skin/default-skin.min.css"crossorigin="anonymous"
+            ><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.css"crossorigin="anonymous"
+            >
+
+            </main>
+        </div>
+        <script 
+                src="https://cdn.jsdelivr.net/npm/node-vibrant@3.1.6/dist/vibrant.min.js"integrity="sha256-awcR2jno4kI5X0zL8ex0vi2z&#43;KMkF24hUW8WePSA9HM="crossorigin="anonymous"
+                
+                >
+            </script><script type="text/javascript" src="/ts/main.1e9a3bafd846ced4c345d084b355fb8c7bae75701c338f8a1f8a82c780137826.js" defer></script>
+<script>
+    (function () {
+        const customFont = document.createElement('link');
+        customFont.href = "https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap";
+
+        customFont.type = "text/css";
+        customFont.rel = "stylesheet";
+
+        document.head.appendChild(customFont);
+    }());
+</script>
+
+    </body>
+</html>
