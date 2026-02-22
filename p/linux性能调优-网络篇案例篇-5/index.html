@@ -1,0 +1,1337 @@
+<!DOCTYPE html>
+<html lang="en-us" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="如何优化 NAT 性能？ 上一节，我们探究了网络延迟增大问题的分析方法，并通过一个案例，掌握了如何用 hping3、tcpdump、Wireshark、strace 等工具，来排查和定位问题的根源。\n">
+<title>[Linux]性能调优-网络篇（案例篇）- 5</title>
+
+<link rel='canonical' href='https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E7%BD%91%E7%BB%9C%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-5/'>
+
+<link rel="stylesheet" href="/scss/style.min.6a692fd055deae459f2a9767f57f3855ba80cafd5041317f24f7360f6ca47cdf.css"><meta property='og:title' content="[Linux]性能调优-网络篇（案例篇）- 5">
+<meta property='og:description' content="如何优化 NAT 性能？ 上一节，我们探究了网络延迟增大问题的分析方法，并通过一个案例，掌握了如何用 hping3、tcpdump、Wireshark、strace 等工具，来排查和定位问题的根源。\n">
+<meta property='og:url' content='https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E7%BD%91%E7%BB%9C%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-5/'>
+<meta property='og:site_name' content='リンボの個人ブログ'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:published_time' content='2026-02-21T18:15:19&#43;08:00'/><meta property='article:modified_time' content='2026-02-21T18:15:19&#43;08:00'/>
+<meta name="twitter:title" content="[Linux]性能调优-网络篇（案例篇）- 5">
+<meta name="twitter:description" content="如何优化 NAT 性能？ 上一节，我们探究了网络延迟增大问题的分析方法，并通过一个案例，掌握了如何用 hping3、tcpdump、Wireshark、strace 等工具，来排查和定位问题的根源。\n">
+    <link rel="shortcut icon" href="/favicon.ico" />
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        
+            
+            <figure class="site-avatar">
+                <a href="/">
+                
+                    
+                    
+                    
+                        
+                        <img src="/img/avatar_hu_de528bff5d5e9598.png" width="300"
+                            height="300" class="site-logo" loading="lazy" alt="Avatar">
+                    
+                
+                </a>
+                
+                    <span class="emoji">🏖️</span>
+                
+            </figure>
+            
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">リンボの個人ブログ</a></h1>
+            <h2 class="site-description">努力不一定能获得回报，但不努力一定不会有回报。</h2>
+        </div>
+    </header><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-home" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <polyline points="5 12 3 12 12 3 21 12 19 12" />
+  <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7" />
+  <path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6" />
+</svg>
+
+
+
+                
+                <span>主页</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/%E5%85%B3%E4%BA%8E/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/archives/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/search/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-search" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="10" cy="10" r="7" />
+  <line x1="21" y1="21" x2="15" y2="15" />
+</svg>
+
+
+
+                
+                <span>搜索</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav id="TableOfContents">
+  <ol>
+    <li><a href="#nat-原理">NAT 原理</a></li>
+    <li><a href="#iptables-与-nat">iptables 与 NAT</a>
+      <ol>
+        <li><a href="#生词">生词</a></li>
+        <li><a href="#网络释义">网络释义</a></li>
+      </ol>
+    </li>
+    <li><a href="#snat">SNAT</a></li>
+    <li><a href="#dnat">DNAT</a></li>
+    <li><a href="#双向地址转换">双向地址转换</a></li>
+    <li><a href="#小结">小结</a></li>
+    <li><a href="#案例准备">案例准备</a>
+      <ol>
+        <li><a href="#案例分析">案例分析</a></li>
+      </ol>
+    </li>
+  </ol>
+</nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E7%BD%91%E7%BB%9C%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-5/">[Linux]性能调优-网络篇（案例篇）- 5</a>
+        </h2>
+    
+        
+    </div>
+
+    
+    
+    
+    
+    <footer class="article-time">
+        
+            <div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                <time class="article-time--published">2026-02-21</time>
+            </div>
+        
+
+        
+    </footer>
+    
+
+    
+</div>
+
+</header>
+
+    <section class="article-content">
+    
+    
+    <h2>如何优化 NAT 性能？</h2>
+<p>上一节，我们探究了网络延迟增大问题的分析方法，并通过一个案例，掌握了如何用 hping3、tcpdump、Wireshark、strace 等工具，来排查和定位问题的根源。</p>
+<p>简单回顾一下，网络延迟是最核心的网络性能指标。由于网络传输、网络包处理等各种因素的影响，网络延迟不可避免。但过大的网络延迟，会直接影响用户的体验。</p>
+<p>所以，在发现网络延迟增大的情况后，你可以先从路由、网络包的收发、网络包的处理，再到应用程序等，从各个层级分析网络延迟，等到找出网络延迟的来源层级后，再深入定位瓶颈所在。</p>
+<p>今天，我再带你来看看，另一个可能导致网络延迟的因素，即网络地址转换（Network Address Translation），缩写为 NAT。</p>
+<p>接下来，我们先来学习 NAT 的工作原理，并弄清楚如何优化 NAT 带来的潜在性能问题。</p>
+<h2 id="nat-原理">NAT 原理
+</h2><p>NAT 技术可以重写 IP 数据包的源 IP 或者目的 IP，被普遍地用来解决公网 IP 地址短缺地问题。它的主要原理就是，网络中的多台主机，通过共享一个公网 IP 地址，来访问外网资源。同时，由于 NAT 屏蔽了内网网络，自然也就为局域网中的机器提供了安全隔离。</p>
+<p>你既可以在支持网络地址转换的路由器（称为 NAT 网关）中配置 NAT，也可以在 Linux 服务器中配置 NAT。如果采用第二种方式，Linux 服务器实际上充当的是 “软” 路由器的角色。</p>
+<p>NAT 的主要目的，是实现地址转换。根据实现方式的不同，NAT 可以分为三类：</p>
+<ul>
+<li>
+<p>静态 NAT，即内网 IP 与公网 IP 是一对一的永久映射关系；</p>
+</li>
+<li>
+<p>动态 NAT，即内网 IP 从公网 IP 池中，动态选择一个进行映射；</p>
+</li>
+<li>
+<p>网络地址端口转换 NAPT（Network Address and Port Translation），即把内网 IP 映射到公网 IP 的不同端口上，让多个内网 IP 可以共享同一个公网 IP 地址。</p>
+</li>
+</ul>
+<p>NAPT 是目前最流行的 NAT 类型，我们在 Linux 中配置的 NAT 也是这种类型。而根据转换方式的不同，我们又可以把 NAPT 分为三类。</p>
+<p><strong>第一类</strong>是源地址转换 SNAT，即目的地址不变，只替换源 IP 或源端口。SNAT 主要用于，多个内网 IP 共享一个公网 IP，来访问外网资源的场景。</p>
+<p><strong>第二类</strong>是目的地址转换 DNAT，即源 IP 保持不变，只替换目的 IP 或者目的端口。DNAT 主要通过公网 IP 的不同端口号，来访问内网的多种服务，同时会隐藏后端服务器的真是 IP 地址。</p>
+<p><strong>第三类</strong>是双向转换地址，即同时使用 SNAT 和 DNAT。当接收到网络包时，执行 DNAT，把目的 IP 转换为内网 IP；而在发送网络包时，执行 SNAT，把源 IP 替换为外部 IP。</p>
+<p>双向地址转换，其实就是外网 IP 与内网 IP 的一对一映射关系，所以常用在虚拟化环境中，为虚拟机分配浮动的公网 IP 地址。</p>
+<p>为了帮你理解 NAPT，老师画了一张图。我们假设：</p>
+<ul>
+<li>
+<p>本地服务器的内网 IP 地址为 192.168.0.2；</p>
+</li>
+<li>
+<p>NAT 网关中的公网 IP 地址为 100.100.100.100；</p>
+</li>
+<li>
+<p>要访问的目的服务器 baidu.com 的地址为 123.125.115.110。</p>
+</li>
+</ul>
+<p>那么 SNAT 和 DNAT 的过程，就如下图所示：</p>
+<p><img src="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E7%BD%91%E7%BB%9C%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-5/image.png"
+	width="712"
+	height="610"
+	srcset="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E7%BD%91%E7%BB%9C%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-5/image_hu_b77c94e314feb090.png 480w, /p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E7%BD%91%E7%BB%9C%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-5/image_hu_813d705adfac08c2.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="116"
+		data-flex-basis="280px"
+	
+></p>
+<p>从图中，可以发信啊：</p>
+<ul>
+<li>
+<p>当服务器访问 baidu.com 时，NAT 网关会把源地址，从服务器的内网 IP 192.168.0.2 替换成公网 IP 地址 100.100.100。100，然后才发送给 baidu.com；</p>
+</li>
+<li>
+<p>当 baidu.com 发回响应包时，NAT 网关又会把目的地址，从公网 IP 地址 100.100.100.100 替换成服务器内网 IP 192.168.0.2，然后再发送给内网中的服务器。</p>
+</li>
+</ul>
+<p>了解了 NAT 的原理后，我们再来看看，如何在 Linux 中实现 NAT 的功能。</p>
+<h2 id="iptables-与-nat">iptables 与 NAT
+</h2><p>Linux 内核提供的 Netfilter 框架，允许对网络数据包进行修改（比如 NAT）和过滤（比如防火墙）。在这个基础上，iptables、ip6tables、ebtables 等工具，又提供了更易用的命令行接口，以便系统管理员配置和管理 NAT、防火墙的规则。</p>
+<p>其中，iptables 就是最常用的一种配置工具。要掌握 iptables 的原理和使用方法，最核心的就是弄清楚，网络数据包通过 Netfilter 时的工作流向，下面这张图就展示了这一过程。</p>
+<p><img src="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E7%BD%91%E7%BB%9C%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-5/image-1.png"
+	width="1415"
+	height="435"
+	srcset="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E7%BD%91%E7%BB%9C%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-5/image-1_hu_474c4e23f32915b.png 480w, /p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E7%BD%91%E7%BB%9C%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-5/image-1_hu_2ec3f6e0002d7d3.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="325"
+		data-flex-basis="780px"
+	
+></p>
+<p>在这张图中，绿色背景的方框，表示表（table），用来管理链。Linux 支持 4 种表，包括 filter（用于过滤）、nat（用于 NAT）、mangle（用于修改分组数据）和 raw（用于原始数据包）等。</p>
+<p>跟 table 一起的白色背景方框，则表示链（chain），用来管理具体的 iptables 规则。每个标中可以包含多条链，比如：</p>
+<ul>
+<li>filter 表中， 内置 INPUT、OUTPUT 和 FORWARD 链；</li>
+<li>nat 表中，内置 PREROUTING、POSTROUTING、OUTPUT 等。</li>
+</ul>
+<p>当然，也可以根据自己需要，创建自己的链。</p>
+<p>灰色的 conntrack，表示连接跟踪模块。它通过内核中的连接跟踪表（也就是哈希表），记录网络连接的状态，是 iptables 状态过滤（-m state）和 NAT 的实现基础。</p>
+<p>iptables 的所有规则，就会放到这些表和链中，并按照途中顺序和规则的优先级顺序来执行。</p>
+<p>针对本节主题，要实现 NAT 功能，主要是在 nat 表进行操作。而 nat 表内置了三个链：</p>
+<ul>
+<li>
+<p>PREROUTING，用于路由判断前所有执行的规则，比如，对接收到的数据包进行 DNAT。</p>
+</li>
+<li>
+<p>POSTROUTING，用于路由判断后执行的规则，比如，对发送或转发的数据包进行 SNAT 或 MASQUERADE‘。</p>
+</li>
+<li>
+<p>OUTPUT，类似于 PREROUTING，但只处理从本机发送出去的包。</p>
+</li>
+</ul>
+<p>熟悉 iptables 中的表和链后，相应的 NAT 规则就比较简单了。</p>
+<h3 id="生词">生词
+</h3><ul>
+<li>
+<p>masquerade / ˌmæskəˈreɪd / n、掩藏，掩饰；伪装，化装；欺骗；v、伪装，化装；冒充；</p>
+</li>
+<li>
+<p>routing / ˈraʊtɪŋ / n、路由选择；工艺路线；选择途径；v、按指定路线发送；为&hellip;.规定路线（route 的现在分词）</p>
+</li>
+</ul>
+<h3 id="网络释义">网络释义
+</h3><ul>
+<li>SNAT 源地址转换</li>
+<li>DNAT 目标地址转换</li>
+</ul>
+<h2 id="snat">SNAT
+</h2><p>根据刚才内容，我们知道，SNAT 需要在 nat 表的 POSTROUTING 链中配置。我们常用两种方式来配置它。</p>
+<p>第一种方法，是为一个子网统一配置 SNAT，并由 Linux 选择的默认的出口 IP。这实际上就是经常说的 MASQUERADE。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">$ iptables -t nat -A POSTROUTING -s 192.168.0.0/16 -j MASQUERADE
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>第二种方法，是为具体的 IP 地址配置 SNAT，并指定转换后的源地址：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">$ iptables -t nat -A POSTROUTING -s 192.168.0.2 -j SNAT --to-source 100.100.100.100
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="dnat">DNAT
+</h2><p>再来看 DNAT，显然，DNAT 需要在 nat 表的 PREROUTING 或者 OUTPUT 链中配置，其中， PREROUTING 链更常用一些（因为它还可以用于转发的包）。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">$ iptables -t nat -A PREROUTING -d 100.100.100.100 -j DNAT --to-destination 192.168.0.2
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="双向地址转换">双向地址转换
+</h2><p>双向地址转换，就是同时添加 SNAT 和 DNAT 规则，为公网 IP 和内网 IP 实现一对一的映射关系，即</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">$ iptables -t nat -A POSTROUTING -s 192.168.0.2 -j SNAT --to-source 100.100.100.100
+</span></span><span class="line"><span class="cl">$ iptables -t nat -A PREROUTING -d 100.100.100.100 -j DNAT --to-destination 192.168.0.2
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>在使用 iptables 配置 NAT 规则时，Linux 需要转发来自其他 IP 的网络包，所以你千万不要忘记开启 Linux 的 IP 转发功能。</p>
+<p>你可以执行下面的命令，查看这一功能是否开启。如果输出的结果是 1，就表示已经开启了 IP 转发：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">$ sysctl net.ipv4.ip_forward
+</span></span><span class="line"><span class="cl">net.ipv4.ip_forward <span class="o">=</span> <span class="m">1</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>如果还没开启，你可以执行下面的命令，手动开启：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">$ sysctl -w net.ipv4.ip_forward<span class="o">=</span><span class="m">1</span>
+</span></span><span class="line"><span class="cl">net.ipv4.ip_forward <span class="o">=</span> <span class="m">1</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>当然，为了避免重启后配置丢失，不要忘记将配置写入 /etc/sysctl.conf 文件中：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">$ cat /etc/sysctl.conf <span class="p">|</span> grep ip_forward
+</span></span><span class="line"><span class="cl">net.ipv4.ip_forward<span class="o">=</span><span class="m">1</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="小结">小结
+</h2><p>NAT 技术能够重写 IP 数据包的源 IP 或目的 IP，所以普遍用来解决公网 IP 地址短缺的问题。它可以让网络中的多台主机，通过共享同一个公网 IP 地址，来访问外网资源。同时，由于 NAT 屏蔽了内网网络，也为局域网中机器起到安全隔离的作用。</p>
+<p>Linux 中的 NAT ，基于内核的连接跟踪模块实现。所以，它维护每个连接状态的同时，也对网络性能有一定影响。那么，碰到 NAT 性能问题时，我们又该怎么办呢？</p>
+<h2 id="案例准备">案例准备
+</h2><ul>
+<li>系统环境：ubuntu 22.04</li>
+<li>机器配置：2 CPU，8GB 内存</li>
+<li>预先安装 docker、tcpdump、curl、ab、SystemTap 等工具</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># Ubuntu</span>
+</span></span><span class="line"><span class="cl">$ apt-get install -y docker.io tcpdump curl apache2-utils
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># CentOS</span>
+</span></span><span class="line"><span class="cl">$ curl -fsSL https://get.docker.com <span class="p">|</span> sh
+</span></span><span class="line"><span class="cl">$ yum install -y tcpdump curl httpd-tools
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><a class="link" href="https://sourceware.org/systemtap/"  target="_blank" rel="noopener"
+    >SystemTap</a> 是 Linux 的一种动态追踪框架，它把用户提供的脚本，转换为内核模块来执行，用来监测和跟踪内核的行为。关于它的原理，你暂时不用深究，后面的内容还会介绍到。这里你只要知道怎么安装就可以了：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># Ubuntu</span>
+</span></span><span class="line"><span class="cl">apt-get install -y systemtap-runtime systemtap
+</span></span><span class="line"><span class="cl"><span class="c1"># Configure ddebs source</span>
+</span></span><span class="line"><span class="cl"><span class="nb">echo</span> <span class="s2">&#34;deb http://ddebs.ubuntu.com </span><span class="k">$(</span>lsb_release -cs<span class="k">)</span><span class="s2"> main restricted universe multiverse
+</span></span></span><span class="line"><span class="cl"><span class="s2">deb http://ddebs.ubuntu.com </span><span class="k">$(</span>lsb_release -cs<span class="k">)</span><span class="s2">-updates main restricted universe multiverse
+</span></span></span><span class="line"><span class="cl"><span class="s2">deb http://ddebs.ubuntu.com </span><span class="k">$(</span>lsb_release -cs<span class="k">)</span><span class="s2">-proposed main restricted universe multiverse&#34;</span> <span class="p">|</span> <span class="se">\
+</span></span></span><span class="line"><span class="cl">sudo tee -a /etc/apt/sources.list.d/ddebs.list
+</span></span><span class="line"><span class="cl"><span class="c1"># Install dbgsym</span>
+</span></span><span class="line"><span class="cl">apt-key adv --keyserver keyserver.ubuntu.com --recv-keys F2EDC64DC5AEE1F6B9C621F0C8CAB6595FDFF622
+</span></span><span class="line"><span class="cl">apt-get update
+</span></span><span class="line"><span class="cl">apt install ubuntu-dbgsym-keyring
+</span></span><span class="line"><span class="cl">stap-prep
+</span></span><span class="line"><span class="cl">apt-get install linux-image-<span class="sb">`</span>uname -r<span class="sb">`</span>-dbgsym
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># CentOS</span>
+</span></span><span class="line"><span class="cl">yum install systemtap kernel-devel yum-utils kernel
+</span></span><span class="line"><span class="cl">stab-prep
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>本次案例还是我们最常见的 Nginx，并且会用 ab 作为它的客户端，进行压力测试。案例中总共用到两台虚拟机。</p>
+<p>本次案例还是我们最常见的 Nginx，并且会用 ab 作为它的客户端，进行压力测试。案例中总共用到两台虚拟机。</p>
+<p><img src="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E7%BD%91%E7%BB%9C%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-5/image-2.png"
+	width="1632"
+	height="1032"
+	srcset="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E7%BD%91%E7%BB%9C%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-5/image-2_hu_36e2d25ead8e7cfd.png 480w, /p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E7%BD%91%E7%BB%9C%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-5/image-2_hu_2c2db56c07219770.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="158"
+		data-flex-basis="379px"
+	
+></p>
+<ol>
+<li>
+<p>打开两个终端，分别 SSH 登录到两台机器上（以下步骤，假设终端编号与图示 VM 编号一致），并安装上面提到的这些工具。注意，curl 和 ab 只需要在客户端 VM（即 VM2）中安装。</p>
+</li>
+<li>
+<p>切换 root 用户</p>
+</li>
+</ol>
+<h3 id="案例分析">案例分析
+</h3><p>为了对比 NAT 带来的性能问题，我们首先运行一个不用 NAT 的 Nginx 服务，并用 ab 测试它的性能。</p>
+<ol>
+<li>终端1：执行下面的命令，启动 Nginx，注意选项 &ndash;network=host ，表示容器使用 Host 网络模式，即不使用 NAT</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">$ docker run --name nginx-hostnet --privileged --network<span class="o">=</span>host -itd feisky/nginx:80
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="2">
+<li>终端2：执行 curl 命令，确认 Nginx 正常启动</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">$ curl http://192.168.0.30/
+</span></span><span class="line"><span class="cl">...
+</span></span><span class="line"><span class="cl">&lt;p&gt;&lt;em&gt;Thank you <span class="k">for</span> using nginx.&lt;/em&gt;&lt;/p&gt;
+</span></span><span class="line"><span class="cl">&lt;/body&gt;
+</span></span><span class="line"><span class="cl">&lt;/html&gt;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="3">
+<li>终端2：执行 ab 命令，对 Nginx 进行压力测试</li>
+</ol>
+<p>不过在测试前要注意，Linux 默认允许打开的文件描述数比较小，比如在我的机器中，这个值只有 1024：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># open files</span>
+</span></span><span class="line"><span class="cl">$ <span class="nb">ulimit</span> -n
+</span></span><span class="line"><span class="cl"><span class="m">1024</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>所以，执行 ab 前，先要把这个选项调大，比如调成 65536:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 临时增大当前会话的最大文件描述符数</span>
+</span></span><span class="line"><span class="cl">$ <span class="nb">ulimit</span> -n <span class="m">65536</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>接下来，再去执行 ab 命令，进行压力测试：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># -c表示并发请求数为5000，-n表示总的请求数为10万</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># -r表示套接字接收错误时仍然继续执行，-s表示设置每个请求的超时时间为2s</span>
+</span></span><span class="line"><span class="cl">$ ab -c <span class="m">5000</span> -n <span class="m">100000</span> -r -s <span class="m">2</span> http://192.168.0.30/
+</span></span><span class="line"><span class="cl">...
+</span></span><span class="line"><span class="cl">Requests per second:    6576.21 <span class="o">[</span><span class="c1">#/sec] (mean)</span>
+</span></span><span class="line"><span class="cl">Time per request:       760.317 <span class="o">[</span>ms<span class="o">]</span> <span class="o">(</span>mean<span class="o">)</span>
+</span></span><span class="line"><span class="cl">Time per request:       0.152 <span class="o">[</span>ms<span class="o">]</span> <span class="o">(</span>mean, across all concurrent requests<span class="o">)</span>
+</span></span><span class="line"><span class="cl">Transfer rate:          5390.19 <span class="o">[</span>Kbytes/sec<span class="o">]</span> received
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">Connection Times <span class="o">(</span>ms<span class="o">)</span>
+</span></span><span class="line"><span class="cl">              min  mean<span class="o">[</span>+/-sd<span class="o">]</span> median   max
+</span></span><span class="line"><span class="cl">Connect:        <span class="m">0</span>  <span class="m">177</span> 714.3      <span class="m">9</span>    <span class="m">7338</span>
+</span></span><span class="line"><span class="cl">Processing:     <span class="m">0</span>   <span class="m">27</span>  39.8     <span class="m">19</span>     <span class="m">961</span>
+</span></span><span class="line"><span class="cl">Waiting:        <span class="m">0</span>   <span class="m">23</span>  39.5     <span class="m">16</span>     <span class="m">951</span>
+</span></span><span class="line"><span class="cl">Total:          <span class="m">1</span>  <span class="m">204</span> 716.3     <span class="m">28</span>    <span class="m">7349</span>
+</span></span><span class="line"><span class="cl">...
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>关于 ab 输出界面的含义，已经在 <a class="link" href="https://yline-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E7%BD%91%E7%BB%9C%E7%AF%87%E5%A5%97%E8%B7%AF%E7%AF%87/"  target="_blank" rel="noopener"
+    >怎么评估系统的网络性能</a> 文章中介绍过。从这次的界面，可以看出：</p>
+<ul>
+<li>每秒请求数（Requests per second）为 6576；</li>
+<li>每个请求的平均延迟（Time per request）为 760ms；</li>
+<li>建立连接的平均延迟（Connect）为 177ms。</li>
+</ul>
+<p>记住这几个数值，这将是接下来案例的基准指标。</p>
+<ol start="4">
+<li>终端1：停止这个未使用 NAT 的 Nginx 应用</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">$ docker rm -f nginx-hostnet
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="5">
+<li>终端1：执行下面的命令，启动今天的案例应用。</li>
+</ol>
+<p>案例应用监听在 8080 端口，并且使用了 DNAT ，来实现 Host 的 8080 端口，到容器的 8080 端口的映射关系</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">$ docker run --name nginx --privileged -p 8080:8080 -itd feisky/nginx:nat
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="6">
+<li>终端1：Nginx 启动后，可以执行 iptables 命令，确认 DNAT 规则已经创建</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">$ iptables -nL -t nat
+</span></span><span class="line"><span class="cl">Chain PREROUTING <span class="o">(</span>policy ACCEPT<span class="o">)</span>
+</span></span><span class="line"><span class="cl">target     prot opt <span class="nb">source</span>               destination
+</span></span><span class="line"><span class="cl">DOCKER     all  --  0.0.0.0/0            0.0.0.0/0            ADDRTYPE match dst-type LOCAL
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">...
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">Chain DOCKER <span class="o">(</span><span class="m">2</span> references<span class="o">)</span>
+</span></span><span class="line"><span class="cl">target     prot opt <span class="nb">source</span>               destination
+</span></span><span class="line"><span class="cl">RETURN     all  --  0.0.0.0/0            0.0.0.0/0
+</span></span><span class="line"><span class="cl">DNAT       tcp  --  0.0.0.0/0            0.0.0.0/0            tcp dpt:8080 to:172.17.0.2:8080
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>可以看到，在 PREROUTING 链中，目的为本地的请求，会转到 DOCKER 链；而在 DOCKER 链中，目的端口为 8080 的 tcp 请求，会被 DNAT 到 172.17.0.2 的 8080 端口。其中，172.17.0.2 就是 Nginx 容器的 IP 地址。</p>
+<ol start="7">
+<li>终端2：执行 curl 命令，确认 Nginx 已经正常启动</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">$ curl http://192.168.0.30:8080/
+</span></span><span class="line"><span class="cl">...
+</span></span><span class="line"><span class="cl">&lt;p&gt;&lt;em&gt;Thank you <span class="k">for</span> using nginx.&lt;/em&gt;&lt;/p&gt;
+</span></span><span class="line"><span class="cl">&lt;/body&gt;
+</span></span><span class="line"><span class="cl">&lt;/html&gt;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="8">
+<li>终端2：执行上述的 ab 命令，不过这次注意，要把请求的端口号换成 8080</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># -c表示并发请求数为5000，-n表示总的请求数为10万</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># -r表示套接字接收错误时仍然继续执行，-s表示设置每个请求的超时时间为2s</span>
+</span></span><span class="line"><span class="cl">$ ab -c <span class="m">5000</span> -n <span class="m">100000</span> -r -s <span class="m">2</span> http://192.168.0.30:8080/
+</span></span><span class="line"><span class="cl">...
+</span></span><span class="line"><span class="cl">apr_pollset_poll: The timeout specified has expired <span class="o">(</span>70007<span class="o">)</span>
+</span></span><span class="line"><span class="cl">Total of <span class="m">5602</span> requests completed
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>果然，刚才正常运行的 ab ，现在失败了，还报了连接超时的错误。运行 ab 时的 -s 参数，设置了每个请求的超时时间为 2s，而从输出可以看到，这次只完成了 5602 个请求。</p>
+<p>既然是为了得到 ab 的测试结果，我们不妨把超时时间延长一下试试，比如延长到 30s。延迟增大意味着要等更长时间，为了快点得到结果，我们可以同时把总测试次数，也减少到 10000:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">$ ab -c <span class="m">5000</span> -n <span class="m">10000</span> -r -s <span class="m">30</span> http://192.168.0.30:8080/
+</span></span><span class="line"><span class="cl">...
+</span></span><span class="line"><span class="cl">Requests per second:    76.47 <span class="o">[</span><span class="c1">#/sec] (mean)</span>
+</span></span><span class="line"><span class="cl">Time per request:       65380.868 <span class="o">[</span>ms<span class="o">]</span> <span class="o">(</span>mean<span class="o">)</span>
+</span></span><span class="line"><span class="cl">Time per request:       13.076 <span class="o">[</span>ms<span class="o">]</span> <span class="o">(</span>mean, across all concurrent requests<span class="o">)</span>
+</span></span><span class="line"><span class="cl">Transfer rate:          44.79 <span class="o">[</span>Kbytes/sec<span class="o">]</span> received
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">Connection Times <span class="o">(</span>ms<span class="o">)</span>
+</span></span><span class="line"><span class="cl">              min  mean<span class="o">[</span>+/-sd<span class="o">]</span> median   max
+</span></span><span class="line"><span class="cl">Connect:        <span class="m">0</span> <span class="m">1300</span> 5578.0      <span class="m">1</span>   <span class="m">65184</span>
+</span></span><span class="line"><span class="cl">Processing:     <span class="m">0</span> <span class="m">37916</span> 59283.2      <span class="m">1</span>  <span class="m">130682</span>
+</span></span><span class="line"><span class="cl">Waiting:        <span class="m">0</span>    <span class="m">2</span>   8.7      <span class="m">1</span>     <span class="m">414</span>
+</span></span><span class="line"><span class="cl">Total:          <span class="m">1</span> <span class="m">39216</span> 58711.6   <span class="m">1021</span>  <span class="m">130682</span>
+</span></span><span class="line"><span class="cl">...
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>再重新看看 ab 的输出，这次的结果显示：</p>
+<ul>
+<li>每秒请求数（Requests per second）为 76；</li>
+<li>每个请求的延迟（Time per request）为 65s；</li>
+<li>建立连接的延迟（Connect）为 1300ms。</li>
+</ul>
+<p>显然，每个指标都比前面差了很多。</p>
+<p>那么，碰到这种问题时，你会怎么办呢？你可以根据前面的讲解，先自己分析一下，再继续学习下面的内容。</p>
+<p>在上一节，我们使用 tcpdump 抓包的方法，找出了延迟增大的根源。那么今天的案例，我们仍然可以用类似的方法寻找线索。不过，现在换个思路，因为今天我们已经事先知道了问题的根源——那就是 NAT。</p>
+<p>回忆一下 Netfilter 中，网络包的流向以及 NAT 的原理，你会发现，要保证 NAT 正常工作，就至少需要两个步骤：</p>
+<ul>
+<li>
+<p>第一，利用 Netfilter 中的钩子函数（Hook），修改源地址或者目的地址。</p>
+</li>
+<li>
+<p>第二，利用连接跟踪模块 conntrack ，关联同一个连接的请求和响应。</p>
+</li>
+</ul>
+<p>是不是这两个地方出现了问题呢？我们用前面提到的动态追踪工具 SystemTap 来试试。</p>
+<p>由于今天案例是在压测场景下，并发请求数大大降低，并且我们清楚知道 NAT 是罪魁祸首。所以，我们有理由怀疑，内核中发生了丢包现象。</p>
+<ol start="9">
+<li>终端1：创建一个 dropwatch.stp 的脚本文件，并写入下面的内容</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="cp">#! /usr/bin/env stap
+</span></span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">############################################################</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># Dropwatch.stp</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># Author: Neil Horman &lt;nhorman@redhat.com&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># An example script to mimic the behavior of the dropwatch utility</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># http://fedorahosted.org/dropwatch</span>
+</span></span><span class="line"><span class="cl"><span class="c1">############################################################</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Array to hold the list of drop points we find</span>
+</span></span><span class="line"><span class="cl">global locations
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Note when we turn the monitor on and off</span>
+</span></span><span class="line"><span class="cl">probe begin <span class="o">{</span> printf<span class="o">(</span><span class="s2">&#34;Monitoring for dropped packets\n&#34;</span><span class="o">)</span> <span class="o">}</span>
+</span></span><span class="line"><span class="cl">probe end <span class="o">{</span> printf<span class="o">(</span><span class="s2">&#34;Stopping dropped packet monitor\n&#34;</span><span class="o">)</span> <span class="o">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># increment a drop counter for every location we drop at</span>
+</span></span><span class="line"><span class="cl">probe kernel.trace<span class="o">(</span><span class="s2">&#34;kfree_skb&#34;</span><span class="o">)</span> <span class="o">{</span> locations<span class="o">[</span><span class="nv">$location</span><span class="o">]</span> <span class="o">&lt;&lt;&lt;</span> <span class="m">1</span> <span class="o">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Every 5 seconds report our drop locations</span>
+</span></span><span class="line"><span class="cl">probe timer.sec<span class="o">(</span>5<span class="o">)</span>
+</span></span><span class="line"><span class="cl"><span class="o">{</span>
+</span></span><span class="line"><span class="cl">  printf<span class="o">(</span><span class="s2">&#34;\n&#34;</span><span class="o">)</span>
+</span></span><span class="line"><span class="cl">  foreach <span class="o">(</span>l in locations-<span class="o">)</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">    printf<span class="o">(</span><span class="s2">&#34;%d packets dropped at %s\n&#34;</span>,
+</span></span><span class="line"><span class="cl">           @count<span class="o">(</span>locations<span class="o">[</span>l<span class="o">])</span>, symname<span class="o">(</span>l<span class="o">))</span>
+</span></span><span class="line"><span class="cl">  <span class="o">}</span>
+</span></span><span class="line"><span class="cl">  delete locations
+</span></span><span class="line"><span class="cl"><span class="o">}</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>这个脚本，跟踪内核函数 kfree_skb() 的调用，并统计丢包的位置。</p>
+<ol start="10">
+<li>终端1：文件保存好后，执行下面的 stap 命令，就可以运行丢包跟踪脚本。</li>
+</ol>
+<p>这里的 stap，是 SystemTap 的命令行工具</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">$ stap --all-modules dropwatch.stp
+</span></span><span class="line"><span class="cl">Monitoring <span class="k">for</span> dropped packets
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>当你看到 probe begin 输出的 “Monitoring for dropped packets” 时，表明 SystemTap 已经将脚本编译为内核模块，并启动运行了。</p>
+<ol start="11">
+<li>终端2：再次执行 ab 命令</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">$ ab -c <span class="m">5000</span> -n <span class="m">10000</span> -r -s <span class="m">30</span> http://192.168.0.30:8080/
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="12">
+<li>终端1：观察 stap 命令的输出</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="m">10031</span> packets dropped at nf_hook_slow
+</span></span><span class="line"><span class="cl"><span class="m">676</span> packets dropped at tcp_v4_rcv
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="m">7284</span> packets dropped at nf_hook_slow
+</span></span><span class="line"><span class="cl"><span class="m">268</span> packets dropped at tcp_v4_rcv
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>发现，大量丢包都发生在 nf_hook_slow 位置。看到这个名字，你应该能想到，这是在 Netfilter Hook 的钩子函数中，出现丢包问题了。但是不是 NAT，还不能确定。接下来，我们还得再跟踪 nf_hook_slow 的执行过程，这一步可以通过 perf 来完成。</p>
+<ol start="13">
+<li>终端2：再次执行 ab 命令</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">$ ab -c <span class="m">5000</span> -n <span class="m">10000</span> -r -s <span class="m">30</span> http://192.168.0.30:8080/
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="14">
+<li>终端1：执行 perf record 和 perf report 命令</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 记录一会（比如30s）后按Ctrl+C结束</span>
+</span></span><span class="line"><span class="cl">$ perf record -a -g -- sleep <span class="m">30</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 输出报告</span>
+</span></span><span class="line"><span class="cl">$ perf report -g graph,0
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="15">
+<li>终端1：在 perf report 界面中，输入查找命令 / 然后，在弹出的对话框中，输入 nf_hook_slow；最后再展开调用栈，就可以得到下面这个调用图：</li>
+</ol>
+<p><img src="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E7%BD%91%E7%BB%9C%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-5/image-3.png"
+	width="587"
+	height="851"
+	srcset="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E7%BD%91%E7%BB%9C%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-5/image-3_hu_e976dc43beead5fc.png 480w, /p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E7%BD%91%E7%BB%9C%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-5/image-3_hu_9aa6fe8309e9e0b6.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="68"
+		data-flex-basis="165px"
+	
+></p>
+<p>从这个图我们可以看到，nf_hook_slow 调用最多的有三个地方，分别是 ipv4_conntrack_in、br_nf_pre_routing 以及 iptable_nat_ipv4_in。换言之，nf_hook_slow 主要在执行三个动作。</p>
+<ul>
+<li>
+<p>第一，接收网络包时，在连接跟踪表中查找连接，并为新的连接分配跟踪对象（Bucket）。</p>
+</li>
+<li>
+<p>第二，在 Linux 网桥中转发包。这是因为案例 Nginx 是一个 Docker 容器，而容器的网络通过网桥来实现；</p>
+</li>
+<li>
+<p>第三，接收网络包时，执行 DNAT，即把 8080 端口收到的包转发给容器。</p>
+</li>
+</ul>
+<p>到这里，我们其实就找到了性能下降的三个来源。这三个来源，都是 Linux 的内核机制，所以接下来的优化，自然也是要从内核入手。</p>
+<p>根据以前各个资源模块的内容，我们知道，Linux 内核为用户提供了大量的可配置选项，这些选项可以通过 proc 文件系统，或者 sys 文件系统，来查看和修改。除此之外，你还可以用 sysctl 这个命令行工具，来查看和修改内核配置。</p>
+<p>比如，我们今天的主题是 DNAT，而 DNAT 的基础是 conntrack，所以我们可以先看看，内核提供了哪些 conntrack 的配置选项。</p>
+<ol start="16">
+<li>终端1：继续执行下面的命令</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">$ sysctl -a <span class="p">|</span> grep conntrack
+</span></span><span class="line"><span class="cl">net.netfilter.nf_conntrack_count <span class="o">=</span> <span class="m">180</span>
+</span></span><span class="line"><span class="cl">net.netfilter.nf_conntrack_max <span class="o">=</span> <span class="m">1000</span>
+</span></span><span class="line"><span class="cl">net.netfilter.nf_conntrack_buckets <span class="o">=</span> <span class="m">65536</span>
+</span></span><span class="line"><span class="cl">net.netfilter.nf_conntrack_tcp_timeout_syn_recv <span class="o">=</span> <span class="m">60</span>
+</span></span><span class="line"><span class="cl">net.netfilter.nf_conntrack_tcp_timeout_syn_sent <span class="o">=</span> <span class="m">120</span>
+</span></span><span class="line"><span class="cl">net.netfilter.nf_conntrack_tcp_timeout_time_wait <span class="o">=</span> <span class="m">120</span>
+</span></span><span class="line"><span class="cl">...
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>可以看到，这里最重要的三个指标：</p>
+<ul>
+<li>net.netfilter.nf_conntrack_count，表示当前连接跟踪数；</li>
+<li>net.netfilter.nf_conntrack_max，表示最大连接跟踪数；</li>
+<li>net.netfilter.nf_conntrack_buckets，表示连接跟踪表的大小。</li>
+</ul>
+<p>所以，这个输出告诉我们，当前连接跟踪数是 180，最大连接跟踪数是 1000，连接跟踪表的大小，则是 65536。</p>
+<p>回想一下前面的 ab 命令，并发请求数是 5000，而请求数是 100000。显然，跟踪表设置成，只记录 1000 个连接，是远远不够的。</p>
+<p>实际上，内核在工作异常时，会把异常信息记录到日志中。比如前面的 ab 测试，内核已经在日志中报出了 “nf_conntrack: table full” 的错误。</p>
+<ol start="17">
+<li>终端1：执行后 dmesg 命令</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">$ dmesg <span class="p">|</span> tail
+</span></span><span class="line"><span class="cl"><span class="o">[</span>104235.156774<span class="o">]</span> nf_conntrack: nf_conntrack: table full, dropping packet
+</span></span><span class="line"><span class="cl"><span class="o">[</span>104243.800401<span class="o">]</span> net_ratelimit: <span class="m">3939</span> callbacks suppressed
+</span></span><span class="line"><span class="cl"><span class="o">[</span>104243.800401<span class="o">]</span> nf_conntrack: nf_conntrack: table full, dropping packet
+</span></span><span class="line"><span class="cl"><span class="o">[</span>104262.962157<span class="o">]</span> nf_conntrack: nf_conntrack: table full, dropping packet
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>其中，net_ratelimit 表示有大量的日志被压缩掉了，这是内核预防日志攻击的一种措施。而当你看到 “nf_conntrack: table full” 的错误时，就表明 nf_conntrack_max 太小了。</p>
+<p>那是不是，直接把连接跟踪表调大就可以了呢？调节前，你先得明白，连接跟踪表，实际上是内存中的一个哈希表。如果连接跟踪数过大，也会耗费大量内存。</p>
+<p>其实，我们上面看到的 nf_conntrack_buckets，就是哈希表的大小。哈希表中的每一项，都是一个链表（称为 Bucket），而链表长度，就等于 nf_conntrack_max 除以 nf_conntrack_buckets。</p>
+<p>我们可以估算一下，上述配置的连接跟踪表占用的内存大小：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 连接跟踪对象大小为376，链表项大小为16</span>
+</span></span><span class="line"><span class="cl">nf_conntrack_max*连接跟踪对象大小+nf_conntrack_buckets*链表项大小 
+</span></span><span class="line"><span class="cl"><span class="o">=</span> 1000*376+65536*16 <span class="nv">B</span>
+</span></span><span class="line"><span class="cl"><span class="o">=</span> 1.4 MB
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="18">
+<li>终端1：接下来，我们将 nf_conntrack_max 改大一些，比如改成 131072（即 nf_conntrack_buckets 的 2 倍）</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">$ sysctl -w net.netfilter.nf_conntrack_max<span class="o">=</span><span class="m">131072</span>
+</span></span><span class="line"><span class="cl">$ sysctl -w net.netfilter.nf_conntrack_buckets<span class="o">=</span><span class="m">65536</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="19">
+<li>终端2：重新执行 ab 命令。注意，这次我们把超时时间也改回原来的 2s</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">$ ab -c <span class="m">5000</span> -n <span class="m">100000</span> -r -s <span class="m">2</span> http://192.168.0.30:8080/
+</span></span><span class="line"><span class="cl">...
+</span></span><span class="line"><span class="cl">Requests per second:    6315.99 <span class="o">[</span><span class="c1">#/sec] (mean)</span>
+</span></span><span class="line"><span class="cl">Time per request:       791.641 <span class="o">[</span>ms<span class="o">]</span> <span class="o">(</span>mean<span class="o">)</span>
+</span></span><span class="line"><span class="cl">Time per request:       0.158 <span class="o">[</span>ms<span class="o">]</span> <span class="o">(</span>mean, across all concurrent requests<span class="o">)</span>
+</span></span><span class="line"><span class="cl">Transfer rate:          4985.15 <span class="o">[</span>Kbytes/sec<span class="o">]</span> received
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">Connection Times <span class="o">(</span>ms<span class="o">)</span>
+</span></span><span class="line"><span class="cl">              min  mean<span class="o">[</span>+/-sd<span class="o">]</span> median   max
+</span></span><span class="line"><span class="cl">Connect:        <span class="m">0</span>  <span class="m">355</span> 793.7     <span class="m">29</span>    <span class="m">7352</span>
+</span></span><span class="line"><span class="cl">Processing:     <span class="m">8</span>  <span class="m">311</span> 855.9     <span class="m">51</span>   <span class="m">14481</span>
+</span></span><span class="line"><span class="cl">Waiting:        <span class="m">0</span>  <span class="m">292</span> 851.5     <span class="m">36</span>   <span class="m">14481</span>
+</span></span><span class="line"><span class="cl">Total:         <span class="m">15</span>  <span class="m">666</span> 1216.3    <span class="m">148</span>   <span class="m">14645</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>果然，现在你可以看到：</p>
+<ul>
+<li>每秒请求数（Requests per second）为 6315（不用 NAT 时为 6576）；</li>
+<li>每个请求的延迟（Time per request）为 791ms（不用 NAT 时为 760ms）；</li>
+<li>建立连接的延迟（Connect）为 355ms（不用 NAT 时为 177ms）。</li>
+</ul>
+<p>这个结果，已经比刚才的测试好了很多，也很接近最初不用 NAT 时的基准结果了。</p>
+<p>不过，你可能还是很好奇，连接跟踪表里，到底都包含了哪些东西？这里的东西，又是怎么刷新的呢？</p>
+<p>实际上，你可以用 conntrack 命令行工具，来查看连接跟踪表的内容。比如：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># -L表示列表，-o表示以扩展格式显示</span>
+</span></span><span class="line"><span class="cl">$ conntrack -L -o extended <span class="p">|</span> head
+</span></span><span class="line"><span class="cl">ipv4     <span class="m">2</span> tcp      <span class="m">6</span> <span class="m">7</span> TIME_WAIT <span class="nv">src</span><span class="o">=</span>192.168.0.2 <span class="nv">dst</span><span class="o">=</span>192.168.0.96 <span class="nv">sport</span><span class="o">=</span><span class="m">51744</span> <span class="nv">dport</span><span class="o">=</span><span class="m">8080</span> <span class="nv">src</span><span class="o">=</span>172.17.0.2 <span class="nv">dst</span><span class="o">=</span>192.168.0.2 <span class="nv">sport</span><span class="o">=</span><span class="m">8080</span> <span class="nv">dport</span><span class="o">=</span><span class="m">51744</span> <span class="o">[</span>ASSURED<span class="o">]</span> <span class="nv">mark</span><span class="o">=</span><span class="m">0</span> <span class="nv">use</span><span class="o">=</span><span class="m">1</span>
+</span></span><span class="line"><span class="cl">ipv4     <span class="m">2</span> tcp      <span class="m">6</span> <span class="m">6</span> TIME_WAIT <span class="nv">src</span><span class="o">=</span>192.168.0.2 <span class="nv">dst</span><span class="o">=</span>192.168.0.96 <span class="nv">sport</span><span class="o">=</span><span class="m">51524</span> <span class="nv">dport</span><span class="o">=</span><span class="m">8080</span> <span class="nv">src</span><span class="o">=</span>172.17.0.2 <span class="nv">dst</span><span class="o">=</span>192.168.0.2 <span class="nv">sport</span><span class="o">=</span><span class="m">8080</span> <span class="nv">dport</span><span class="o">=</span><span class="m">51524</span> <span class="o">[</span>ASSURED<span class="o">]</span> <span class="nv">mark</span><span class="o">=</span><span class="m">0</span> <span class="nv">use</span><span class="o">=</span><span class="m">1</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>从这里你可以发现，连接跟踪表里的对象，包括了协议、连接状态、源 IP、源端口、目的 IP、目的端口、跟踪状态等。由于这个格式是固定的，所以我们可以用 awk、sort 等工具，对其进行统计分析。</p>
+<ol start="20">
+<li>终端1：执行下面的命令</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 统计总的连接跟踪数</span>
+</span></span><span class="line"><span class="cl">$ conntrack -L -o extended <span class="p">|</span> wc -l
+</span></span><span class="line"><span class="cl"><span class="m">14289</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 统计TCP协议各个状态的连接跟踪数</span>
+</span></span><span class="line"><span class="cl">$ conntrack -L -o extended <span class="p">|</span> awk <span class="s1">&#39;/^.*tcp.*$/ {sum[$6]++} END {for(i in sum) print i, sum[i]}&#39;</span>
+</span></span><span class="line"><span class="cl">SYN_RECV <span class="m">4</span>
+</span></span><span class="line"><span class="cl">CLOSE_WAIT <span class="m">9</span>
+</span></span><span class="line"><span class="cl">ESTABLISHED <span class="m">2877</span>
+</span></span><span class="line"><span class="cl">FIN_WAIT <span class="m">3</span>
+</span></span><span class="line"><span class="cl">SYN_SENT <span class="m">2113</span>
+</span></span><span class="line"><span class="cl">TIME_WAIT <span class="m">9283</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 统计各个源IP的连接跟踪数</span>
+</span></span><span class="line"><span class="cl">$ conntrack -L -o extended <span class="p">|</span> awk <span class="s1">&#39;{print $7}&#39;</span> <span class="p">|</span> cut -d <span class="s2">&#34;=&#34;</span> -f <span class="m">2</span> <span class="p">|</span> sort <span class="p">|</span> uniq -c <span class="p">|</span> sort -nr <span class="p">|</span> head -n <span class="m">10</span>
+</span></span><span class="line"><span class="cl">  <span class="m">14116</span> 192.168.0.2
+</span></span><span class="line"><span class="cl">    <span class="m">172</span> 192.168.0.96
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>这里统计了总连接跟踪数，TCP 协议各个状态的连接跟踪数，以及各个源 IP 的连接跟踪数。你可以看到，大部分 TCP 的连接跟踪，都处于 TIME_WAIT 状态，并且它们大都来自于 192.168.0.2 这个 IP 地址（也就是运行 ab 命令的 VM2）。</p>
+<p>这些处于 TIME_WAIT 的连接跟踪记录，会在超时后清理，而默认的超时时间是 120s，你可以执行下面的命令来查看：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">$ sysctl net.netfilter.nf_conntrack_tcp_timeout_time_wait
+</span></span><span class="line"><span class="cl">net.netfilter.nf_conntrack_tcp_timeout_time_wait <span class="o">=</span> <span class="m">120</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>所以，如果你的连接数非常大，确实也应该考虑，适当减小超时时间。</p>
+<p>除了上面这些常见配置，conntrack 还包含了其他很多配置选项，你可以根据实际需要，参考 nf_conntrack 的<a class="link" href="https://www.kernel.org/doc/Documentation/networking/nf_conntrack-sysctl.txt"  target="_blank" rel="noopener"
+    >文档</a>来配置。</p>
+
+</section>
+
+
+    <footer class="article-footer">
+    
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+     
+    
+        
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+            2025 - 
+        
+        2026 リンボの個人ブログ
+    </section>
+    
+    <section class="powerby">
+         <br />
+        
+    </section>
+</footer>
+
+
+    
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+    
+    <div class="pswp__bg"></div>
+
+    
+    <div class="pswp__scroll-wrap">
+
+        
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+
+        
+        <div class="pswp__ui pswp__ui--hidden">
+
+            <div class="pswp__top-bar">
+
+                
+
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+
+                <button class="pswp__button pswp__button--share" title="Share"></button>
+
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+
+                
+                
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                        <div class="pswp__preloader__cut">
+                            <div class="pswp__preloader__donut"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div>
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.js"integrity="sha256-ePwmChbbvXbsO02lbM3HoHbSHTHFAeChekF1xKJdleo="crossorigin="anonymous"
+                defer
+                >
+            </script><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe-ui-default.min.js"integrity="sha256-UKkzOn/w1mBxRmLLGrSeyB4e1xbrp4xylgAWb3M42pU="crossorigin="anonymous"
+                defer
+                >
+            </script><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/default-skin/default-skin.min.css"crossorigin="anonymous"
+            ><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.css"crossorigin="anonymous"
+            >
+
+            </main>
+        </div>
+        <script 
+                src="https://cdn.jsdelivr.net/npm/node-vibrant@3.1.6/dist/vibrant.min.js"integrity="sha256-awcR2jno4kI5X0zL8ex0vi2z&#43;KMkF24hUW8WePSA9HM="crossorigin="anonymous"
+                
+                >
+            </script><script type="text/javascript" src="/ts/main.1e9a3bafd846ced4c345d084b355fb8c7bae75701c338f8a1f8a82c780137826.js" defer></script>
+<script>
+    (function () {
+        const customFont = document.createElement('link');
+        customFont.href = "https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap";
+
+        customFont.type = "text/css";
+        customFont.rel = "stylesheet";
+
+        document.head.appendChild(customFont);
+    }());
+</script>
+
+    </body>
+</html>
