@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="en-us" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="阻塞、非阻塞 I/O 与同步、异步 I/O 的区别和联系 问题一 问题一：阻塞、非阻塞 I/O 与同步、异步 I/O 的区别和联系\n在文件系统的工作原理篇中，我曾经介绍了阻塞、非阻塞 I/O 以及同步、异步 I/O 的含义，这里我们再简单回顾一下。\n">
+<title>[Linux]性能调优-I/O篇（答疑）- 1</title>
+
+<link rel='canonical' href='https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-i/o%E7%AF%87%E7%AD%94%E7%96%91-1/'>
+
+<link rel="stylesheet" href="/scss/style.min.6a692fd055deae459f2a9767f57f3855ba80cafd5041317f24f7360f6ca47cdf.css"><meta property='og:title' content="[Linux]性能调优-I/O篇（答疑）- 1">
+<meta property='og:description' content="阻塞、非阻塞 I/O 与同步、异步 I/O 的区别和联系 问题一 问题一：阻塞、非阻塞 I/O 与同步、异步 I/O 的区别和联系\n在文件系统的工作原理篇中，我曾经介绍了阻塞、非阻塞 I/O 以及同步、异步 I/O 的含义，这里我们再简单回顾一下。\n">
+<meta property='og:url' content='https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-i/o%E7%AF%87%E7%AD%94%E7%96%91-1/'>
+<meta property='og:site_name' content='リンボの個人ブログ'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:published_time' content='2026-02-23T16:03:18&#43;08:00'/><meta property='article:modified_time' content='2026-02-23T16:03:18&#43;08:00'/>
+<meta name="twitter:title" content="[Linux]性能调优-I/O篇（答疑）- 1">
+<meta name="twitter:description" content="阻塞、非阻塞 I/O 与同步、异步 I/O 的区别和联系 问题一 问题一：阻塞、非阻塞 I/O 与同步、异步 I/O 的区别和联系\n在文件系统的工作原理篇中，我曾经介绍了阻塞、非阻塞 I/O 以及同步、异步 I/O 的含义，这里我们再简单回顾一下。\n">
+    <link rel="shortcut icon" href="/favicon.ico" />
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        
+            
+            <figure class="site-avatar">
+                <a href="/">
+                
+                    
+                    
+                    
+                        
+                        <img src="/img/avatar_hu_de528bff5d5e9598.png" width="300"
+                            height="300" class="site-logo" loading="lazy" alt="Avatar">
+                    
+                
+                </a>
+                
+                    <span class="emoji">🏖️</span>
+                
+            </figure>
+            
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">リンボの個人ブログ</a></h1>
+            <h2 class="site-description">努力不一定能获得回报，但不努力一定不会有回报。</h2>
+        </div>
+    </header><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-home" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <polyline points="5 12 3 12 12 3 21 12 19 12" />
+  <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7" />
+  <path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6" />
+</svg>
+
+
+
+                
+                <span>主页</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/%E5%85%B3%E4%BA%8E/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/archives/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/search/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-search" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="10" cy="10" r="7" />
+  <line x1="21" y1="21" x2="15" y2="15" />
+</svg>
+
+
+
+                
+                <span>搜索</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav id="TableOfContents">
+  <ol>
+    <li><a href="#问题一">问题一</a></li>
+    <li><a href="#问题二">问题二</a></li>
+    <li><a href="#问题三">问题三</a></li>
+    <li><a href="#问题四">问题四</a></li>
+  </ol>
+</nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            <a href="/categories/linux/" >
+                Linux
+            </a>
+        
+            <a href="/categories/i/o/" >
+                I/O
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-i/o%E7%AF%87%E7%AD%94%E7%96%91-1/">[Linux]性能调优-I/O篇（答疑）- 1</a>
+        </h2>
+    
+        
+    </div>
+
+    
+    
+    
+    
+    <footer class="article-time">
+        
+            <div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                <time class="article-time--published">2026-02-23</time>
+            </div>
+        
+
+        
+    </footer>
+    
+
+    
+</div>
+
+</header>
+
+    <section class="article-content">
+    
+    
+    <h2>阻塞、非阻塞 I/O 与同步、异步 I/O 的区别和联系</h2>
+<h2 id="问题一">问题一
+</h2><p>问题一：阻塞、非阻塞 I/O 与同步、异步 I/O 的区别和联系</p>
+<p><img src="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-i/o%E7%AF%87%E7%AD%94%E7%96%91-1/image.png"
+	width="600"
+	height="700"
+	srcset="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-i/o%E7%AF%87%E7%AD%94%E7%96%91-1/image_hu_9a373256a320f5a.png 480w, /p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-i/o%E7%AF%87%E7%AD%94%E7%96%91-1/image_hu_4fe7fb97e3083ddc.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="85"
+		data-flex-basis="205px"
+	
+></p>
+<p>在<a class="link" href="https://yline-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-i/o%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/"  target="_blank" rel="noopener"
+    >文件系统的工作原理篇</a>中，我曾经介绍了阻塞、非阻塞 I/O 以及同步、异步 I/O 的含义，这里我们再简单回顾一下。</p>
+<p>首先我们来看阻塞和非阻塞 I/O。根据应用程序是否阻塞自身运行，可以把 I/O 分为阻塞 I/O 和非阻塞 I/O。</p>
+<ul>
+<li>
+<p>所谓阻塞 I/O，是指应用程序在执行 I/O 操作后，如果没有获得响应，就会阻塞当前线程，不能执行其他任务。</p>
+</li>
+<li>
+<p>所谓非阻塞 I/O，是指应用程序在执行 I/O 操作后，不会阻塞当前的线程，可以继续执行其他的任务。</p>
+</li>
+</ul>
+<p>再来看同步 I/O 和异步 I/O。根据 I/O 响应的通知方式的不同，可以把文件 I/O 分为同步 I/O 和异步 I/O。</p>
+<ul>
+<li>
+<p>所谓同步 I/O，是指收到 I/O 请求后，系统不会立刻响应应用程序；等到处理完成，系统才会通过系统调用的方式，告诉应用程序 I/O 结果。</p>
+</li>
+<li>
+<p>谓异步 I/O，是指收到 I/O 请求后，系统会先告诉应用程序 I/O 请求已经收到，随后再去异步处理；等处理完成后，系统再通过事件通知的方式，告诉应用程序结果。</p>
+</li>
+</ul>
+<p>你可以看出，阻塞 / 非阻塞和同步 / 异步，其实就是两个不同角度的 I/O 划分方式。它们描述的对象也不同，阻塞 / 非阻塞针对的是 I/O 调用者（即应用程序），而同步 / 异步针对的是 I/O 执行者（即系统）。</p>
+<p>我举个例子来进一步解释下。比如在 Linux I/O 调用中，</p>
+<ul>
+<li>
+<p>系统调用 read 是同步读，所以，在没有得到磁盘数据前，read 不会响应应用程序。</p>
+</li>
+<li>
+<p>而 aio_read 是异步读，系统收到 AIO 读请求后不等处理就返回了，而具体的 read 结果，再通过回调异步通知应用程序。</p>
+</li>
+</ul>
+<p>再如，在网络套接字的接口中，</p>
+<ul>
+<li>
+<p>使用 send() 直接向套接字发送数据时，如果套接字没有设置 O_NONBLOCK 标识，那么 send() 操作就会一直阻塞，当前线程也没法去做其他事情。</p>
+</li>
+<li>
+<p>当然，如果你用了 epoll，系统会告诉你这个套接字的状态，那就可以用非阻塞的方式使用。当这个套接字不可写的时候，你可以去做其他事情，比如读写其他套接字。</p>
+</li>
+</ul>
+<h2 id="问题二">问题二
+</h2><p>问题二：“文件系统”课后思考</p>
+<p><img src="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-i/o%E7%AF%87%E7%AD%94%E7%96%91-1/image-1.png"
+	width="750"
+	height="1170"
+	srcset="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-i/o%E7%AF%87%E7%AD%94%E7%96%91-1/image-1_hu_f973ea6399ca37b7.png 480w, /p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-i/o%E7%AF%87%E7%AD%94%E7%96%91-1/image-1_hu_84457604a0fce48d.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="64"
+		data-flex-basis="153px"
+	
+></p>
+<p>在<a class="link" href="https://yline-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-i/o%E7%AF%87%E5%9F%BA%E7%A1%80%E7%AF%87/"  target="_blank" rel="noopener"
+    >文件系统原理文章</a>的最后，我给你留了一道思考题，那就是执行 find 命令时，会不会导致系统的缓存升高呢？如果会导致，升高的又是哪种类型的缓存呢？</p>
+<p>关于这个问题，白华和 coyang 的答案已经很准确了。通过学习 Linux 文件系统的原理，我们知道，文件名以及文件之间的目录关系，都放在目录项缓存中。而这是一个基于内存的数据结构，会根据需要动态构建。所以，查找文件时，Linux 就会动态构建不在缓存中的目录项结构，导致 dentry 缓存升高。</p>
+<p><img src="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-i/o%E7%AF%87%E7%AD%94%E7%96%91-1/image-2.png"
+	width="600"
+	height="1202"
+	srcset="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-i/o%E7%AF%87%E7%AD%94%E7%96%91-1/image-2_hu_865c4bad0c0cd897.png 480w, /p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-i/o%E7%AF%87%E7%AD%94%E7%96%91-1/image-2_hu_25d7381c1cdefaf5.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="49"
+		data-flex-basis="119px"
+	
+></p>
+<p><img src="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-i/o%E7%AF%87%E7%AD%94%E7%96%91-1/image-3.png"
+	width="600"
+	height="1438"
+	srcset="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-i/o%E7%AF%87%E7%AD%94%E7%96%91-1/image-3_hu_f4fc76bb21bba178.png 480w, /p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-i/o%E7%AF%87%E7%AD%94%E7%96%91-1/image-3_hu_380e161cfa923e7a.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="41"
+		data-flex-basis="100px"
+	
+></p>
+<p>事实上，除了目录项缓存增加，Buffer 的使用也会增加。如果你用 vmstat 观察一下，会发现 Buffer 和 Cache 都在增长：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">$ vmstat <span class="m">1</span>
+</span></span><span class="line"><span class="cl">procs -----------memory---------- ---swap-- -----io---- -system-- ------cpu-----
+</span></span><span class="line"><span class="cl"> r  b   swpd   free   buff  cache   si   so    bi    bo   in   cs us sy id wa st
+</span></span><span class="line"><span class="cl"> <span class="m">0</span>  <span class="m">1</span>      <span class="m">0</span> <span class="m">7563744</span>   <span class="m">6024</span> <span class="m">225944</span>    <span class="m">0</span>    <span class="m">0</span>  <span class="m">3736</span>     <span class="m">0</span>  <span class="m">574</span> <span class="m">3249</span>  <span class="m">3</span>  <span class="m">5</span> <span class="m">89</span>  <span class="m">3</span>  <span class="m">0</span>
+</span></span><span class="line"><span class="cl"> <span class="m">1</span>  <span class="m">0</span>      <span class="m">0</span> <span class="m">7542792</span>  <span class="m">14736</span> <span class="m">236856</span>    <span class="m">0</span>    <span class="m">0</span>  <span class="m">8708</span>     <span class="m">0</span> <span class="m">13494</span> <span class="m">32335</span>  <span class="m">8</span> <span class="m">19</span> <span class="m">66</span>  <span class="m">7</span>  <span class="m">0</span>
+</span></span><span class="line"><span class="cl"> <span class="m">0</span>  <span class="m">1</span>      <span class="m">0</span> <span class="m">7494452</span>  <span class="m">27280</span> <span class="m">272284</span>    <span class="m">0</span>    <span class="m">0</span> <span class="m">12544</span>     <span class="m">0</span> <span class="m">4550</span> <span class="m">17084</span>  <span class="m">5</span> <span class="m">15</span> <span class="m">68</span> <span class="m">13</span>  <span class="m">0</span>
+</span></span><span class="line"><span class="cl"> <span class="m">0</span>  <span class="m">1</span>      <span class="m">0</span> <span class="m">7475084</span>  <span class="m">42380</span> <span class="m">276320</span>    <span class="m">0</span>    <span class="m">0</span> <span class="m">15096</span>     <span class="m">0</span> <span class="m">2541</span> <span class="m">14253</span>  <span class="m">2</span>  <span class="m">6</span> <span class="m">78</span> <span class="m">13</span>  <span class="m">0</span>
+</span></span><span class="line"><span class="cl"> <span class="m">0</span>  <span class="m">1</span>      <span class="m">0</span> <span class="m">7455728</span>  <span class="m">57600</span> <span class="m">280436</span>    <span class="m">0</span>    <span class="m">0</span> <span class="m">15220</span>     <span class="m">0</span> <span class="m">2025</span> <span class="m">14518</span>  <span class="m">2</span>  <span class="m">6</span> <span class="m">70</span> <span class="m">22</span>  <span class="m">0</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>这里，Buffer 的增长是因为，构建目录项缓存所需的元数据（比如文件名称、索引节点等），需要从文件系统中读取。</p>
+<h2 id="问题三">问题三
+</h2><p>问题三：“磁盘 I/O 延迟”课后思考</p>
+<p>在<a class="link" href="https://yline-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-i/o%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-2/"  target="_blank" rel="noopener"
+    >磁盘 I/O 延迟案例</a>的最后，我给你留了一道思考题。</p>
+<p>我们通过 iostat ，确认磁盘 I/O 已经出现了性能瓶颈，还用 pidstat 找出了大量磁盘 I/O 的进程。但是，随后使用 strace 跟踪这个进程，却找不到任何 write 系统调用。这是为什么呢？</p>
+<p><img src="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-i/o%E7%AF%87%E7%AD%94%E7%96%91-1/image-4.png"
+	width="750"
+	height="1551"
+	srcset="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-i/o%E7%AF%87%E7%AD%94%E7%96%91-1/image-4_hu_f28f932112799877.png 480w, /p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-i/o%E7%AF%87%E7%AD%94%E7%96%91-1/image-4_hu_54f695578b2ad4b8.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="48"
+		data-flex-basis="116px"
+	
+></p>
+<p>很多同学的留言都准确回答了这个问题。比如，划时代和 jeff 的留言都指出，在这个场景中，我们需要加 -f 选项，以便跟踪多进程和多线程的系统调用情况。</p>
+<p><img src="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-i/o%E7%AF%87%E7%AD%94%E7%96%91-1/image-5.png"
+	width="600"
+	height="700"
+	srcset="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-i/o%E7%AF%87%E7%AD%94%E7%96%91-1/image-5_hu_e1bcdf91dac80833.png 480w, /p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-i/o%E7%AF%87%E7%AD%94%E7%96%91-1/image-5_hu_2a76d50b88327f.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="85"
+		data-flex-basis="205px"
+	
+></p>
+<p><img src="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-i/o%E7%AF%87%E7%AD%94%E7%96%91-1/image-6.png"
+	width="600"
+	height="700"
+	srcset="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-i/o%E7%AF%87%E7%AD%94%E7%96%91-1/image-6_hu_26d979a29b9d8489.png 480w, /p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-i/o%E7%AF%87%E7%AD%94%E7%96%91-1/image-6_hu_70973395b3388b98.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="85"
+		data-flex-basis="205px"
+	
+></p>
+<p>你看，仅仅是不恰当的选项，都可能会导致性能工具“犯错”，呈现这种看起来不合逻辑的结果。非常高兴看到，这么多同学已经掌握了性能工具使用的核心思路——弄清楚工具本身的原理和问题。</p>
+<h2 id="问题四">问题四
+</h2><p>问题四：“MySQL 案例”课后思考</p>
+<p>在 <a class="link" href="https://yline-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-io%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-3/"  target="_blank" rel="noopener"
+    >MySQL 案例</a>的最后，我给你留了一个思考题。</p>
+<p>为什么 DataService 应用停止后，即使仍没有索引，MySQL 的查询速度还是快了很多，并且磁盘 I/O 瓶颈也消失了呢？</p>
+<p><img src="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-i/o%E7%AF%87%E7%AD%94%E7%96%91-1/image-7.png"
+	width="600"
+	height="700"
+	srcset="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-i/o%E7%AF%87%E7%AD%94%E7%96%91-1/image-7_hu_5a103a9ffaf5fb6b.png 480w, /p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-i/o%E7%AF%87%E7%AD%94%E7%96%91-1/image-7_hu_f9fde3a245b5dd62.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="85"
+		data-flex-basis="205px"
+	
+></p>
+<p>ninuxer 的留言基本解释了这个问题，不过还不够完善。</p>
+<p>事实上，当你看到 DataService 在修改 /proc/sys/vm/drop_caches 时，就应该想到前面学过的 Cache 的作用。</p>
+<p>我们知道，案例应用访问的数据表，基于 MyISAM 引擎，而 MyISAM 的一个特点，就是只在内存中缓存索引，并不缓存数据。所以，在查询语句无法使用索引时，就需要数据表从数据库文件读入内存，然后再进行处理。</p>
+<p>所以，如果你用 vmstat 工具，观察缓存和 I/O 的变化趋势，就会发现下面这样的结果：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">$ vmstat <span class="m">1</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">procs -----------memory---------- ---swap-- -----io---- -system-- ------cpu-----
+</span></span><span class="line"><span class="cl"> r  b   swpd   free   buff  cache   si   so    bi    bo   in   cs us sy id wa st
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 备注： DataService正在运行</span>
+</span></span><span class="line"><span class="cl"><span class="m">0</span>  <span class="m">1</span>      <span class="m">0</span> <span class="m">7293416</span>    <span class="m">132</span> <span class="m">366704</span>    <span class="m">0</span>    <span class="m">0</span> <span class="m">32516</span>    <span class="m">12</span>   <span class="m">36</span>  <span class="m">546</span>  <span class="m">1</span>  <span class="m">3</span> <span class="m">49</span> <span class="m">48</span>  <span class="m">0</span>
+</span></span><span class="line"><span class="cl"> <span class="m">0</span>  <span class="m">1</span>      <span class="m">0</span> <span class="m">7260772</span>    <span class="m">132</span> <span class="m">399256</span>    <span class="m">0</span>    <span class="m">0</span> <span class="m">32640</span>     <span class="m">0</span>   <span class="m">37</span>  <span class="m">463</span>  <span class="m">1</span>  <span class="m">1</span> <span class="m">49</span> <span class="m">48</span>  <span class="m">0</span>
+</span></span><span class="line"><span class="cl"> <span class="m">0</span>  <span class="m">1</span>      <span class="m">0</span> <span class="m">7228088</span>    <span class="m">132</span> <span class="m">432088</span>    <span class="m">0</span>    <span class="m">0</span> <span class="m">32640</span>     <span class="m">0</span>   <span class="m">30</span>  <span class="m">477</span>  <span class="m">0</span>  <span class="m">1</span> <span class="m">49</span> <span class="m">49</span>  <span class="m">0</span>
+</span></span><span class="line"><span class="cl"> <span class="m">0</span>  <span class="m">0</span>      <span class="m">0</span> <span class="m">7306560</span>    <span class="m">132</span> <span class="m">353084</span>    <span class="m">0</span>    <span class="m">0</span> <span class="m">20572</span>     <span class="m">4</span>   <span class="m">90</span>  <span class="m">574</span>  <span class="m">1</span>  <span class="m">4</span> <span class="m">69</span> <span class="m">27</span>  <span class="m">0</span>
+</span></span><span class="line"><span class="cl"> <span class="m">0</span>  <span class="m">2</span>      <span class="m">0</span> <span class="m">7282300</span>    <span class="m">132</span> <span class="m">368536</span>    <span class="m">0</span>    <span class="m">0</span> <span class="m">15468</span>     <span class="m">0</span>   <span class="m">32</span>  <span class="m">304</span>  <span class="m">0</span>  <span class="m">0</span> <span class="m">79</span> <span class="m">20</span>  <span class="m">0</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 备注：DataService从这里开始停止</span>
+</span></span><span class="line"><span class="cl"> <span class="m">0</span>  <span class="m">0</span>      <span class="m">0</span> <span class="m">7241852</span>   <span class="m">1360</span> <span class="m">424164</span>    <span class="m">0</span>    <span class="m">0</span>   <span class="m">864</span>   <span class="m">320</span>  <span class="m">133</span> <span class="m">1266</span>  <span class="m">1</span>  <span class="m">1</span> <span class="m">94</span>  <span class="m">5</span>  <span class="m">0</span>
+</span></span><span class="line"><span class="cl"> <span class="m">0</span>  <span class="m">1</span>      <span class="m">0</span> <span class="m">7228956</span>   <span class="m">1368</span> <span class="m">437400</span>    <span class="m">0</span>    <span class="m">0</span> <span class="m">13328</span>     <span class="m">0</span>   <span class="m">45</span>  <span class="m">366</span>  <span class="m">0</span>  <span class="m">0</span> <span class="m">83</span> <span class="m">17</span>  <span class="m">0</span>
+</span></span><span class="line"><span class="cl"> <span class="m">0</span>  <span class="m">1</span>      <span class="m">0</span> <span class="m">7196320</span>   <span class="m">1368</span> <span class="m">470148</span>    <span class="m">0</span>    <span class="m">0</span> <span class="m">32640</span>     <span class="m">0</span>   <span class="m">33</span>  <span class="m">413</span>  <span class="m">1</span>  <span class="m">1</span> <span class="m">50</span> <span class="m">49</span>  <span class="m">0</span>
+</span></span><span class="line"><span class="cl">...
+</span></span><span class="line"><span class="cl"> <span class="m">0</span>  <span class="m">0</span>      <span class="m">0</span> <span class="m">6747540</span>   <span class="m">1368</span> <span class="m">918576</span>    <span class="m">0</span>    <span class="m">0</span> <span class="m">29056</span>     <span class="m">0</span>   <span class="m">42</span>  <span class="m">568</span>  <span class="m">0</span>  <span class="m">0</span> <span class="m">56</span> <span class="m">44</span>  <span class="m">0</span>
+</span></span><span class="line"><span class="cl"> <span class="m">0</span>  <span class="m">0</span>      <span class="m">0</span> <span class="m">6747540</span>   <span class="m">1368</span> <span class="m">918576</span>    <span class="m">0</span>    <span class="m">0</span>     <span class="m">0</span>     <span class="m">0</span>   <span class="m">40</span>  <span class="m">141</span>  <span class="m">1</span>  <span class="m">0</span> <span class="m">100</span>  <span class="m">0</span>  <span class="m">0</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>在 DataService 停止前，cache 会连续增长三次后再降回去，这正是因为 DataService 每隔 3 秒清理一次页缓存。而 DataService 停止后，cache 就会不停地增长，直到增长为 918576 后，就不再变了。</p>
+<p>这时，磁盘的读（bi）降低到 0，同时，iowait（wa）也降低到 0，这说明，此时的所有数据都已经在系统的缓存中了。我们知道，缓存是内存的一部分，它的访问速度比磁盘快得多，这也就能解释，为什么 MySQL 的查询速度变快了很多。</p>
+<p>从这个案例，你会发现，MySQL 的 MyISAM 引擎，本身并不缓存数据，而要依赖系统缓存来加速磁盘 I/O 的访问。一旦系统中还有其他应用同时运行，MyISAM 引擎就很难充分利用系统缓存。因为系统缓存可能被其他应用程序占用，甚至直接被清理掉。</p>
+<p>所以，一般来说，我并不建议，把应用程序的性能优化完全建立在系统缓存上。还是那句话，最好能在应用程序的内部分配内存，构建完全自主控制的缓存，比如 MySQL 的 InnoDB 引擎，就同时缓存了索引和数据；或者，可以使用第三方的缓存应用，比如 Memcached、Redis 等。</p>
+
+</section>
+
+
+    <footer class="article-footer">
+    
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+<aside class="related-content--wrapper">
+    <h2 class="section-title">相关文章</h2>
+    <div class="related-content">
+        <div class="flex article-list--tile">
+            
+                
+<article class="">
+    <a href="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-i/o%E7%AF%87%E5%A5%97%E8%B7%AF%E7%AF%87-2/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Linux]性能调优-I/O篇（套路篇）- 2</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-i/o%E7%AF%87%E5%A5%97%E8%B7%AF%E7%AF%87/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Linux]性能调优-I/O篇（套路篇）</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-i/o%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-4/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Linux]性能调优-I/O篇（案例篇）- 4</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-io%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-3/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Linux]性能调优-IO篇（案例篇）- 3</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-i/o%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-2/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Linux]性能调优-I/O篇（案例篇）- 2</h2>
+        </div>
+    </a>
+</article>
+
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+            2025 - 
+        
+        2026 リンボの個人ブログ
+    </section>
+    
+    <section class="powerby">
+         <br />
+        
+    </section>
+</footer>
+
+
+    
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+    
+    <div class="pswp__bg"></div>
+
+    
+    <div class="pswp__scroll-wrap">
+
+        
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+
+        
+        <div class="pswp__ui pswp__ui--hidden">
+
+            <div class="pswp__top-bar">
+
+                
+
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+
+                <button class="pswp__button pswp__button--share" title="Share"></button>
+
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+
+                
+                
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                        <div class="pswp__preloader__cut">
+                            <div class="pswp__preloader__donut"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div>
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.js"integrity="sha256-ePwmChbbvXbsO02lbM3HoHbSHTHFAeChekF1xKJdleo="crossorigin="anonymous"
+                defer
+                >
+            </script><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe-ui-default.min.js"integrity="sha256-UKkzOn/w1mBxRmLLGrSeyB4e1xbrp4xylgAWb3M42pU="crossorigin="anonymous"
+                defer
+                >
+            </script><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/default-skin/default-skin.min.css"crossorigin="anonymous"
+            ><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.css"crossorigin="anonymous"
+            >
+
+            </main>
+        </div>
+        <script 
+                src="https://cdn.jsdelivr.net/npm/node-vibrant@3.1.6/dist/vibrant.min.js"integrity="sha256-awcR2jno4kI5X0zL8ex0vi2z&#43;KMkF24hUW8WePSA9HM="crossorigin="anonymous"
+                
+                >
+            </script><script type="text/javascript" src="/ts/main.1e9a3bafd846ced4c345d084b355fb8c7bae75701c338f8a1f8a82c780137826.js" defer></script>
+<script>
+    (function () {
+        const customFont = document.createElement('link');
+        customFont.href = "https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap";
+
+        customFont.type = "text/css";
+        customFont.rel = "stylesheet";
+
+        document.head.appendChild(customFont);
+    }());
+</script>
+
+    </body>
+</html>
