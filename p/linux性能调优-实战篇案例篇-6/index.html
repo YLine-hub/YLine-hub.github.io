@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="en-us" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="上一节，一起学习了常见的动态追踪方法。所谓动态追踪，就是在系统或者应用程序正常运行的时候，通过内核中提供的探针，来动态追踪它们的行为，从而辅助排查出性能问题的瓶颈。\n">
+<title>[Linux]性能调优-实战篇（案例篇）- 6</title>
+
+<link rel='canonical' href='https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%AE%9E%E6%88%98%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-6/'>
+
+<link rel="stylesheet" href="/scss/style.min.6a692fd055deae459f2a9767f57f3855ba80cafd5041317f24f7360f6ca47cdf.css"><meta property='og:title' content="[Linux]性能调优-实战篇（案例篇）- 6">
+<meta property='og:description' content="上一节，一起学习了常见的动态追踪方法。所谓动态追踪，就是在系统或者应用程序正常运行的时候，通过内核中提供的探针，来动态追踪它们的行为，从而辅助排查出性能问题的瓶颈。\n">
+<meta property='og:url' content='https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%AE%9E%E6%88%98%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-6/'>
+<meta property='og:site_name' content='リンボの個人ブログ'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:published_time' content='2026-02-25T14:55:21&#43;08:00'/><meta property='article:modified_time' content='2026-02-25T14:55:21&#43;08:00'/>
+<meta name="twitter:title" content="[Linux]性能调优-实战篇（案例篇）- 6">
+<meta name="twitter:description" content="上一节，一起学习了常见的动态追踪方法。所谓动态追踪，就是在系统或者应用程序正常运行的时候，通过内核中提供的探针，来动态追踪它们的行为，从而辅助排查出性能问题的瓶颈。\n">
+    <link rel="shortcut icon" href="/favicon.ico" />
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        
+            
+            <figure class="site-avatar">
+                <a href="/">
+                
+                    
+                    
+                    
+                        
+                        <img src="/img/avatar_hu_de528bff5d5e9598.png" width="300"
+                            height="300" class="site-logo" loading="lazy" alt="Avatar">
+                    
+                
+                </a>
+                
+                    <span class="emoji">🏖️</span>
+                
+            </figure>
+            
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">リンボの個人ブログ</a></h1>
+            <h2 class="site-description">努力不一定能获得回报，但不努力一定不会有回报。</h2>
+        </div>
+    </header><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-home" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <polyline points="5 12 3 12 12 3 21 12 19 12" />
+  <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7" />
+  <path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6" />
+</svg>
+
+
+
+                
+                <span>主页</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/%E5%85%B3%E4%BA%8E/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/archives/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/search/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-search" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="10" cy="10" r="7" />
+  <line x1="21" y1="21" x2="15" y2="15" />
+</svg>
+
+
+
+                
+                <span>搜索</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav id="TableOfContents">
+  <ol>
+    <li><a href="#perf">perf</a></li>
+    <li><a href="#ebpf-和-bcc">eBPF 和 BCC</a></li>
+  </ol>
+</nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            <a href="/categories/linux/" >
+                Linux
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%AE%9E%E6%88%98%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-6/">[Linux]性能调优-实战篇（案例篇）- 6</a>
+        </h2>
+    
+        
+    </div>
+
+    
+    
+    
+    
+    <footer class="article-time">
+        
+            <div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                <time class="article-time--published">2026-02-25</time>
+            </div>
+        
+
+        
+    </footer>
+    
+
+    
+</div>
+
+</header>
+
+    <section class="article-content">
+    
+    
+    <p>上一节，一起学习了常见的动态追踪方法。所谓动态追踪，就是在系统或者应用程序正常运行的时候，通过内核中提供的探针，来动态追踪它们的行为，从而辅助排查出性能问题的瓶颈。</p>
+<p>使用动态追踪，可以在不修改代码、不重启服务的情况下，动态了解应用程序或者内核的行为，这对排查线上问题、特别是不容易重现的问题尤其有效。</p>
+<p>在 Linux 系统中，常见的动态追踪方法包括 ftrace、perf、eBPF 以及 SystemTap 等。上节课，我们具体学习了 ftrace 的使用方法。今天，我们再来一起看看其他几种方法。</p>
+<h2 id="perf">perf
+</h2><p>perf 已经是我们的老朋友了。在前面的案例中，我们多次用到它，来查找应用程序或者内核中的热点函数，从而定位性能瓶颈。而在内核线程 CPU 高的案例中，我们还使用火焰图动态展示 perf 的事件记录，从而更直观地发现了问题。</p>
+<p>不过，我们前面使用 perf record/top 时，都是先对事件进行采样，然后再根据采样数，评估各个函数的调用频率。实际上，perf 的功能远不止于此。比如，</p>
+<ul>
+<li>
+<p>perf 可以用来分析 CPU cache、CPU 迁移、分支预测、指令周期等各种硬件事件；</p>
+</li>
+<li>
+<p>perf 也可以只对感兴趣的事件进行动态追踪。</p>
+</li>
+</ul>
+<p>接下来，我们还是以内核函数 do_sys_open，以及用户空间函数 readline 为例，看一看 perf 动态追踪的使用方法。</p>
+<p>同 ftrace 一样，你也可以通过 perf list ，查询所有支持的事件：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">$ perf list
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>然后，在 perf 的各个子命令中添加 &ndash;event 选项，设置追踪感兴趣的事件。如果这些预定义的事件不满足实际需要，你还可以使用 perf probe 来动态添加。而且，除了追踪内核事件外，perf 还可以用来跟踪用户空间的函数。</p>
+<p><strong>我们先来看第一个 perf 示例，内核函数 do_sys_open 的例子</strong>。你可以执行 perf probe 命令，添加 do_sys_open 探针：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">$ perf probe --add do_sys_open
+</span></span><span class="line"><span class="cl">Added new event:
+</span></span><span class="line"><span class="cl">  probe:do_sys_open    <span class="o">(</span>on do_sys_open<span class="o">)</span>
+</span></span><span class="line"><span class="cl">You can now use it in all perf tools, such as:
+</span></span><span class="line"><span class="cl">    perf record -e probe:do_sys_open -aR sleep <span class="m">1</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>探针添加成功后，就可以在所有的 perf 子命令中使用。比如，上述输出就是一个 perf record 的示例，执行它就可以对 10s 内的 do_sys_open 进行采样：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">$ perf record -e probe:do_sys_open -aR sleep <span class="m">10</span>
+</span></span><span class="line"><span class="cl"><span class="o">[</span> perf record: Woken up <span class="m">1</span> <span class="nb">times</span> to write data <span class="o">]</span>
+</span></span><span class="line"><span class="cl"><span class="o">[</span> perf record: Captured and wrote 0.148 MB perf.data <span class="o">(</span><span class="m">19</span> samples<span class="o">)</span> <span class="o">]</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>而采样成功后，就可以执行 perf script ，来查看采样结果了：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">$ perf script
+</span></span><span class="line"><span class="cl">            perf <span class="m">12886</span> <span class="o">[</span>000<span class="o">]</span> 89565.879875: probe:do_sys_open: <span class="o">(</span>ffffffffa807b290<span class="o">)</span>
+</span></span><span class="line"><span class="cl">           sleep <span class="m">12889</span> <span class="o">[</span>000<span class="o">]</span> 89565.880362: probe:do_sys_open: <span class="o">(</span>ffffffffa807b290<span class="o">)</span>
+</span></span><span class="line"><span class="cl">           sleep <span class="m">12889</span> <span class="o">[</span>000<span class="o">]</span> 89565.880382: probe:do_sys_open: <span class="o">(</span>ffffffffa807b290<span class="o">)</span>
+</span></span><span class="line"><span class="cl">           sleep <span class="m">12889</span> <span class="o">[</span>000<span class="o">]</span> 89565.880635: probe:do_sys_open: <span class="o">(</span>ffffffffa807b290<span class="o">)</span>
+</span></span><span class="line"><span class="cl">           sleep <span class="m">12889</span> <span class="o">[</span>000<span class="o">]</span> 89565.880669: probe:do_sys_open: <span class="o">(</span>ffffffffa807b290<span class="o">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>输出中，同样也列出了调用 do_sys_open 的任务名称、进程 PID 以及运行的 CPU 等信息。不过，对于 open 系统调用来说，只知道它被调用了并不够，我们需要知道的是，进程到底在打开哪些文件。所以，实际应用中，我们还希望追踪时能显示这些函数的参数。</p>
+<p>对于内核函数来说，你当然可以去查看内核源码，找出它的所有参数。不过还有更简单的方法，那就是直接从调试符号表中查询。执行下面的命令，你就可以知道 do_sys_open 的所有参数：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">$ perf probe -V do_sys_open
+</span></span><span class="line"><span class="cl">Available variables at do_sys_open
+</span></span><span class="line"><span class="cl">        @&lt;do_sys_open+0&gt;
+</span></span><span class="line"><span class="cl">                char*   filename
+</span></span><span class="line"><span class="cl">                int     dfd
+</span></span><span class="line"><span class="cl">                int     flags
+</span></span><span class="line"><span class="cl">                struct open_flags       op
+</span></span><span class="line"><span class="cl">                umode_t mode
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>从这儿可以看出，我们关心的文件路径，就是第一个字符指针参数（也就是字符串），参数名称为 filename。如果这个命令执行失败，就说明调试符号表还没有安装。那么，你可以执行下面的命令，安装调试信息后重试：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># Ubuntu</span>
+</span></span><span class="line"><span class="cl">$ apt-get install linux-image-<span class="sb">`</span>uname -r<span class="sb">`</span>-dbgsym
+</span></span><span class="line"><span class="cl"><span class="c1"># CentOS</span>
+</span></span><span class="line"><span class="cl">$ yum --enablerepo<span class="o">=</span>base-debuginfo install -y kernel-debuginfo-<span class="k">$(</span>uname -r<span class="k">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>找出参数名称和类型后，就可以把参数加到探针中了。不过由于我们已经添加过同名探针，所以在这次添加前，需要先把旧探针给删掉：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span><span class="lnt">9
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 先删除旧的探针</span>
+</span></span><span class="line"><span class="cl">perf probe --del probe:do_sys_open
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 添加带参数的探针</span>
+</span></span><span class="line"><span class="cl">$ perf probe --add <span class="s1">&#39;do_sys_open filename:string&#39;</span>
+</span></span><span class="line"><span class="cl">Added new event:
+</span></span><span class="line"><span class="cl">  probe:do_sys_open    <span class="o">(</span>on do_sys_open with filename:string<span class="o">)</span>
+</span></span><span class="line"><span class="cl">You can now use it in all perf tools, such as:
+</span></span><span class="line"><span class="cl">    perf record -e probe:do_sys_open -aR sleep <span class="m">1</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>新的探针添加后，重新执行 record 和 script 子命令，采样并查看记录：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 重新采样记录</span>
+</span></span><span class="line"><span class="cl">$ perf record -e probe:do_sys_open -aR ls
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 查看结果</span>
+</span></span><span class="line"><span class="cl">$ perf script
+</span></span><span class="line"><span class="cl">            perf <span class="m">13593</span> <span class="o">[</span>000<span class="o">]</span> 91846.053622: probe:do_sys_open: <span class="o">(</span>ffffffffa807b290<span class="o">)</span> <span class="nv">filename_string</span><span class="o">=</span><span class="s2">&#34;/proc/13596/status&#34;</span>
+</span></span><span class="line"><span class="cl">              ls <span class="m">13596</span> <span class="o">[</span>000<span class="o">]</span> 91846.053995: probe:do_sys_open: <span class="o">(</span>ffffffffa807b290<span class="o">)</span> <span class="nv">filename_string</span><span class="o">=</span><span class="s2">&#34;/etc/ld.so.cache&#34;</span>
+</span></span><span class="line"><span class="cl">              ls <span class="m">13596</span> <span class="o">[</span>000<span class="o">]</span> 91846.054011: probe:do_sys_open: <span class="o">(</span>ffffffffa807b290<span class="o">)</span> <span class="nv">filename_string</span><span class="o">=</span><span class="s2">&#34;/lib/x86_64-linux-gnu/libselinux.so.1&#34;</span>
+</span></span><span class="line"><span class="cl">              ls <span class="m">13596</span> <span class="o">[</span>000<span class="o">]</span> 91846.054066: probe:do_sys_open: <span class="o">(</span>ffffffffa807b290<span class="o">)</span> <span class="nv">filename_string</span><span class="o">=</span><span class="s2">&#34;/lib/x86_64-linux-gnu/libc.so.6”
+</span></span></span><span class="line"><span class="cl"><span class="s2">              ...
+</span></span></span><span class="line"><span class="cl"><span class="s2"># 使用完成后不要忘记删除探针
+</span></span></span><span class="line"><span class="cl">$<span class="s2"> perf probe --del probe:do_sys_open
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><p>现在，你就可以看到每次调用 open 时打开的文件了。不过，这个结果是不是看着很熟悉呢？</p>
+<p>其实，在我们使用 strace 跟踪进程的系统调用时，也经常会看到这些动态库的影子。比如，使用 strace 跟踪 ls 时，你可以得到下面的结果：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span><span class="lnt">9
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">$ strace ls
+</span></span><span class="line"><span class="cl">...
+</span></span><span class="line"><span class="cl">access<span class="o">(</span><span class="s2">&#34;/etc/ld.so.nohwcap&#34;</span>, F_OK<span class="o">)</span>      <span class="o">=</span> -1 ENOENT <span class="o">(</span>No such file or directory<span class="o">)</span>
+</span></span><span class="line"><span class="cl">access<span class="o">(</span><span class="s2">&#34;/etc/ld.so.preload&#34;</span>, R_OK<span class="o">)</span>      <span class="o">=</span> -1 ENOENT <span class="o">(</span>No such file or directory<span class="o">)</span>
+</span></span><span class="line"><span class="cl">openat<span class="o">(</span>AT_FDCWD, <span class="s2">&#34;/etc/ld.so.cache&#34;</span>, O_RDONLY<span class="p">|</span>O_CLOEXEC<span class="o">)</span> <span class="o">=</span> <span class="m">3</span>
+</span></span><span class="line"><span class="cl">...
+</span></span><span class="line"><span class="cl">access<span class="o">(</span><span class="s2">&#34;/etc/ld.so.nohwcap&#34;</span>, F_OK<span class="o">)</span>      <span class="o">=</span> -1 ENOENT <span class="o">(</span>No such file or directory<span class="o">)</span>
+</span></span><span class="line"><span class="cl">openat<span class="o">(</span>AT_FDCWD, <span class="s2">&#34;/lib/x86_64-linux-gnu/libselinux.so.1&#34;</span>, O_RDONLY<span class="p">|</span>O_CLOEXEC<span class="o">)</span> <span class="o">=</span> <span class="m">3</span>
+</span></span><span class="line"><span class="cl">...
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>你估计在想，既然 strace 也能得到类似结果，本身又容易操作，为什么我们还要用 perf 呢？</p>
+<p>实际上，很多人只看到了 strace 简单易用的好处，却忽略了它对进程性能带来的影响。从原理上来说，<strong>strace 基于系统调用 ptrace 实现</strong>，这就带来了两个问题。</p>
+<ul>
+<li>
+<p>由于 ptrace 是系统调用，就需要在内核态和用户态切换。当事件数量比较多时，繁忙的切换必然会影响原有服务的性能；</p>
+</li>
+<li>
+<p>ptrace 需要借助 SIGSTOP 信号挂起目标进程。这种信号控制和进程挂起，会影响目标进程的行为。</p>
+</li>
+</ul>
+<p>所以，在性能敏感的应用（比如数据库）中，我并不推荐你用 strace （或者其他基于 ptrace 的性能工具）去排查和调试。</p>
+<p>在 strace 的启发下，结合内核中的 utrace 机制， perf 也提供了一个 trace 子命令，是取代 strace 的首选工具。相对于 ptrace 机制来说，perf trace 基于内核事件，自然要比进程跟踪的性能好很多。</p>
+<p>perf trace 的使用方法如下所示，跟 strace 其实很像：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">$ perf trace ls
+</span></span><span class="line"><span class="cl">         ? <span class="o">(</span>         <span class="o">)</span>: ls/14234  ... <span class="o">[</span>continued<span class="o">]</span>: execve<span class="o">())</span> <span class="o">=</span> <span class="m">0</span>
+</span></span><span class="line"><span class="cl">     0.177 <span class="o">(</span> 0.013 ms<span class="o">)</span>: ls/14234 brk<span class="o">(</span>                                                                  <span class="o">)</span> <span class="o">=</span> 0x555d96be7000
+</span></span><span class="line"><span class="cl">     0.224 <span class="o">(</span> 0.014 ms<span class="o">)</span>: ls/14234 access<span class="o">(</span>filename: 0xad98082                                            <span class="o">)</span> <span class="o">=</span> -1 ENOENT No such file or directory
+</span></span><span class="line"><span class="cl">     0.248 <span class="o">(</span> 0.009 ms<span class="o">)</span>: ls/14234 access<span class="o">(</span>filename: 0xad9add0, mode: R                                   <span class="o">)</span> <span class="o">=</span> -1 ENOENT No such file or directory
+</span></span><span class="line"><span class="cl">     0.267 <span class="o">(</span> 0.012 ms<span class="o">)</span>: ls/14234 openat<span class="o">(</span>dfd: CWD, filename: 0xad98428, flags: CLOEXEC                  <span class="o">)</span> <span class="o">=</span> <span class="m">3</span>
+</span></span><span class="line"><span class="cl">     0.288 <span class="o">(</span> 0.009 ms<span class="o">)</span>: ls/14234 fstat<span class="o">(</span>fd: 3&lt;/usr/lib/locale/C.UTF-8/LC_NAME&gt;, statbuf: 0x7ffd2015f230 <span class="o">)</span> <span class="o">=</span> <span class="m">0</span>
+</span></span><span class="line"><span class="cl">     0.305 <span class="o">(</span> 0.011 ms<span class="o">)</span>: ls/14234 mmap<span class="o">(</span>len: 45560, prot: READ, flags: PRIVATE, fd: <span class="m">3</span>                    <span class="o">)</span> <span class="o">=</span> 0x7efe0af92000
+</span></span><span class="line"><span class="cl">     0.324 Dockerfile  test.sh
+</span></span><span class="line"><span class="cl"><span class="o">(</span> 0.008 ms<span class="o">)</span>: ls/14234 close<span class="o">(</span>fd: 3&lt;/usr/lib/locale/C.UTF-8/LC_NAME&gt;                          <span class="o">)</span> <span class="o">=</span> <span class="m">0</span>
+</span></span><span class="line"><span class="cl">     ...
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>不过，perf trace 还可以进行系统级的系统调用跟踪（即跟踪所有进程），而 strace 只能跟踪特定的进程。</p>
+<p><strong>第二个 perf 的例子是用户空间的库函数</strong>。以 bash 调用的库函数 readline 为例，使用类似的方法，可以跟踪库函数的调用（基于 uprobes）。</p>
+<p>readline 的作用，是从终端中读取用户输入，并把这些数据返回调用方。所以，跟 open 系统调用不同的是，我们更关注 readline 的调用结果。</p>
+<p>我们执行下面的命令，通过 -x 指定 bash 二进制文件的路径，就可以动态跟踪库函数。这其实就是跟踪了所有用户在 bash 中执行的命令：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 为/bin/bash添加readline探针</span>
+</span></span><span class="line"><span class="cl">perf probe -x /bin/bash <span class="s1">&#39;readline%return +0($retval):string&#39;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 采样记录</span>
+</span></span><span class="line"><span class="cl">perf record -e probe_bash:readline__return -aR sleep <span class="m">5</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 查看结果</span>
+</span></span><span class="line"><span class="cl">perf script
+</span></span><span class="line"><span class="cl">    bash <span class="m">13348</span> <span class="o">[</span>000<span class="o">]</span> 93939.142576: probe_bash:readline__return: <span class="o">(</span>5626ffac1610 &lt;- 5626ffa46739<span class="o">)</span> <span class="nv">arg1</span><span class="o">=</span><span class="s2">&#34;ls&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 跟踪完成后删除探针</span>
+</span></span><span class="line"><span class="cl">perf probe --del probe_bash:readline__return
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>当然，如果你不确定探针格式，也可以通过下面的命令，查询所有支持的函数和函数参数：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 查询所有的函数</span>
+</span></span><span class="line"><span class="cl">$ perf probe -x /bin/bash —funcs
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 查询函数的参数</span>
+</span></span><span class="line"><span class="cl">$ perf probe -x /bin/bash -V readline
+</span></span><span class="line"><span class="cl">Available variables at readline
+</span></span><span class="line"><span class="cl">        @&lt;readline+0&gt;
+</span></span><span class="line"><span class="cl">                char*   prompt
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>跟内核函数类似，如果你想要查看普通应用的函数名称和参数，那么在应用程序的二进制文件中，同样需要包含调试信息。</p>
+<h2 id="ebpf-和-bcc">eBPF 和 BCC
+</h2><p>ftrace 和 perf 的功能已经比较丰富了，不过，它们有一个共同的缺陷，那就是不够灵活，没法像 DTrace 那样通过脚本自由扩展。</p>
+<p>而 eBPF 就是 Linux 版的 DTrace，可以通过 C 语言自由扩展（这些扩展通过 LLVM 转换为 BPF 字节码后，加载到内核中执行）。下面这张图，就表示了 eBPF 追踪的工作原理：</p>
+<p><img src="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%AE%9E%E6%88%98%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-6/image.png"
+	width="580"
+	height="325"
+	srcset="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%AE%9E%E6%88%98%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-6/image_hu_27f8f7922cea8c3e.png 480w, /p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%AE%9E%E6%88%98%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-6/image_hu_af774f2156327b3d.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="178"
+		data-flex-basis="428px"
+	
+></p>
+<p>从图中你可以看到，eBPF 的执行需要三步：</p>
+<ul>
+<li>
+<p>从用户跟踪程序生成 BPF 字节码；</p>
+</li>
+<li>
+<p>加载到内核中运行；</p>
+</li>
+<li>
+<p>向用户空间输出结果。</p>
+</li>
+</ul>
+<p>所以，从使用上来说，eBPF 要比我们前面看到的 ftrace 和 perf ，都更加繁杂。</p>
+<p>实际上，在 eBPF 执行过程中，编译、加载还有 maps 等操作，对所有的跟踪程序来说都是通用的。把这些过程通过 Python 抽象起来，也就诞生了 BCC（BPF Compiler Collection）。</p>
+<p>BCC 把 eBPF 中的各种事件源（比如 kprobe、uprobe、tracepoint 等）和数据操作（称为 Maps），也都转换成了 Python 接口（也支持 lua）。这样，使用 BCC 进行动态追踪时，编写简单的脚本就可以了。</p>
+<p>不过要注意，因为需要跟内核中的数据结构交互，真正核心的事件处理逻辑，还是需要我们用 C 语言来编写。</p>
+<p>至于 BCC 的安装方法，在内存模块的<a class="link" href="" >缓存案例</a>中，我就已经介绍过了。如果你还没有安装过，可以执行下面的命令来安装（其他系统的安装请参考这里）：</p>
+
+</section>
+
+
+    <footer class="article-footer">
+    
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+<aside class="related-content--wrapper">
+    <h2 class="section-title">相关文章</h2>
+    <div class="related-content">
+        <div class="flex article-list--tile">
+            
+                
+<article class="">
+    <a href="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%AE%9E%E6%88%98%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-5/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Linux]性能调优-实战篇（案例篇）- 5</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%AE%9E%E6%88%98%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-4/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Linux]性能调优-实战篇（案例篇）- 4</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%AE%9E%E6%88%98%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-3/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Linux]性能调优-实战篇（案例篇）- 3</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%AE%9E%E6%88%98%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-2/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Linux]性能调优-实战篇（案例篇）- 2</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%AE%9E%E6%88%98%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-1/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Linux]性能调优-实战篇（案例篇）- 1</h2>
+        </div>
+    </a>
+</article>
+
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+            2025 - 
+        
+        2026 リンボの個人ブログ
+    </section>
+    
+    <section class="powerby">
+         <br />
+        
+    </section>
+</footer>
+
+
+    
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+    
+    <div class="pswp__bg"></div>
+
+    
+    <div class="pswp__scroll-wrap">
+
+        
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+
+        
+        <div class="pswp__ui pswp__ui--hidden">
+
+            <div class="pswp__top-bar">
+
+                
+
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+
+                <button class="pswp__button pswp__button--share" title="Share"></button>
+
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+
+                
+                
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                        <div class="pswp__preloader__cut">
+                            <div class="pswp__preloader__donut"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div>
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.js"integrity="sha256-ePwmChbbvXbsO02lbM3HoHbSHTHFAeChekF1xKJdleo="crossorigin="anonymous"
+                defer
+                >
+            </script><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe-ui-default.min.js"integrity="sha256-UKkzOn/w1mBxRmLLGrSeyB4e1xbrp4xylgAWb3M42pU="crossorigin="anonymous"
+                defer
+                >
+            </script><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/default-skin/default-skin.min.css"crossorigin="anonymous"
+            ><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.css"crossorigin="anonymous"
+            >
+
+            </main>
+        </div>
+        <script 
+                src="https://cdn.jsdelivr.net/npm/node-vibrant@3.1.6/dist/vibrant.min.js"integrity="sha256-awcR2jno4kI5X0zL8ex0vi2z&#43;KMkF24hUW8WePSA9HM="crossorigin="anonymous"
+                
+                >
+            </script><script type="text/javascript" src="/ts/main.1e9a3bafd846ced4c345d084b355fb8c7bae75701c338f8a1f8a82c780137826.js" defer></script>
+<script>
+    (function () {
+        const customFont = document.createElement('link');
+        customFont.href = "https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap";
+
+        customFont.type = "text/css";
+        customFont.rel = "stylesheet";
+
+        document.head.appendChild(customFont);
+    }());
+</script>
+
+    </body>
+</html>
