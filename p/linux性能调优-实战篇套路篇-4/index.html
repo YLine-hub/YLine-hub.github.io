@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="en-us" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="Linux 性能工具速查 上一节，一起梳理了常见的性能优化思路，先简单回顾一下。\n我们可以从系统和应用程序两个角度，来进行性能优化。\n从系统的角度来说，主要是对 CPU、内存、网络、磁盘 I/O 以及内核软件资源等进行优化。\n">
+<title>[Linux]性能调优-实战篇（套路篇）- 4</title>
+
+<link rel='canonical' href='https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%AE%9E%E6%88%98%E7%AF%87%E5%A5%97%E8%B7%AF%E7%AF%87-4/'>
+
+<link rel="stylesheet" href="/scss/style.min.6a692fd055deae459f2a9767f57f3855ba80cafd5041317f24f7360f6ca47cdf.css"><meta property='og:title' content="[Linux]性能调优-实战篇（套路篇）- 4">
+<meta property='og:description' content="Linux 性能工具速查 上一节，一起梳理了常见的性能优化思路，先简单回顾一下。\n我们可以从系统和应用程序两个角度，来进行性能优化。\n从系统的角度来说，主要是对 CPU、内存、网络、磁盘 I/O 以及内核软件资源等进行优化。\n">
+<meta property='og:url' content='https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%AE%9E%E6%88%98%E7%AF%87%E5%A5%97%E8%B7%AF%E7%AF%87-4/'>
+<meta property='og:site_name' content='リンボの個人ブログ'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:published_time' content='2026-03-05T09:33:55&#43;08:00'/><meta property='article:modified_time' content='2026-03-05T09:33:55&#43;08:00'/>
+<meta name="twitter:title" content="[Linux]性能调优-实战篇（套路篇）- 4">
+<meta name="twitter:description" content="Linux 性能工具速查 上一节，一起梳理了常见的性能优化思路，先简单回顾一下。\n我们可以从系统和应用程序两个角度，来进行性能优化。\n从系统的角度来说，主要是对 CPU、内存、网络、磁盘 I/O 以及内核软件资源等进行优化。\n">
+    <link rel="shortcut icon" href="/favicon.ico" />
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        
+            
+            <figure class="site-avatar">
+                <a href="/">
+                
+                    
+                    
+                    
+                        
+                        <img src="/img/avatar_hu_de528bff5d5e9598.png" width="300"
+                            height="300" class="site-logo" loading="lazy" alt="Avatar">
+                    
+                
+                </a>
+                
+                    <span class="emoji">🏖️</span>
+                
+            </figure>
+            
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">リンボの個人ブログ</a></h1>
+            <h2 class="site-description">努力不一定能获得回报，但不努力一定不会有回报。</h2>
+        </div>
+    </header><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-home" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <polyline points="5 12 3 12 12 3 21 12 19 12" />
+  <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7" />
+  <path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6" />
+</svg>
+
+
+
+                
+                <span>主页</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/%E5%85%B3%E4%BA%8E/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/archives/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/search/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-search" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="10" cy="10" r="7" />
+  <line x1="21" y1="21" x2="15" y2="15" />
+</svg>
+
+
+
+                
+                <span>搜索</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav id="TableOfContents">
+  <ol>
+    <li><a href="#性能工具速查">性能工具速查</a></li>
+    <li><a href="#cpu-性能工具">CPU 性能工具</a></li>
+    <li><a href="#内存性能工具">内存性能工具</a></li>
+    <li><a href="#磁盘-io-性能工具">磁盘 I/O 性能工具</a></li>
+    <li><a href="#网络性能工具">网络性能工具</a></li>
+    <li><a href="#基准测试工具">基准测试工具</a></li>
+    <li><a href="#小结">小结</a></li>
+  </ol>
+</nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            <a href="/categories/linux/" >
+                Linux
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%AE%9E%E6%88%98%E7%AF%87%E5%A5%97%E8%B7%AF%E7%AF%87-4/">[Linux]性能调优-实战篇（套路篇）- 4</a>
+        </h2>
+    
+        
+    </div>
+
+    
+    
+    
+    
+    <footer class="article-time">
+        
+            <div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                <time class="article-time--published">2026-03-05</time>
+            </div>
+        
+
+        
+    </footer>
+    
+
+    
+</div>
+
+</header>
+
+    <section class="article-content">
+    
+    
+    <h2>Linux 性能工具速查</h2>
+<p>上一节，一起梳理了常见的性能优化思路，先简单回顾一下。</p>
+<p>我们可以从系统和应用程序两个角度，来进行性能优化。</p>
+<ul>
+<li>
+<p>从系统的角度来说，主要是对 CPU、内存、网络、磁盘 I/O 以及内核软件资源等进行优化。</p>
+</li>
+<li>
+<p>而从应用程序的角度来说，主要是简化代码、降低 CPU 使用、减少网络请求和磁盘 I/O，并借助缓存、异步处理、多进程和多线程等，提高应用程序的吞吐能力。</p>
+</li>
+</ul>
+<p>性能优化最好逐步完善，动态进行。不要追求一步到位，而要首先保证能满足当前的性能要求。性能优化通常意味着复杂度的提升，也意味着可维护性的降低。</p>
+<p>如果你发现单机的性能调优带来过高复杂度，一定不要沉迷于单机的极限性能，而要从软件架构的角度，以水平扩展的方法来提升性能。</p>
+<p>工欲善其事，必先利其器。我们知道，在性能分析和优化时，借助合适的性能工具，可以让整个过程事半功倍。你还记得有哪些常用的性能工具吗？今天，我就带你一起梳理一下常用的性能工具，以便你在需要时，可以迅速找到自己想要的。</p>
+<h2 id="性能工具速查">性能工具速查
+</h2><p>在梳理性能工具之前，首先给你提一个问题，那就是，在什么情况下，我们才需要去查找、挑选性能工具呢？你可以先自己想一下，再继续下面的内容。</p>
+<p>其实在我看来，只有当你想了解某个性能指标，却不知道该怎么办的时候，才会想到，“要是有一个性能工具速查表就好了”这个问题。如果已知一个性能工具可用，我们更多会去查看这个工具的手册，找出它的功能、用法以及注意事项。</p>
+<p>关于工具手册的查看，man 应该是我们最熟悉的方法，我在专栏中多次介绍过。实际上，除了 man 之外，还有另外一个查询命令手册的方法，也就是 info。</p>
+<p>info 可以理解为 man 的详细版本，提供了诸如节点跳转等更强大的功能。相对来说，man 的输出比较简洁，而 info 的输出更详细。所以，我们通常使用 man 来查询工具的使用方法，只有在 man 的输出不太好理解时，才会再去参考 info 文档。</p>
+<p>当然，我说过了，要查询手册，前提一定是已知哪个工具可用。如果你还不知道要用哪个工具，就要根据想了解的指标，去查找有哪些工具可用。这其中：</p>
+<ul>
+<li>
+<p>有些工具不需要额外安装，就可以直接使用，比如内核的 /proc 文件系统；</p>
+</li>
+<li>
+<p>而有些工具，则需要安装额外的软件包，比如 sar、pidstat、iostat 等。</p>
+</li>
+</ul>
+<p><strong>所以，在选择性能工具时，除了要考虑性能指标这个目的外，还要结合待分析的环境来综合考虑</strong>。比如，实际环境是否允许安装软件包，是否需要新的内核版本等。</p>
+<p>明白了工具选择的基本原则后，我们来看 Linux 的性能工具。首先还是要推荐下面这张图，也就是 Brendan Gregg 整理的性能工具谱图。我在专栏中多次提到过，你肯定也已经参考过。</p>
+<p><img src="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%AE%9E%E6%88%98%E7%AF%87%E5%A5%97%E8%B7%AF%E7%AF%87-4/image.png"
+	width="3000"
+	height="2100"
+	srcset="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%AE%9E%E6%88%98%E7%AF%87%E5%A5%97%E8%B7%AF%E7%AF%87-4/image_hu_8c90828104eac5e6.png 480w, /p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%AE%9E%E6%88%98%E7%AF%87%E5%A5%97%E8%B7%AF%E7%AF%87-4/image_hu_1d206334064b6a60.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="142"
+		data-flex-basis="342px"
+	
+></p>
+<p>（图片来自 <a class="link" href="https://www.brendangregg.com/linuxperf.html"  target="_blank" rel="noopener"
+    >brendangregg.com</a>）</p>
+<p>这张图从 Linux 内核的各个子系统出发，汇总了对各个子系统进行性能分析时，你可以选择的工具。不过，虽然这个图是性能分析最好的参考资料之一，它其实还不够具体。</p>
+<p>比如，当你需要查看某个性能指标时，这张图里对应的子系统部分，可能有多个性能工具可供选择。但实际上，并非所有这些工具都适用，具体要用哪个，还需要你去查找每个工具的手册，对比分析做出选择。</p>
+<p>那么，有没有更好的方法来理解这些工具呢？<strong>我的建议，还是从性能指标出发，根据性能指标的不同，将性能工具划分为不同类型</strong>。比如，最常见的就是可以根据 CPU、内存、磁盘 I/O 以及网络的各类性能指标，将这些工具进行分类。</p>
+<p>接下来，我就从 CPU、内存、磁盘 I/O 以及网络等几个角度，梳理这些常见的 Linux 性能工具，特别是从性能指标的角度出发，理清楚到底有哪些工具，可以用来监测特定的性能指标。这些工具，实际上贯穿在我们专栏各模块的各个案例中。为了方便你查看，我将它们都整理成了表格，并增加了每个工具的使用场景。</p>
+<h2 id="cpu-性能工具">CPU 性能工具
+</h2><p>首先，从 CPU 的角度来说，主要的性能指标就是 CPU 的使用率、上下文切换以及 CPU Cache 的命中率等。下面这张图就列出了常见的 CPU 性能指标。</p>
+<p><img src="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%AE%9E%E6%88%98%E7%AF%87%E5%A5%97%E8%B7%AF%E7%AF%87-4/image-1.png"
+	width="1241"
+	height="1212"
+	srcset="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%AE%9E%E6%88%98%E7%AF%87%E5%A5%97%E8%B7%AF%E7%AF%87-4/image-1_hu_d2a757480b01ef2a.png 480w, /p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%AE%9E%E6%88%98%E7%AF%87%E5%A5%97%E8%B7%AF%E7%AF%87-4/image-1_hu_1aebb474a5b4de7c.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="102"
+		data-flex-basis="245px"
+	
+></p>
+<p>从这些指标出发，再把 CPU 使用率，划分为系统和进程两个维度，我们就可以得到，下面这个 CPU 性能工具速查表。注意，因为每种性能指标都可能对应多种工具，我在每个指标的说明中，都帮你总结了这些工具的特点和注意事项。这些也是你需要特别关注的地方。</p>
+<p><img src="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%AE%9E%E6%88%98%E7%AF%87%E5%A5%97%E8%B7%AF%E7%AF%87-4/image-2.png"
+	width="1707"
+	height="2563"
+	srcset="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%AE%9E%E6%88%98%E7%AF%87%E5%A5%97%E8%B7%AF%E7%AF%87-4/image-2_hu_e526a26da194893e.png 480w, /p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%AE%9E%E6%88%98%E7%AF%87%E5%A5%97%E8%B7%AF%E7%AF%87-4/image-2_hu_542a202b19f3f768.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="66"
+		data-flex-basis="159px"
+	
+></p>
+<h2 id="内存性能工具">内存性能工具
+</h2><p>接着我们来看内存方面。从内存的角度来说，主要的性能指标，就是系统内存的分配和使用、进程内存的分配和使用以及 SWAP 的用量。下面这张图列出了常见的内存性能指标。</p>
+<p><img src="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%AE%9E%E6%88%98%E7%AF%87%E5%A5%97%E8%B7%AF%E7%AF%87-4/image-3.png"
+	width="1581"
+	height="1760"
+	srcset="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%AE%9E%E6%88%98%E7%AF%87%E5%A5%97%E8%B7%AF%E7%AF%87-4/image-3_hu_294a93dff0ef7b33.png 480w, /p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%AE%9E%E6%88%98%E7%AF%87%E5%A5%97%E8%B7%AF%E7%AF%87-4/image-3_hu_504eb2e9f2b715b2.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="89"
+		data-flex-basis="215px"
+	
+></p>
+<p>从这些指标出发，我们就可以得到如下表所示的内存性能工具速查表。同 CPU 性能工具一样，这儿我也帮你梳理了，常见工具的特点和注意事项。</p>
+<p><img src="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%AE%9E%E6%88%98%E7%AF%87%E5%A5%97%E8%B7%AF%E7%AF%87-4/image-4.png"
+	width="1653"
+	height="2198"
+	srcset="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%AE%9E%E6%88%98%E7%AF%87%E5%A5%97%E8%B7%AF%E7%AF%87-4/image-4_hu_1150e6bdecbe65eb.png 480w, /p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%AE%9E%E6%88%98%E7%AF%87%E5%A5%97%E8%B7%AF%E7%AF%87-4/image-4_hu_f9528205b4f92860.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="75"
+		data-flex-basis="180px"
+	
+></p>
+<p>注：最后一行 pcstat 的源码链接为 <a class="link" href="https://github.com/tobert/pcstat"  target="_blank" rel="noopener"
+    >https://github.com/tobert/pcstat</a></p>
+<h2 id="磁盘-io-性能工具">磁盘 I/O 性能工具
+</h2><p>接下来，从文件系统和磁盘 I/O 的角度来说，主要性能指标，就是文件系统的使用、缓存和缓冲区的使用，以及磁盘 I/O 的使用率、吞吐量和延迟等。下面这张图列出了常见的 I/O 性能指标。</p>
+<p><img src="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%AE%9E%E6%88%98%E7%AF%87%E5%A5%97%E8%B7%AF%E7%AF%87-4/image-5.png"
+	width="2631"
+	height="808"
+	srcset="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%AE%9E%E6%88%98%E7%AF%87%E5%A5%97%E8%B7%AF%E7%AF%87-4/image-5_hu_6e882131827bed1d.png 480w, /p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%AE%9E%E6%88%98%E7%AF%87%E5%A5%97%E8%B7%AF%E7%AF%87-4/image-5_hu_ca1c72abb15d5b93.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="325"
+		data-flex-basis="781px"
+	
+></p>
+<p>从这些指标出发，我们就可以得到，下面这个文件系统和磁盘 I/O 性能工具速查表。同 CPU 和内存性能工具一样，我也梳理出了这些工具的特点和注意事项。</p>
+<p><img src="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%AE%9E%E6%88%98%E7%AF%87%E5%A5%97%E8%B7%AF%E7%AF%87-4/image-6.png"
+	width="1714"
+	height="2424"
+	srcset="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%AE%9E%E6%88%98%E7%AF%87%E5%A5%97%E8%B7%AF%E7%AF%87-4/image-6_hu_5efd5bc63ad58e08.png 480w, /p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%AE%9E%E6%88%98%E7%AF%87%E5%A5%97%E8%B7%AF%E7%AF%87-4/image-6_hu_7e10fbf06d2b0c50.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="70"
+		data-flex-basis="169px"
+	
+></p>
+<h2 id="网络性能工具">网络性能工具
+</h2><p>最后，从网络的角度来说，主要性能指标就是吞吐量、响应时间、连接数、丢包数等。根据 TCP/IP 网络协议栈的原理，我们可以把这些性能指标，进一步细化为每层协议的具体指标。这里我同样用一张图，分别从链路层、网络层、传输层和应用层，列出了各层的主要指标。</p>
+<p><img src="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%AE%9E%E6%88%98%E7%AF%87%E5%A5%97%E8%B7%AF%E7%AF%87-4/image-7.png"
+	width="1983"
+	height="1104"
+	srcset="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%AE%9E%E6%88%98%E7%AF%87%E5%A5%97%E8%B7%AF%E7%AF%87-4/image-7_hu_b8d3066ed6e128.png 480w, /p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%AE%9E%E6%88%98%E7%AF%87%E5%A5%97%E8%B7%AF%E7%AF%87-4/image-7_hu_3f6ec77cf99d5b4.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="179"
+		data-flex-basis="431px"
+	
+></p>
+<p>从这些指标出发，我们就可以得到下面的网络性能工具速查表。同样的，我也帮你梳理了各种工具的特点和注意事项。</p>
+<p><img src="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%AE%9E%E6%88%98%E7%AF%87%E5%A5%97%E8%B7%AF%E7%AF%87-4/image-8.png"
+	width="1709"
+	height="2462"
+	srcset="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%AE%9E%E6%88%98%E7%AF%87%E5%A5%97%E8%B7%AF%E7%AF%87-4/image-8_hu_46abdf7372462bfe.png 480w, /p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%AE%9E%E6%88%98%E7%AF%87%E5%A5%97%E8%B7%AF%E7%AF%87-4/image-8_hu_f78c69cca7160b9b.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="69"
+		data-flex-basis="166px"
+	
+></p>
+<h2 id="基准测试工具">基准测试工具
+</h2><p>除了性能分析外，很多时候，我们还需要对系统性能进行基准测试。比如，</p>
+<ul>
+<li>
+<p>在文件系统和磁盘 I/O 模块中，我们使用 fio 工具，测试了磁盘 I/O 的性能。</p>
+</li>
+<li>
+<p>在网络模块中，我们使用 iperf、pktgen 等，测试了网络的性能。</p>
+</li>
+<li>
+<p>而在很多基于 Nginx 的案例中，我们则使用 ab、wrk 等，测试 Nginx 应用的性能。</p>
+</li>
+</ul>
+<p>除了专栏里介绍过的这些工具外，对于 Linux 的各个子系统来说，还有很多其他的基准测试工具可能会用到。下面这张图，是 Brendan Gregg 整理的 Linux 基准测试工具图谱，你可以保存下来，在需要时参考。</p>
+<p><img src="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%AE%9E%E6%88%98%E7%AF%87%E5%A5%97%E8%B7%AF%E7%AF%87-4/image-9.png"
+	width="1500"
+	height="1050"
+	srcset="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%AE%9E%E6%88%98%E7%AF%87%E5%A5%97%E8%B7%AF%E7%AF%87-4/image-9_hu_4ade7b314fed61a6.png 480w, /p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%AE%9E%E6%88%98%E7%AF%87%E5%A5%97%E8%B7%AF%E7%AF%87-4/image-9_hu_3e8f10f0c260051d.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="142"
+		data-flex-basis="342px"
+	
+></p>
+<p>（图片来自 <a class="link" href="https://www.brendangregg.com/linuxperf.html"  target="_blank" rel="noopener"
+    >brendangregg.com</a>）</p>
+<h2 id="小结">小结
+</h2><p>今天，我们一起梳理了常见的性能工具，并从 CPU、内存、文件系统和磁盘 I/O、网络以及基准测试等不同的角度，汇总了各类性能指标所对应的性能工具速查表。</p>
+<p>当分析性能问题时，大的来说，主要有这么两个步骤：</p>
+<ul>
+<li>
+<p>第一步，从性能瓶颈出发，根据系统和应用程序的运行原理，确认待分析的性能指标。</p>
+</li>
+<li>
+<p>第二步，根据这些图表，选出最合适的性能工具，然后了解并使用工具，从而更快观测到需要的性能数据。</p>
+</li>
+</ul>
+<p>虽然 Linux 的性能指标和性能工具都比较多，但熟悉了各指标含义后，你自然就会发现这些工具同性能指标间的关联。顺着这个思路往下走，掌握这些工具的选用其实并不难。</p>
+<p>当然，正如咱们专栏一直强调的，不要把性能工具当成性能分析和优化的全部。</p>
+<ul>
+<li>
+<p>一方面，性能分析和优化的核心，是对系统和应用程序运行原理的掌握，而性能工具只是辅助你更快完成这个过程的帮手。</p>
+</li>
+<li>
+<p>另一方面，完善的监控系统，可以提供绝大部分性能分析所需的基准数据。从这些数据中，你很可能就能大致定位出性能瓶颈，也就不用再去手动执行各类工具了。</p>
+</li>
+</ul>
+
+</section>
+
+
+    <footer class="article-footer">
+    
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+<aside class="related-content--wrapper">
+    <h2 class="section-title">相关文章</h2>
+    <div class="related-content">
+        <div class="flex article-list--tile">
+            
+                
+<article class="">
+    <a href="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%AE%9E%E6%88%98%E7%AF%87%E7%AD%94%E7%96%91/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Linux]性能调优-实战篇（答疑）</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%AE%9E%E6%88%98%E7%AF%87%E5%A5%97%E8%B7%AF%E7%AF%87-3/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Linux]性能调优-实战篇（套路篇）- 3</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%AE%9E%E6%88%98%E7%AF%87%E5%A5%97%E8%B7%AF%E7%AF%87-2/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Linux]性能调优-实战篇（套路篇）- 2</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%AE%9E%E6%88%98%E7%AF%87%E5%A5%97%E8%B7%AF%E7%AF%87-1/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Linux]性能调优-实战篇（套路篇）- 1</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%AE%9E%E6%88%98%E7%AF%87%E5%A5%97%E8%B7%AF%E7%AF%87/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Linux]性能调优-实战篇（套路篇）</h2>
+        </div>
+    </a>
+</article>
+
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+            2025 - 
+        
+        2026 リンボの個人ブログ
+    </section>
+    
+    <section class="powerby">
+         <br />
+        
+    </section>
+</footer>
+
+
+    
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+    
+    <div class="pswp__bg"></div>
+
+    
+    <div class="pswp__scroll-wrap">
+
+        
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+
+        
+        <div class="pswp__ui pswp__ui--hidden">
+
+            <div class="pswp__top-bar">
+
+                
+
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+
+                <button class="pswp__button pswp__button--share" title="Share"></button>
+
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+
+                
+                
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                        <div class="pswp__preloader__cut">
+                            <div class="pswp__preloader__donut"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div>
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.js"integrity="sha256-ePwmChbbvXbsO02lbM3HoHbSHTHFAeChekF1xKJdleo="crossorigin="anonymous"
+                defer
+                >
+            </script><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe-ui-default.min.js"integrity="sha256-UKkzOn/w1mBxRmLLGrSeyB4e1xbrp4xylgAWb3M42pU="crossorigin="anonymous"
+                defer
+                >
+            </script><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/default-skin/default-skin.min.css"crossorigin="anonymous"
+            ><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.css"crossorigin="anonymous"
+            >
+
+            </main>
+        </div>
+        <script 
+                src="https://cdn.jsdelivr.net/npm/node-vibrant@3.1.6/dist/vibrant.min.js"integrity="sha256-awcR2jno4kI5X0zL8ex0vi2z&#43;KMkF24hUW8WePSA9HM="crossorigin="anonymous"
+                
+                >
+            </script><script type="text/javascript" src="/ts/main.1e9a3bafd846ced4c345d084b355fb8c7bae75701c338f8a1f8a82c780137826.js" defer></script>
+<script>
+    (function () {
+        const customFont = document.createElement('link');
+        customFont.href = "https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap";
+
+        customFont.type = "text/css";
+        customFont.rel = "stylesheet";
+
+        document.head.appendChild(customFont);
+    }());
+</script>
+
+    </body>
+</html>

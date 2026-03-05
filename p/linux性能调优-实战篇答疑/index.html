@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="en-us" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="容器冷启动如何性能分析？ 今天是性能优化答疑的第六期。照例，老师从综合案例模块的留言中，摘出了一些典型问题，作为今天的答疑内容，集中回复。为了便于你学习理解，它们并不是严格按照文章顺序排列的。每个问题，我都附上了留言区提问的截屏。如果你需要回顾内容原文，可以扫描每个问题右下方的二维码查看。\n">
+<title>[Linux]性能调优-实战篇（答疑）</title>
+
+<link rel='canonical' href='https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%AE%9E%E6%88%98%E7%AF%87%E7%AD%94%E7%96%91/'>
+
+<link rel="stylesheet" href="/scss/style.min.6a692fd055deae459f2a9767f57f3855ba80cafd5041317f24f7360f6ca47cdf.css"><meta property='og:title' content="[Linux]性能调优-实战篇（答疑）">
+<meta property='og:description' content="容器冷启动如何性能分析？ 今天是性能优化答疑的第六期。照例，老师从综合案例模块的留言中，摘出了一些典型问题，作为今天的答疑内容，集中回复。为了便于你学习理解，它们并不是严格按照文章顺序排列的。每个问题，我都附上了留言区提问的截屏。如果你需要回顾内容原文，可以扫描每个问题右下方的二维码查看。\n">
+<meta property='og:url' content='https://YLine-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%AE%9E%E6%88%98%E7%AF%87%E7%AD%94%E7%96%91/'>
+<meta property='og:site_name' content='リンボの個人ブログ'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:published_time' content='2026-03-05T09:41:58&#43;08:00'/><meta property='article:modified_time' content='2026-03-05T09:41:58&#43;08:00'/>
+<meta name="twitter:title" content="[Linux]性能调优-实战篇（答疑）">
+<meta name="twitter:description" content="容器冷启动如何性能分析？ 今天是性能优化答疑的第六期。照例，老师从综合案例模块的留言中，摘出了一些典型问题，作为今天的答疑内容，集中回复。为了便于你学习理解，它们并不是严格按照文章顺序排列的。每个问题，我都附上了留言区提问的截屏。如果你需要回顾内容原文，可以扫描每个问题右下方的二维码查看。\n">
+    <link rel="shortcut icon" href="/favicon.ico" />
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        
+            
+            <figure class="site-avatar">
+                <a href="/">
+                
+                    
+                    
+                    
+                        
+                        <img src="/img/avatar_hu_de528bff5d5e9598.png" width="300"
+                            height="300" class="site-logo" loading="lazy" alt="Avatar">
+                    
+                
+                </a>
+                
+                    <span class="emoji">🏖️</span>
+                
+            </figure>
+            
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">リンボの個人ブログ</a></h1>
+            <h2 class="site-description">努力不一定能获得回报，但不努力一定不会有回报。</h2>
+        </div>
+    </header><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-home" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <polyline points="5 12 3 12 12 3 21 12 19 12" />
+  <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7" />
+  <path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6" />
+</svg>
+
+
+
+                
+                <span>主页</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/%E5%85%B3%E4%BA%8E/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/archives/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/search/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-search" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="10" cy="10" r="7" />
+  <line x1="21" y1="21" x2="15" y2="15" />
+</svg>
+
+
+
+                
+                <span>搜索</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav id="TableOfContents">
+  <ol>
+    <li><a href="#问题-1容器冷启动性能分析">问题 1：容器冷启动性能分析</a></li>
+    <li><a href="#问题-2cpu-火焰图和内存火焰图有什么不同">问题 2：CPU 火焰图和内存火焰图有什么不同？</a></li>
+    <li><a href="#问题-3perf-probe-失败怎么办">问题 3：perf probe 失败怎么办？</a></li>
+    <li><a href="#问题-4red-法监控微服务应用">问题 4：RED 法监控微服务应用</a></li>
+  </ol>
+</nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            <a href="/categories/linux/" >
+                Linux
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%AE%9E%E6%88%98%E7%AF%87%E7%AD%94%E7%96%91/">[Linux]性能调优-实战篇（答疑）</a>
+        </h2>
+    
+        
+    </div>
+
+    
+    
+    
+    
+    <footer class="article-time">
+        
+            <div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                <time class="article-time--published">2026-03-05</time>
+            </div>
+        
+
+        
+    </footer>
+    
+
+    
+</div>
+
+</header>
+
+    <section class="article-content">
+    
+    
+    <h2>容器冷启动如何性能分析？</h2>
+<p>今天是性能优化答疑的第六期。照例，老师从综合案例模块的留言中，摘出了一些典型问题，作为今天的答疑内容，集中回复。为了便于你学习理解，它们并不是严格按照文章顺序排列的。每个问题，我都附上了留言区提问的截屏。如果你需要回顾内容原文，可以扫描每个问题右下方的二维码查看。</p>
+<h2 id="问题-1容器冷启动性能分析">问题 1：容器冷启动性能分析
+</h2><p><img src="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%AE%9E%E6%88%98%E7%AF%87%E7%AD%94%E7%96%91/image.png"
+	width="1125"
+	height="1342"
+	srcset="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%AE%9E%E6%88%98%E7%AF%87%E7%AD%94%E7%96%91/image_hu_25859a72d8c98e39.png 480w, /p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%AE%9E%E6%88%98%E7%AF%87%E7%AD%94%E7%96%91/image_hu_684ad2e29a124280.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="83"
+		data-flex-basis="201px"
+	
+></p>
+<p>在<a class="link" href="https://yline-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%AE%9E%E6%88%98%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-1/"  target="_blank" rel="noopener"
+    >为什么应用容器化后，启动慢了很多</a>中，我们一起分析了容器化所导致的应用程序启动缓慢的问题。简单回顾一下当时的案例，Docker 通过 Cgroups 给容器设置了内存限制，但是容器并未意识到 ，所以还是分配了过多内存，导致被系统 OOM 杀死。</p>
+<p>这个案例的根源实际上比较简单，Tony 同学就此提了一个更深入的问题。</p>
+<p>我们知道，容器为应用程序的管理带来了巨大的便捷，诸如 Serverless（只关注应用的运行，而无需关注服务器）、FaaS（Function as a Service）等新型的软件架构，也都基于容器技术来构建。不过，虽然容器启动已经很快了，但在启动新容器，也就是冷启动的时候，启动时间相对于应用程序的性能要求来说，还是过长了。</p>
+<p>那么，应该怎么来分析和优化冷启动的性能呢？</p>
+<p>这个问题最核心的一点，其实就是要弄清楚，启动时间到底都花在哪儿了。一般来说，一个 Serverless 服务的启动，包括：</p>
+<ul>
+<li>
+<p>事件触发（比如收到新的 HTTP 调用请求）；</p>
+</li>
+<li>
+<p>资源调度；</p>
+</li>
+<li>
+<p>镜像拉取；</p>
+</li>
+<li>
+<p>网络配置；</p>
+</li>
+<li>
+<p>启动应用等几个过程。</p>
+</li>
+</ul>
+<p>这几个过程所消耗的时间，都可以通过链路跟踪的方式来监控，进而就可以定位出耗时最多的一个或者多个流程。</p>
+<p>紧接着，针对耗时最多的流程，我们可以通过应用程序监控或者动态追踪的方法，定位出耗时最多的子模块，这样也就找出了要优化的瓶颈点。</p>
+<p>比如，镜像拉取流程，可以通过缓存热点镜像来减少镜像拉取时间；网络配置流程，可以通过网络资源预分配进行加速；而资源调度和容器启动，也可以通过复用预先创建好的容器来进行优化。</p>
+<h2 id="问题-2cpu-火焰图和内存火焰图有什么不同">问题 2：CPU 火焰图和内存火焰图有什么不同？
+</h2><p><img src="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%AE%9E%E6%88%98%E7%AF%87%E7%AD%94%E7%96%91/image-1.png"
+	width="1125"
+	height="1228"
+	srcset="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%AE%9E%E6%88%98%E7%AF%87%E7%AD%94%E7%96%91/image-1_hu_e2bb1d9baf31f85d.png 480w, /p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%AE%9E%E6%88%98%E7%AF%87%E7%AD%94%E7%96%91/image-1_hu_8921e12ee6dd6196.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="91"
+		data-flex-basis="219px"
+	
+></p>
+<p>在<a class="link" href="https://yline-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%AE%9E%E6%88%98%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-4/"  target="_blank" rel="noopener"
+    >内核线程 CPU 利用率过高的案例</a>中，我们一起通过 perf 和火焰图工具，生成了内核热点函数调用栈的动态矢量图，并定位出性能问题发生时，执行最为频繁的内核函数。</p>
+<p>由于案例分析中，我们主要关注的是 CPU 的繁忙情况，所以这时候生成的火焰图，被称为 on-CPU 火焰图。事实上，除此之外，还有 off-CPU、内存等不同的火焰图，分别表示 CPU 的阻塞和内存的分配释放情况。</p>
+<p>所以，李逍遥同学提了出一个很好的问题：同样都是火焰图，CPU 火焰图和内存火焰图，在生成数据时到底有什么不同？</p>
+<p>这个问题，恰好问到了最核心的点上。CPU 火焰图和内存火焰图，最大的差别其实就是数据来源的不同，也就是函数堆栈不同，而火焰图的格式还是完全一样的。</p>
+<ul>
+<li>
+<p>对 CPU 火焰图来说，采集的数据主要是消耗 CPU 的函数；</p>
+</li>
+<li>
+<p>而对内存火焰图来说，采集的数据主要是内存分配、释放、换页等内存管理函数。</p>
+</li>
+</ul>
+<p>举个例子，我们在使用 perf record 时，默认的采集事件 cpu-cycles ，就是采集 on-CPU 数据，而生成的火焰图就是 CPU 火焰图。通过 perf record -e page-fault 将采集事件换成 page-fault 后，就可以采集内存缺页的数据，生成的火焰图自然就成了内存火焰图。</p>
+<h2 id="问题-3perf-probe-失败怎么办">问题 3：perf probe 失败怎么办？
+</h2><p><img src="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%AE%9E%E6%88%98%E7%AF%87%E7%AD%94%E7%96%91/image-2.png"
+	width="1125"
+	height="1690"
+	srcset="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%AE%9E%E6%88%98%E7%AF%87%E7%AD%94%E7%96%91/image-2_hu_ac9f5c0f5323b9ed.png 480w, /p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%AE%9E%E6%88%98%E7%AF%87%E7%AD%94%E7%96%91/image-2_hu_290b313d1cc3c4d0.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="66"
+		data-flex-basis="159px"
+	
+></p>
+<p>在<a class="link" href="https://yline-hub.github.io/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%AE%9E%E6%88%98%E7%AF%87%E6%A1%88%E4%BE%8B%E7%AF%87-6/"  target="_blank" rel="noopener"
+    >动态追踪怎么用</a>中，我们一起通过几个案例，学习了 perf、bcc 等动态追踪工具的使用方法。这些动态追踪方法，可以在不修改代码、不重启服务的情况下，让你动态了解应用程序或内核的执行过程。这对于排查情况复杂、难复现的问题尤其有效。</p>
+<p>在使用动态追踪工具时，由于十六进制格式的函数地址并不容易理解，就需要我们借助调试信息，将它们转换为更直观的函数名。对于内核来说，我已经多次提到过，需要安装 debuginfo。不过，针对应用程序又该怎么办呢？</p>
+<p>这里其实有两种方法。</p>
+<p>第一种方法，假如应用程序提供了调试信息软件包，那你就可以直接安装来使用。比如，对于我们案例中的 bash 来说，就可以通过下面的命令，来安装它的调试信息：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># Ubuntu</span>
+</span></span><span class="line"><span class="cl">apt-get install -y bash-dbgsym
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Centos</span>
+</span></span><span class="line"><span class="cl">debuginfo-install bash
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>第二种方法，使用源码重新编译应用程序，并开启编译器的调试信息开关，比如可以为 gcc 增加 -g 选项。</p>
+<h2 id="问题-4red-法监控微服务应用">问题 4：RED 法监控微服务应用
+</h2><p><img src="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%AE%9E%E6%88%98%E7%AF%87%E7%AD%94%E7%96%91/image-3.png"
+	width="1125"
+	height="1090"
+	srcset="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%AE%9E%E6%88%98%E7%AF%87%E7%AD%94%E7%96%91/image-3_hu_18e9474bc81cd7d7.png 480w, /p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%AE%9E%E6%88%98%E7%AF%87%E7%AD%94%E7%96%91/image-3_hu_af41706bfd3acc50.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="103"
+		data-flex-basis="247px"
+	
+></p>
+<p>在<a class="link" href="" >系统监控的综合思路</a>中，我为你介绍了监控系统资源性能时常用的 USE 法。USE 法把系统资源的性能指标，简化成了三类：使用率、饱和度以及错误数。三者之中任一类别的指标过高时，都代表相应的系统资源可能有性能瓶颈。</p>
+
+</section>
+
+
+    <footer class="article-footer">
+    
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+<aside class="related-content--wrapper">
+    <h2 class="section-title">相关文章</h2>
+    <div class="related-content">
+        <div class="flex article-list--tile">
+            
+                
+<article class="">
+    <a href="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%AE%9E%E6%88%98%E7%AF%87%E5%A5%97%E8%B7%AF%E7%AF%87-4/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Linux]性能调优-实战篇（套路篇）- 4</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%AE%9E%E6%88%98%E7%AF%87%E5%A5%97%E8%B7%AF%E7%AF%87-3/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Linux]性能调优-实战篇（套路篇）- 3</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%AE%9E%E6%88%98%E7%AF%87%E5%A5%97%E8%B7%AF%E7%AF%87-2/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Linux]性能调优-实战篇（套路篇）- 2</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%AE%9E%E6%88%98%E7%AF%87%E5%A5%97%E8%B7%AF%E7%AF%87-1/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Linux]性能调优-实战篇（套路篇）- 1</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/linux%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E5%AE%9E%E6%88%98%E7%AF%87%E5%A5%97%E8%B7%AF%E7%AF%87/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Linux]性能调优-实战篇（套路篇）</h2>
+        </div>
+    </a>
+</article>
+
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+            2025 - 
+        
+        2026 リンボの個人ブログ
+    </section>
+    
+    <section class="powerby">
+         <br />
+        
+    </section>
+</footer>
+
+
+    
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+    
+    <div class="pswp__bg"></div>
+
+    
+    <div class="pswp__scroll-wrap">
+
+        
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+
+        
+        <div class="pswp__ui pswp__ui--hidden">
+
+            <div class="pswp__top-bar">
+
+                
+
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+
+                <button class="pswp__button pswp__button--share" title="Share"></button>
+
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+
+                
+                
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                        <div class="pswp__preloader__cut">
+                            <div class="pswp__preloader__donut"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div>
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.js"integrity="sha256-ePwmChbbvXbsO02lbM3HoHbSHTHFAeChekF1xKJdleo="crossorigin="anonymous"
+                defer
+                >
+            </script><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe-ui-default.min.js"integrity="sha256-UKkzOn/w1mBxRmLLGrSeyB4e1xbrp4xylgAWb3M42pU="crossorigin="anonymous"
+                defer
+                >
+            </script><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/default-skin/default-skin.min.css"crossorigin="anonymous"
+            ><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.css"crossorigin="anonymous"
+            >
+
+            </main>
+        </div>
+        <script 
+                src="https://cdn.jsdelivr.net/npm/node-vibrant@3.1.6/dist/vibrant.min.js"integrity="sha256-awcR2jno4kI5X0zL8ex0vi2z&#43;KMkF24hUW8WePSA9HM="crossorigin="anonymous"
+                
+                >
+            </script><script type="text/javascript" src="/ts/main.1e9a3bafd846ced4c345d084b355fb8c7bae75701c338f8a1f8a82c780137826.js" defer></script>
+<script>
+    (function () {
+        const customFont = document.createElement('link');
+        customFont.href = "https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap";
+
+        customFont.type = "text/css";
+        customFont.rel = "stylesheet";
+
+        document.head.appendChild(customFont);
+    }());
+</script>
+
+    </body>
+</html>
