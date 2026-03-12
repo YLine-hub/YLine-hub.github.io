@@ -1,0 +1,1511 @@
+<!DOCTYPE html>
+<html lang="en-us" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="zabbix监控流程实践 流程解析 基本流程 准备工作 - 数据采集 - 数据获取 - 数据存储 - 信息处理 - 日志记录 - 数据展示\n术语解析 监控对象\nHost（主机）\nHost Group （主机组）\nItem （监控项）\n">
+<title>4-[马哥][zabbix]监控流程实践</title>
+
+<link rel='canonical' href='https://YLine-hub.github.io/p/4-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E6%B5%81%E7%A8%8B%E5%AE%9E%E8%B7%B5/'>
+
+<link rel="stylesheet" href="/scss/style.min.6a692fd055deae459f2a9767f57f3855ba80cafd5041317f24f7360f6ca47cdf.css"><meta property='og:title' content="4-[马哥][zabbix]监控流程实践">
+<meta property='og:description' content="zabbix监控流程实践 流程解析 基本流程 准备工作 - 数据采集 - 数据获取 - 数据存储 - 信息处理 - 日志记录 - 数据展示\n术语解析 监控对象\nHost（主机）\nHost Group （主机组）\nItem （监控项）\n">
+<meta property='og:url' content='https://YLine-hub.github.io/p/4-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E6%B5%81%E7%A8%8B%E5%AE%9E%E8%B7%B5/'>
+<meta property='og:site_name' content='リンボの個人ブログ'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:published_time' content='2026-03-11T15:21:53&#43;08:00'/><meta property='article:modified_time' content='2026-03-11T15:21:53&#43;08:00'/>
+<meta name="twitter:title" content="4-[马哥][zabbix]监控流程实践">
+<meta name="twitter:description" content="zabbix监控流程实践 流程解析 基本流程 准备工作 - 数据采集 - 数据获取 - 数据存储 - 信息处理 - 日志记录 - 数据展示\n术语解析 监控对象\nHost（主机）\nHost Group （主机组）\nItem （监控项）\n">
+    <link rel="shortcut icon" href="/favicon.ico" />
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        
+            
+            <figure class="site-avatar">
+                <a href="/">
+                
+                    
+                    
+                    
+                        
+                        <img src="/img/avatar_hu_de528bff5d5e9598.png" width="300"
+                            height="300" class="site-logo" loading="lazy" alt="Avatar">
+                    
+                
+                </a>
+                
+                    <span class="emoji">🏖️</span>
+                
+            </figure>
+            
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">リンボの個人ブログ</a></h1>
+            <h2 class="site-description">努力不一定能获得回报，但不努力一定不会有回报。</h2>
+        </div>
+    </header><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-home" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <polyline points="5 12 3 12 12 3 21 12 19 12" />
+  <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7" />
+  <path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6" />
+</svg>
+
+
+
+                
+                <span>主页</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/%E5%85%B3%E4%BA%8E/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/archives/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/search/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-search" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="10" cy="10" r="7" />
+  <line x1="21" y1="21" x2="15" y2="15" />
+</svg>
+
+
+
+                
+                <span>搜索</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav id="TableOfContents">
+  <ol>
+    <li><a href="#流程解析">流程解析</a></li>
+    <li><a href="#术语解析">术语解析</a></li>
+    <li><a href="#实践流程">实践流程</a>
+      <ol>
+        <li><a href="#添加监控的基本流程">添加监控的基本流程</a></li>
+        <li><a href="#监控客户端">监控客户端</a></li>
+        <li><a href="#资源创建">资源创建</a>
+          <ol>
+            <li><a href="#创建主机组资源">创建主机组资源</a></li>
+            <li><a href="#创建主机资源">创建主机资源</a></li>
+          </ol>
+        </li>
+        <li><a href="#jmx方式监控">JMX方式监控</a>
+          <ol>
+            <li><a href="#基础知识">基础知识</a></li>
+          </ol>
+        </li>
+      </ol>
+    </li>
+  </ol>
+</nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            <a href="/categories/zabbix/" >
+                Zabbix
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/p/4-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E6%B5%81%E7%A8%8B%E5%AE%9E%E8%B7%B5/">4-[马哥][zabbix]监控流程实践</a>
+        </h2>
+    
+        
+    </div>
+
+    
+    
+    
+    
+    <footer class="article-time">
+        
+            <div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                <time class="article-time--published">2026-03-11</time>
+            </div>
+        
+
+        
+    </footer>
+    
+
+    
+</div>
+
+</header>
+
+    <section class="article-content">
+    
+    
+    <h2>zabbix监控流程实践</h2>
+<h2 id="流程解析">流程解析
+</h2><ul>
+<li>基本流程</li>
+</ul>
+<blockquote>
+<p>准备工作 - 数据采集 - 数据获取 - 数据存储 - 信息处理 - 日志记录 - 数据展示</p>
+</blockquote>
+<h2 id="术语解析">术语解析
+</h2><p>监控对象</p>
+<ul>
+<li>
+<p>Host（主机）</p>
+</li>
+<li>
+<p>Host Group （主机组）</p>
+</li>
+<li>
+<p>Item （监控项）</p>
+</li>
+</ul>
+<p>主机上的 Tomcat 应用、Web 应用等</p>
+<ul>
+<li>
+<p>Application （应用）</p>
+</li>
+<li>
+<p>Media （媒介）</p>
+<ul>
+<li>一般表示消息通知的通知渠道，如Email、Jabber或SMS等</li>
+</ul>
+</li>
+<li>
+<p>Remote command（远程命令）</p>
+</li>
+<li>
+<p>User （用户）</p>
+</li>
+<li>
+<p>User Group （用户组）</p>
+</li>
+<li>
+<p>Graph （图形）</p>
+</li>
+</ul>
+<p><img src="/p/4-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E6%B5%81%E7%A8%8B%E5%AE%9E%E8%B7%B5/image-1.png"
+	width="2354"
+	height="400"
+	srcset="/p/4-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E6%B5%81%E7%A8%8B%E5%AE%9E%E8%B7%B5/image-1_hu_31b20c6c94547e46.png 480w, /p/4-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E6%B5%81%E7%A8%8B%E5%AE%9E%E8%B7%B5/image-1_hu_d81f2bff9686b493.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="588"
+		data-flex-basis="1412px"
+	
+></p>
+<ul>
+<li>Screen（屏幕）</li>
+</ul>
+<p><img src="/p/4-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E6%B5%81%E7%A8%8B%E5%AE%9E%E8%B7%B5/image.png"
+	width="641"
+	height="401"
+	srcset="/p/4-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E6%B5%81%E7%A8%8B%E5%AE%9E%E8%B7%B5/image_hu_799f7f1487ae98f8.png 480w, /p/4-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E6%B5%81%E7%A8%8B%E5%AE%9E%E8%B7%B5/image_hu_1d49dd38290cfb41.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="159"
+		data-flex-basis="383px"
+	
+></p>
+<ul>
+<li>Map（拓扑图）</li>
+</ul>
+<p><img src="/p/4-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E6%B5%81%E7%A8%8B%E5%AE%9E%E8%B7%B5/image-2.png"
+	width="643"
+	height="421"
+	srcset="/p/4-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E6%B5%81%E7%A8%8B%E5%AE%9E%E8%B7%B5/image-2_hu_58e5149f4235b820.png 480w, /p/4-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E6%B5%81%E7%A8%8B%E5%AE%9E%E8%B7%B5/image-2_hu_85ede1c6e2b76468.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="152"
+		data-flex-basis="366px"
+	
+></p>
+<p>监控动作</p>
+<ul>
+<li>
+<p>Trigger（触发器）</p>
+<ul>
+<li>表达式，用于对获取到的监控数据进行综合性的分析，然后根据设定好的阀值进行评判，OK or Problem</li>
+</ul>
+</li>
+<li>
+<p>Event（事件）</p>
+<ul>
+<li>每一次监控对象的Trigger动作都是一个事件，例如触发器的状态转变，节点的上下线等。</li>
+</ul>
+</li>
+<li>
+<p>Action（动作）</p>
+<ul>
+<li>指对于特定事件先定义的处理方法，通过包含操作（如发送通知）和条件（何时执行操作）</li>
+</ul>
+</li>
+<li>
+<p>Notification（通知）</p>
+<ul>
+<li>通过特定的媒介向用户发送的有关某事件的信息（可灵活定制mail发送程序）</li>
+</ul>
+</li>
+<li>
+<p>Escalation（报警升级）</p>
+<ul>
+<li>事件发生后，对应的Action没有达到目标，那么自动触发更严厉有效的动作的过程，比如越级上报</li>
+</ul>
+</li>
+<li>
+<p>Template（模板）</p>
+<ul>
+<li>用于快速定义被监控主机的预设条目集合，通常包含item、trigger、graph、application等。</li>
+</ul>
+</li>
+</ul>
+<h2 id="实践流程">实践流程
+</h2><h3 id="添加监控的基本流程">添加监控的基本流程
+</h3><ol>
+<li>服务端、客户端服务正常</li>
+<li>客户端采集数据正常</li>
+<li>服务端添加客户端节点
+<ul>
+<li>繁琐
+<ul>
+<li>手工添加item</li>
+<li>手工添加graph</li>
+<li>手工添加dashboard</li>
+<li>手工添加其他对象</li>
+</ul>
+</li>
+<li>快捷（多主机）
+<ul>
+<li>手工添加模板
+<ul>
+<li>手工添加item</li>
+<li>手工添加graph</li>
+<li>手工添加dashboard</li>
+<li>手工添加其他对象</li>
+</ul>
+</li>
+<li>添加主机的时候，关联模板</li>
+</ul>
+</li>
+</ul>
+</li>
+</ol>
+<h3 id="监控客户端">监控客户端
+</h3><ol>
+<li>在 192.168.172.121 服务器中安装 zabbix-agent</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">wget https://repo.zabbix.com/zabbix/7.0/ubuntu/pool/main/z/zabbix-release/zabbix-release_latest_7.0+ubuntu24.04_all.deb
+</span></span><span class="line"><span class="cl">dpkg -i zabbix-release_latest_7.0+ubuntu24.04_all.deb
+</span></span><span class="line"><span class="cl">apt update
+</span></span><span class="line"><span class="cl">apt install zabbix-agent
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="2">
+<li>设置服务端ip</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# vim /etc/zabbix/zabbix_agentd.conf
+</span></span><span class="line"><span class="cl">....
+</span></span><span class="line"><span class="cl"><span class="nv">Server</span><span class="o">=</span>192.168.172.120 <span class="c1"># 指定zabbix服务端的地址</span>
+</span></span><span class="line"><span class="cl"><span class="nv">ListenPort</span><span class="o">=</span><span class="m">10050</span> <span class="c1"># 默认的端口号，可以不用取消注释</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># ServerActive=127.0.0.1 # 注释该条目，这是另外一种指定zabbix server主机的方式</span>
+</span></span><span class="line"><span class="cl"><span class="nv">Hostname</span><span class="o">=</span>192.168.172.121 <span class="c1"># zabbix server监控当前主机的时候，客户端主机唯一的标识</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>注意：如果没有定义Hostname，则服务器将使用agent的系统主机名命名主机。
+如果需要本地测试监控，修改Server的配置Server=192.168.172.120,192.168.172.121</p>
+<ol start="3">
+<li>查看配置（省略#和空行）</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# grep -Env <span class="s1">&#39;#|^$&#39;</span> /etc/zabbix/zabbix_agentd.conf
+</span></span><span class="line"><span class="cl">13:PidFile<span class="o">=</span>/run/zabbix/zabbix_agentd.pid
+</span></span><span class="line"><span class="cl">32:LogFile<span class="o">=</span>/var/log/zabbix/zabbix_agentd.log
+</span></span><span class="line"><span class="cl">43:LogFileSize<span class="o">=</span><span class="m">0</span>
+</span></span><span class="line"><span class="cl">117:Server<span class="o">=</span>192.168.172.120
+</span></span><span class="line"><span class="cl">184:Hostname<span class="o">=</span>Zabbix server
+</span></span><span class="line"><span class="cl">554:Include<span class="o">=</span>/etc/zabbix/zabbix_agentd.d/*.conf
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="4">
+<li>重启服务</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">systemctl restart zabbix-agent
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="5">
+<li>服务端使用 zabbix_get 测试</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# zabbix_get -s 192.168.172.121 -p <span class="m">10050</span> -k <span class="s2">&#34;system.cpu.num&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="m">2</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="资源创建">资源创建
+</h3><h4 id="创建主机组资源">创建主机组资源
+</h4><ol>
+<li>点击左侧菜单，点击数据采集，点击Host groups</li>
+</ol>
+<p><img src="/p/4-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E6%B5%81%E7%A8%8B%E5%AE%9E%E8%B7%B5/image-3.png"
+	width="1521"
+	height="1026"
+	srcset="/p/4-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E6%B5%81%E7%A8%8B%E5%AE%9E%E8%B7%B5/image-3_hu_8c48034f3a233282.png 480w, /p/4-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E6%B5%81%E7%A8%8B%E5%AE%9E%E8%B7%B5/image-3_hu_db667edb92a7e584.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="148"
+		data-flex-basis="355px"
+	
+></p>
+<ol start="2">
+<li>点击左上角Create host group添加主机组，然后再Group name后面的方框中写入主机组名</li>
+</ol>
+<p><img src="/p/4-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E6%B5%81%E7%A8%8B%E5%AE%9E%E8%B7%B5/image-4.png"
+	width="1521"
+	height="1026"
+	srcset="/p/4-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E6%B5%81%E7%A8%8B%E5%AE%9E%E8%B7%B5/image-4_hu_e66bf28cf2d85d36.png 480w, /p/4-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E6%B5%81%E7%A8%8B%E5%AE%9E%E8%B7%B5/image-4_hu_d311f2c37ecf00dc.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="148"
+		data-flex-basis="355px"
+	
+></p>
+<p><img src="/p/4-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E6%B5%81%E7%A8%8B%E5%AE%9E%E8%B7%B5/image-5.png"
+	width="1521"
+	height="1026"
+	srcset="/p/4-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E6%B5%81%E7%A8%8B%E5%AE%9E%E8%B7%B5/image-5_hu_ad44aad05cc50735.png 480w, /p/4-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E6%B5%81%E7%A8%8B%E5%AE%9E%E8%B7%B5/image-5_hu_26bfaac1b58454ab.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="148"
+		data-flex-basis="355px"
+	
+></p>
+<ol start="3">
+<li>最后点击下端的Add，效果如下</li>
+</ol>
+<p><img src="/p/4-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E6%B5%81%E7%A8%8B%E5%AE%9E%E8%B7%B5/image-6.png"
+	width="1521"
+	height="1026"
+	srcset="/p/4-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E6%B5%81%E7%A8%8B%E5%AE%9E%E8%B7%B5/image-6_hu_3031211791112c2e.png 480w, /p/4-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E6%B5%81%E7%A8%8B%E5%AE%9E%E8%B7%B5/image-6_hu_237b12d75be9a78d.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="148"
+		data-flex-basis="355px"
+	
+></p>
+<h4 id="创建主机资源">创建主机资源
+</h4><p>创建主机资源有两种方式：</p>
+<blockquote>
+<ol>
+<li>直接在主机组后面点击Hosts</li>
+<li>点击左侧菜单，点击数据采集，点击Hosts</li>
+</ol>
+</blockquote>
+<ol>
+<li>点击左侧菜单，点击数据采集，点击Hosts</li>
+</ol>
+<p><img src="/p/4-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E6%B5%81%E7%A8%8B%E5%AE%9E%E8%B7%B5/image-7.png"
+	width="1521"
+	height="1026"
+	srcset="/p/4-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E6%B5%81%E7%A8%8B%E5%AE%9E%E8%B7%B5/image-7_hu_e2e76bc45a62e835.png 480w, /p/4-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E6%B5%81%E7%A8%8B%E5%AE%9E%E8%B7%B5/image-7_hu_3d29756c34878733.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="148"
+		data-flex-basis="355px"
+	
+></p>
+<ol start="2">
+<li>点击右上角的创建主机</li>
+</ol>
+<p><img src="/p/4-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E6%B5%81%E7%A8%8B%E5%AE%9E%E8%B7%B5/image-8.png"
+	width="1521"
+	height="1026"
+	srcset="/p/4-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E6%B5%81%E7%A8%8B%E5%AE%9E%E8%B7%B5/image-8_hu_16a4c004c0e9403d.png 480w, /p/4-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E6%B5%81%E7%A8%8B%E5%AE%9E%E8%B7%B5/image-8_hu_629165eb335fd0e2.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="148"
+		data-flex-basis="355px"
+	
+></p>
+<p><img src="/p/4-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E6%B5%81%E7%A8%8B%E5%AE%9E%E8%B7%B5/image-9.png"
+	width="1521"
+	height="1026"
+	srcset="/p/4-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E6%B5%81%E7%A8%8B%E5%AE%9E%E8%B7%B5/image-9_hu_de8236da3be37e7e.png 480w, /p/4-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E6%B5%81%E7%A8%8B%E5%AE%9E%E8%B7%B5/image-9_hu_3406ed3f9583c7a4.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="148"
+		data-flex-basis="355px"
+	
+></p>
+<blockquote>
+<p>点击Interface可以看到有四种方式增加主机，分别是：
+Agent interface 程序专用的客户端
+SNMP interface 网络设备的管理协议
+JMX interface java专用客户端
+IPMI interface 专用的硬件设备接口</p>
+</blockquote>
+<ol start="3">
+<li>这里选择第一种agent，配置ip地址的方式增加主机资源，配置属性如下</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">Host name：一定要写主机的fqdn名，也可以是ip地址，便于cmdb与zabbix对上
+</span></span><span class="line"><span class="cl">Host name： node.zabbix.com 或者 192.168.172.121
+</span></span><span class="line"><span class="cl">Visible name: 192.168.172.121
+</span></span><span class="line"><span class="cl">Groups in groups: 选择右侧的主机组 web-group
+</span></span><span class="line"><span class="cl">Agent interface: 192.168.172.121
+</span></span><span class="line"><span class="cl">Description: 必须写这台机器的添加日期和谁负责，主要干什么之类的信息。例如：
+</span></span><span class="line"><span class="cl">    数据中心：A1，机房：A1-1，机柜：A1-1-1，
+</span></span><span class="line"><span class="cl">    应用服务：Web，应用软件：Nginx，
+</span></span><span class="line"><span class="cl">    维护者：President Wang，日期：20250306
+</span></span><span class="line"><span class="cl">监控对象：服务器
+</span></span><span class="line"><span class="cl">勾选：Enabled
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/4-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E6%B5%81%E7%A8%8B%E5%AE%9E%E8%B7%B5/image-10.png"
+	width="1047"
+	height="607"
+	srcset="/p/4-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E6%B5%81%E7%A8%8B%E5%AE%9E%E8%B7%B5/image-10_hu_4ac9e3dd1144f9ea.png 480w, /p/4-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E6%B5%81%E7%A8%8B%E5%AE%9E%E8%B7%B5/image-10_hu_61f7fc0cfbd1f860.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="172"
+		data-flex-basis="413px"
+	
+></p>
+<ol start="4">
+<li>点击添加</li>
+</ol>
+<p><img src="/p/4-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E6%B5%81%E7%A8%8B%E5%AE%9E%E8%B7%B5/image-11.png"
+	width="1521"
+	height="1026"
+	srcset="/p/4-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E6%B5%81%E7%A8%8B%E5%AE%9E%E8%B7%B5/image-11_hu_da0aa29ef9a6ac0f.png 480w, /p/4-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E6%B5%81%E7%A8%8B%E5%AE%9E%E8%B7%B5/image-11_hu_72c6aad6803f127c.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="148"
+		data-flex-basis="355px"
+	
+></p>
+<p><img src="/p/4-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E6%B5%81%E7%A8%8B%E5%AE%9E%E8%B7%B5/image-12.png"
+	width="484"
+	height="238"
+	srcset="/p/4-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E6%B5%81%E7%A8%8B%E5%AE%9E%E8%B7%B5/image-12_hu_5fe7d69e6502d13a.png 480w, /p/4-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E6%B5%81%E7%A8%8B%E5%AE%9E%E8%B7%B5/image-12_hu_53013da3a870562e.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="203"
+		data-flex-basis="488px"
+	
+></p>
+<p>当 Availability 转变为绿色，则表示可用</p>
+<ol start="5">
+<li>刷新页面</li>
+</ol>
+<p><img src="/p/4-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E6%B5%81%E7%A8%8B%E5%AE%9E%E8%B7%B5/image-13.png"
+	width="484"
+	height="238"
+	srcset="/p/4-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E6%B5%81%E7%A8%8B%E5%AE%9E%E8%B7%B5/image-13_hu_5fe7d69e6502d13a.png 480w, /p/4-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E6%B5%81%E7%A8%8B%E5%AE%9E%E8%B7%B5/image-13_hu_53013da3a870562e.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="203"
+		data-flex-basis="488px"
+	
+></p>
+<ol start="6">
+<li>查看最新数据</li>
+</ol>
+<p><img src="/p/4-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E6%B5%81%E7%A8%8B%E5%AE%9E%E8%B7%B5/image-14.png"
+	width="1521"
+	height="1026"
+	srcset="/p/4-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E6%B5%81%E7%A8%8B%E5%AE%9E%E8%B7%B5/image-14_hu_ff2614f7d53f2722.png 480w, /p/4-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E6%B5%81%E7%A8%8B%E5%AE%9E%E8%B7%B5/image-14_hu_353b92c375c6396.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="148"
+		data-flex-basis="355px"
+	
+></p>
+<p><img src="/p/4-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E6%B5%81%E7%A8%8B%E5%AE%9E%E8%B7%B5/image-15.png"
+	width="1521"
+	height="1026"
+	srcset="/p/4-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E6%B5%81%E7%A8%8B%E5%AE%9E%E8%B7%B5/image-15_hu_b3e237f0cc980387.png 480w, /p/4-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E6%B5%81%E7%A8%8B%E5%AE%9E%E8%B7%B5/image-15_hu_70eae66fdbec0399.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="148"
+		data-flex-basis="355px"
+	
+></p>
+<ol start="7">
+<li>仪表盘，按类存放图形Graphs</li>
+</ol>
+<p><img src="/p/4-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E6%B5%81%E7%A8%8B%E5%AE%9E%E8%B7%B5/image-16.png"
+	width="1521"
+	height="1026"
+	srcset="/p/4-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E6%B5%81%E7%A8%8B%E5%AE%9E%E8%B7%B5/image-16_hu_1875e623a6a14c42.png 480w, /p/4-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E6%B5%81%E7%A8%8B%E5%AE%9E%E8%B7%B5/image-16_hu_bc6ef378d128c0f5.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="148"
+		data-flex-basis="355px"
+	
+></p>
+<h3 id="jmx方式监控">JMX方式监控
+</h3><h4 id="基础知识">基础知识
+</h4><h5 id="环境解读">环境解读
+</h5><ul>
+<li>需求</li>
+</ul>
+<blockquote>
+<p>对于一些java应用来说，zabbix可以通过JMX的方式来进行主机的监控效果。
+JMX全称为Java Management Extension。开启JMX后能观察tomcat服务运行时出现的故障，以及监视内存、CPU等使用情况。</p>
+</blockquote>
+<h5 id="环境部署">环境部署
+</h5><p>服务器：192.168.172.121</p>
+<ul>
+<li>查询tomcat</li>
+</ul>
+<ol>
+<li>使用apt-cache查询</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# apt-cache madison tomcat
+</span></span><span class="line"><span class="cl">N: Unable to locate package tomcat
+</span></span><span class="line"><span class="cl">root@lin-server:~# apt-cache madison tomcat10
+</span></span><span class="line"><span class="cl">  tomcat10 <span class="p">|</span>  10.1.16-1 <span class="p">|</span> http://cn.archive.ubuntu.com/ubuntu noble/universe amd64 Packages
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="2">
+<li>使用apt查询</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">apt search tomcat
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/4-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E6%B5%81%E7%A8%8B%E5%AE%9E%E8%B7%B5/image-17.png"
+	width="617"
+	height="863"
+	srcset="/p/4-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E6%B5%81%E7%A8%8B%E5%AE%9E%E8%B7%B5/image-17_hu_e37f80af6570d71b.png 480w, /p/4-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E6%B5%81%E7%A8%8B%E5%AE%9E%E8%B7%B5/image-17_hu_1e612c33cc8b6f2a.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="71"
+		data-flex-basis="171px"
+	
+></p>
+<p><img src="/p/4-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E6%B5%81%E7%A8%8B%E5%AE%9E%E8%B7%B5/image-18.png"
+	width="643"
+	height="863"
+	srcset="/p/4-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E6%B5%81%E7%A8%8B%E5%AE%9E%E8%B7%B5/image-18_hu_1090e5ed786413b2.png 480w, /p/4-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E6%B5%81%E7%A8%8B%E5%AE%9E%E8%B7%B5/image-18_hu_7d88d30ef8f5fd33.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="74"
+		data-flex-basis="178px"
+	
+></p>
+<ul>
+<li>安装tomcat应用</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">apt install tomcat10 -y
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>检测效果</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# systemctl is-active tomcat10.service
+</span></span><span class="line"><span class="cl">active
+</span></span><span class="line"><span class="cl">root@lin-server:~# netstat -tnulp <span class="p">|</span> grep java
+</span></span><span class="line"><span class="cl">tcp6       <span class="m">0</span>      <span class="m">0</span> :::8080                 :::*                    LISTEN      4739/java
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>浏览器访问效果</li>
+</ul>
+<p>访问： http://192.168.172.121:8080</p>
+<p><img src="/p/4-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E6%B5%81%E7%A8%8B%E5%AE%9E%E8%B7%B5/image-19.png"
+	width="1521"
+	height="1026"
+	srcset="/p/4-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E6%B5%81%E7%A8%8B%E5%AE%9E%E8%B7%B5/image-19_hu_bf42f89d95eaf1ab.png 480w, /p/4-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E6%B5%81%E7%A8%8B%E5%AE%9E%E8%B7%B5/image-19_hu_1b8a0a6266af5a8f.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="148"
+		data-flex-basis="355px"
+	
+></p>
+<h5 id="tomcat开启jmx监控">tomcat开启JMX监控
+</h5><ol>
+<li>查找tomcat的专属启动文件</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# find / -name <span class="s2">&#34;catalina.sh&#34;</span>
+</span></span><span class="line"><span class="cl">/usr/share/tomcat10/bin/catalina.sh
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="2">
+<li>修改配置文件</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">vim /usr/share/tomcat10/bin/catalina.sh
+</span></span><span class="line"><span class="cl">...
+</span></span><span class="line"><span class="cl"><span class="m">112</span> <span class="c1"># ---------------------------------------</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># 在这个部分添加下面的相关配置，多个配置必须在一起，不要使用功能Enter来进行换行</span>
+</span></span><span class="line"><span class="cl"><span class="nv">CATALINA_OPTS</span><span class="o">=</span><span class="s2">&#34;</span><span class="nv">$CATALINA_OPTS</span><span class="s2"> -Dcom.sun.management.jmxremote -Djava.rmi.server.hostname=192.168.172.121 -Dcom.sun.management.jmxremote.port=10086 -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.authenticate=false&#34;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/4-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E6%B5%81%E7%A8%8B%E5%AE%9E%E8%B7%B5/image-20.png"
+	width="1107"
+	height="863"
+	srcset="/p/4-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E6%B5%81%E7%A8%8B%E5%AE%9E%E8%B7%B5/image-20_hu_865959ce16c12829.png 480w, /p/4-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E6%B5%81%E7%A8%8B%E5%AE%9E%E8%B7%B5/image-20_hu_bbad4360ba5e4e6c.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="128"
+		data-flex-basis="307px"
+	
+></p>
+<ol start="3">
+<li>重启服务</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">systemctl restart tomcat10.service
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="4">
+<li>检测效果</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">netstat -tnulp
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/4-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E6%B5%81%E7%A8%8B%E5%AE%9E%E8%B7%B5/image-21.png"
+	width="822"
+	height="255"
+	srcset="/p/4-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E6%B5%81%E7%A8%8B%E5%AE%9E%E8%B7%B5/image-21_hu_75229ce3c15c4ecf.png 480w, /p/4-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E6%B5%81%E7%A8%8B%E5%AE%9E%E8%B7%B5/image-21_hu_127994379f28dc51.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="322"
+		data-flex-basis="773px"
+	
+></p>
+<ol start="5">
+<li>测试工具</li>
+</ol>
+<p><img src="/p/4-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E6%B5%81%E7%A8%8B%E5%AE%9E%E8%B7%B5/image-22.png"
+	width="633"
+	height="179"
+	srcset="/p/4-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E6%B5%81%E7%A8%8B%E5%AE%9E%E8%B7%B5/image-22_hu_5613cfeb5a7ef7e1.png 480w, /p/4-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E6%B5%81%E7%A8%8B%E5%AE%9E%E8%B7%B5/image-22_hu_5d950eff08927090.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="353"
+		data-flex-basis="848px"
+	
+></p>
+<ol start="6">
+<li>上传测试工具</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# mkdir -p /data/softs
+</span></span><span class="line"><span class="cl">root@lin-server:~# <span class="nb">cd</span> /data/softs/
+</span></span><span class="line"><span class="cl">root@lin-server:/data/softs# ls
+</span></span><span class="line"><span class="cl">cmdline-jmxclient-0.10.3.jar
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="7">
+<li>执行测试命令</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:/data/softs# java -jar cmdline-jmxclient-0.10.3.jar - 192.168.172.121:10086 java.lang:type<span class="o">=</span>Memory HeapMemoryUsage
+</span></span><span class="line"><span class="cl">Exception in thread <span class="s2">&#34;main&#34;</span> java.rmi.ConnectIOException: error during JRMP connection establishment<span class="p">;</span> nested exception is:
+</span></span><span class="line"><span class="cl">        javax.net.ssl.SSLHandshakeException: <span class="o">(</span>handshake_failure<span class="o">)</span> Received fatal alert: handshake_failure
+</span></span><span class="line"><span class="cl">        at java.rmi/sun.rmi.transport.tcp.TCPChannel.createConnection<span class="o">(</span>TCPChannel.java:308<span class="o">)</span>
+</span></span><span class="line"><span class="cl">        at java.rmi/sun.rmi.transport.tcp.TCPChannel.newConnection<span class="o">(</span>TCPChannel.java:204<span class="o">)</span>
+</span></span><span class="line"><span class="cl">        at java.rmi/sun.rmi.server.UnicastRef.invoke<span class="o">(</span>UnicastRef.java:134<span class="o">)</span>
+</span></span><span class="line"><span class="cl">        at java.management.rmi/javax.management.remote.rmi.RMIServerImpl_Stub.newClient<span class="o">(</span>RMIServerImpl_Stub.java:83<span class="o">)</span>
+</span></span><span class="line"><span class="cl">        at java.management.rmi/javax.management.remote.rmi.RMIConnector.getConnection<span class="o">(</span>RMIConnector.java:2106<span class="o">)</span>
+</span></span><span class="line"><span class="cl">        at java.management.rmi/javax.management.remote.rmi.RMIConnector.connect<span class="o">(</span>RMIConnector.java:321<span class="o">)</span>
+</span></span><span class="line"><span class="cl">        at java.management/javax.management.remote.JMXConnectorFactory.connect<span class="o">(</span>JMXConnectorFactory.java:270<span class="o">)</span>
+</span></span><span class="line"><span class="cl">        at org.archive.jmx.Client.execute<span class="o">(</span>Client.java:225<span class="o">)</span>
+</span></span><span class="line"><span class="cl">        at org.archive.jmx.Client.main<span class="o">(</span>Client.java:154<span class="o">)</span>
+</span></span><span class="line"><span class="cl">Caused by: javax.net.ssl.SSLHandshakeException: <span class="o">(</span>handshake_failure<span class="o">)</span> Received fatal alert: handshake_failure
+</span></span><span class="line"><span class="cl">        at java.base/sun.security.ssl.Alert.createSSLException<span class="o">(</span>Alert.java:130<span class="o">)</span>
+</span></span><span class="line"><span class="cl">        at java.base/sun.security.ssl.Alert.createSSLException<span class="o">(</span>Alert.java:117<span class="o">)</span>
+</span></span><span class="line"><span class="cl">        at java.base/sun.security.ssl.TransportContext.fatal<span class="o">(</span>TransportContext.java:370<span class="o">)</span>
+</span></span><span class="line"><span class="cl">        at java.base/sun.security.ssl.Alert<span class="nv">$AlertConsumer</span>.consume<span class="o">(</span>Alert.java:287<span class="o">)</span>
+</span></span><span class="line"><span class="cl">        at java.base/sun.security.ssl.TransportContext.dispatch<span class="o">(</span>TransportContext.java:209<span class="o">)</span>
+</span></span><span class="line"><span class="cl">        at java.base/sun.security.ssl.SSLTransport.decode<span class="o">(</span>SSLTransport.java:172<span class="o">)</span>
+</span></span><span class="line"><span class="cl">        at java.base/sun.security.ssl.SSLSocketImpl.decode<span class="o">(</span>SSLSocketImpl.java:1506<span class="o">)</span>
+</span></span><span class="line"><span class="cl">        at java.base/sun.security.ssl.SSLSocketImpl.readHandshakeRecord<span class="o">(</span>SSLSocketImpl.java:1421<span class="o">)</span>
+</span></span><span class="line"><span class="cl">        at java.base/sun.security.ssl.SSLSocketImpl.startHandshake<span class="o">(</span>SSLSocketImpl.java:455<span class="o">)</span>
+</span></span><span class="line"><span class="cl">        at java.base/sun.security.ssl.SSLSocketImpl.ensureNegotiated<span class="o">(</span>SSLSocketImpl.java:922<span class="o">)</span>
+</span></span><span class="line"><span class="cl">        at java.base/sun.security.ssl.SSLSocketImpl<span class="nv">$AppOutputStream</span>.write<span class="o">(</span>SSLSocketImpl.java:1291<span class="o">)</span>
+</span></span><span class="line"><span class="cl">        at java.base/java.io.BufferedOutputStream.flushBuffer<span class="o">(</span>BufferedOutputStream.java:125<span class="o">)</span>
+</span></span><span class="line"><span class="cl">        at java.base/java.io.BufferedOutputStream.implFlush<span class="o">(</span>BufferedOutputStream.java:252<span class="o">)</span>
+</span></span><span class="line"><span class="cl">        at java.base/java.io.BufferedOutputStream.flush<span class="o">(</span>BufferedOutputStream.java:240<span class="o">)</span>
+</span></span><span class="line"><span class="cl">        at java.base/java.io.DataOutputStream.flush<span class="o">(</span>DataOutputStream.java:131<span class="o">)</span>
+</span></span><span class="line"><span class="cl">        at java.rmi/sun.rmi.transport.tcp.TCPChannel.createConnection<span class="o">(</span>TCPChannel.java:243<span class="o">)</span>
+</span></span><span class="line"><span class="cl">        ... <span class="m">8</span> more
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>检查发现，第二步中配置文件忘记添加以下这行</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">-Dcom.sun.management.jmxremote.ssl<span class="o">=</span><span class="nb">false</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>添加后重启服务，再次测试</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:/data/softs# java -jar cmdline-jmxclient-0.10.3.jar - 192.168.172.121:10086 java.lang:type<span class="o">=</span>Memory HeapMemoryUsage
+</span></span><span class="line"><span class="cl">03/11/2026 13:22:48 +0000 org.archive.jmx.Client HeapMemoryUsage:
+</span></span><span class="line"><span class="cl">committed: <span class="m">165675008</span>
+</span></span><span class="line"><span class="cl">init: <span class="m">130023424</span>
+</span></span><span class="line"><span class="cl">max: <span class="m">2069889024</span>
+</span></span><span class="line"><span class="cl">used: <span class="m">62679120</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h5 id="java-gateway部署">java gateway部署
+</h5><ol>
+<li>zabbix服务段部署java gateway</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">apt install zabbix-java-gateway
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="2">
+<li>编辑配置文件</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">vim /etc/zabbix/zabbix_java_gateway.conf
+</span></span><span class="line"><span class="cl"><span class="nv">LISTEN_IP</span><span class="o">=</span><span class="s2">&#34;0.0.0.0&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="nv">LISTEN_PORT</span><span class="o">=</span><span class="m">10052</span>
+</span></span><span class="line"><span class="cl"><span class="nv">PID_FILE</span><span class="o">=</span><span class="s2">&#34;/var/run/zabbix/zabbix_java_gateway.pid&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="nv">START_POLLERS</span><span class="o">=</span><span class="m">50</span>    <span class="c1"># 开启的进程可以多一点</span>
+</span></span><span class="line"><span class="cl"><span class="nv">TIMEOUT</span><span class="o">=</span><span class="m">30</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="3">
+<li>重启服务</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">systemctl restart zabbix-java-gateway
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="4">
+<li>检测</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">netstat -tnulp
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/4-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E6%B5%81%E7%A8%8B%E5%AE%9E%E8%B7%B5/image-24.png"
+	width="828"
+	height="299"
+	srcset="/p/4-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E6%B5%81%E7%A8%8B%E5%AE%9E%E8%B7%B5/image-24_hu_77f7a0964db426e.png 480w, /p/4-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E6%B5%81%E7%A8%8B%E5%AE%9E%E8%B7%B5/image-24_hu_aee9c7eed1fd790b.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="276"
+		data-flex-basis="664px"
+	
+></p>
+<h5 id="zabbix-server配置jmx">zabbix server配置JMX
+</h5><p>服务器：192.168.172.120</p>
+<ol>
+<li>定制专属的JMX配置</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">vim /etc/zabbix/zabbix_server.conf
+</span></span><span class="line"><span class="cl"><span class="nv">JavaGateway</span><span class="o">=</span>192.168.172.121 <span class="c1"># 指定java gateway主机的地址</span>
+</span></span><span class="line"><span class="cl"><span class="nv">JavaGatewayPort</span><span class="o">=</span><span class="m">10052</span>
+</span></span><span class="line"><span class="cl"><span class="nv">StartJavaPollers</span><span class="o">=</span><span class="m">20</span>         <span class="c1"># 设定的java线程数量要小于java-gateway的START_POLLERS</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="2">
+<li>重启服务</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">systemctl restart zabbix-server
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="3">
+<li>查看效果</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">ps aux <span class="p">|</span> grep <span class="s1">&#39;java poller&#39;</span> <span class="p">|</span> grep -v <span class="s2">&#34;grep&#34;</span> <span class="p">|</span> wc -l
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h5 id="zabbix以jmx方式监控tomcat主机">zabbix以JMX方式监控tomcat主机
+</h5><ol>
+<li>添加主机，以JMX的方式监控主机，注意：标题最好和之前的名字不一样，比如192.168.172.121-jmx</li>
+</ol>
+<p><img src="/p/4-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E6%B5%81%E7%A8%8B%E5%AE%9E%E8%B7%B5/image-25.png"
+	width="1521"
+	height="1026"
+	srcset="/p/4-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E6%B5%81%E7%A8%8B%E5%AE%9E%E8%B7%B5/image-25_hu_9e2747435460b1d5.png 480w, /p/4-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E6%B5%81%E7%A8%8B%E5%AE%9E%E8%B7%B5/image-25_hu_a5d734d251d449b3.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="148"
+		data-flex-basis="355px"
+	
+></p>
+<p>注意：
+监听的tomcat的JMX端口时 10086</p>
+<p>其中，tomcat-group (new) 表示该组不存在，将会自动创建</p>
+<ol start="2">
+<li>关联相关的jmx模板</li>
+</ol>
+<p><img src="/p/4-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E6%B5%81%E7%A8%8B%E5%AE%9E%E8%B7%B5/image-26.png"
+	width="1050"
+	height="608"
+	srcset="/p/4-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E6%B5%81%E7%A8%8B%E5%AE%9E%E8%B7%B5/image-26_hu_fe3a0ff3b9500bf1.png 480w, /p/4-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E6%B5%81%E7%A8%8B%E5%AE%9E%E8%B7%B5/image-26_hu_d97a50f57ebd2c09.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="172"
+		data-flex-basis="414px"
+	
+></p>
+<p>使用&quot;Apache Tomcat by JMX&quot;和&quot;Gerneric Java JMX&quot;两个模板</p>
+<ol start="3">
+<li>点击添加主机</li>
+</ol>
+<p><img src="/p/4-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E6%B5%81%E7%A8%8B%E5%AE%9E%E8%B7%B5/image-27.png"
+	width="1521"
+	height="1026"
+	srcset="/p/4-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E6%B5%81%E7%A8%8B%E5%AE%9E%E8%B7%B5/image-27_hu_739a7dd00d194b1d.png 480w, /p/4-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E6%B5%81%E7%A8%8B%E5%AE%9E%E8%B7%B5/image-27_hu_83e3eb4543d19fd4.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="148"
+		data-flex-basis="355px"
+	
+></p>
+<p><img src="/p/4-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E6%B5%81%E7%A8%8B%E5%AE%9E%E8%B7%B5/image-28.png"
+	width="1521"
+	height="1026"
+	srcset="/p/4-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E6%B5%81%E7%A8%8B%E5%AE%9E%E8%B7%B5/image-28_hu_1c7d87a1097b053a.png 480w, /p/4-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E6%B5%81%E7%A8%8B%E5%AE%9E%E8%B7%B5/image-28_hu_af68776942e985a1.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="148"
+		data-flex-basis="355px"
+	
+></p>
+
+</section>
+
+
+    <footer class="article-footer">
+    
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+<aside class="related-content--wrapper">
+    <h2 class="section-title">相关文章</h2>
+    <div class="related-content">
+        <div class="flex article-list--tile">
+            
+                
+<article class="">
+    <a href="/p/3-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E5%8E%9F%E7%90%86%E6%8B%86%E8%A7%A3/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">3-[马哥][zabbix]监控原理拆解</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/2-%E9%A9%AC%E5%93%A5zabbix%E7%8E%AF%E5%A2%83%E9%83%A8%E7%BD%B2/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">2-[马哥][zabbix]环境部署</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/1-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">1-[马哥][zabbix]监控基础知识</h2>
+        </div>
+    </a>
+</article>
+
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+            2025 - 
+        
+        2026 リンボの個人ブログ
+    </section>
+    
+    <section class="powerby">
+         <br />
+        
+    </section>
+</footer>
+
+
+    
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+    
+    <div class="pswp__bg"></div>
+
+    
+    <div class="pswp__scroll-wrap">
+
+        
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+
+        
+        <div class="pswp__ui pswp__ui--hidden">
+
+            <div class="pswp__top-bar">
+
+                
+
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+
+                <button class="pswp__button pswp__button--share" title="Share"></button>
+
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+
+                
+                
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                        <div class="pswp__preloader__cut">
+                            <div class="pswp__preloader__donut"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div>
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.js"integrity="sha256-ePwmChbbvXbsO02lbM3HoHbSHTHFAeChekF1xKJdleo="crossorigin="anonymous"
+                defer
+                >
+            </script><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe-ui-default.min.js"integrity="sha256-UKkzOn/w1mBxRmLLGrSeyB4e1xbrp4xylgAWb3M42pU="crossorigin="anonymous"
+                defer
+                >
+            </script><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/default-skin/default-skin.min.css"crossorigin="anonymous"
+            ><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.css"crossorigin="anonymous"
+            >
+
+            </main>
+        </div>
+        <script 
+                src="https://cdn.jsdelivr.net/npm/node-vibrant@3.1.6/dist/vibrant.min.js"integrity="sha256-awcR2jno4kI5X0zL8ex0vi2z&#43;KMkF24hUW8WePSA9HM="crossorigin="anonymous"
+                
+                >
+            </script><script type="text/javascript" src="/ts/main.1e9a3bafd846ced4c345d084b355fb8c7bae75701c338f8a1f8a82c780137826.js" defer></script>
+<script>
+    (function () {
+        const customFont = document.createElement('link');
+        customFont.href = "https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap";
+
+        customFont.type = "text/css";
+        customFont.rel = "stylesheet";
+
+        document.head.appendChild(customFont);
+    }());
+</script>
+
+    </body>
+</html>

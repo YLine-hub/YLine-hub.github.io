@@ -1,0 +1,1050 @@
+<!DOCTYPE html>
+<html lang="en-us" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="zabbix原理拆解 zabbix 实现原理 架构效果图 可以看到web服务数据来源于数据库而不是zabbix服务 验证：\n打开zabbix web server\n">
+<title>3-[马哥][zabbix]监控原理拆解</title>
+
+<link rel='canonical' href='https://YLine-hub.github.io/p/3-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E5%8E%9F%E7%90%86%E6%8B%86%E8%A7%A3/'>
+
+<link rel="stylesheet" href="/scss/style.min.6a692fd055deae459f2a9767f57f3855ba80cafd5041317f24f7360f6ca47cdf.css"><meta property='og:title' content="3-[马哥][zabbix]监控原理拆解">
+<meta property='og:description' content="zabbix原理拆解 zabbix 实现原理 架构效果图 可以看到web服务数据来源于数据库而不是zabbix服务 验证：\n打开zabbix web server\n">
+<meta property='og:url' content='https://YLine-hub.github.io/p/3-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E5%8E%9F%E7%90%86%E6%8B%86%E8%A7%A3/'>
+<meta property='og:site_name' content='リンボの個人ブログ'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:published_time' content='2026-03-11T13:39:15&#43;08:00'/><meta property='article:modified_time' content='2026-03-11T13:39:15&#43;08:00'/>
+<meta name="twitter:title" content="3-[马哥][zabbix]监控原理拆解">
+<meta name="twitter:description" content="zabbix原理拆解 zabbix 实现原理 架构效果图 可以看到web服务数据来源于数据库而不是zabbix服务 验证：\n打开zabbix web server\n">
+    <link rel="shortcut icon" href="/favicon.ico" />
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        
+            
+            <figure class="site-avatar">
+                <a href="/">
+                
+                    
+                    
+                    
+                        
+                        <img src="/img/avatar_hu_de528bff5d5e9598.png" width="300"
+                            height="300" class="site-logo" loading="lazy" alt="Avatar">
+                    
+                
+                </a>
+                
+                    <span class="emoji">🏖️</span>
+                
+            </figure>
+            
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">リンボの個人ブログ</a></h1>
+            <h2 class="site-description">努力不一定能获得回报，但不努力一定不会有回报。</h2>
+        </div>
+    </header><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-home" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <polyline points="5 12 3 12 12 3 21 12 19 12" />
+  <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7" />
+  <path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6" />
+</svg>
+
+
+
+                
+                <span>主页</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/%E5%85%B3%E4%BA%8E/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/archives/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/search/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-search" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="10" cy="10" r="7" />
+  <line x1="21" y1="21" x2="15" y2="15" />
+</svg>
+
+
+
+                
+                <span>搜索</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav id="TableOfContents">
+  <ol>
+    <li><a href="#zabbix-实现原理">zabbix 实现原理</a>
+      <ol>
+        <li><a href="#架构效果图">架构效果图</a></li>
+      </ol>
+    </li>
+    <li><a href="#监控原理拆解">监控原理拆解</a>
+      <ol>
+        <li><a href="#数据采集">数据采集</a>
+          <ol>
+            <li><a href="#功能软件">功能软件</a></li>
+            <li><a href="#软件信息">软件信息</a></li>
+            <li><a href="#软件安装">软件安装</a></li>
+            <li><a href="#zabbix_agentd-解析">zabbix_agentd 解析</a></li>
+            <li><a href="#创建-zabbix-agent-客户端主机">创建 zabbix-agent 客户端主机</a></li>
+            <li><a href="#zabbix_get-解析">zabbix_get 解析</a></li>
+          </ol>
+        </li>
+      </ol>
+    </li>
+  </ol>
+</nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            <a href="/categories/zabbix/" >
+                Zabbix
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/p/3-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E5%8E%9F%E7%90%86%E6%8B%86%E8%A7%A3/">3-[马哥][zabbix]监控原理拆解</a>
+        </h2>
+    
+        
+    </div>
+
+    
+    
+    
+    
+    <footer class="article-time">
+        
+            <div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                <time class="article-time--published">2026-03-11</time>
+            </div>
+        
+
+        
+    </footer>
+    
+
+    
+</div>
+
+</header>
+
+    <section class="article-content">
+    
+    
+    <h2>zabbix原理拆解</h2>
+<h2 id="zabbix-实现原理">zabbix 实现原理
+</h2><h3 id="架构效果图">架构效果图
+</h3><p><img src="/p/3-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E5%8E%9F%E7%90%86%E6%8B%86%E8%A7%A3/image.png"
+	width="1409"
+	height="643"
+	srcset="/p/3-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E5%8E%9F%E7%90%86%E6%8B%86%E8%A7%A3/image_hu_ec0a7e0a45211145.png 480w, /p/3-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E5%8E%9F%E7%90%86%E6%8B%86%E8%A7%A3/image_hu_ff066197f0b8a81e.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="219"
+		data-flex-basis="525px"
+	
+></p>
+<ul>
+<li>可以看到web服务数据来源于数据库而不是zabbix服务</li>
+</ul>
+<p>验证：</p>
+<p>打开zabbix web server</p>
+<p><img src="/p/3-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E5%8E%9F%E7%90%86%E6%8B%86%E8%A7%A3/image-1.png"
+	width="1985"
+	height="857"
+	srcset="/p/3-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E5%8E%9F%E7%90%86%E6%8B%86%E8%A7%A3/image-1_hu_f329065c59f414b6.png 480w, /p/3-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E5%8E%9F%E7%90%86%E6%8B%86%E8%A7%A3/image-1_hu_8b482e52cb1a6d67.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="231"
+		data-flex-basis="555px"
+	
+></p>
+<ol>
+<li>关闭 zabbix 服务</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">systemctl stop zabbix-server
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/3-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E5%8E%9F%E7%90%86%E6%8B%86%E8%A7%A3/image-2.png"
+	width="1982"
+	height="846"
+	srcset="/p/3-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E5%8E%9F%E7%90%86%E6%8B%86%E8%A7%A3/image-2_hu_fb36d4b691f4e1cf.png 480w, /p/3-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E5%8E%9F%E7%90%86%E6%8B%86%E8%A7%A3/image-2_hu_f1ad34bfa640ae98.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="234"
+		data-flex-basis="562px"
+	
+></p>
+<p>web 服务正常运行，但是zabbix服务已经被关闭</p>
+<ol start="2">
+<li>关闭 mysql 服务</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">systemctl stop mysql
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/3-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E5%8E%9F%E7%90%86%E6%8B%86%E8%A7%A3/image-3.png"
+	width="822"
+	height="437"
+	srcset="/p/3-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E5%8E%9F%E7%90%86%E6%8B%86%E8%A7%A3/image-3_hu_2f5b32ca7bb9cd58.png 480w, /p/3-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E5%8E%9F%E7%90%86%E6%8B%86%E8%A7%A3/image-3_hu_648bb88a6182b2fa.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="188"
+		data-flex-basis="451px"
+	
+></p>
+<p>web 服务显示没有数据</p>
+<h2 id="监控原理拆解">监控原理拆解
+</h2><h3 id="数据采集">数据采集
+</h3><h4 id="功能软件">功能软件
+</h4><ul>
+<li>一般情况下，数据采集的时候，主要有两种方式：</li>
+</ul>
+<ol>
+<li>HTTP 协议方式</li>
+<li>Zabbix agent + zabbix 专用协议</li>
+</ol>
+<p>第二种比较好</p>
+<ul>
+<li>zabbix server 的数据从组成方式上来说，主要靠两种采集方式：</li>
+</ul>
+<ol>
+<li>本机采集： zabbix_agentd</li>
+<li>跨主机组合采集：zabbix_get + zabbix_agentd
+zabbix_agent 收集客户端本地所有信息，守护进程
+zabbix_get 收集远程客户端节点的指定的监控条目，检测环境</li>
+</ol>
+<ul>
+<li>软件简介</li>
+</ul>
+<ol>
+<li>zabbix_agentd：</li>
+</ol>
+<blockquote>
+<p>zabbix_agentd 是一个专门用于在客户端节点主机上查看默认的有效监控条目信息，它本质上是一个Zabbix守护程序，用于监视各种服务器参数。
+这些数据都会在 zabbix server 的最新数据界面中体现</p>
+</blockquote>
+<ol start="2">
+<li>zabbix_get：</li>
+</ol>
+<blockquote>
+<p>Zabbix-Get是Zabbix中的一个程序，用于Zabbix-Server到Zabbix-Agent的数据获取，通常可以用来检测验证Agent的配置是否正确。可以在启动agent之前定位错误原因。</p>
+</blockquote>
+<h4 id="软件信息">软件信息
+</h4><ul>
+<li>检查zabbix-agent的软件信息</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">apt info zabbix-agent
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>检查zabbix-get的软件信息</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">apt info zabbix-get
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="软件安装">软件安装
+</h4><ul>
+<li>安装zabbix-get</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">apt install zabbix-get -y
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>查看软件文件</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">dpkg -L zabbix-get
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="zabbix_agentd-解析">zabbix_agentd 解析
+</h4><h5 id="命令解析">命令解析
+</h5><ul>
+<li>查看帮助</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# zabbix_agentd -h
+</span></span><span class="line"><span class="cl">Usage:
+</span></span><span class="line"><span class="cl">  zabbix_agentd <span class="o">[</span>-c config-file<span class="o">]</span>
+</span></span><span class="line"><span class="cl">  zabbix_agentd <span class="o">[</span>-c config-file<span class="o">]</span> -p
+</span></span><span class="line"><span class="cl">  zabbix_agentd <span class="o">[</span>-c config-file<span class="o">]</span> -t item-key
+</span></span><span class="line"><span class="cl">  zabbix_agentd <span class="o">[</span>-c config-file<span class="o">]</span> -T
+</span></span><span class="line"><span class="cl">  zabbix_agentd <span class="o">[</span>-c config-file<span class="o">]</span> -R runtime-option
+</span></span><span class="line"><span class="cl">  zabbix_agentd -h
+</span></span><span class="line"><span class="cl">  zabbix_agentd -V
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">A Zabbix daemon <span class="k">for</span> monitoring of various server parameters.
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">Options:
+</span></span><span class="line"><span class="cl">  -c --config config-file        Path to the configuration file
+</span></span><span class="line"><span class="cl">                                 <span class="o">(</span>default: <span class="s2">&#34;/etc/zabbix/zabbix_agentd.conf&#34;</span><span class="o">)</span>
+</span></span><span class="line"><span class="cl">  -f --foreground                Run Zabbix agent in foreground
+</span></span><span class="line"><span class="cl">  -p --print                     Print known items and <span class="nb">exit</span>
+</span></span><span class="line"><span class="cl">  -t --test item-key             Test specified item and <span class="nb">exit</span>
+</span></span><span class="line"><span class="cl">  -T --test-config               Validate configuration file and <span class="nb">exit</span>
+</span></span><span class="line"><span class="cl">  -R --runtime-control runtime-option   Perform administrative functions
+</span></span><span class="line"><span class="cl">   ......
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>命令格式：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">zabbix_agentd <span class="o">[</span>-c config-file<span class="o">]</span> -p<span class="p">|</span> -t item-key
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">属性解析：
+</span></span><span class="line"><span class="cl">-c 指定 zabbix 的客户端配置文件，不写表示使用默认的配置文件
+</span></span><span class="line"><span class="cl">-p 打印所有的有效监控条目
+</span></span><span class="line"><span class="cl">-t 测试指定监控条目的数据获取效果
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h5 id="命令实践">命令实践
+</h5><ul>
+<li>打印所有有效监控条目</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">zabbix_agentd -p
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/3-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E5%8E%9F%E7%90%86%E6%8B%86%E8%A7%A3/image-4.png"
+	width="1107"
+	height="858"
+	srcset="/p/3-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E5%8E%9F%E7%90%86%E6%8B%86%E8%A7%A3/image-4_hu_fc0ee846303e3ea5.png 480w, /p/3-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E5%8E%9F%E7%90%86%E6%8B%86%E8%A7%A3/image-4_hu_9a55b02dba1fd1cc.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="129"
+		data-flex-basis="309px"
+	
+></p>
+<ul>
+<li>获取所有有效监控条目的第一列</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">zabbix_agentd -p <span class="p">|</span> awk <span class="s1">&#39;{print $1}&#39;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/3-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E5%8E%9F%E7%90%86%E6%8B%86%E8%A7%A3/image-5.png"
+	width="554"
+	height="858"
+	srcset="/p/3-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E5%8E%9F%E7%90%86%E6%8B%86%E8%A7%A3/image-5_hu_19261b5e53a8b47c.png 480w, /p/3-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E5%8E%9F%E7%90%86%E6%8B%86%E8%A7%A3/image-5_hu_25e1897aeda96ed8.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="64"
+		data-flex-basis="154px"
+	
+></p>
+<ul>
+<li>获取所有有效监控条目的第一列并删除以0开头的数据</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">zabbix_agentd -p <span class="p">|</span> awk <span class="s1">&#39;{print $1}&#39;</span> <span class="p">|</span> grep -v <span class="s1">&#39;^0&#39;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/3-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E5%8E%9F%E7%90%86%E6%8B%86%E8%A7%A3/image-6.png"
+	width="584"
+	height="858"
+	srcset="/p/3-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E5%8E%9F%E7%90%86%E6%8B%86%E8%A7%A3/image-6_hu_739c0c631e6d739a.png 480w, /p/3-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E5%8E%9F%E7%90%86%E6%8B%86%E8%A7%A3/image-6_hu_e5c75a1039d991b9.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="68"
+		data-flex-basis="163px"
+	
+></p>
+<ul>
+<li>查看system.hostname</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# zabbix_agentd -t system.hostname
+</span></span><span class="line"><span class="cl">system.hostname                               <span class="o">[</span>s<span class="p">|</span>lin-server<span class="o">]</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>查看system.uptime</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# zabbix_agentd -t system.uptime
+</span></span><span class="line"><span class="cl">system.uptime                                 <span class="o">[</span>u<span class="p">|</span>4165<span class="o">]</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>查看system.sw.arch</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# zabbix_agentd -t system.sw.arch
+</span></span><span class="line"><span class="cl">system.sw.arch                                <span class="o">[</span>s<span class="p">|</span>x86_64<span class="o">]</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>查看system.cpu.num</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# zabbix_agentd -t system.cpu.num
+</span></span><span class="line"><span class="cl">system.cpu.num                                <span class="o">[</span>u<span class="p">|</span>4<span class="o">]</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/3-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E5%8E%9F%E7%90%86%E6%8B%86%E8%A7%A3/image-7.png"
+	width="1613"
+	height="712"
+	srcset="/p/3-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E5%8E%9F%E7%90%86%E6%8B%86%E8%A7%A3/image-7_hu_1a16c0ab181b33f0.png 480w, /p/3-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E5%8E%9F%E7%90%86%E6%8B%86%E8%A7%A3/image-7_hu_473eff5899c760f0.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="226"
+		data-flex-basis="543px"
+	
+></p>
+<h4 id="创建-zabbix-agent-客户端主机">创建 zabbix-agent 客户端主机
+</h4><ol>
+<li>在 192.168.172.121 服务器中安装 zabbix-agent</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">wget https://repo.zabbix.com/zabbix/7.0/ubuntu/pool/main/z/zabbix-release/zabbix-release_latest_7.0+ubuntu24.04_all.deb
+</span></span><span class="line"><span class="cl">dpkg -i zabbix-release_latest_7.0+ubuntu24.04_all.deb
+</span></span><span class="line"><span class="cl">apt update
+</span></span><span class="line"><span class="cl">apt install zabbix-agent
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="2">
+<li>设置服务端ip</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# vim /etc/zabbix/zabbix_agentd.conf
+</span></span><span class="line"><span class="cl">....
+</span></span><span class="line"><span class="cl"><span class="nv">Server</span><span class="o">=</span>192.168.172.120
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="3">
+<li>服务端使用 zabbix_get 测试</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# zabbix_get -s 192.168.172.121 -p <span class="m">10050</span> -k <span class="s2">&#34;system.cpu.num&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="m">2</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="zabbix_get-解析">zabbix_get 解析
+</h4><h5 id="命令解析-1">命令解析
+</h5><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# zabbix_get --help
+</span></span><span class="line"><span class="cl">Usage:
+</span></span><span class="line"><span class="cl">  zabbix_get -s host-name-or-IP <span class="o">[</span>-p port-number<span class="o">]</span> <span class="o">[</span>-I IP-address<span class="o">]</span> <span class="o">[</span>-t timeout<span class="o">]</span>
+</span></span><span class="line"><span class="cl">                -k item-key
+</span></span><span class="line"><span class="cl">  zabbix_get -s host-name-or-IP <span class="o">[</span>-p port-number<span class="o">]</span> <span class="o">[</span>-I IP-address<span class="o">]</span> <span class="o">[</span>-t timeout<span class="o">]</span>
+</span></span><span class="line"><span class="cl">                --tls-connect cert --tls-ca-file CA-file
+</span></span><span class="line"><span class="cl">                <span class="o">[</span>--tls-crl-file CRL-file<span class="o">]</span> <span class="o">[</span>--tls-agent-cert-issuer cert-issuer<span class="o">]</span>
+</span></span><span class="line"><span class="cl">                <span class="o">[</span>--tls-agent-cert-subject cert-subject<span class="o">]</span>
+</span></span><span class="line"><span class="cl">                --tls-cert-file cert-file --tls-key-file key-file
+</span></span><span class="line"><span class="cl">                <span class="o">[</span>--tls-cipher13 cipher-string<span class="o">]</span> <span class="o">[</span>--tls-cipher cipher-string<span class="o">]</span>
+</span></span><span class="line"><span class="cl">                -k item-key
+</span></span><span class="line"><span class="cl">  zabbix_get -s host-name-or-IP <span class="o">[</span>-p port-number<span class="o">]</span> <span class="o">[</span>-I IP-address<span class="o">]</span> <span class="o">[</span>-t timeout<span class="o">]</span>
+</span></span><span class="line"><span class="cl">                --tls-connect psk --tls-psk-identity PSK-identity
+</span></span><span class="line"><span class="cl">                --tls-psk-file PSK-file <span class="o">[</span>--tls-cipher13 cipher-string<span class="o">]</span>
+</span></span><span class="line"><span class="cl">                <span class="o">[</span>--tls-cipher cipher-string<span class="o">]</span> -k item-key
+</span></span><span class="line"><span class="cl">  zabbix_get -h
+</span></span><span class="line"><span class="cl">  zabbix_get -V
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">Get data from Zabbix agent.
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">General options:
+</span></span><span class="line"><span class="cl">  -s --host host-name-or-IP  Specify host name or IP address of a host
+</span></span><span class="line"><span class="cl">  -p --port port-number      Specify port number of agent running on the host
+</span></span><span class="line"><span class="cl">                             <span class="o">(</span>default: 10050<span class="o">)</span>
+</span></span><span class="line"><span class="cl">  -I --source-address IP-address   Specify <span class="nb">source</span> IP address
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  -t --timeout seconds       Specify timeout. Valid range: 1-600 seconds
+</span></span><span class="line"><span class="cl">                             <span class="o">(</span>default: <span class="m">30</span> seconds<span class="o">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  -k --key item-key          Specify key of the item to retrieve value <span class="k">for</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>命令格式：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">zabbix_get -s host-name-or-IP <span class="o">[</span>-p port-number<span class="o">]</span> <span class="o">[</span>-I IP-address<span class="o">]</span> -k item-key
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">属性解析
+</span></span><span class="line"><span class="cl">-s：远程Zabbix-Agent配置文件中设置的IP地址或者是主机名。如果指定的ip不存则发生报错
+</span></span><span class="line"><span class="cl">-p：远程Zabbix-Agent的端口。
+</span></span><span class="line"><span class="cl">-l：本机出去的IP地址，用于一台机器中又多个网卡的情况。
+</span></span><span class="line"><span class="cl">-k：获取远程Zabbix-Agent数据所使用的Key（监控条目关键字，可以通过zabbix_agentd命令获取）
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h5 id="命令实践-1">命令实践
+</h5><ul>
+<li>查询本机客户端的cpu数量</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# zabbix_get -s 192.168.172.120 -p <span class="m">10050</span> -k <span class="s2">&#34;system.cpu.num&#34;</span>
+</span></span><span class="line"><span class="cl">ZBX_NOTSUPPORTED: Received empty response from Zabbix Agent at <span class="o">[</span>192.168.172.120<span class="o">]</span>. Assuming that agent dropped connection because of access permissions.
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>可以看到，无法获取响应</p>
+<ul>
+<li>修改本机客户端的服务端ip</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# vim /etc/zabbix/zabbix_agentd.conf
+</span></span><span class="line"><span class="cl">...
+</span></span><span class="line"><span class="cl"><span class="nv">Server</span><span class="o">=</span>192.168.172.120
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>重启zabbix-agent</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">systemctl restart zabbix-agent
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>查询本机客户端的cpu数量</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# zabbix_get -s 192.168.172.120 -p <span class="m">10050</span> -k <span class="s2">&#34;system.cpu.num&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="m">4</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div>
+</section>
+
+
+    <footer class="article-footer">
+    
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+<aside class="related-content--wrapper">
+    <h2 class="section-title">相关文章</h2>
+    <div class="related-content">
+        <div class="flex article-list--tile">
+            
+                
+<article class="">
+    <a href="/p/4-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E6%B5%81%E7%A8%8B%E5%AE%9E%E8%B7%B5/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">4-[马哥][zabbix]监控流程实践</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/2-%E9%A9%AC%E5%93%A5zabbix%E7%8E%AF%E5%A2%83%E9%83%A8%E7%BD%B2/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">2-[马哥][zabbix]环境部署</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/1-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">1-[马哥][zabbix]监控基础知识</h2>
+        </div>
+    </a>
+</article>
+
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+            2025 - 
+        
+        2026 リンボの個人ブログ
+    </section>
+    
+    <section class="powerby">
+         <br />
+        
+    </section>
+</footer>
+
+
+    
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+    
+    <div class="pswp__bg"></div>
+
+    
+    <div class="pswp__scroll-wrap">
+
+        
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+
+        
+        <div class="pswp__ui pswp__ui--hidden">
+
+            <div class="pswp__top-bar">
+
+                
+
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+
+                <button class="pswp__button pswp__button--share" title="Share"></button>
+
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+
+                
+                
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                        <div class="pswp__preloader__cut">
+                            <div class="pswp__preloader__donut"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div>
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.js"integrity="sha256-ePwmChbbvXbsO02lbM3HoHbSHTHFAeChekF1xKJdleo="crossorigin="anonymous"
+                defer
+                >
+            </script><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe-ui-default.min.js"integrity="sha256-UKkzOn/w1mBxRmLLGrSeyB4e1xbrp4xylgAWb3M42pU="crossorigin="anonymous"
+                defer
+                >
+            </script><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/default-skin/default-skin.min.css"crossorigin="anonymous"
+            ><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.css"crossorigin="anonymous"
+            >
+
+            </main>
+        </div>
+        <script 
+                src="https://cdn.jsdelivr.net/npm/node-vibrant@3.1.6/dist/vibrant.min.js"integrity="sha256-awcR2jno4kI5X0zL8ex0vi2z&#43;KMkF24hUW8WePSA9HM="crossorigin="anonymous"
+                
+                >
+            </script><script type="text/javascript" src="/ts/main.1e9a3bafd846ced4c345d084b355fb8c7bae75701c338f8a1f8a82c780137826.js" defer></script>
+<script>
+    (function () {
+        const customFont = document.createElement('link');
+        customFont.href = "https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap";
+
+        customFont.type = "text/css";
+        customFont.rel = "stylesheet";
+
+        document.head.appendChild(customFont);
+    }());
+</script>
+
+    </body>
+</html>
