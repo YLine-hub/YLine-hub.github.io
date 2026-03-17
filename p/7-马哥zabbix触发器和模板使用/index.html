@@ -1,0 +1,3153 @@
+<!DOCTYPE html>
+<html lang="en-us" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="触发器 触发器基础 触发器是什么 触发器是什么？ zabbix中的item监控项仅负责收集数据，对收集的数据一般需要进行简单的分析，然后根据特定的指标进行评判，如果对应的数据超出合理范围时则进行相关的处理，比如发出警告或者执行某些特定的动作。所以就需要有一种资源能够对获取监控数据的数据与特定指标进行评判后的并设定后续执行动作，这个资源就叫触发器（triger）。\n">
+<title>7-[马哥][zabbix]触发器和模板使用</title>
+
+<link rel='canonical' href='https://YLine-hub.github.io/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/'>
+
+<link rel="stylesheet" href="/scss/style.min.6a692fd055deae459f2a9767f57f3855ba80cafd5041317f24f7360f6ca47cdf.css"><meta property='og:title' content="7-[马哥][zabbix]触发器和模板使用">
+<meta property='og:description' content="触发器 触发器基础 触发器是什么 触发器是什么？ zabbix中的item监控项仅负责收集数据，对收集的数据一般需要进行简单的分析，然后根据特定的指标进行评判，如果对应的数据超出合理范围时则进行相关的处理，比如发出警告或者执行某些特定的动作。所以就需要有一种资源能够对获取监控数据的数据与特定指标进行评判后的并设定后续执行动作，这个资源就叫触发器（triger）。\n">
+<meta property='og:url' content='https://YLine-hub.github.io/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/'>
+<meta property='og:site_name' content='リンボの個人ブログ'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:published_time' content='2026-03-16T11:56:54&#43;08:00'/><meta property='article:modified_time' content='2026-03-16T11:56:54&#43;08:00'/>
+<meta name="twitter:title" content="7-[马哥][zabbix]触发器和模板使用">
+<meta name="twitter:description" content="触发器 触发器基础 触发器是什么 触发器是什么？ zabbix中的item监控项仅负责收集数据，对收集的数据一般需要进行简单的分析，然后根据特定的指标进行评判，如果对应的数据超出合理范围时则进行相关的处理，比如发出警告或者执行某些特定的动作。所以就需要有一种资源能够对获取监控数据的数据与特定指标进行评判后的并设定后续执行动作，这个资源就叫触发器（triger）。\n">
+    <link rel="shortcut icon" href="/favicon.ico" />
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        
+            
+            <figure class="site-avatar">
+                <a href="/">
+                
+                    
+                    
+                    
+                        
+                        <img src="/img/avatar_hu_de528bff5d5e9598.png" width="300"
+                            height="300" class="site-logo" loading="lazy" alt="Avatar">
+                    
+                
+                </a>
+                
+                    <span class="emoji">🏖️</span>
+                
+            </figure>
+            
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">リンボの個人ブログ</a></h1>
+            <h2 class="site-description">努力不一定能获得回报，但不努力一定不会有回报。</h2>
+        </div>
+    </header><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-home" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <polyline points="5 12 3 12 12 3 21 12 19 12" />
+  <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7" />
+  <path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6" />
+</svg>
+
+
+
+                
+                <span>主页</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/%E5%85%B3%E4%BA%8E/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/archives/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/search/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-search" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="10" cy="10" r="7" />
+  <line x1="21" y1="21" x2="15" y2="15" />
+</svg>
+
+
+
+                
+                <span>搜索</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav id="TableOfContents">
+  <ol>
+    <li><a href="#触发器">触发器</a>
+      <ol>
+        <li><a href="#触发器基础">触发器基础</a>
+          <ol>
+            <li><a href="#触发器是什么">触发器是什么</a></li>
+            <li><a href="#触发器样式">触发器样式</a></li>
+            <li><a href="#触发器级别">触发器级别</a></li>
+          </ol>
+        </li>
+        <li><a href="#语法解析">语法解析</a>
+          <ol>
+            <li><a href="#表达式语法">表达式语法</a></li>
+            <li><a href="#函数语法">函数语法</a></li>
+            <li><a href="#触发器变量">触发器变量</a></li>
+            <li><a href="#触发器提醒">触发器提醒</a></li>
+          </ol>
+        </li>
+        <li><a href="#配置解析">配置解析</a>
+          <ol>
+            <li><a href="#触发器样式-1">触发器样式</a></li>
+            <li><a href="#触发器配置样式">触发器配置样式</a></li>
+            <li><a href="#简单实践">简单实践</a></li>
+          </ol>
+        </li>
+      </ol>
+    </li>
+    <li><a href="#模板">模板</a>
+      <ol>
+        <li><a href="#模板实践">模板实践</a>
+          <ol>
+            <li><a href="#定制item">定制item</a></li>
+            <li><a href="#定制模板">定制模板</a></li>
+            <li><a href="#使用模板">使用模板</a></li>
+          </ol>
+        </li>
+      </ol>
+    </li>
+    <li><a href="#综合实践">综合实践</a>
+      <ol>
+        <li><a href="#tcp实践">TCP实践</a>
+          <ol>
+            <li><a href="#基础知识">基础知识</a></li>
+            <li><a href="#案例实践">案例实践</a></li>
+            <li><a href="#监控项脚本">监控项脚本</a></li>
+            <li><a href="#监控配置">监控配置</a></li>
+            <li><a href="#加载模板">加载模板</a></li>
+            <li><a href="#使用模板-1">使用模板</a></li>
+          </ol>
+        </li>
+        <li><a href="#mysql监控agent">MySQL监控（agent）</a>
+          <ol>
+            <li><a href="#环境准备">环境准备</a></li>
+            <li><a href="#mysql参数配置文件">mysql参数配置文件</a></li>
+            <li><a href="#配置-mysql-登录凭证">配置 MySQL 登录凭证</a></li>
+            <li><a href="#selinux配置若启用">SELinux配置（若启用）</a></li>
+            <li><a href="#zabbix-前端配置">Zabbix 前端配置</a></li>
+          </ol>
+        </li>
+        <li><a href="#mysql监控agent马哥">MySQL监控（agent）（马哥）</a>
+          <ol>
+            <li><a href="#环境准备-1">环境准备</a></li>
+            <li><a href="#mysql脚本">mysql脚本</a></li>
+            <li><a href="#监控项配置">监控项配置</a></li>
+          </ol>
+        </li>
+      </ol>
+    </li>
+  </ol>
+</nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            <a href="/categories/zabbix/" >
+                Zabbix
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/">7-[马哥][zabbix]触发器和模板使用</a>
+        </h2>
+    
+        
+    </div>
+
+    
+    
+    
+    
+    <footer class="article-time">
+        
+            <div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                <time class="article-time--published">2026-03-16</time>
+            </div>
+        
+
+        
+    </footer>
+    
+
+    
+</div>
+
+</header>
+
+    <section class="article-content">
+    
+    
+    <h2 id="触发器">触发器
+</h2><h3 id="触发器基础">触发器基础
+</h3><h4 id="触发器是什么">触发器是什么
+</h4><ul>
+<li>触发器是什么？</li>
+</ul>
+<blockquote>
+<p>zabbix中的item监控项仅负责收集数据，对收集的数据一般需要进行简单的分析，然后根据特定的指标进行评判，如果对应的数据超出合理范围时则进行相关的处理，比如发出警告或者执行某些特定的动作。所以就需要有一种资源能够对获取监控数据的数据与特定指标进行评判后的并设定后续执行动作，这个资源就叫触发器（triger）。</p>
+</blockquote>
+<blockquote>
+<p>触发器其实就是一些条件的定义，一个触发器是根据一个监控项的返回值，将之与预先设置的阀值进行对比，当监控项返回了不符合预定义的值范围后，就进行触发下一步操作的警戒线，一般要对创建的监控项设置触发器以及触发方式和值的大小。</p>
+</blockquote>
+<ul>
+<li>trigger和item</li>
+</ul>
+<blockquote>
+<p>每一个trigger仅能管理一个item，而同一个item可以同时使用多个trigger这样就可以实现不同级别的后续动作处理，一般就是分级告警机制。
+可以在指定主机上创建触发器，知识针对指定主机有效：也可以在指定模板上创建触发器，则使用此模板的所有主机都有效，一个模板中可以有多触发器。</p>
+</blockquote>
+<ul>
+<li>触发器结构</li>
+</ul>
+<blockquote>
+<p>每个触发器由一个表达式构成，它定义了监控项所采集的数据的一个阀值，一旦某次采集的数据超出了触发器定义的阀值，触发器状态将会转为“PROBLEM”；而当采取的数据再次回归至合理的范围内时，其状态将重新返回到“OK”。
+触发器中使用的表达式是非常灵活的。可以使用它们去创建关于监控统计的复杂逻辑测试。</p>
+</blockquote>
+<ul>
+<li>进入到zabbix的首页Dashboard就可以看到相关的Problems内容</li>
+</ul>
+<p><img src="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image.png"
+	width="1514"
+	height="859"
+	srcset="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image_hu_fb823c541fcdc168.png 480w, /p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image_hu_49e47f8bc462ea6d.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="176"
+		data-flex-basis="423px"
+	
+></p>
+<blockquote>
+<p>注意：触发器是基于主机数据的来的，所以我们对于触发器的操作，需要进入到主机界面才可以管理。</p>
+</blockquote>
+<h4 id="触发器样式">触发器样式
+</h4><ul>
+<li>点击一个具体的Problems就可以看到Events详情</li>
+</ul>
+<p><img src="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-1.png"
+	width="1514"
+	height="637"
+	srcset="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-1_hu_87eb96629b734bce.png 480w, /p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-1_hu_d7755a98d3588a4d.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="237"
+		data-flex-basis="570px"
+	
+></p>
+<h4 id="触发器级别">触发器级别
+</h4><p><img src="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-2.png"
+	width="492"
+	height="36"
+	srcset="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-2_hu_8103528cbeeb1580.png 480w, /p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-2_hu_3c6be70b523b5ab9.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="1366"
+		data-flex-basis="3280px"
+	
+></p>
+<div class="table-wrapper"><table>
+  <thead>
+      <tr>
+          <th>级别</th>
+          <th>颜色</th>
+          <th>描述</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>Not classified</td>
+          <td>灰色</td>
+          <td>可以在事件的严重性级别未知、尚未确定、不属于常规监控范围等情况下使用，例如，在初始配置期间、作为未来评估的占位符或作为集成过程的一部分。</td>
+      </tr>
+      <tr>
+          <td>Information</td>
+          <td>浅蓝</td>
+          <td>可用于不需要立即关注但仍能提供有价值见解的信息性事件。</td>
+      </tr>
+      <tr>
+          <td>Warning</td>
+          <td>黄色</td>
+          <td>可以用于指示可能需要调查或采取行动的潜在问题，但这些问题并不严重。</td>
+      </tr>
+      <tr>
+          <td>Average</td>
+          <td>橙色</td>
+          <td>可用于指示一个应该相对较快地解决的重要问题，以防止进一步的问题发生。</td>
+      </tr>
+      <tr>
+          <td>High</td>
+          <td>淡红</td>
+          <td>可用于指示需要立即关注以避免发生重大中断的严重问题。</td>
+      </tr>
+      <tr>
+          <td>Disaster</td>
+          <td>红色</td>
+          <td>可用于指示需要立即采取行动以防止发生严重事件，例如系统停机或数据丢失。</td>
+      </tr>
+  </tbody>
+</table></div>
+<h3 id="语法解析">语法解析
+</h3><h4 id="表达式语法">表达式语法
+</h4><ul>
+<li>触发器官方文档</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">https://www.zabbix.com/documentation/7.0/en/manual/config/triggers/expression
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>触发器表达式的格式为</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-gdscript3" data-lang="gdscript3"><span class="line"><span class="cl"><span class="n">Zabbix6</span><span class="o">.</span><span class="mi">0</span><span class="err">版本后</span>
+</span></span><span class="line"><span class="cl">    <span class="n">function</span><span class="p">(</span><span class="o">/</span><span class="n">host</span><span class="o">/</span><span class="n">key</span><span class="p">,</span><span class="n">parameter</span><span class="p">)</span><span class="o">&lt;</span><span class="n">operator</span><span class="o">&gt;&lt;</span><span class="n">constant</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="err">示例：</span> <span class="nb">min</span><span class="p">(</span><span class="o">/</span><span class="n">Zabbix</span> <span class="n">server</span><span class="o">/</span><span class="n">net</span><span class="o">.</span><span class="k">if</span><span class="o">.</span><span class="ow">in</span><span class="p">[</span><span class="n">eth0</span><span class="p">,</span><span class="n">bytes</span><span class="p">],</span><span class="mi">5</span><span class="n">m</span><span class="p">)</span><span class="o">&gt;</span><span class="mi">100</span><span class="n">K</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">Zabbix5</span><span class="o">.</span><span class="mi">0</span><span class="err">版本前</span>
+</span></span><span class="line"><span class="cl">    <span class="p">{</span><span class="o">&lt;</span><span class="n">server</span><span class="o">|</span><span class="n">template</span><span class="o">&gt;</span><span class="p">:</span><span class="o">&lt;</span><span class="n">key</span><span class="o">&gt;.&lt;</span><span class="n">function</span><span class="o">&gt;</span><span class="p">(</span><span class="o">&lt;</span><span class="n">parameter</span><span class="o">&gt;</span><span class="p">)}</span><span class="o">&lt;</span><span class="n">operator</span><span class="o">&gt;&lt;</span><span class="n">constant</span><span class="o">&gt;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>语法解析：</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-gdscript3" data-lang="gdscript3"><span class="line"><span class="cl"><span class="n">host</span><span class="p">:</span> <span class="err">主机名称</span>
+</span></span><span class="line"><span class="cl"><span class="n">key</span><span class="p">:</span> <span class="err">主机上相应监控项的</span><span class="n">key</span>
+</span></span><span class="line"><span class="cl"><span class="n">parameter</span><span class="p">:</span> <span class="err">对数据的取值范围，比如</span> <span class="c1">#10 代表最近10个数，10m代表最近十分钟</span>
+</span></span><span class="line"><span class="cl"><span class="n">function</span><span class="p">:</span> <span class="err">评估采集到的数据是否在合理范围内时所使用的函数，其评估过程可以根据采取的数据、当前时间及其它因素进行</span>
+</span></span><span class="line"><span class="cl"><span class="n">operator</span><span class="p">:</span> <span class="err">操作符号，</span><span class="o">+</span><span class="err">、</span><span class="o">-</span><span class="err">、</span><span class="o">*</span><span class="err">、</span><span class="o">/</span><span class="err">、</span><span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span><span class="err">、</span><span class="o">&amp;</span><span class="n">gt</span><span class="p">;</span><span class="err">、</span><span class="c1">#(不等于)、=、&amp;(逻辑与)、|(逻辑或)</span>
+</span></span><span class="line"><span class="cl"><span class="n">constant</span><span class="p">:</span> <span class="err">评判数据的阀值</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="函数语法">函数语法
+</h4><h4>官方文档</h4>
+<ul>
+<li>函数官方文档</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">https://www.zabbix.com/documentation/7.0/en/manual/appendix/functions
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>功能函数</li>
+</ul>
+<div class="table-wrapper"><table>
+  <thead>
+      <tr>
+          <th>名称</th>
+          <th>作用</th>
+          <th>名称</th>
+          <th>作用</th>
+          <th>名称</th>
+          <th>作用</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>avg</td>
+          <td>求平均值</td>
+          <td>count</td>
+          <td>数值统计</td>
+          <td>change</td>
+          <td>差值统计</td>
+      </tr>
+      <tr>
+          <td>date</td>
+          <td>当前日期</td>
+          <td>dayofweek</td>
+          <td>周第n天</td>
+          <td>delta</td>
+          <td>最大最小差值</td>
+      </tr>
+      <tr>
+          <td>diff</td>
+          <td>文件异常</td>
+          <td>regexp</td>
+          <td>内容正则匹配</td>
+          <td>iregexp</td>
+          <td>不敏感正则</td>
+      </tr>
+      <tr>
+          <td>last</td>
+          <td>最新采样数据</td>
+          <td>max</td>
+          <td>最大值</td>
+          <td>min</td>
+          <td>最小值</td>
+      </tr>
+      <tr>
+          <td>nodata</td>
+          <td>无数据</td>
+          <td>now</td>
+          <td>当前时间</td>
+          <td>prev</td>
+          <td>倒数第二采样</td>
+      </tr>
+      <tr>
+          <td>str</td>
+          <td>查找字符串</td>
+          <td>strlen</td>
+          <td>字符长度</td>
+          <td>sum</td>
+          <td>求和</td>
+      </tr>
+      <tr>
+          <td>logseverity</td>
+          <td>日志等级</td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td></td>
+      </tr>
+  </tbody>
+</table></div>
+<h4>特定函数参数</h4>
+<ul>
+<li>简介</li>
+</ul>
+<blockquote>
+<p>特定函数参数放在监控项键的后面，使用逗号隔开，完整的参数列表参考 支持函数。
+大多数数值函数接受时间参数，你可以使用秒或 时间后缀 来表示时间。参数前有#标记，也代表不同的含义。</p>
+</blockquote>
+<p>|表达式|描述|
+|sum(/host/key,10m)|最后10分钟的值求和。|
+|sum(/host/key,#10)|最后10个值求和。|</p>
+<p>带有#的参数在last函数中有不同的含义，-它表示第N个先前的值，因此给定值3，7，2，6，5（由近到远）：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">last(/host/key,#2) 将返回&#39;7&#39;
+</span></span><span class="line"><span class="cl">last(/host/key,#5) 将返回&#39;5&#39;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4>常见函数示例</h4>
+<ul>
+<li>平均值函数</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">avg(#5) -&gt; 最新5个值的平均值
+</span></span><span class="line"><span class="cl">avg(1h) -&gt; 最近一小时的平均值
+</span></span><span class="line"><span class="cl">avg(1h,1d) -&gt; 一小时前+24h的平均值
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>最小值函数</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-gdscript3" data-lang="gdscript3"><span class="line"><span class="cl"><span class="n">CPU使用率最近5分钟的最小值大于6</span>
+</span></span><span class="line"><span class="cl"><span class="n">system</span><span class="o">.</span><span class="n">cpu</span><span class="o">.</span><span class="n">load</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="mi">5</span><span class="n">m</span><span class="p">)</span><span class="o">&gt;</span><span class="mi">6</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">CPU最近5次最小的值大于2</span>
+</span></span><span class="line"><span class="cl"><span class="n">system</span><span class="o">.</span><span class="n">cpu</span><span class="o">.</span><span class="n">load</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="c1">#5)&gt;2</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>最大值函数</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">max(#5) -&gt; 最新5个值的最大值
+</span></span><span class="line"><span class="cl">max(1h) -&gt; 最近一小时的最大值
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>last() 最后的第几个值</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">last的 #num 参数和在其它函数中的作用不同
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">例如：返回值 3，7，2，6，9
+</span></span><span class="line"><span class="cl">last() 通常等同于 last(#1)
+</span></span><span class="line"><span class="cl">last(#5) - 第五个最新值，注意：不是五个最新值
+</span></span><span class="line"><span class="cl">last(#2) - 将返回值为7，last(#5)返回值为9
+</span></span><span class="line"><span class="cl">last(#10,30) - 表示每隔30s采样一次，取倒数第10个值
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>nodata()监控一段时间内是否返回数据</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">时间不少于30秒，因为timer处理器每30秒调用一次
+</span></span><span class="line"><span class="cl">    返回1 - 指定评估期没有接收到数据
+</span></span><span class="line"><span class="cl">    返回0 - 其它
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>diff()比对上一次文件的内容</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">返回值为1，表示发生变化，返回值为0，表示没有变化
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4>表达式语句</h4>
+<p>Zabbix server主机上，最近1分钟的CPU负载大于5就触发“Problem”告警</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-gdscript3" data-lang="gdscript3"><span class="line"><span class="cl"><span class="n">last</span><span class="p">(</span><span class="o">/</span><span class="n">Zabbix</span> <span class="n">server</span><span class="o">/</span><span class="n">system</span><span class="o">.</span><span class="n">cpu</span><span class="o">.</span><span class="n">load</span><span class="p">[</span><span class="n">all</span><span class="p">,</span><span class="n">avg1</span><span class="p">])</span><span class="o">&gt;</span><span class="mi">5</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="err">语句解析：</span>
+</span></span><span class="line"><span class="cl">    <span class="n">Zabbix</span> <span class="n">server</span> <span class="err">主机名，</span><span class="n">cpu</span><span class="o">.</span><span class="n">load</span><span class="p">[</span><span class="n">all</span><span class="p">,</span><span class="n">avg1</span><span class="p">]</span> <span class="err">是监控项</span><span class="n">item</span><span class="err">，</span><span class="n">last</span><span class="p">()</span><span class="err">是获取最新数据</span>
+</span></span><span class="line"><span class="cl">    <span class="o">&gt;</span> <span class="err">是操作符号，</span><span class="mi">5</span><span class="err">是用户指定用于评判的阀值</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><a class="link" href="https://www.zabbix.com"  target="_blank" rel="noopener"
+    >www.zabbix.com</a>主机上，最近1分钟的CPU负载大于5或者10分钟之内最小值大于2就触发“Problem”告警</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-gdscript3" data-lang="gdscript3"><span class="line"><span class="cl"><span class="n">last</span><span class="p">(</span><span class="o">/</span><span class="n">www</span><span class="o">.</span><span class="n">zabbix</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">system</span><span class="o">.</span><span class="n">cpu</span><span class="o">.</span><span class="n">load</span><span class="p">[</span><span class="n">all</span><span class="p">,</span><span class="n">avg1</span><span class="p">])</span><span class="o">&gt;</span><span class="mi">5</span> <span class="ow">or</span>
+</span></span><span class="line"><span class="cl"><span class="nb">min</span><span class="p">(</span><span class="o">/</span><span class="n">www</span><span class="o">.</span><span class="n">zabbix</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">system</span><span class="o">.</span><span class="n">cpu</span><span class="o">.</span><span class="n">load</span><span class="p">[</span><span class="n">all</span><span class="p">,</span><span class="n">avg1</span><span class="p">],</span><span class="mi">10</span><span class="n">m</span><span class="p">)</span><span class="o">&gt;</span><span class="mi">2</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><a class="link" href="https://www.zabbix.com"  target="_blank" rel="noopener"
+    >www.zabbix.com</a>主机上，指定的/path/to/file文件发生变化就触发“Problem”告警</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">(last(/www.zabbix.com/vfs.file.cksum[/etc/passwd],#1))
+</span></span><span class="line"><span class="cl">&lt;&gt;last(/www.zabbix.com/vfs.file.cksum[/etc/passwd],#2))=1
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><a class="link" href="https://www.zabbix.com"  target="_blank" rel="noopener"
+    >www.zabbix.com</a>主机上的ens33网卡之间的数据流量在5分钟内的值大于100K的时候，触发“Problem”告警</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">min(/www.zabbix.com/net.if.in[eth0,bytes],5m)&gt;100K
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>zabbix.zabbix.com主机上，如果30分钟内，超过5次无法正常的ping，那么触发“Problem”告警</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">count(/zabbix.zabbix.com/icmpping,30m,&#34;0&#34;)&gt;5
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="触发器变量">触发器变量
+</h4><p>简单示例中，我们仅仅是演示了如何触发问题动作，而我们的实际生产中，经常会出现偶尔触发的问题，对于这类问题，我们就需要自动的调节功能，超过阀值就报警，小于阀值就还原。</p>
+<blockquote>
+<p>对于这种场景，我们触发器的值就需要有超过1个值了，但是一个触发器只能监控1个item，所以就需要在一个头触发器语句中，自动变换多个值，我们就可以借助于Trigger的&quot;{TRIGGER.VALUE}&ldquo;结合()来实现多值的自动切换。</p>
+</blockquote>
+<p>注意：</p>
+<blockquote>
+<p>这里的 {TRIGGER.VALUE} 指的是 zabbix 在创建的时候，定制的变量名 &ndash; 宏，我们可以直接拿过来使用，自动获取该属性的值，当然了，这个变量名，我们也可以自己定义。
+参考资料
+<a class="link" href="https://www.zabbix.com/documentation/current/manual/appendix/macros/supported_by_location"  target="_blank" rel="noopener"
+    >https://www.zabbix.com/documentation/current/manual/appendix/macros/supported_by_location</a></p>
+</blockquote>
+<p>综合示例</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">剩余空间小于10G自动触发异常，剩余空间大于40G才自动解除异常
+</span></span><span class="line"><span class="cl">({TRIGGER.VALUE}=0 &amp; min(/server/vfs.fs.size[/,free],10m)&gt;40G
+</span></span><span class="line"><span class="cl">({TRIGGER.VALUE}=1 &amp; min(/server/vfs.fs.size[/,free],10m)&gt;40G
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">语法解析：
+</span></span><span class="line"><span class="cl">{TRIGGER.VALUE} 自动获取触发异常时候的数据值
+</span></span><span class="line"><span class="cl">() 代表里面的多个表达式是一个整体，多个()，第一个表示触发异常，第二个表示恢复正常。
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="触发器提醒">触发器提醒
+</h4><p>在zabbix环境下，关于触发器的提醒主要有两种风格：图形界面和声音提醒</p>
+<h4>图形界面</h4>
+<p>点击仪表盘，可以看到各种风格的告警信息</p>
+<p><img src="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-3.png"
+	width="1516"
+	height="854"
+	srcset="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-3_hu_81feb3bdc2ce3615.png 480w, /p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-3_hu_fc1e95e56968e41f.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="177"
+		data-flex-basis="426px"
+	
+></p>
+<h4>声音界面</h4>
+<p>点击左边栏的用户设置，点击设置，找到前端通知，勾选前端通知，可以看到各种告警的声音提醒。</p>
+<p><img src="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-4.png"
+	width="1517"
+	height="974"
+	srcset="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-4_hu_ed1872a68f0cbe74.png 480w, /p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-4_hu_73689b08857dc573.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="155"
+		data-flex-basis="373px"
+	
+></p>
+<h3 id="配置解析">配置解析
+</h3><h4 id="触发器样式-1">触发器样式
+</h4><p>从Data collection进入到Hosts的界面，效果如下</p>
+<p><img src="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-5.png"
+	width="1516"
+	height="568"
+	srcset="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-5_hu_573cb1d428c30bf3.png 480w, /p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-5_hu_1081f53ed39c2912.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="266"
+		data-flex-basis="640px"
+	
+></p>
+<p>点击任意一个主机条目右侧的 触发器，就可以看到触发器的控制界面效果</p>
+<p><img src="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-6.png"
+	width="1497"
+	height="802"
+	srcset="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-6_hu_390f9ecd13d2e02a.png 480w, /p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-6_hu_a4d90020846c7ac2.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="186"
+		data-flex-basis="447px"
+	
+></p>
+<p>对于个别的触发器来说，它是有大量的继承关系的，所以点击的时候，里面会包含多个触发器</p>
+<h4 id="触发器配置样式">触发器配置样式
+</h4><p>点击一个简单的触发器，查看效果</p>
+<p><img src="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-7.png"
+	width="1517"
+	height="1029"
+	srcset="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-7_hu_52331dd7770ab1fc.png 480w, /p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-7_hu_156a208d30dd1b23.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="147"
+		data-flex-basis="353px"
+	
+></p>
+<p>在Trigger的配置中，比较重要的就是以下三个属性</p>
+<blockquote>
+<p>Name 用于设定触发器的名称，如果需要携带特定主机唯一标识的话，可以借助于宏变量
+Serverity 用于设定触发器的安全等级，可以随机选择
+Expression 触发器的核心配置，表达式需要按照规矩来写</p>
+</blockquote>
+<p>表达式是需要根据实际情况来进行定制的，所以你的逻辑有多复杂，设计的表达式就有多复杂，比如下图所示</p>
+<p><img src="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-8.png"
+	width="1046"
+	height="903"
+	srcset="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-8_hu_b85b7ad7b2a3ebd8.png 480w, /p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-8_hu_24d4b14ab959dd21.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="115"
+		data-flex-basis="278px"
+	
+></p>
+<h4 id="简单实践">简单实践
+</h4><h4>创建触发器</h4>
+<p>进入数据采集的主机控制界面</p>
+<p><img src="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-9.png"
+	width="1513"
+	height="599"
+	srcset="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-9_hu_13ca50458888a29c.png 480w, /p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-9_hu_a09a0a9c43ec8835.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="252"
+		data-flex-basis="606px"
+	
+></p>
+<p>点击192.168.172.121后面的“Trigger”，查看效果</p>
+<p><img src="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-10.png"
+	width="1499"
+	height="735"
+	srcset="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-10_hu_1c2b10377111325.png 480w, /p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-10_hu_b3bfcc9a3ab4756c.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="203"
+		data-flex-basis="489px"
+	
+></p>
+<p>点击右上角的“Create trigger”，然后按照如下内容进行编辑，查看效果</p>
+<p><img src="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-11.png"
+	width="1517"
+	height="896"
+	srcset="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-11_hu_c9779550f6df2758.png 480w, /p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-11_hu_605c0d221db99e1f.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="169"
+		data-flex-basis="406px"
+	
+></p>
+<p>配置解析：</p>
+<blockquote>
+<p>Name 采用zabbix宏变量的效果自动获取部分数据值
+Serverity 选择Warning
+Expression 采用我们上一节的简单示例，1分钟之内负载值超过0.45就报警。不用选择时间间隔
+Allow manual close 勾选，表示允许认为关闭该告警信息</p>
+</blockquote>
+<h4>定制表达式</h4>
+<p>点击表达式右侧的 添加按钮</p>
+<p><img src="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-12.png"
+	width="672"
+	height="268"
+	srcset="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-12_hu_1ca3b2f009c90593.png 480w, /p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-12_hu_5d5a2c3557803359.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="250"
+		data-flex-basis="601px"
+	
+></p>
+<blockquote>
+<p>时间间隔不写的话，使用默认的时间间隔</p>
+</blockquote>
+<p>点击插入后的效果</p>
+<p><img src="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-13.png"
+	width="1046"
+	height="783"
+	srcset="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-13_hu_1f4b2fc15790eef0.png 480w, /p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-13_hu_c686c45d21bc78cd.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="133"
+		data-flex-basis="320px"
+	
+></p>
+<p>点击Add保存该触发器，查看效果</p>
+<p><img src="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-14.png"
+	width="1325"
+	height="342"
+	srcset="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-14_hu_e0039780c1fb08d8.png 480w, /p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-14_hu_636f4920cc592b6d.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="387"
+		data-flex-basis="929px"
+	
+></p>
+<p>使用Filter查询</p>
+<p><img src="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-15.png"
+	width="1325"
+	height="342"
+	srcset="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-15_hu_e0039780c1fb08d8.png 480w, /p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-15_hu_636f4920cc592b6d.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="387"
+		data-flex-basis="929px"
+	
+></p>
+<h4>确认触发器效果</h4>
+<p>点击192.168.172.121主机的items信息，可以看到添加了触发器功能</p>
+<p><img src="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-16.png"
+	width="1515"
+	height="469"
+	srcset="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-16_hu_dc22cc518705c917.png 480w, /p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-16_hu_4a7f0ab3b7c60c75.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="323"
+		data-flex-basis="775px"
+	
+></p>
+<p>点击graph，找到CPU平均负载图，点击预览，可以看到一条触发器的标识</p>
+<p><img src="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-17.png"
+	width="1514"
+	height="597"
+	srcset="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-17_hu_4d9e7b64945194b2.png 480w, /p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-17_hu_40f404dcc756970c.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="253"
+		data-flex-basis="608px"
+	
+></p>
+<h4>触发器测试</h4>
+<p>192.168.172.121主机，使用dd命令进行测试，使用命令，过一会儿，用<code>ctrl+c</code>进行退出</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# dd <span class="k">if</span><span class="o">=</span>/dev/zero <span class="nv">of</span><span class="o">=</span>/dev/null <span class="nv">bs</span><span class="o">=</span>1M <span class="nv">count</span><span class="o">=</span><span class="m">10000000000</span>
+</span></span><span class="line"><span class="cl">^C232852+0 records in
+</span></span><span class="line"><span class="cl">232852+0 records out
+</span></span><span class="line"><span class="cl"><span class="m">244163018752</span> bytes <span class="o">(</span><span class="m">244</span> GB, <span class="m">227</span> GiB<span class="o">)</span> copied, 1.27619 s, <span class="m">191</span> GB/s
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-18.png"
+	width="579"
+	height="63"
+	srcset="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-18_hu_c99cc3403ad67c4e.png 480w, /p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-18_hu_4b36cea5ac83a2a7.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="919"
+		data-flex-basis="2205px"
+	
+></p>
+<p>打开zabbix web界面，出现报警信息</p>
+<p><img src="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-19.png"
+	width="1342"
+	height="811"
+	srcset="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-19_hu_74125f46066586be.png 480w, /p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-19_hu_52b3617be5a283f6.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="165"
+		data-flex-basis="397px"
+	
+></p>
+<h4>告警升级</h4>
+<p>案例需求</p>
+<blockquote>
+<p>我们需要根据实际的数据做多个告警处理，比如CPU 1分钟的负载超过0.45就触发Warning，当负载数据超过0.85触发Average，当负载数据超过1.1就触发High告警</p>
+</blockquote>
+<p>所以我们需要在一个监控项上面做多个触发器 &ndash; 告警升级。</p>
+<p>修改Warning触发器，效果如下</p>
+<p><img src="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-20.png"
+	width="1046"
+	height="783"
+	srcset="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-20_hu_866dd0c590f04232.png 480w, /p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-20_hu_6f286b6d68abf2ed.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="133"
+		data-flex-basis="320px"
+	
+></p>
+<p>使用Warning触发器，点击克隆</p>
+<p><img src="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-21.png"
+	width="1046"
+	height="783"
+	srcset="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-21_hu_9a65ef249b034c5d.png 480w, /p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-21_hu_26138224fabf765c.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="133"
+		data-flex-basis="320px"
+	
+></p>
+<p>设置average触发器</p>
+<p><img src="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-22.png"
+	width="1046"
+	height="783"
+	srcset="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-22_hu_dc97cfde3c5bf3d4.png 480w, /p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-22_hu_548cf81866ace666.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="133"
+		data-flex-basis="320px"
+	
+></p>
+<p>点击添加</p>
+<p><img src="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-23.png"
+	width="1342"
+	height="390"
+	srcset="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-23_hu_38761257b04e7a98.png 480w, /p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-23_hu_a36f64e2c11df402.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="344"
+		data-flex-basis="825px"
+	
+></p>
+<p>与上一步相同一样，设置high触发器</p>
+<p><img src="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-24.png"
+	width="1046"
+	height="783"
+	srcset="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-24_hu_4bcdf9083e9f58cd.png 480w, /p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-24_hu_87bf24ae12e91d01.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="133"
+		data-flex-basis="320px"
+	
+></p>
+<p>点击添加</p>
+<p><img src="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-25.png"
+	width="1342"
+	height="421"
+	srcset="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-25_hu_7dc6b66cf38f1389.png 480w, /p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-25_hu_bb45a5502ac822c1.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="318"
+		data-flex-basis="765px"
+	
+></p>
+<h4>测试效果</h4>
+<p>在zabbix server主机上使用dd命令，检查触发器效果</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">dd <span class="k">if</span><span class="o">=</span>/dev/zero <span class="nv">of</span><span class="o">=</span>/dev/null <span class="nv">bs</span><span class="o">=</span>10M <span class="nv">count</span><span class="o">=</span><span class="m">1000000000</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>在当前的硬件条件下，这个命令几乎不可能正常结束。它会一直运行，直到你手动中断它（按 Ctrl + C）或者系统因为某些原因崩溃。它会持续消耗 CPU 和内存资源，但不会占用磁盘空间。</p>
+<h2 id="模板">模板
+</h2><h3 id="模板实践">模板实践
+</h3><h4 id="定制item">定制item
+</h4><h4>部署redis</h4>
+<p>需求</p>
+<blockquote>
+<p>定制专属的模板，肯定需要有专用的item，所以需要首先定制我们自己的item，这里我们采用redis服务来定制</p>
+</blockquote>
+<p>在192.168.172.121主机上，安装redis服务</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 安装软件</span>
+</span></span><span class="line"><span class="cl">apt install redis -y
+</span></span><span class="line"><span class="cl"><span class="c1"># 重启软件</span>
+</span></span><span class="line"><span class="cl">systemctl restart redis
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4>定制监控文件</h4>
+<p>定制监控文件</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">vim /etc/zabbix/zabbix_agentd.d/redis_monitor.sh
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>redis_monitor.sh</code></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="cp">#!/bin/bash
+</span></span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 定制环境变量</span>
+</span></span><span class="line"><span class="cl"><span class="nv">user_cmd</span><span class="o">=</span><span class="nv">$1</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">redis_status<span class="o">(){</span>
+</span></span><span class="line"><span class="cl">    <span class="nv">cmd</span><span class="o">=</span><span class="nv">$1</span>
+</span></span><span class="line"><span class="cl">    <span class="nv">redis_status_value</span><span class="o">=</span><span class="k">$(</span>/usr/bin/redis-cli -h 127.0.0.1 -p <span class="m">6379</span> info <span class="p">|</span> grep <span class="s2">&#34;</span><span class="nv">$cmd</span><span class="s2">:&#34;</span> <span class="p">|</span> cut -d<span class="s1">&#39;:&#39;</span> -f2 <span class="k">)</span>
+</span></span><span class="line"><span class="cl">    <span class="nb">echo</span> <span class="nv">$redis_status_value</span>
+</span></span><span class="line"><span class="cl"><span class="o">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">redis_status <span class="nv">$user_cmd</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-26.png"
+	width="838"
+	height="198"
+	srcset="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-26_hu_55d5d8b4a4b05908.png 480w, /p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-26_hu_b88ad6b793fa97b4.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="423"
+		data-flex-basis="1015px"
+	
+></p>
+<p>本地测试效果</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# /bin/bash /etc/zabbix/zabbix_agentd.d/redis_monitor.sh role
+</span></span><span class="line"><span class="cl">master
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-27.png"
+	width="638"
+	height="30"
+	srcset="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-27_hu_f0a0e325776c875d.png 480w, /p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-27_hu_d4c7824dc1d63e94.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="2126"
+		data-flex-basis="5104px"
+	
+></p>
+<h4>定制监控项</h4>
+<p>定制监控项配置文件</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">vim /etc/zabbix/zabbix_agentd.d/redis_status.conf
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>redis_status.conf</code></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="nv">UserParameter</span><span class="o">=</span>redis_status<span class="o">[</span>*<span class="o">]</span>,/bin/bash /etc/zabbix/zabbix_agentd.d/redis_monitor.sh <span class="s2">&#34;</span><span class="nv">$1</span><span class="s2">&#34;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>重启服务</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">systemctl restart zabbix-agent.service
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>远程测试效果</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# zabbix_get -s 192.168.172.121 -p <span class="m">10050</span> -k <span class="s1">&#39;redis_status[redis_version]&#39;</span>
+</span></span><span class="line"><span class="cl">7.0.15
+</span></span><span class="line"><span class="cl">root@lin-server:~# zabbix_get -s 192.168.172.121 -p <span class="m">10050</span> -k <span class="s1">&#39;redis_status[role]&#39;</span>
+</span></span><span class="line"><span class="cl">master
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-28.png"
+	width="731"
+	height="58"
+	srcset="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-28_hu_ed9beebcf249d893.png 480w, /p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-28_hu_d853adcd1b45af6a.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="1260"
+		data-flex-basis="3024px"
+	
+></p>
+<h4 id="定制模板">定制模板
+</h4><h4>创建模板</h4>
+<p>点击数据采集，点击模板【不是模板组】</p>
+<p><img src="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-29.png"
+	width="1514"
+	height="562"
+	srcset="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-29_hu_8e967d1f6a2101a4.png 480w, /p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-29_hu_7cbd3d0a0853060a.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="269"
+		data-flex-basis="646px"
+	
+></p>
+<p>点击创建模板，按照如下信息填写，模板组选择Templates即可。</p>
+<p><img src="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-30.png"
+	width="1046"
+	height="423"
+	srcset="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-30_hu_6b258fa4c4c88764.png 480w, /p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-30_hu_896fd5d59f194013.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="247"
+		data-flex-basis="593px"
+	
+></p>
+<blockquote>
+<p>注意：
+名称最好不要使用功能中文，否则的话，会报错 模板名称不规范
+如果存在类似的基础模板的话，可以关联一个现成的模板，因为我们的环境没有定制的监控项，所以我们这里的直接不关联任何信息。</p>
+</blockquote>
+<p>点击值映射，创建两个专属的值</p>
+<p><img src="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-31.png"
+	width="1517"
+	height="563"
+	srcset="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-31_hu_b3b2d3363766d1e1.png 480w, /p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-31_hu_c1395ed1b7432d87.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="269"
+		data-flex-basis="646px"
+	
+></p>
+<blockquote>
+<p>如果拿到的值为0，则替换为Down
+如果拿到的值为1，则替换为Up</p>
+</blockquote>
+<p>直接点击添加即可</p>
+<p><img src="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-32.png"
+	width="1342"
+	height="441"
+	srcset="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-32_hu_3f731283d4783d56.png 480w, /p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-32_hu_d43d6cd98305737c.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="304"
+		data-flex-basis="730px"
+	
+></p>
+<h4>添加监控项</h4>
+<p>点击my_redis右侧的监控项为模板添加监控项</p>
+<p><img src="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-33.png"
+	width="1342"
+	height="441"
+	srcset="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-33_hu_9d2e48a88c8f0054.png 480w, /p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-33_hu_f997e51e36f9b5aa.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="304"
+		data-flex-basis="730px"
+	
+></p>
+<ul>
+<li>监控项1</li>
+</ul>
+<p><img src="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-34.png"
+	width="1046"
+	height="765"
+	srcset="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-34_hu_6c8d7696eb3f468e.png 480w, /p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-34_hu_1b7a4d2f3072fbf4.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="136"
+		data-flex-basis="328px"
+	
+></p>
+<ul>
+<li>Test1</li>
+</ul>
+<p><img src="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-35.png"
+	width="821"
+	height="360"
+	srcset="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-35_hu_18d3810082c83936.png 480w, /p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-35_hu_42aa1fb563162d6c.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="228"
+		data-flex-basis="547px"
+	
+></p>
+<ul>
+<li>添加</li>
+</ul>
+<p><img src="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-36.png"
+	width="1342"
+	height="291"
+	srcset="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-36_hu_96bf3873f989f79f.png 480w, /p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-36_hu_db31d3e7290717fd.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="461"
+		data-flex-basis="1106px"
+	
+></p>
+<ul>
+<li>监控项2</li>
+</ul>
+<p><img src="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-37.png"
+	width="1046"
+	height="765"
+	srcset="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-37_hu_60391b7b16327070.png 480w, /p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-37_hu_32623f77b6c8b59e.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="136"
+		data-flex-basis="328px"
+	
+></p>
+<ul>
+<li>Test2</li>
+</ul>
+<p><img src="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-38.png"
+	width="821"
+	height="360"
+	srcset="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-38_hu_2a5eddda6b3b07ee.png 480w, /p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-38_hu_62e89f45ed478ab0.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="228"
+		data-flex-basis="547px"
+	
+></p>
+<ul>
+<li>添加</li>
+</ul>
+<p><img src="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-39.png"
+	width="1342"
+	height="320"
+	srcset="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-39_hu_b76717a650ae691f.png 480w, /p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-39_hu_f30fda9feb3dbb7e.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="419"
+		data-flex-basis="1006px"
+	
+></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">监控项1：
+</span></span><span class="line"><span class="cl">    redis客户端连接数
+</span></span><span class="line"><span class="cl">    redis_status[connected_clients]
+</span></span><span class="line"><span class="cl">监控项2：
+</span></span><span class="line"><span class="cl">    redis内存使用量
+</span></span><span class="line"><span class="cl">    redis_status[used_memory]
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>当然，在点击添加之前，还可以点击测试按钮，输入 模板主机的地址和agent的端口进行测试</p>
+<h4>添加触发器</h4>
+<p>点击图形上方的触发器，添加触发器</p>
+<ul>
+<li>触发器1</li>
+</ul>
+<p><img src="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-40.png"
+	width="1046"
+	height="783"
+	srcset="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-40_hu_c71aa0fd9cada4d0.png 480w, /p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-40_hu_dd9a8eab5a220c4.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="133"
+		data-flex-basis="320px"
+	
+></p>
+<ul>
+<li>触发器2</li>
+</ul>
+<p><img src="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-41.png"
+	width="1046"
+	height="783"
+	srcset="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-41_hu_1875de15737756b6.png 480w, /p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-41_hu_43193ab32b21e6f.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="133"
+		data-flex-basis="320px"
+	
+></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">触发器1：
+</span></span><span class="line"><span class="cl">    名称： {HOST.NAME} Redis客户端连接数过多
+</span></span><span class="line"><span class="cl">    表达式：last(/my_redis/redis_status[connected_clients],#1)&gt;2
+</span></span><span class="line"><span class="cl">    描述：Redis客户端连接数过多
+</span></span><span class="line"><span class="cl">触发器2：
+</span></span><span class="line"><span class="cl">    名称：{HOST.NAME} Redis内存使用量过多
+</span></span><span class="line"><span class="cl">    表达式：last(/my_redis/redis_status[used_memory],#1)&gt;2147483648
+</span></span><span class="line"><span class="cl">    描述：Redis 内存使用量超过2G，提示使用量过多
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>添加两个触发器后的效果</p>
+<p><img src="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-42.png"
+	width="1514"
+	height="444"
+	srcset="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-42_hu_c4d49ad9bf7ca925.png 480w, /p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-42_hu_5b6bab2afc27627c.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="340"
+		data-flex-basis="818px"
+	
+></p>
+<h4>添加graph图形</h4>
+<p>点击图形上方的图形，添加图形</p>
+<ul>
+<li>图形1</li>
+</ul>
+<p><img src="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-43.png"
+	width="1322"
+	height="566"
+	srcset="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-43_hu_f4452b6b7f8a6f10.png 480w, /p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-43_hu_e200487bb26de14c.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="233"
+		data-flex-basis="560px"
+	
+></p>
+<ul>
+<li>图形2</li>
+</ul>
+<p><img src="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-44.png"
+	width="1322"
+	height="566"
+	srcset="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-44_hu_f73ff8b82e611229.png 480w, /p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-44_hu_e47052c4ff808858.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="233"
+		data-flex-basis="560px"
+	
+></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">图形1：
+</span></span><span class="line"><span class="cl">    名称：Redis客户端连接数
+</span></span><span class="line"><span class="cl">    图片类型：正常
+</span></span><span class="line"><span class="cl">    查看触发器：勾选触发器
+</span></span><span class="line"><span class="cl">图形2：
+</span></span><span class="line"><span class="cl">    名称：Redis内存使用量
+</span></span><span class="line"><span class="cl">    图片类型：正常
+</span></span><span class="line"><span class="cl">    查看触发器：勾选触发器
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>添加两个图形后的效果</p>
+<p><img src="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-45.png"
+	width="1342"
+	height="322"
+	srcset="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-45_hu_e9c3c88742dca3b5.png 480w, /p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-45_hu_18d92295a75c04e7.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="416"
+		data-flex-basis="1000px"
+	
+></p>
+<h4>添加dashboard仪表盘</h4>
+<p><img src="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-46.png"
+	width="1515"
+	height="444"
+	srcset="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-46_hu_9b9ebb7a5109da89.png 480w, /p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-46_hu_fa3ea6a73bebae97.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="341"
+		data-flex-basis="818px"
+	
+></p>
+<p>设置仪表盘，并点击添加</p>
+<p><img src="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-47.png"
+	width="1046"
+	height="200"
+	srcset="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-47_hu_94daaefdff4b1163.png 480w, /p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-47_hu_8ac0f9af81c3a1e3.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="523"
+		data-flex-basis="1255px"
+	
+></p>
+<p>点击保存</p>
+<p><img src="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-48.png"
+	width="1327"
+	height="331"
+	srcset="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-48_hu_ac487b5b38b83657.png 480w, /p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-48_hu_78a027010263bdc8.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="400"
+		data-flex-basis="962px"
+	
+></p>
+<p><img src="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-49.png"
+	width="1342"
+	height="303"
+	srcset="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-49_hu_35e235761d8fc70d.png 480w, /p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-49_hu_d9818c742a7e91c5.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="442"
+		data-flex-basis="1062px"
+	
+></p>
+<p>添加组件-图形1</p>
+<p><img src="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-50.png"
+	width="1517"
+	height="408"
+	srcset="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-50_hu_cf9282735f2674b4.png 480w, /p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-50_hu_1bd9da03e756fc8.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="371"
+		data-flex-basis="892px"
+	
+></p>
+<p><img src="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-53.png"
+	width="669"
+	height="326"
+	srcset="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-53_hu_dc1a900c70719b87.png 480w, /p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-53_hu_c351c9ea7a87d00e.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="205"
+		data-flex-basis="492px"
+	
+></p>
+<p>添加组件-图形2</p>
+<p><img src="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-51.png"
+	width="1517"
+	height="470"
+	srcset="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-51_hu_8a8bad2dc50ae027.png 480w, /p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-51_hu_5e220263fce03ab1.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="322"
+		data-flex-basis="774px"
+	
+></p>
+<p><img src="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-52.png"
+	width="669"
+	height="326"
+	srcset="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-52_hu_cec95bb6addde7fa.png 480w, /p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-52_hu_9ed7eb03a9282a08.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="205"
+		data-flex-basis="492px"
+	
+></p>
+<p>点击保存</p>
+<p><img src="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-54.png"
+	width="1327"
+	height="463"
+	srcset="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-54_hu_2cb0e18cc57e4453.png 480w, /p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-54_hu_21ccb9394455faa1.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="286"
+		data-flex-basis="687px"
+	
+></p>
+<p><img src="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-55.png"
+	width="1342"
+	height="301"
+	srcset="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-55_hu_b660133b27fe9b1c.png 480w, /p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-55_hu_5d2d9fd5891c8a11.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="445"
+		data-flex-basis="1070px"
+	
+></p>
+<h4>模板最终效果</h4>
+<p>查看模板效果</p>
+<p><img src="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-56.png"
+	width="1342"
+	height="502"
+	srcset="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-56_hu_1e8a2b785afd45ee.png 480w, /p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-56_hu_41a622cc9757bfbe.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="267"
+		data-flex-basis="641px"
+	
+></p>
+<h4 id="使用模板">使用模板
+</h4><h4>添加主机</h4>
+<p>点击数据采集，点击主机，点击 创建主机</p>
+<p><img src="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-57.png"
+	width="1517"
+	height="685"
+	srcset="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-57_hu_3abcfe6fe937fcec.png 480w, /p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-57_hu_8f507a03c32f9770.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="221"
+		data-flex-basis="531px"
+	
+></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">主机名：192.168.172.121-redis-template
+</span></span><span class="line"><span class="cl">模板：输入redis关键字后，选择my_redis
+</span></span><span class="line"><span class="cl">主机群组：输入web关键字后，选择web-group
+</span></span><span class="line"><span class="cl">描述：By using the customized template method，add the host monitoring items.
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>点击添加</p>
+<p><img src="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-58.png"
+	width="1342"
+	height="681"
+	srcset="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-58_hu_1fac2402cfa0d0c2.png 480w, /p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-58_hu_a7012ebd75b3dde2.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="197"
+		data-flex-basis="472px"
+	
+></p>
+<p>等待ZBX状态变绿</p>
+<p><img src="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-59.png"
+	width="1322"
+	height="188"
+	srcset="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-59_hu_5fd7489af4fb7eb7.png 480w, /p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-59_hu_7a0632ac47f03923.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="703"
+		data-flex-basis="1687px"
+	
+></p>
+<h4>测试</h4>
+<ol>
+<li>点击监测-主机(192.168.172.121-redis-template)-仪表盘</li>
+</ol>
+<p><img src="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-60.png"
+	width="1342"
+	height="680"
+	srcset="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-60_hu_fb5306f5559fd99c.png 480w, /p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-60_hu_2c59f38d2464f20f.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="197"
+		data-flex-basis="473px"
+	
+></p>
+<ol start="2">
+<li>打开两个192.168.172.121主机的终端并连接redis</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">redis-cli
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="3">
+<li>发生警报</li>
+</ol>
+<p><img src="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-61.png"
+	width="1342"
+	height="677"
+	srcset="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-61_hu_76609514ee3d4214.png 480w, /p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-61_hu_c01a1b79edb5074e.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="198"
+		data-flex-basis="475px"
+	
+></p>
+<p>可以看到一共有三个redis连接客户端，其中一个就是zabbix连接redis。</p>
+<h2 id="综合实践">综合实践
+</h2><h3 id="tcp实践">TCP实践
+</h3><h4 id="基础知识">基础知识
+</h4><p>需求</p>
+<blockquote>
+<p>我们知道主机间的正常网络联通，都是基于TCP/IP方式来进行实现的，而主机间的沟通方式有很多，我们可以借助于对主机间的TCP连接状态来实现获取 主机间网络通信质量的效果。</p>
+</blockquote>
+<h4 id="案例实践">案例实践
+</h4><p>步骤</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">操作步骤有很多，但是，基本上与我们之前的流程一样：
+</span></span><span class="line"><span class="cl">    1 监控项的定制
+</span></span><span class="line"><span class="cl">    2 客户端主机绑定
+</span></span><span class="line"><span class="cl">    3 关联模板、定制触发器等
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>监控项定制方法</p>
+<ul>
+<li>方法1</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# netstat -ant <span class="p">|</span> awk <span class="s1">&#39;NR&gt;1 {++s[$6]} END {for(k in s) print k,s[k]}&#39;</span>
+</span></span><span class="line"><span class="cl">LISTEN <span class="m">14</span>
+</span></span><span class="line"><span class="cl">ESTABLISHED <span class="m">5</span>
+</span></span><span class="line"><span class="cl">Foreign <span class="m">1</span>
+</span></span><span class="line"><span class="cl">TIME_WAIT <span class="m">76</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>方法2</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# ss -ant <span class="p">|</span> awk <span class="s1">&#39;NR&gt;1 {++s[$1]} END {for(k in s) print k,s[k]}&#39;</span>
+</span></span><span class="line"><span class="cl">LISTEN <span class="m">14</span>
+</span></span><span class="line"><span class="cl">ESTAB <span class="m">5</span>
+</span></span><span class="line"><span class="cl">TIME-WAIT <span class="m">84</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>注意：不同的命令所过滤的状态值不一样</p>
+<h4 id="监控项脚本">监控项脚本
+</h4><p>定制脚本文件</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">vim /etc/zabbix/zabbix_agentd.d/tcp_status.sh
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>tcp_status.sh</code></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="cp">#!/bin/bash
+</span></span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 定制本地变量</span>
+</span></span><span class="line"><span class="cl"><span class="nv">user_status</span><span class="o">=</span><span class="nv">$1</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">tcp_status<span class="o">(){</span>
+</span></span><span class="line"><span class="cl">    <span class="nv">TCP_STAT</span><span class="o">=</span><span class="nv">$1</span>
+</span></span><span class="line"><span class="cl">    <span class="nv">TCP_STAT_VALUE</span><span class="o">=</span><span class="k">$(</span>ss -ant <span class="p">|</span> awk <span class="s1">&#39;NR&gt;1 {++s[$1]} END {for(k in s) print k,s[k]}&#39;</span> <span class="p">|</span> grep <span class="s2">&#34;</span><span class="nv">$TCP_STAT</span><span class="s2">&#34;</span> <span class="p">|</span> cut -d <span class="s1">&#39; &#39;</span> -f2<span class="k">)</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="o">[</span> -z <span class="nv">$TCP_STAT_VALUE</span> <span class="o">]</span><span class="p">;</span><span class="k">then</span>
+</span></span><span class="line"><span class="cl">        <span class="nv">TCP_STAT_VALUE</span><span class="o">=</span><span class="m">0</span>
+</span></span><span class="line"><span class="cl">    <span class="k">fi</span>
+</span></span><span class="line"><span class="cl">    <span class="nb">echo</span> <span class="nv">$TCP_STAT_VALUE</span>
+</span></span><span class="line"><span class="cl"><span class="o">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">tcp_status <span class="nv">$user_status</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-62.png"
+	width="976"
+	height="237"
+	srcset="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-62_hu_8c83454fabcbb76d.png 480w, /p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-62_hu_dd9904c46c94bdcd.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="411"
+		data-flex-basis="988px"
+	
+></p>
+<p>测试效果</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# /bin/bash /etc/zabbix/zabbix_agentd.d/tcp_status.sh LISTEN
+</span></span><span class="line"><span class="cl"><span class="m">14</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-63.png"
+	width="628"
+	height="31"
+	srcset="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-63_hu_5a323bac7926bc85.png 480w, /p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-63_hu_2718b8fb56806788.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="2025"
+		data-flex-basis="4861px"
+	
+></p>
+<h4 id="监控配置">监控配置
+</h4><p>定制监控项配置</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">vim /etc/zabbix/zabbix_agentd.d/tcp_status.conf
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>tcp_status.conf</code></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="nv">UserParameter</span><span class="o">=</span>tcp_status<span class="o">[</span>*<span class="o">]</span>,/bin/bash /etc/zabbix/zabbix_agentd.d/tcp_status.sh <span class="s2">&#34;</span><span class="nv">$1</span><span class="s2">&#34;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>重启配置</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">systemctl restart zabbix-agent.service
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>测试</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# zabbix_agentd -p <span class="p">|</span> grep tcp_status
+</span></span><span class="line"><span class="cl">tcp_status                                    <span class="o">[</span>t<span class="p">|</span>/etc/zabbix/zabbix_agentd.d/tcp_status.sh: line 9: <span class="o">[</span>: too many arguments
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>192.168.172.120：服务端检测效果</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# zabbix_get -s 192.168.172.121 -k tcp_status<span class="o">[</span>ESTAB<span class="o">]</span>
+</span></span><span class="line"><span class="cl"><span class="m">8</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="加载模板">加载模板
+</h4><ol>
+<li>点击导入</li>
+</ol>
+<p><img src="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-64.png"
+	width="1515"
+	height="688"
+	srcset="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-64_hu_887833286498558c.png 480w, /p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-64_hu_f5fe86d5223a6f39.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="220"
+		data-flex-basis="528px"
+	
+></p>
+<ol start="2">
+<li>选择文件</li>
+</ol>
+<p><img src="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-65.png"
+	width="672"
+	height="222"
+	srcset="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-65_hu_bf7a694f7c1250d4.png 480w, /p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-65_hu_4bc7f15ddcd18320.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="302"
+		data-flex-basis="726px"
+	
+></p>
+<ol start="3">
+<li>点击导入</li>
+</ol>
+<p><img src="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-66.png"
+	width="1517"
+	height="910"
+	srcset="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-66_hu_b6fd39b252b7a300.png 480w, /p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-66_hu_2771b170fc600d44.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="166"
+		data-flex-basis="400px"
+	
+></p>
+<p><img src="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-67.png"
+	width="1342"
+	height="519"
+	srcset="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-67_hu_c4546a747f97526b.png 480w, /p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-67_hu_4e51f9850d5dfebf.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="258"
+		data-flex-basis="620px"
+	
+></p>
+<h4 id="使用模板-1">使用模板
+</h4><ol>
+<li>点击主机，创建主机</li>
+</ol>
+<p><img src="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-68.png"
+	width="1515"
+	height="605"
+	srcset="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-68_hu_6ef2f8c47bf80d98.png 480w, /p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-68_hu_c5f366b97aec2cd4.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="250"
+		data-flex-basis="600px"
+	
+></p>
+<ol start="2">
+<li>设置主机</li>
+</ol>
+<p><img src="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-69.png"
+	width="1046"
+	height="608"
+	srcset="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-69_hu_199fe14d6c8f9ee8.png 480w, /p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-69_hu_197356bd972f46ff.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="172"
+		data-flex-basis="412px"
+	
+></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">主机名：192.168.172.121-tcp-template
+</span></span><span class="line"><span class="cl">模板：输入tcp关键字后，选择template Linux TCP_CONN Status
+</span></span><span class="line"><span class="cl">主机群组：输入 tcp-group 方式创建新组
+</span></span><span class="line"><span class="cl">描述：使用模板监控TCP状态
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="3">
+<li>点击添加</li>
+</ol>
+<p><img src="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-70.png"
+	width="1342"
+	height="705"
+	srcset="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-70_hu_a4b83473707f30a3.png 480w, /p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-70_hu_72861de85ed525b5.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="190"
+		data-flex-basis="456px"
+	
+></p>
+<ol start="4">
+<li>查看状态</li>
+</ol>
+<p><img src="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-71.png"
+	width="1513"
+	height="677"
+	srcset="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-71_hu_b02e30fc4dbe5b44.png 480w, /p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-71_hu_c331c4dc6234570b.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="223"
+		data-flex-basis="536px"
+	
+></p>
+<h3 id="mysql监控agent">MySQL监控（agent）
+</h3><h4 id="环境准备">环境准备
+</h4><ol>
+<li>部署mysql环境</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">apt update
+</span></span><span class="line"><span class="cl">apt install mysql-server -y
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="2">
+<li>测试效果</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# systemctl is-active mysql.service
+</span></span><span class="line"><span class="cl">active
+</span></span><span class="line"><span class="cl">root@lin-server:~# netstat -tnulp <span class="p">|</span> grep <span class="m">3306</span>
+</span></span><span class="line"><span class="cl">tcp        <span class="m">0</span>      <span class="m">0</span> 127.0.0.1:3306          0.0.0.0:*               LISTEN      3807/mysqld
+</span></span><span class="line"><span class="cl">tcp        <span class="m">0</span>      <span class="m">0</span> 127.0.0.1:33060         0.0.0.0:*               LISTEN      3807/mysqld
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="3">
+<li>创建用户和权限</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">mysql
+</span></span><span class="line"><span class="cl">...
+</span></span><span class="line"><span class="cl">mysql&gt; CREATE USER <span class="s1">&#39;zbx_monitor&#39;</span>@<span class="s1">&#39;%&#39;</span> IDENTIFIED BY <span class="s1">&#39;&lt;password&gt;&#39;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">mysql&gt; GRANT REPLICATION CLIENT,PROCESS,SHOW DATABASES,SHOW VIEW ON *.* TO <span class="s1">&#39;zbx_monitor&#39;</span>@<span class="s1">&#39;%&#39;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">mysql&gt; quit<span class="p">;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="mysql参数配置文件">mysql参数配置文件
+</h4><ol>
+<li>创建参数配置文件</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">vim /etc/zabbix/zabbix_agentd.d/template_db_mysql.conf
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>template_db_mysql.conf</code></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="nv">UserParameter</span><span class="o">=</span>mysql.ping<span class="o">[</span>*<span class="o">]</span>, mysqladmin -h<span class="s2">&#34;</span><span class="nv">$1</span><span class="s2">&#34;</span> -P<span class="s2">&#34;</span><span class="nv">$2</span><span class="s2">&#34;</span> ping
+</span></span><span class="line"><span class="cl"><span class="nv">UserParameter</span><span class="o">=</span>mysql.get_status_variables<span class="o">[</span>*<span class="o">]</span>, mysql -h<span class="s2">&#34;</span><span class="nv">$1</span><span class="s2">&#34;</span> -P<span class="s2">&#34;</span><span class="nv">$2</span><span class="s2">&#34;</span> -sNX -e <span class="s2">&#34;show global status&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="nv">UserParameter</span><span class="o">=</span>mysql.version<span class="o">[</span>*<span class="o">]</span>, mysqladmin -s -h<span class="s2">&#34;</span><span class="nv">$1</span><span class="s2">&#34;</span> -P<span class="s2">&#34;</span><span class="nv">$2</span><span class="s2">&#34;</span> version
+</span></span><span class="line"><span class="cl"><span class="nv">UserParameter</span><span class="o">=</span>mysql.db.discovery<span class="o">[</span>*<span class="o">]</span>, mysql -h<span class="s2">&#34;</span><span class="nv">$1</span><span class="s2">&#34;</span> -P<span class="s2">&#34;</span><span class="nv">$2</span><span class="s2">&#34;</span> -sN -e <span class="s2">&#34;show databases&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="nv">UserParameter</span><span class="o">=</span>mysql.dbsize<span class="o">[</span>*<span class="o">]</span>, mysql -h<span class="s2">&#34;</span><span class="nv">$1</span><span class="s2">&#34;</span> -P<span class="s2">&#34;</span><span class="nv">$2</span><span class="s2">&#34;</span> -sN -e <span class="s2">&#34;SELECT COALESCE(SUM(DATA_LENGTH + INDEX_LENGTH),0) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA=&#39;</span><span class="nv">$3</span><span class="s2">&#39;&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="nv">UserParameter</span><span class="o">=</span>mysql.replication.discovery<span class="o">[</span>*<span class="o">]</span>, mysql -h<span class="s2">&#34;</span><span class="nv">$1</span><span class="s2">&#34;</span> -P<span class="s2">&#34;</span><span class="nv">$2</span><span class="s2">&#34;</span> -sNX -e <span class="s2">&#34;show replica status&#34;</span> 2&gt;/dev/null <span class="o">||</span> mysql -h<span class="s2">&#34;</span><span class="nv">$1</span><span class="s2">&#34;</span> -P<span class="s2">&#34;</span><span class="nv">$2</span><span class="s2">&#34;</span> -sNX -e <span class="s2">&#34;show slave status&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="nv">UserParameter</span><span class="o">=</span>mysql.slave_status<span class="o">[</span>*<span class="o">]</span>, mysql -h<span class="s2">&#34;</span><span class="nv">$1</span><span class="s2">&#34;</span> -P<span class="s2">&#34;</span><span class="nv">$2</span><span class="s2">&#34;</span> -sNX -e <span class="s2">&#34;show </span><span class="nv">$3</span><span class="s2"> status&#34;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="2">
+<li>重启服务</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">systemctl restart zabbix-agent
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="3">
+<li>服务端检测效果</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# zabbix_get -s 192.168.172.122 -k mysql.ping<span class="o">[</span><span class="s2">&#34;127.0.0.1&#34;</span>,<span class="s2">&#34;3306&#34;</span><span class="o">]</span>
+</span></span><span class="line"><span class="cl">mysqld is alive
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="配置-mysql-登录凭证">配置 MySQL 登录凭证
+</h4><ol>
+<li>切换到agent家目录，没有的话就创建</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="nb">cd</span> /var/lib/zabbix
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="2">
+<li>创建<code>.my.cnf</code>文件</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">vim .my.cnf
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>.my.cnf</code></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="o">[</span>client<span class="o">]</span>
+</span></span><span class="line"><span class="cl"><span class="nv">protocol</span><span class="o">=</span>tcp
+</span></span><span class="line"><span class="cl"><span class="nv">user</span><span class="o">=</span><span class="s1">&#39;zbx_monitor&#39;</span>
+</span></span><span class="line"><span class="cl"><span class="nv">password</span><span class="o">=</span><span class="s1">&#39;&lt;password&gt;&#39;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="selinux配置若启用">SELinux配置（若启用）
+</h4><p>如果系统启用 SELinux（如 CentOS/RHEL），需要添加策略允许 agent 访问 MySQL</p>
+<ol>
+<li>创建文件</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">cat <span class="s">&lt;&lt;EOF &gt; zabbix_home.te
+</span></span></span><span class="line"><span class="cl"><span class="s">module zabbix_home 1.0;
+</span></span></span><span class="line"><span class="cl"><span class="s">
+</span></span></span><span class="line"><span class="cl"><span class="s">require {
+</span></span></span><span class="line"><span class="cl"><span class="s">        type zabbix_agent_t;
+</span></span></span><span class="line"><span class="cl"><span class="s">        type zabbix_var_lib_t;
+</span></span></span><span class="line"><span class="cl"><span class="s">        type mysqld_etc_t;
+</span></span></span><span class="line"><span class="cl"><span class="s">        type mysqld_port_t;
+</span></span></span><span class="line"><span class="cl"><span class="s">        type mysqld_var_run_t;
+</span></span></span><span class="line"><span class="cl"><span class="s">        class file { open read };
+</span></span></span><span class="line"><span class="cl"><span class="s">        class tcp_socket name_connect;
+</span></span></span><span class="line"><span class="cl"><span class="s">        class sock_file write;
+</span></span></span><span class="line"><span class="cl"><span class="s">}
+</span></span></span><span class="line"><span class="cl"><span class="s">
+</span></span></span><span class="line"><span class="cl"><span class="s">#============= zabbix_agent_t ==============
+</span></span></span><span class="line"><span class="cl"><span class="s">
+</span></span></span><span class="line"><span class="cl"><span class="s">allow zabbix_agent_t zabbix_var_lib_t:file read;
+</span></span></span><span class="line"><span class="cl"><span class="s">allow zabbix_agent_t zabbix_var_lib_t:file open;
+</span></span></span><span class="line"><span class="cl"><span class="s">allow zabbix_agent_t mysqld_etc_t:file read;
+</span></span></span><span class="line"><span class="cl"><span class="s">allow zabbix_agent_t mysqld_port_t:tcp_socket name_connect;
+</span></span></span><span class="line"><span class="cl"><span class="s">allow zabbix_agent_t mysqld_var_run_t:sock_file write;
+</span></span></span><span class="line"><span class="cl"><span class="s">EOF</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="2">
+<li>添加规则到SELinux中</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 编译策略文件（在当前目录）</span>
+</span></span><span class="line"><span class="cl">checkmodule -M -m -o zabbix_home.mod zabbix_home.te
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 打包成策略模块</span>
+</span></span><span class="line"><span class="cl">semodule_package -o zabbix_home.pp -m zabbix_home.mod
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 安装策略模块</span>
+</span></span><span class="line"><span class="cl">semodule -i zabbix_home.pp
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 验证模块已安装</span>
+</span></span><span class="line"><span class="cl">semodule -l <span class="p">|</span> grep zabbix
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 恢复文件上下文</span>
+</span></span><span class="line"><span class="cl">restorecon -R -v /var/lib/zabbix
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="zabbix-前端配置">Zabbix 前端配置
+</h4><ol>
+<li>创建主机</li>
+</ol>
+<p><img src="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-72.png"
+	width="1517"
+	height="684"
+	srcset="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-72_hu_8cecf4834a2655cb.png 480w, /p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-72_hu_9ca24b7250eba924.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="221"
+		data-flex-basis="532px"
+	
+></p>
+<ol start="2">
+<li>添加</li>
+</ol>
+<p><img src="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-73.png"
+	width="1342"
+	height="674"
+	srcset="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-73_hu_dfad75dee5e555ba.png 480w, /p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/image-73_hu_9021384223605cc5.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="199"
+		data-flex-basis="477px"
+	
+></p>
+<h3 id="mysql监控agent马哥">MySQL监控（agent）（马哥）
+</h3><h4 id="环境准备-1">环境准备
+</h4><ol>
+<li>安装MySQL</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">apt update
+</span></span><span class="line"><span class="cl">apt install mysql-server -y
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="2">
+<li>测试效果</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# systemctl is-active mysql.service
+</span></span><span class="line"><span class="cl">active
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">root@lin-server:~# netstat -tnulp <span class="p">|</span> grep <span class="m">3306</span>
+</span></span><span class="line"><span class="cl">tcp        <span class="m">0</span>      <span class="m">0</span> 127.0.0.1:3306          0.0.0.0:*               LISTEN      3807/mysqld
+</span></span><span class="line"><span class="cl">tcp        <span class="m">0</span>      <span class="m">0</span> 127.0.0.1:33060         0.0.0.0:*               LISTEN      3807/mysqld
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="3">
+<li>创建用户和权限</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">mysql
+</span></span><span class="line"><span class="cl">...
+</span></span><span class="line"><span class="cl">mysql&gt; CREATE USER zabbix@<span class="s1">&#39;127.0.0.1&#39;</span> IDENTIFIED BY <span class="s1">&#39;zabbix&#39;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">mysql&gt; GRANT all privileges ON *.* TO zabbix@<span class="s1">&#39;127.0.0.1&#39;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">mysql&gt; flush privileges<span class="p">;</span>
+</span></span><span class="line"><span class="cl">mysql&gt; quit<span class="p">;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="4">
+<li>创建密码文件（没有目录的话则自己创建）</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">vim /var/lib/zabbix
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>/var/lib/zabbix</code></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="o">[</span>client<span class="o">]</span>
+</span></span><span class="line"><span class="cl"><span class="nv">user</span><span class="o">=</span>zabbix
+</span></span><span class="line"><span class="cl"><span class="nv">password</span><span class="o">=</span>zabbix
+</span></span><span class="line"><span class="cl"><span class="nv">host</span><span class="o">=</span>127.0.0.1
+</span></span><span class="line"><span class="cl"><span class="nv">port</span><span class="o">=</span><span class="m">3306</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="mysql脚本">mysql脚本
+</h4><ol>
+<li>创建参数脚本文件</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">vim /etc/zabbix/zabbix_agentd.d/mysql_status.sh
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>mysql_status.sh</code></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span><span class="lnt">51
+</span><span class="lnt">52
+</span><span class="lnt">53
+</span><span class="lnt">54
+</span><span class="lnt">55
+</span><span class="lnt">56
+</span><span class="lnt">57
+</span><span class="lnt">58
+</span><span class="lnt">59
+</span><span class="lnt">60
+</span><span class="lnt">61
+</span><span class="lnt">62
+</span><span class="lnt">63
+</span><span class="lnt">64
+</span><span class="lnt">65
+</span><span class="lnt">66
+</span><span class="lnt">67
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="cp">#!/bin/bash
+</span></span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 连接MySQL</span>
+</span></span><span class="line"><span class="cl"><span class="nv">MYSQL_CONN</span><span class="o">=</span><span class="s2">&#34;/usr/bin/mysqladmin --defaults-extra-file=/var/lib/zabbix/.my.cnf&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 定制错误提示信息</span>
+</span></span><span class="line"><span class="cl">Usage<span class="o">(){</span>
+</span></span><span class="line"><span class="cl">    <span class="nb">echo</span> <span class="s2">&#34;Usage:/bin/bash </span><span class="nv">$0</span><span class="s2"> [ Uptime|Com_update|Slow_queries|Com_select|Com_rollback|Questions|Com_insert|Com_delete|Com_commit|Bytes_sent|Bytes_received|Com_begin ]&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="o">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">if</span> <span class="o">[</span> <span class="nv">$#</span> -ne <span class="s2">&#34;1&#34;</span> <span class="o">]</span><span class="p">;</span><span class="k">then</span>
+</span></span><span class="line"><span class="cl">    Usage
+</span></span><span class="line"><span class="cl">    <span class="nb">exit</span>
+</span></span><span class="line"><span class="cl"><span class="k">fi</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">case</span> <span class="nv">$1</span> in
+</span></span><span class="line"><span class="cl">    Uptime<span class="o">)</span>
+</span></span><span class="line"><span class="cl">        <span class="nv">result</span><span class="o">=</span><span class="sb">`</span><span class="si">${</span><span class="nv">MYSQL_CONN</span><span class="si">}</span> status <span class="p">|</span>cut -f2 -d<span class="s2">&#34;:&#34;</span><span class="p">|</span>cut -f1 -d<span class="s2">&#34;T&#34;</span><span class="sb">`</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">echo</span> <span class="nv">$result</span>
+</span></span><span class="line"><span class="cl">        <span class="p">;;</span>
+</span></span><span class="line"><span class="cl">    Com_update<span class="o">)</span>
+</span></span><span class="line"><span class="cl">        <span class="nv">result</span><span class="o">=</span><span class="sb">`</span><span class="si">${</span><span class="nv">MYSQL_CONN</span><span class="si">}</span> extended-status <span class="p">|</span>grep -w <span class="s2">&#34;Com_update&#34;</span><span class="p">|</span>cut -d<span class="s2">&#34;|&#34;</span> -f3<span class="sb">`</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">echo</span> <span class="nv">$result</span>
+</span></span><span class="line"><span class="cl">        <span class="p">;;</span>
+</span></span><span class="line"><span class="cl">    Slow_queries<span class="o">)</span>
+</span></span><span class="line"><span class="cl">        <span class="nv">result</span><span class="o">=</span><span class="sb">`</span><span class="si">${</span><span class="nv">MYSQL_CONN</span><span class="si">}</span> status <span class="p">|</span>cut -f5 -d<span class="s2">&#34;:&#34;</span><span class="p">|</span>cut -f1 -d<span class="s2">&#34;O&#34;</span><span class="sb">`</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">echo</span> <span class="nv">$result</span>
+</span></span><span class="line"><span class="cl">        <span class="p">;;</span>
+</span></span><span class="line"><span class="cl">    Com_select<span class="o">)</span>
+</span></span><span class="line"><span class="cl">        <span class="nv">result</span><span class="o">=</span><span class="sb">`</span><span class="si">${</span><span class="nv">MYSQL_CONN</span><span class="si">}</span> extended-status <span class="p">|</span>grep -w <span class="s2">&#34;Com_select&#34;</span><span class="p">|</span>cut -d<span class="s2">&#34;|&#34;</span> -f3<span class="sb">`</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">echo</span> <span class="nv">$result</span>
+</span></span><span class="line"><span class="cl">        <span class="p">;;</span>
+</span></span><span class="line"><span class="cl">    Com_rollback<span class="o">)</span>
+</span></span><span class="line"><span class="cl">        <span class="nv">result</span><span class="o">=</span><span class="sb">`</span><span class="si">${</span><span class="nv">MYSQL_CONN</span><span class="si">}</span> extended-status <span class="p">|</span>grep -w <span class="s2">&#34;Com_rollback&#34;</span><span class="p">|</span>cut -d<span class="s2">&#34;|&#34;</span> -f3<span class="sb">`</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">echo</span> <span class="nv">$result</span>
+</span></span><span class="line"><span class="cl">        <span class="p">;;</span>
+</span></span><span class="line"><span class="cl">    Questions<span class="o">)</span>
+</span></span><span class="line"><span class="cl">        <span class="nv">result</span><span class="o">=</span><span class="sb">`</span><span class="si">${</span><span class="nv">MYSQL_CONN</span><span class="si">}</span> status <span class="p">|</span>cut -f4 -d<span class="s2">&#34;:&#34;</span><span class="p">|</span>cut -f1 -d<span class="s2">&#34;S&#34;</span><span class="sb">`</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">echo</span> <span class="nv">$result</span>
+</span></span><span class="line"><span class="cl">        <span class="p">;;</span>
+</span></span><span class="line"><span class="cl">    Com_insert<span class="o">)</span>
+</span></span><span class="line"><span class="cl">        <span class="nv">result</span><span class="o">=</span><span class="sb">`</span><span class="si">${</span><span class="nv">MYSQL_CONN</span><span class="si">}</span> extended-status <span class="p">|</span>grep -w <span class="s2">&#34;Com_insert&#34;</span><span class="p">|</span>cut -d<span class="s2">&#34;|&#34;</span> -f3<span class="sb">`</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">echo</span> <span class="nv">$result</span>
+</span></span><span class="line"><span class="cl">        <span class="p">;;</span>
+</span></span><span class="line"><span class="cl">    Com_delete<span class="o">)</span>
+</span></span><span class="line"><span class="cl">        <span class="nv">result</span><span class="o">=</span><span class="sb">`</span><span class="si">${</span><span class="nv">MYSQL_CONN</span><span class="si">}</span> extended-status <span class="p">|</span>grep -w <span class="s2">&#34;Com_delete&#34;</span><span class="p">|</span>cut -d<span class="s2">&#34;|&#34;</span> -f3<span class="sb">`</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">echo</span> <span class="nv">$result</span>
+</span></span><span class="line"><span class="cl">        <span class="p">;;</span>
+</span></span><span class="line"><span class="cl">    Com_commit<span class="o">)</span>
+</span></span><span class="line"><span class="cl">        <span class="nv">result</span><span class="o">=</span><span class="sb">`</span><span class="si">${</span><span class="nv">MYSQL_CONN</span><span class="si">}</span> extended-status <span class="p">|</span>grep -w <span class="s2">&#34;Com_commit&#34;</span><span class="p">|</span>cut -d<span class="s2">&#34;|&#34;</span> -f3<span class="sb">`</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">echo</span> <span class="nv">$result</span>
+</span></span><span class="line"><span class="cl">        <span class="p">;;</span>
+</span></span><span class="line"><span class="cl">    Bytes_sent<span class="o">)</span>
+</span></span><span class="line"><span class="cl">        <span class="nv">result</span><span class="o">=</span><span class="sb">`</span><span class="si">${</span><span class="nv">MYSQL_CONN</span><span class="si">}</span> extended-status <span class="p">|</span>grep -w <span class="s2">&#34;Bytes_sent&#34;</span><span class="p">|</span>cut -d<span class="s2">&#34;|&#34;</span> -f3<span class="sb">`</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">echo</span> <span class="nv">$result</span>
+</span></span><span class="line"><span class="cl">        <span class="p">;;</span>
+</span></span><span class="line"><span class="cl">    Bytes_received<span class="o">)</span>
+</span></span><span class="line"><span class="cl">        <span class="nv">result</span><span class="o">=</span><span class="sb">`</span><span class="si">${</span><span class="nv">MYSQL_CONN</span><span class="si">}</span> extended-status <span class="p">|</span>grep -w <span class="s2">&#34;Bytes_received&#34;</span><span class="p">|</span>cut -d<span class="s2">&#34;|&#34;</span> -f3<span class="sb">`</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">echo</span> <span class="nv">$result</span>
+</span></span><span class="line"><span class="cl">        <span class="p">;;</span>
+</span></span><span class="line"><span class="cl">    Com_begin<span class="o">)</span>
+</span></span><span class="line"><span class="cl">        <span class="nv">result</span><span class="o">=</span><span class="sb">`</span><span class="si">${</span><span class="nv">MYSQL_CONN</span><span class="si">}</span> extended-status <span class="p">|</span>grep -w <span class="s2">&#34;Com_begin&#34;</span><span class="p">|</span>cut -d<span class="s2">&#34;|&#34;</span> -f3<span class="sb">`</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">echo</span> <span class="nv">$result</span>
+</span></span><span class="line"><span class="cl">        <span class="p">;;</span>
+</span></span><span class="line"><span class="cl">    *<span class="o">)</span>
+</span></span><span class="line"><span class="cl">        Usage<span class="p">;;</span>
+</span></span><span class="line"><span class="cl"><span class="k">esac</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="2">
+<li>测试效果</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">/bin/bash /etc/zabbix/zabbix_agentd.d/mysql_status.sh Com_update
+</span></span><span class="line"><span class="cl"><span class="m">0</span>
+</span></span><span class="line"><span class="cl">/bin/bash /etc/zabbix/zabbix_agentd.d/mysql_status.sh Bytes_sent
+</span></span><span class="line"><span class="cl"><span class="m">82710</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="监控项配置">监控项配置
+</h4><ol>
+<li>定制监控项</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">vim /etc/zabbix/zabbix_agentd.d/mysql_status.conf
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>mysql_status.conf</code></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># mysql 版本</span>
+</span></span><span class="line"><span class="cl"><span class="nv">UserParameter</span><span class="o">=</span>mysql.version,mysql -V
+</span></span><span class="line"><span class="cl"><span class="c1"># mysql 性能指标</span>
+</span></span><span class="line"><span class="cl"><span class="nv">UserParameter</span><span class="o">=</span>mysql.status<span class="o">[</span>*<span class="o">]</span>,/bin/bash /etc/zabbix/zabbix_agentd.d/mysql_status.sh <span class="nv">$1</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># mysql 运行状态</span>
+</span></span><span class="line"><span class="cl"><span class="nv">UserParameter</span><span class="o">=</span>mysql.ping,mysqladmin --defaults-extra-file<span class="o">=</span>/var/lib/zabbix/.my.cnf ping <span class="p">|</span> grep -c alive
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="2">
+<li>重启配置</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">systemctl restart zabbix-agent.service
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="3">
+<li>服务端检测效果</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">zabbix_get -s 192.168.172.123 -k mysql.status<span class="o">[</span>Bytes_sent<span class="o">]</span>
+</span></span><span class="line"><span class="cl"><span class="m">99111</span>
+</span></span><span class="line"><span class="cl">zabbix_get -s 192.168.172.123 -k mysql.ping
+</span></span><span class="line"><span class="cl"><span class="m">1</span>
+</span></span><span class="line"><span class="cl">zabbix_get -s 192.168.172.123 -k mysql.version
+</span></span><span class="line"><span class="cl">mysql  Ver 8.0.45-0ubuntu0.24.04.1 <span class="k">for</span> Linux on x86_64 <span class="o">((</span>Ubuntu<span class="o">))</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div>
+</section>
+
+
+    <footer class="article-footer">
+    
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+<aside class="related-content--wrapper">
+    <h2 class="section-title">相关文章</h2>
+    <div class="related-content">
+        <div class="flex article-list--tile">
+            
+                
+<article class="">
+    <a href="/p/6-%E9%A9%AC%E5%93%A5zabbixgraph%E5%92%8Cdashboard/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">6-[马哥][zabbix]graph和dashboard</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/5-%E9%A9%AC%E5%93%A5zabbix%E8%87%AA%E5%AE%9A%E4%B9%89%E7%9B%91%E6%8E%A7%E9%A1%B9/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">5-[马哥][zabbix]自定义监控项</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/4-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E6%B5%81%E7%A8%8B%E5%AE%9E%E8%B7%B5/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">4-[马哥][zabbix]监控流程实践</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/3-%E9%A9%AC%E5%93%A5zabbix%E7%9B%91%E6%8E%A7%E5%8E%9F%E7%90%86%E6%8B%86%E8%A7%A3/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">3-[马哥][zabbix]监控原理拆解</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/2-%E9%A9%AC%E5%93%A5zabbix%E7%8E%AF%E5%A2%83%E9%83%A8%E7%BD%B2/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">2-[马哥][zabbix]环境部署</h2>
+        </div>
+    </a>
+</article>
+
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+            2025 - 
+        
+        2026 リンボの個人ブログ
+    </section>
+    
+    <section class="powerby">
+         <br />
+        
+    </section>
+</footer>
+
+
+    
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+    
+    <div class="pswp__bg"></div>
+
+    
+    <div class="pswp__scroll-wrap">
+
+        
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+
+        
+        <div class="pswp__ui pswp__ui--hidden">
+
+            <div class="pswp__top-bar">
+
+                
+
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+
+                <button class="pswp__button pswp__button--share" title="Share"></button>
+
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+
+                
+                
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                        <div class="pswp__preloader__cut">
+                            <div class="pswp__preloader__donut"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div>
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.js"integrity="sha256-ePwmChbbvXbsO02lbM3HoHbSHTHFAeChekF1xKJdleo="crossorigin="anonymous"
+                defer
+                >
+            </script><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe-ui-default.min.js"integrity="sha256-UKkzOn/w1mBxRmLLGrSeyB4e1xbrp4xylgAWb3M42pU="crossorigin="anonymous"
+                defer
+                >
+            </script><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/default-skin/default-skin.min.css"crossorigin="anonymous"
+            ><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.css"crossorigin="anonymous"
+            >
+
+            </main>
+        </div>
+        <script 
+                src="https://cdn.jsdelivr.net/npm/node-vibrant@3.1.6/dist/vibrant.min.js"integrity="sha256-awcR2jno4kI5X0zL8ex0vi2z&#43;KMkF24hUW8WePSA9HM="crossorigin="anonymous"
+                
+                >
+            </script><script type="text/javascript" src="/ts/main.1e9a3bafd846ced4c345d084b355fb8c7bae75701c338f8a1f8a82c780137826.js" defer></script>
+<script>
+    (function () {
+        const customFont = document.createElement('link');
+        customFont.href = "https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap";
+
+        customFont.type = "text/css";
+        customFont.rel = "stylesheet";
+
+        document.head.appendChild(customFont);
+    }());
+</script>
+
+    </body>
+</html>
