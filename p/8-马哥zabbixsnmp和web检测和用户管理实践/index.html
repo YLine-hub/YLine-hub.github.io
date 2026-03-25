@@ -1,0 +1,1439 @@
+<!DOCTYPE html>
+<html lang="en-us" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="SNMP监控 基础知识 SNMP简介 SNMP 是“Simple Network Management Protocol”的缩写，中文意思是简单网络管理协议，它是由互联网工作小组在RFC1157中定义的应用层协议，用于在网络实体或节点之间交换管理或监控信息，SNMP发展到目前，一共经历了三个主要版本，SNMPv1，SNMPv2c，SNMPv3。 使用SNMP，一个运行网管软件的工作站就能对成千上万的网络设备进行监控，和信息采集，这些信息可以用来构建网络或者定位网络中的问题。 通过它，我们可以按照内置的属性条目，获取相关具体的监控数据信息。\n">
+<title>8-[马哥][zabbix]snmp和web检测和用户管理实践</title>
+
+<link rel='canonical' href='https://YLine-hub.github.io/p/8-%E9%A9%AC%E5%93%A5zabbixsnmp%E5%92%8Cweb%E6%A3%80%E6%B5%8B%E5%92%8C%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86%E5%AE%9E%E8%B7%B5/'>
+
+<link rel="stylesheet" href="/scss/style.min.6a692fd055deae459f2a9767f57f3855ba80cafd5041317f24f7360f6ca47cdf.css"><meta property='og:title' content="8-[马哥][zabbix]snmp和web检测和用户管理实践">
+<meta property='og:description' content="SNMP监控 基础知识 SNMP简介 SNMP 是“Simple Network Management Protocol”的缩写，中文意思是简单网络管理协议，它是由互联网工作小组在RFC1157中定义的应用层协议，用于在网络实体或节点之间交换管理或监控信息，SNMP发展到目前，一共经历了三个主要版本，SNMPv1，SNMPv2c，SNMPv3。 使用SNMP，一个运行网管软件的工作站就能对成千上万的网络设备进行监控，和信息采集，这些信息可以用来构建网络或者定位网络中的问题。 通过它，我们可以按照内置的属性条目，获取相关具体的监控数据信息。\n">
+<meta property='og:url' content='https://YLine-hub.github.io/p/8-%E9%A9%AC%E5%93%A5zabbixsnmp%E5%92%8Cweb%E6%A3%80%E6%B5%8B%E5%92%8C%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86%E5%AE%9E%E8%B7%B5/'>
+<meta property='og:site_name' content='リンボの個人ブログ'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:published_time' content='2026-03-17T13:02:59&#43;08:00'/><meta property='article:modified_time' content='2026-03-17T13:02:59&#43;08:00'/>
+<meta name="twitter:title" content="8-[马哥][zabbix]snmp和web检测和用户管理实践">
+<meta name="twitter:description" content="SNMP监控 基础知识 SNMP简介 SNMP 是“Simple Network Management Protocol”的缩写，中文意思是简单网络管理协议，它是由互联网工作小组在RFC1157中定义的应用层协议，用于在网络实体或节点之间交换管理或监控信息，SNMP发展到目前，一共经历了三个主要版本，SNMPv1，SNMPv2c，SNMPv3。 使用SNMP，一个运行网管软件的工作站就能对成千上万的网络设备进行监控，和信息采集，这些信息可以用来构建网络或者定位网络中的问题。 通过它，我们可以按照内置的属性条目，获取相关具体的监控数据信息。\n">
+    <link rel="shortcut icon" href="/favicon.ico" />
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        
+            
+            <figure class="site-avatar">
+                <a href="/">
+                
+                    
+                    
+                    
+                        
+                        <img src="/img/avatar_hu_de528bff5d5e9598.png" width="300"
+                            height="300" class="site-logo" loading="lazy" alt="Avatar">
+                    
+                
+                </a>
+                
+                    <span class="emoji">🏖️</span>
+                
+            </figure>
+            
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">リンボの個人ブログ</a></h1>
+            <h2 class="site-description">努力不一定能获得回报，但不努力一定不会有回报。</h2>
+        </div>
+    </header><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-home" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <polyline points="5 12 3 12 12 3 21 12 19 12" />
+  <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7" />
+  <path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6" />
+</svg>
+
+
+
+                
+                <span>主页</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/%E5%85%B3%E4%BA%8E/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/archives/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/search/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-search" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="10" cy="10" r="7" />
+  <line x1="21" y1="21" x2="15" y2="15" />
+</svg>
+
+
+
+                
+                <span>搜索</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav id="TableOfContents">
+  <ol>
+    <li><a href="#snmp监控">SNMP监控</a>
+      <ol>
+        <li><a href="#基础知识">基础知识</a>
+          <ol>
+            <li><a href="#snmp简介">SNMP简介</a></li>
+            <li><a href="#snmp的基本思想">SNMP的基本思想</a></li>
+            <li><a href="#工作原理">工作原理</a></li>
+            <li><a href="#snmp组成">SNMP组成</a></li>
+          </ol>
+        </li>
+        <li><a href="#mib-和-oid">MIB 和 OID</a>
+          <ol>
+            <li><a href="#mib">MIB</a></li>
+            <li><a href="#oid">OID</a></li>
+            <li><a href="#常见oid">常见OID</a></li>
+            <li><a href="#snmp操作">SNMP操作</a></li>
+          </ol>
+        </li>
+        <li><a href="#ubuntu主机实践">Ubuntu主机实践</a>
+          <ol>
+            <li><a href="#服务端部署软件">服务端部署软件</a></li>
+            <li><a href="#客户端环境准备">客户端环境准备</a></li>
+          </ol>
+        </li>
+        <li><a href="#网络设备监控">网络设备监控</a>
+          <ol>
+            <li><a href="#查看当前网络">查看当前网络</a></li>
+            <li><a href="#添加主机">添加主机</a></li>
+          </ol>
+        </li>
+      </ol>
+    </li>
+    <li><a href="#web监控">Web监控</a>
+      <ol>
+        <li>
+          <ol>
+            <li><a href="#案例分析">案例分析</a></li>
+            <li><a href="#创建web场景">创建web场景</a></li>
+          </ol>
+        </li>
+      </ol>
+    </li>
+    <li><a href="#环境管理">环境管理</a>
+      <ol>
+        <li><a href="#用户管理">用户管理</a>
+          <ol>
+            <li><a href="#用户角色">用户角色</a></li>
+            <li><a href="#用户组">用户组</a></li>
+            <li><a href="#权限">权限</a></li>
+            <li><a href="#用户实践">用户实践</a></li>
+          </ol>
+        </li>
+      </ol>
+    </li>
+  </ol>
+</nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            <a href="/categories/zabbix/" >
+                Zabbix
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/p/8-%E9%A9%AC%E5%93%A5zabbixsnmp%E5%92%8Cweb%E6%A3%80%E6%B5%8B%E5%92%8C%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86%E5%AE%9E%E8%B7%B5/">8-[马哥][zabbix]snmp和web检测和用户管理实践</a>
+        </h2>
+    
+        
+    </div>
+
+    
+    
+    
+    
+    <footer class="article-time">
+        
+            <div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                <time class="article-time--published">2026-03-17</time>
+            </div>
+        
+
+        
+    </footer>
+    
+
+    
+</div>
+
+</header>
+
+    <section class="article-content">
+    
+    
+    <h2 id="snmp监控">SNMP监控
+</h2><h3 id="基础知识">基础知识
+</h3><h4 id="snmp简介">SNMP简介
+</h4><blockquote>
+<p> SNMP 是“Simple Network Management Protocol”的缩写，中文意思是简单网络管理协议，它是由互联网工作小组在RFC1157中定义的应用层协议，用于在网络实体或节点之间交换管理或监控信息，SNMP发展到目前，一共经历了三个主要版本，SNMPv1，SNMPv2c，SNMPv3。</br>
+ 使用SNMP，一个运行网管软件的工作站就能对成千上万的网络设备进行监控，和信息采集，这些信息可以用来构建网络或者定位网络中的问题。</br>
+ 通过它，我们可以按照内置的属性条目，获取相关具体的监控数据信息。</p>
+</blockquote>
+<h4 id="snmp的基本思想">SNMP的基本思想
+</h4><blockquote>
+<p> 为不同种类的设备、不同厂家生产的设备、不同型号的设备，定义为一个统一的接口和协议，使得管理员可以是使用统一的外观面对这些需要管理的网络设备进行管理。通过网络，管理员可以管理位于不同物理空间的设备，从而大大提高网络管理的效率，简化网络管理员的工作。</p>
+</blockquote>
+<blockquote>
+<p> 通常一线的网络硬件厂商的设备都支持SNMP协议，如：华为，华三，思科，锐捷等，另外Linux，Unix，Windows，Macos等也都支持</p>
+</blockquote>
+<h4 id="工作原理">工作原理
+</h4><p>SNMP网络设备【需要监控和管理的设备或管理对象】分为NMS和Agent两种：</p>
+<blockquote>
+<p> NMS(Network Management Station, 网络管理站)是SNMP网络的管理者，NMS是运行SNMP客户端管理程序的工作站，能够提供友好的人机交互界面，方便网络管理员完成绝大多数的网络管理工作。</br>
+ Agent是SNMP网络的被管理者。Agent是驻留在设备上的一个进程，负责接收、处理来自NMS的请求报文。在一些紧急情况下，如接口状态发生改变等，Agent也会主动通知NMS。</br>
+ NMS和Agent之间通过SNMP协议来交互管理信息。</p>
+</blockquote>
+<p>SNMP管理进程与代理进程之前为了交互信息，定义了5种报文：</p>
+<blockquote>
+<p>get-request操作：</br>
+ 这个操作是由管理进程发起，向代理进程处请求提取一个或多个参数值。</br>
+get-next-request操作：</br>
+ 这个操作是由管理进程发起，向从代理进程处提取一个或多个参数的下一个参数值。</br>
+get-response操作：</br>
+ 这个操作是由代理进程发出的，向管理进程返回的一个或多个参数值。</br>
+set-request操作：</br>
+ 这个操作是由管理进程发起，对代理进程设置一个或多个参数值。</br>
+trap操作：</br>
+ 这个操作是由代理进程主动发出的报文，通知管理进程有某些事情发生。</p>
+</blockquote>
+<p><img src="/p/8-%E9%A9%AC%E5%93%A5zabbixsnmp%E5%92%8Cweb%E6%A3%80%E6%B5%8B%E5%92%8C%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86%E5%AE%9E%E8%B7%B5/image.png"
+	width="996"
+	height="518"
+	srcset="/p/8-%E9%A9%AC%E5%93%A5zabbixsnmp%E5%92%8Cweb%E6%A3%80%E6%B5%8B%E5%92%8C%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86%E5%AE%9E%E8%B7%B5/image_hu_87e1b62f9a1c3194.png 480w, /p/8-%E9%A9%AC%E5%93%A5zabbixsnmp%E5%92%8Cweb%E6%A3%80%E6%B5%8B%E5%92%8C%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86%E5%AE%9E%E8%B7%B5/image_hu_ce042ba1241cdc30.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="192"
+		data-flex-basis="461px"
+	
+></p>
+<h4 id="snmp组成">SNMP组成
+</h4><p>基于TCP/IP的SNMP网络管理包含以下组成部分：</p>
+<blockquote>
+<p> 管理信息库MIB（Management Information Base）：管理信息库包含所有代理进程的所有可被查询和修改的参数。RFC 1213 [McCloghrie and Rose 1991]定义了第二版的MIB，叫做MIB-II。</br>
+ OID（object identifiers）：是与对象相关联的用来无歧义地标识对象的全局唯一的值，一个OID是一个唯一的键值对，用于标识具体某一个设备的某个具体信息（对象标识），如端口信息、设备名称等。即一个OID就是网络通信种对象的身份证。</p>
+</blockquote>
+<blockquote>
+<p> 管理信息结构SMI（Structure of Management Information）：关于MIB的一套公用的结构和表示符号。这个在RFC 1155 [Rose and McCloghrie 1990]中定义。SMI 是一种语言，是为了确保网络管理数据的语法和语义明确和无二义性而定义的语言。它是定义被管理网络实体中特定数据的语言。</br>
+ 它定义了数据类型、对象模型，以及写入和修改管理信息的规则。比如：支持INTEGER，OCTER STRING，DisplayString，IpAddress等数据类型。</p>
+</blockquote>
+<blockquote>
+<p> SNMP（Simple Network Management Protocol）：管理进程和代理进程之间的通信协议，叫做简单网络管理协议。在RFC 1157 [Case et al.1990]中定义。SNMP包括数据报交换的格式等。尽管可以在运输层采用各种各样的协议，但是在SNMP中，用得最多得协议还是UDP。</br></p>
+</blockquote>
+<p>三者关联关系</p>
+<blockquote>
+<p> 上述三部分相互独立，每部分都定义了单独标准（RFC）。SNMP定义通信得方式和格式，但不指明具体设备上的具体数据，每种设备的数据细节在MIB中定义，这样做达到了“控制与数据相分离”的目的，能够提供很好的兼容性和可扩展性。而SMI又为保持MIB的简单性和可扩展性提供了很好的支持。</p>
+</blockquote>
+<h3 id="mib-和-oid">MIB 和 OID
+</h3><h4 id="mib">MIB
+</h4><p>管理信息库MIB可以分为公有MIB和私有MIB两种</p>
+<blockquote>
+<p>公有MIB：</br>
+ 一般由RFC定义，主要用来对各种公有协议进行结构化设计和接口标准化处理。例如：OSPF-MIB（RFC1850）/BGP4-MIB（RFC1657）都是典型的公有MIB。大多数的设备制造商都需要按照RFC的定义来提供SNMP接口。</br>
+私有MIB：</br>
+ 是公有MIB的必要补充，当公司自行开发私有协议或者特有功能时，可以利用私有MIB来完善SNMP接口的管理功能，同时对第三方网管软件管理存在私有协议或特有功能的设备提供支持。</p>
+</blockquote>
+<h4 id="oid">OID
+</h4><p>MIB定义了被管理设备的一系列属性：对象的名称、对象的状态、对象的访问权限和对象的数据类型等。MIB是以树状结构进行存储的，树的节点表示被管理对象，它可以用从根开始的一条路径唯一地识别，这条路径就称为OID。</p>
+<blockquote>
+<p> 一般情况下（如交换机、防火墙、PC）使用地路径如图所示，iso&ndash;&gt;org&ndash;&gt;dod&ndash;&gt;internet，所以这些设备信息地oid必然以1.3.6.1开头。</br>
+ 之后mgmt为公有库，包含了一些设备共同具备地信息，例如1.3.6.1.2.1.1.5为主机名，而private为私有库，再根据不同地公司，MIB树继续扩展下去，最后到每一个具体值得叶子节点，例如1.3.6.1.4.1.2021.4.3.0为Linux操作系统的交换区大小。</p>
+</blockquote>
+<p><img src="/p/8-%E9%A9%AC%E5%93%A5zabbixsnmp%E5%92%8Cweb%E6%A3%80%E6%B5%8B%E5%92%8C%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86%E5%AE%9E%E8%B7%B5/image-1.png"
+	width="879"
+	height="631"
+	srcset="/p/8-%E9%A9%AC%E5%93%A5zabbixsnmp%E5%92%8Cweb%E6%A3%80%E6%B5%8B%E5%92%8C%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86%E5%AE%9E%E8%B7%B5/image-1_hu_2bcb91c4fe0a9b13.png 480w, /p/8-%E9%A9%AC%E5%93%A5zabbixsnmp%E5%92%8Cweb%E6%A3%80%E6%B5%8B%E5%92%8C%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86%E5%AE%9E%E8%B7%B5/image-1_hu_6b7bf1ca2cf9dbfa.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="139"
+		data-flex-basis="334px"
+	
+></p>
+<blockquote>
+<p>例如下图的几个设备数据属性：</br>
+ system的OID为1.3.6.1.2.1.1</br>
+ interfaces的OID为1.3.6.1.2.1.2</p>
+</blockquote>
+<p>参考资料</p>
+<blockquote>
+<p>oid-info是一个内容丰富的网站，包含了大量公有或私有的MIB信息，在知道部分OID的情况，可以方便的进行节点具体信息的查看。但是树太过庞大，仅仅从网站上查看效率十分低下，直接从设备商处获取mib库是最方便的做法。</br></p>
+</blockquote>
+<blockquote>
+<p><a class="link" href="http://www.oid-info.com/index.html"  target="_blank" rel="noopener"
+    >http://www.oid-info.com/index.html</a></br>
+目前不让查看</p>
+</blockquote>
+<h4 id="常见oid">常见OID
+</h4><p>基本信息：</p>
+<blockquote>
+<p>内核信息：1.3.6.1.2.1.1.1</br>
+主机名：1.3.6.1.2.1.1.5.0</p>
+</blockquote>
+<p>CPU负载：</p>
+<blockquote>
+<p>所有负载：1.3.6.1.4.1.2021.10.1.3</br>
+1 minute Load：.1.3.6.1.4.1.2021.10.1.3.1</br>
+5 minute Load：.1.3.6.1.4.1.2021.10.1.3.2</br>
+15 minute Load：.1.3.6.1.4.1.2021.10.1.3.3</p>
+</blockquote>
+<p>CPU信息：</p>
+<blockquote>
+<p>所有信息：1.3.6.1.4.1.2021.11</br>
+percentage of user CPU time：.1.3.6.1.4.1.2021.11.9.0</br>
+raw user cpu time：.1.3.6.1.4.1.2021.11.50.0</br>
+raw system cpu time：.1.3.6.1.4.1.2021.11.52.0</br>
+percentages of idle CPU time：.1.3.6.1.4.1.2021.11.11.0</br>
+raw idle cpu time：.1.3.6.1.4.1.2021.11.53.0</br>
+raw nice cpu time：.1.3.6.1.4.1.2021.11.51.0</p>
+</blockquote>
+<p>内存使用：</p>
+<blockquote>
+<p>所有信息：.1.3.6.1.4.1.2021.4
+Total Swap Size ：.1.3.6.1.4.1.2021.4.3.0
+Available Swap Spacce：.1.3.6.1.4.1.2021.4.4.0
+Total RAM in machine：.1.3.6.1.4.1.2021.4.5.0
+Total RAM used：.1.3.6.1.4.1.2021.4.6.0
+Total RAM Free：.1.3.6.1.4.1.2021.4.11.0
+Total RAM Shared：.1.3.6.1.4.1.2021.4.13.0
+Total RAM Buffered：.1.3.6.1.4.1.2021.4.14.0
+Total cached Memory：.1.3.6.1.4.1.2021.4.15.0</p>
+</blockquote>
+<p>硬盘使用：</p>
+<blockquote>
+<p>Path where the disk is mounted：.1.3.6.1.4.1.2021.9.1.2.1
+Path of the device for the parition：.1.3.6.1.4.1.2021.9.1.3.1
+Total size of the disk/partion（kBytes）：.1.3.6.1.4.1.2021.9.1.6.1
+Available space on the disk：.1.3.6.1.4.1.2021.9.1.7.1
+Used space on the disk：.1.3.6.1.4.1.2021.9.1.8.1</p>
+</blockquote>
+<h4 id="snmp操作">SNMP操作
+</h4><p>SNMP查询是指NMS主动向SNMP Agent发送查询请求。SNMP Agent接收到查询请求后，通过MIB表完成相应指令，并将结果反馈给NMS。在整个操作过程中，SNMP主要包括三部分的操作：检索数据、修改变量、接收信息</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">检索数据：管理组件向agent发送请求以获取数据，有如下操作类型：
+</span></span><span class="line"><span class="cl">    GET：GET请求用以从agent上获取指定OID对应的一条或多条值
+</span></span><span class="line"><span class="cl">    GETNEXT：与GET请求类似，最明显的区别是GETNEXT获取指定OID在系统树种所处位置的下一个OID。
+</span></span><span class="line"><span class="cl">    GETBULK：用于从agent上获取大表中的大量数据。
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">修改变量：管理组件有时会希望能够修改设备上的一些变量：
+</span></span><span class="line"><span class="cl">    SET：管理组件使用这个命令来修改设备的一些配置值。
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">接收消息：
+</span></span><span class="line"><span class="cl">    TRAP：当agent遇到数据传输问题，或设备出现故障希望上层管理组件知晓时，使用TRAP操作上报此信息。
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/8-%E9%A9%AC%E5%93%A5zabbixsnmp%E5%92%8Cweb%E6%A3%80%E6%B5%8B%E5%92%8C%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86%E5%AE%9E%E8%B7%B5/image-2.png"
+	width="1258"
+	height="482"
+	srcset="/p/8-%E9%A9%AC%E5%93%A5zabbixsnmp%E5%92%8Cweb%E6%A3%80%E6%B5%8B%E5%92%8C%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86%E5%AE%9E%E8%B7%B5/image-2_hu_3d8f4b5e9169acb5.png 480w, /p/8-%E9%A9%AC%E5%93%A5zabbixsnmp%E5%92%8Cweb%E6%A3%80%E6%B5%8B%E5%92%8C%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86%E5%AE%9E%E8%B7%B5/image-2_hu_235bdfd5e50447df.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="260"
+		data-flex-basis="626px"
+	
+></p>
+<h3 id="ubuntu主机实践">Ubuntu主机实践
+</h3><h4 id="服务端部署软件">服务端部署软件
+</h4><p>zabbix服务端安装软件</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">apt install -y snmp
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>查看文件</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">dpkg -L snmp
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="客户端环境准备">客户端环境准备
+</h4><h3 id="网络设备监控">网络设备监控
+</h3><p>由于我的网络设备中没有snmp选项，这里直接使用老师的结果</p>
+<h4 id="查看当前网络">查看当前网络
+</h4><p>通过本地主机，查看网络网关</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">ipconfig
+</span></span><span class="line"><span class="cl">...
+</span></span><span class="line"><span class="cl">Windows IP 配置
+</span></span><span class="line"><span class="cl">以太网适配器 以太网 2
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">   连接特定的 DNS 后缀 . . . . . . . : 
+</span></span><span class="line"><span class="cl">   本地链接 IPv6 地址. . . . . . . . : fe80::acf9:6dc1:7903:2f92%5
+</span></span><span class="line"><span class="cl">   IPv4 地址 . . . . . . . . . . . . : 172.24.100.8
+</span></span><span class="line"><span class="cl">   子网掩码  . . . . . . . . . . . . : 255.255.255.0
+</span></span><span class="line"><span class="cl">   默认网关. . . . . . . . . . . . . : 172.24.0.1
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>浏览器查看效果</p>
+<p><img src="/p/8-%E9%A9%AC%E5%93%A5zabbixsnmp%E5%92%8Cweb%E6%A3%80%E6%B5%8B%E5%92%8C%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86%E5%AE%9E%E8%B7%B5/image-3.png"
+	width="1229"
+	height="514"
+	srcset="/p/8-%E9%A9%AC%E5%93%A5zabbixsnmp%E5%92%8Cweb%E6%A3%80%E6%B5%8B%E5%92%8C%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86%E5%AE%9E%E8%B7%B5/image-3_hu_ba6f4d0d79fdbb6b.png 480w, /p/8-%E9%A9%AC%E5%93%A5zabbixsnmp%E5%92%8Cweb%E6%A3%80%E6%B5%8B%E5%92%8C%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86%E5%AE%9E%E8%B7%B5/image-3_hu_84ccf341bd0104b2.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="239"
+		data-flex-basis="573px"
+	
+></p>
+<p>注意：H3C设备。默认情况下是开启了SNMP功能的。</p>
+<h4 id="添加主机">添加主机
+</h4><p>点击 数据采集-主机，点击添加主机</p>
+<p><img src="/p/8-%E9%A9%AC%E5%93%A5zabbixsnmp%E5%92%8Cweb%E6%A3%80%E6%B5%8B%E5%92%8C%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86%E5%AE%9E%E8%B7%B5/image-4.png"
+	width="1261"
+	height="778"
+	srcset="/p/8-%E9%A9%AC%E5%93%A5zabbixsnmp%E5%92%8Cweb%E6%A3%80%E6%B5%8B%E5%92%8C%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86%E5%AE%9E%E8%B7%B5/image-4_hu_711b6c6fef0f74fd.png 480w, /p/8-%E9%A9%AC%E5%93%A5zabbixsnmp%E5%92%8Cweb%E6%A3%80%E6%B5%8B%E5%92%8C%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86%E5%AE%9E%E8%B7%B5/image-4_hu_3841a6ee07c3be84.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="162"
+		data-flex-basis="388px"
+	
+></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">主机名字：172.24.0.1-h3c
+</span></span><span class="line"><span class="cl">模板：Generic by SNMP
+</span></span><span class="line"><span class="cl">主机群组：network-device
+</span></span><span class="line"><span class="cl">接口：SNMPv2c
+</span></span><span class="line"><span class="cl">    172.24.0.1，161
+</span></span><span class="line"><span class="cl">描述：监听本地的网络设备
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>点击添加</p>
+<h2 id="web监控">Web监控
+</h2><h4 id="案例分析">案例分析
+</h4><p>案例需求</p>
+<blockquote>
+<p> 按照我们之前通过item的操作方式，效果是非常灵活的，但是它对于某些数据变化特别大的场景效果不是太好，比如时刻监测web页面的可访问性，因为zabbix对监控项的数据采集时间间隔是有时间限制的，所以我们就需要一种专门应用于web项目监测的功能。</p>
+</blockquote>
+<blockquote>
+<p> zbbix项目还提供了一种专门用于web场景的监控属性Web scenarios，可以基于web项目的url页面的访问状态来做多方面的服务监控，比如网站可用性、响应速度、请求处理时间等。</p>
+</blockquote>
+<blockquote>
+<p>注意：</br>
+ 该web监控功能，是直接整合在监控主机上的，不能单独来进行配置。</p>
+</blockquote>
+<h4 id="创建web场景">创建web场景
+</h4><h4>部署tomcat应用</h4>
+<p>在ubuntu24主机部署tomcat</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">apt install tomcat10 -y
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>测试效果</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# netstat -tnulp <span class="p">|</span> grep <span class="m">8080</span>
+</span></span><span class="line"><span class="cl">tcp6       <span class="m">0</span>      <span class="m">0</span> :::8080                 :::*                    LISTEN      1641639/java
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4>创建监控主机</h4>
+<p>该web监控功能，是直接整合在监控主机上的，不能单独来进行配置i，所以需要提前创建监控hosts</p>
+<blockquote>
+<p>因为web监测主要是基于http方式来进行采集数据，所以关于接口部分的设定内容，可以不用设定，即使我们设定了agent内容，在web检测部分，是没有真正的运用起来的。</p>
+</blockquote>
+<p>点击数据采集的主机功能，点击 添加主机，按照如下方式进行设置</p>
+<p><img src="/p/8-%E9%A9%AC%E5%93%A5zabbixsnmp%E5%92%8Cweb%E6%A3%80%E6%B5%8B%E5%92%8C%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86%E5%AE%9E%E8%B7%B5/image-5.png"
+	width="1517"
+	height="680"
+	srcset="/p/8-%E9%A9%AC%E5%93%A5zabbixsnmp%E5%92%8Cweb%E6%A3%80%E6%B5%8B%E5%92%8C%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86%E5%AE%9E%E8%B7%B5/image-5_hu_4bd61f2df5400807.png 480w, /p/8-%E9%A9%AC%E5%93%A5zabbixsnmp%E5%92%8Cweb%E6%A3%80%E6%B5%8B%E5%92%8C%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86%E5%AE%9E%E8%B7%B5/image-5_hu_540376a067b0e13a.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="223"
+		data-flex-basis="535px"
+	
+></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">主机名称：192.168.172.121
+</span></span><span class="line"><span class="cl">主机群组：web-group
+</span></span><span class="line"><span class="cl">描述：基于web主机的方式，做一个web监测
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>点击添加后的效果</p>
+<p><img src="/p/8-%E9%A9%AC%E5%93%A5zabbixsnmp%E5%92%8Cweb%E6%A3%80%E6%B5%8B%E5%92%8C%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86%E5%AE%9E%E8%B7%B5/image-6.png"
+	width="1322"
+	height="348"
+	srcset="/p/8-%E9%A9%AC%E5%93%A5zabbixsnmp%E5%92%8Cweb%E6%A3%80%E6%B5%8B%E5%92%8C%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86%E5%AE%9E%E8%B7%B5/image-6_hu_a53a9301f2dfd63e.png 480w, /p/8-%E9%A9%AC%E5%93%A5zabbixsnmp%E5%92%8Cweb%E6%A3%80%E6%B5%8B%E5%92%8C%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86%E5%AE%9E%E8%B7%B5/image-6_hu_b942f1917b7a3e2f.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="379"
+		data-flex-basis="911px"
+	
+></p>
+<h4>创建监控主机</h4>
+<p>点击主机条目右侧的web监测</p>
+<p><img src="/p/8-%E9%A9%AC%E5%93%A5zabbixsnmp%E5%92%8Cweb%E6%A3%80%E6%B5%8B%E5%92%8C%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86%E5%AE%9E%E8%B7%B5/image-7.png"
+	width="1322"
+	height="348"
+	srcset="/p/8-%E9%A9%AC%E5%93%A5zabbixsnmp%E5%92%8Cweb%E6%A3%80%E6%B5%8B%E5%92%8C%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86%E5%AE%9E%E8%B7%B5/image-7_hu_98095964586bd3dd.png 480w, /p/8-%E9%A9%AC%E5%93%A5zabbixsnmp%E5%92%8Cweb%E6%A3%80%E6%B5%8B%E5%92%8C%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86%E5%AE%9E%E8%B7%B5/image-7_hu_8483238f189d6a20.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="379"
+		data-flex-basis="911px"
+	
+></p>
+<p><img src="/p/8-%E9%A9%AC%E5%93%A5zabbixsnmp%E5%92%8Cweb%E6%A3%80%E6%B5%8B%E5%92%8C%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86%E5%AE%9E%E8%B7%B5/image-8.png"
+	width="1514"
+	height="635"
+	srcset="/p/8-%E9%A9%AC%E5%93%A5zabbixsnmp%E5%92%8Cweb%E6%A3%80%E6%B5%8B%E5%92%8C%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86%E5%AE%9E%E8%B7%B5/image-8_hu_1ce046e449a52b2a.png 480w, /p/8-%E9%A9%AC%E5%93%A5zabbixsnmp%E5%92%8Cweb%E6%A3%80%E6%B5%8B%E5%92%8C%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86%E5%AE%9E%E8%B7%B5/image-8_hu_8966a857e50476e6.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="238"
+		data-flex-basis="572px"
+	
+></p>
+<p>点击创建web场景</p>
+<p><img src="/p/8-%E9%A9%AC%E5%93%A5zabbixsnmp%E5%92%8Cweb%E6%A3%80%E6%B5%8B%E5%92%8C%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86%E5%AE%9E%E8%B7%B5/image-9.png"
+	width="1342"
+	height="565"
+	srcset="/p/8-%E9%A9%AC%E5%93%A5zabbixsnmp%E5%92%8Cweb%E6%A3%80%E6%B5%8B%E5%92%8C%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86%E5%AE%9E%E8%B7%B5/image-9_hu_203a9cd50401545b.png 480w, /p/8-%E9%A9%AC%E5%93%A5zabbixsnmp%E5%92%8Cweb%E6%A3%80%E6%B5%8B%E5%92%8C%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86%E5%AE%9E%E8%B7%B5/image-9_hu_f90a26c9585babcf.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="237"
+		data-flex-basis="570px"
+	
+></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">属性解析，这里面主要关注的内容是以下几项内容：
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    Name：web场景监测
+</span></span><span class="line"><span class="cl">    Update interval 间隔时间60秒，即一分钟采集一次，调整为 10s
+</span></span><span class="line"><span class="cl">    attempts 尝试次数，设置为1次
+</span></span><span class="line"><span class="cl">    Agent 使用的浏览器，可以使用 google，这里选择firefox，注意版本号
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4>定制web步骤</h4>
+<p>定制Steps的属性效果</p>
+<p><img src="/p/8-%E9%A9%AC%E5%93%A5zabbixsnmp%E5%92%8Cweb%E6%A3%80%E6%B5%8B%E5%92%8C%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86%E5%AE%9E%E8%B7%B5/image-10.png"
+	width="1338"
+	height="786"
+	srcset="/p/8-%E9%A9%AC%E5%93%A5zabbixsnmp%E5%92%8Cweb%E6%A3%80%E6%B5%8B%E5%92%8C%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86%E5%AE%9E%E8%B7%B5/image-10_hu_36d822048b5fe161.png 480w, /p/8-%E9%A9%AC%E5%93%A5zabbixsnmp%E5%92%8Cweb%E6%A3%80%E6%B5%8B%E5%92%8C%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86%E5%AE%9E%E8%B7%B5/image-10_hu_e574848b3ae8e485.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="170"
+		data-flex-basis="408px"
+	
+></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">属性解析：这里面主要关注的内容是以下几项内容：
+</span></span><span class="line"><span class="cl">    Name：tomcat首页状态监测
+</span></span><span class="line"><span class="cl">    URL：http://192.168.172.121:8080/
+</span></span><span class="line"><span class="cl">    Timeout：一次访问的超时时间
+</span></span><span class="line"><span class="cl">    Require Status codes 要求返回的状态码，200为成功
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>点击添加step后效果</p>
+<p><img src="/p/8-%E9%A9%AC%E5%93%A5zabbixsnmp%E5%92%8Cweb%E6%A3%80%E6%B5%8B%E5%92%8C%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86%E5%AE%9E%E8%B7%B5/image-11.png"
+	width="1342"
+	height="265"
+	srcset="/p/8-%E9%A9%AC%E5%93%A5zabbixsnmp%E5%92%8Cweb%E6%A3%80%E6%B5%8B%E5%92%8C%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86%E5%AE%9E%E8%B7%B5/image-11_hu_faea37d9ac2398b.png 480w, /p/8-%E9%A9%AC%E5%93%A5zabbixsnmp%E5%92%8Cweb%E6%A3%80%E6%B5%8B%E5%92%8C%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86%E5%AE%9E%E8%B7%B5/image-11_hu_af4682097875f49d.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="506"
+		data-flex-basis="1215px"
+	
+></p>
+<p>点击添加</p>
+<p><img src="/p/8-%E9%A9%AC%E5%93%A5zabbixsnmp%E5%92%8Cweb%E6%A3%80%E6%B5%8B%E5%92%8C%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86%E5%AE%9E%E8%B7%B5/image-12.png"
+	width="1342"
+	height="484"
+	srcset="/p/8-%E9%A9%AC%E5%93%A5zabbixsnmp%E5%92%8Cweb%E6%A3%80%E6%B5%8B%E5%92%8C%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86%E5%AE%9E%E8%B7%B5/image-12_hu_4d1b99a40234d033.png 480w, /p/8-%E9%A9%AC%E5%93%A5zabbixsnmp%E5%92%8Cweb%E6%A3%80%E6%B5%8B%E5%92%8C%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86%E5%AE%9E%E8%B7%B5/image-12_hu_1b02d89b3fbe236a.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="277"
+		data-flex-basis="665px"
+	
+></p>
+<h4>测试效果</h4>
+<p>点击监测-主机，找到模板主机后，查看效果</p>
+<p><img src="/p/8-%E9%A9%AC%E5%93%A5zabbixsnmp%E5%92%8Cweb%E6%A3%80%E6%B5%8B%E5%92%8C%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86%E5%AE%9E%E8%B7%B5/image-13.png"
+	width="1515"
+	height="422"
+	srcset="/p/8-%E9%A9%AC%E5%93%A5zabbixsnmp%E5%92%8Cweb%E6%A3%80%E6%B5%8B%E5%92%8C%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86%E5%AE%9E%E8%B7%B5/image-13_hu_f511328640488d07.png 480w, /p/8-%E9%A9%AC%E5%93%A5zabbixsnmp%E5%92%8Cweb%E6%A3%80%E6%B5%8B%E5%92%8C%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86%E5%AE%9E%E8%B7%B5/image-13_hu_cd8c21cc86eca0b5.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="359"
+		data-flex-basis="861px"
+	
+></p>
+<p><img src="/p/8-%E9%A9%AC%E5%93%A5zabbixsnmp%E5%92%8Cweb%E6%A3%80%E6%B5%8B%E5%92%8C%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86%E5%AE%9E%E8%B7%B5/image-14.png"
+	width="1515"
+	height="382"
+	srcset="/p/8-%E9%A9%AC%E5%93%A5zabbixsnmp%E5%92%8Cweb%E6%A3%80%E6%B5%8B%E5%92%8C%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86%E5%AE%9E%E8%B7%B5/image-14_hu_afadc675e7becf11.png 480w, /p/8-%E9%A9%AC%E5%93%A5zabbixsnmp%E5%92%8Cweb%E6%A3%80%E6%B5%8B%E5%92%8C%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86%E5%AE%9E%E8%B7%B5/image-14_hu_545e84195015a0f4.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="396"
+		data-flex-basis="951px"
+	
+></p>
+<p><img src="/p/8-%E9%A9%AC%E5%93%A5zabbixsnmp%E5%92%8Cweb%E6%A3%80%E6%B5%8B%E5%92%8C%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86%E5%AE%9E%E8%B7%B5/image-15.png"
+	width="1493"
+	height="818"
+	srcset="/p/8-%E9%A9%AC%E5%93%A5zabbixsnmp%E5%92%8Cweb%E6%A3%80%E6%B5%8B%E5%92%8C%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86%E5%AE%9E%E8%B7%B5/image-15_hu_3a8a18db12f457d7.png 480w, /p/8-%E9%A9%AC%E5%93%A5zabbixsnmp%E5%92%8Cweb%E6%A3%80%E6%B5%8B%E5%92%8C%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86%E5%AE%9E%E8%B7%B5/image-15_hu_612b9c40ffd5f847.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="182"
+		data-flex-basis="438px"
+	
+></p>
+<h2 id="环境管理">环境管理
+</h2><h3 id="用户管理">用户管理
+</h3><p>Zabbix 是一款广泛使用的开源监控系统，其用户管理功能对于保障系统安全、合理分配权限以及有效进行监控管理至关重要。</p>
+<h4 id="用户角色">用户角色
+</h4><p>Zabbix中有不同的用户角色，每种角色拥有不同的权限范围，角色定义可以管理和访问哪些菜单项</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">https://www.zabbix.com/documentation/7.0/zh/manual/config/users_and_usergroups/permissions
+</span></span><span class="line"><span class="cl">https://www.zabbix.com/documentation/7.0/zh/manual/web_interface/frontend_sections/users/user_roles
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>用户角色定义了UI的哪些部分、哪些API方法以及哪些操作可供用户使用。</p>
+<div class="table-wrapper"><table>
+  <thead>
+      <tr>
+          <th>用户类型</th>
+          <th>说明</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>guest访客角色</td>
+          <td>用户有权访问&quot;监控”、&quot;“清单&quot;和&quot;报告&quot;菜单部分，但无权执行任何操作。</td>
+      </tr>
+      <tr>
+          <td>用户角色</td>
+          <td>用户有权访问&quot;监控”、“清单”&ldquo;和&quot;报告”菜单部分。默认情况下，用户无权访问任何资源。必须明确分配对主机组的任何权限。</td>
+      </tr>
+      <tr>
+          <td>管理员角色</td>
+          <td>用户有权访问&quot;监控”、“库存&rdquo;、“报告&quot;和&quot;配置&quot;菜单部分。默认情况下，用户无权访问任何主机组。必须明确授予对主机组的任何权限。</td>
+      </tr>
+      <tr>
+          <td>超级管理员角色</td>
+          <td>用户有权访问所有菜单部分。用户具有对所有主机组的读写访问权限。不能通过拒绝对特定主机组的访问来撤销权限。</td>
+      </tr>
+  </tbody>
+</table></div>
+<p>具有超级管理员类型和适当权限的Zabbix用户可以修改或删除现有角色或创建新的自定义角色。要创建新角色，请单击右上角的创建用户角色按钮。要更新现有角色，请按角色名称以打开配置表单。</p>
+<p><img src="/p/8-%E9%A9%AC%E5%93%A5zabbixsnmp%E5%92%8Cweb%E6%A3%80%E6%B5%8B%E5%92%8C%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86%E5%AE%9E%E8%B7%B5/image-16.png"
+	width="601"
+	height="658"
+	srcset="/p/8-%E9%A9%AC%E5%93%A5zabbixsnmp%E5%92%8Cweb%E6%A3%80%E6%B5%8B%E5%92%8C%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86%E5%AE%9E%E8%B7%B5/image-16_hu_b4bea4649eea395.png 480w, /p/8-%E9%A9%AC%E5%93%A5zabbixsnmp%E5%92%8Cweb%E6%A3%80%E6%B5%8B%E5%92%8C%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86%E5%AE%9E%E8%B7%B5/image-16_hu_617df55efbe6010f.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="91"
+		data-flex-basis="219px"
+	
+></p>
+<p><img src="/p/8-%E9%A9%AC%E5%93%A5zabbixsnmp%E5%92%8Cweb%E6%A3%80%E6%B5%8B%E5%92%8C%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86%E5%AE%9E%E8%B7%B5/image-17.png"
+	width="566"
+	height="656"
+	srcset="/p/8-%E9%A9%AC%E5%93%A5zabbixsnmp%E5%92%8Cweb%E6%A3%80%E6%B5%8B%E5%92%8C%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86%E5%AE%9E%E8%B7%B5/image-17_hu_12764164eed498d6.png 480w, /p/8-%E9%A9%AC%E5%93%A5zabbixsnmp%E5%92%8Cweb%E6%A3%80%E6%B5%8B%E5%92%8C%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86%E5%AE%9E%E8%B7%B5/image-17_hu_f3e3d6228d318128.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="86"
+		data-flex-basis="207px"
+	
+></p>
+<p><img src="/p/8-%E9%A9%AC%E5%93%A5zabbixsnmp%E5%92%8Cweb%E6%A3%80%E6%B5%8B%E5%92%8C%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86%E5%AE%9E%E8%B7%B5/image-18.png"
+	width="594"
+	height="657"
+	srcset="/p/8-%E9%A9%AC%E5%93%A5zabbixsnmp%E5%92%8Cweb%E6%A3%80%E6%B5%8B%E5%92%8C%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86%E5%AE%9E%E8%B7%B5/image-18_hu_9464f5320d45d0f6.png 480w, /p/8-%E9%A9%AC%E5%93%A5zabbixsnmp%E5%92%8Cweb%E6%A3%80%E6%B5%8B%E5%92%8C%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86%E5%AE%9E%E8%B7%B5/image-18_hu_ada94f14fdb9464f.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="90"
+		data-flex-basis="216px"
+	
+></p>
+<p><img src="/p/8-%E9%A9%AC%E5%93%A5zabbixsnmp%E5%92%8Cweb%E6%A3%80%E6%B5%8B%E5%92%8C%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86%E5%AE%9E%E8%B7%B5/image-19.png"
+	width="581"
+	height="653"
+	srcset="/p/8-%E9%A9%AC%E5%93%A5zabbixsnmp%E5%92%8Cweb%E6%A3%80%E6%B5%8B%E5%92%8C%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86%E5%AE%9E%E8%B7%B5/image-19_hu_413d6840e53ce619.png 480w, /p/8-%E9%A9%AC%E5%93%A5zabbixsnmp%E5%92%8Cweb%E6%A3%80%E6%B5%8B%E5%92%8C%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86%E5%AE%9E%E8%B7%B5/image-19_hu_8dee39b1118b0be2.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="88"
+		data-flex-basis="213px"
+	
+></p>
+<h4 id="用户组">用户组
+</h4><p>用户组是 Zabbix 用户管理的重要组织形式，它可以将具有相同属性或职责的用户归为一组，并为该组统一分配权限。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">作用：
+</span></span><span class="line"><span class="cl">    通过用户组可以方便地进行批量管理，提高管理效率。
+</span></span><span class="line"><span class="cl">    例如，可以创建一个“运维组”，将所有负责日常运维地用户添加到该组中，并为该组设置相应地权限。
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">权限关联：
+</span></span><span class="line"><span class="cl">    用户组与主机组、模板等监控资源相关联，用户组中地用户将继承该组所拥有的对这些资源的访问权限。
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="权限">权限
+</h4><p>Zabbix 的权限设置基于用户组和主机组，通过设置用户组对不同主机组的访问权限，可以精确控制用户对监控资源的访问：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">权限级别：
+</span></span><span class="line"><span class="cl">    权限分为“拒绝（Deny）”、“只读（Read-only）”和“读写（Read-write）”三种。拒绝表示用户组中的用户无法访问该组；只读表示用户只能查看该主机组的监控数据；读写表示用户不仅可以查看监控数据，还可以对该主机组的相关配置进行修改。
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">权限分配：
+</span></span><span class="line"><span class="cl">    在“Administration（管理）” -&gt; “User groups（用户组）”页面，选择要设置权限的用户组，点击“Permissions（权限）”标签，为该用户组分配对不同主机组的访问权限。
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="用户实践">用户实践
+</h4><h4>创建用户</h4>
+<p>使用具有足够权限的账号登录 Zabbix 管理界面，点击左边栏的用户的用户功能。</p>
+<p><img src="/p/8-%E9%A9%AC%E5%93%A5zabbixsnmp%E5%92%8Cweb%E6%A3%80%E6%B5%8B%E5%92%8C%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86%E5%AE%9E%E8%B7%B5/image-20.png"
+	width="1514"
+	height="522"
+	srcset="/p/8-%E9%A9%AC%E5%93%A5zabbixsnmp%E5%92%8Cweb%E6%A3%80%E6%B5%8B%E5%92%8C%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86%E5%AE%9E%E8%B7%B5/image-20_hu_edc09ad506fec553.png 480w, /p/8-%E9%A9%AC%E5%93%A5zabbixsnmp%E5%92%8Cweb%E6%A3%80%E6%B5%8B%E5%92%8C%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86%E5%AE%9E%E8%B7%B5/image-20_hu_ead9048a3bd7aaa0.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="290"
+		data-flex-basis="696px"
+	
+></p>
+<p>点击右上角的“Create user（创建用户）”按钮，按照如下内容编辑内容</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">群组中，输入 admin，然后选择 Zabbix administrators 群组
+</span></span><span class="line"><span class="cl">密码：输入 W!@#$%^w，普通的12345678会导致 密码无效的情况
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">注意：
+</span></span><span class="line"><span class="cl">    这里的群组直接决定了，我们这个账号登陆后，能够看到哪些主机条目。
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>直接点击添加，会导致无法创建用户，查看效果</p>
+<p><img src="/p/8-%E9%A9%AC%E5%93%A5zabbixsnmp%E5%92%8Cweb%E6%A3%80%E6%B5%8B%E5%92%8C%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86%E5%AE%9E%E8%B7%B5/image-21.png"
+	width="1342"
+	height="216"
+	srcset="/p/8-%E9%A9%AC%E5%93%A5zabbixsnmp%E5%92%8Cweb%E6%A3%80%E6%B5%8B%E5%92%8C%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86%E5%AE%9E%E8%B7%B5/image-21_hu_c5fba62ec620ae8e.png 480w, /p/8-%E9%A9%AC%E5%93%A5zabbixsnmp%E5%92%8Cweb%E6%A3%80%E6%B5%8B%E5%92%8C%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86%E5%AE%9E%E8%B7%B5/image-21_hu_cfd510574206fd35.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="621"
+		data-flex-basis="1491px"
+	
+></p>
+<p>另外，如果密码无法符合要求，会导致如下报错</p>
+<p><img src="/p/8-%E9%A9%AC%E5%93%A5zabbixsnmp%E5%92%8Cweb%E6%A3%80%E6%B5%8B%E5%92%8C%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86%E5%AE%9E%E8%B7%B5/image-22.png"
+	width="1334"
+	height="89"
+	srcset="/p/8-%E9%A9%AC%E5%93%A5zabbixsnmp%E5%92%8Cweb%E6%A3%80%E6%B5%8B%E5%92%8C%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86%E5%AE%9E%E8%B7%B5/image-22_hu_be6dd0a317edc1aa.png 480w, /p/8-%E9%A9%AC%E5%93%A5zabbixsnmp%E5%92%8Cweb%E6%A3%80%E6%B5%8B%E5%92%8C%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86%E5%AE%9E%E8%B7%B5/image-22_hu_721218a490796b1b.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="1498"
+		data-flex-basis="3597px"
+	
+></p>
+<p>没有添加权限，会导致无法添加用户，所以需要点击权限，选择权限的角色id，这里选择超级管理员</p>
+<p><img src="/p/8-%E9%A9%AC%E5%93%A5zabbixsnmp%E5%92%8Cweb%E6%A3%80%E6%B5%8B%E5%92%8C%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86%E5%AE%9E%E8%B7%B5/image-23.png"
+	width="1497"
+	height="615"
+	srcset="/p/8-%E9%A9%AC%E5%93%A5zabbixsnmp%E5%92%8Cweb%E6%A3%80%E6%B5%8B%E5%92%8C%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86%E5%AE%9E%E8%B7%B5/image-23_hu_9bd803932c53685e.png 480w, /p/8-%E9%A9%AC%E5%93%A5zabbixsnmp%E5%92%8Cweb%E6%A3%80%E6%B5%8B%E5%92%8C%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86%E5%AE%9E%E8%B7%B5/image-23_hu_2258b5f7977ef9d4.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="243"
+		data-flex-basis="584px"
+	
+></p>
+<p>然后点击添加即可</p>
+<p><img src="/p/8-%E9%A9%AC%E5%93%A5zabbixsnmp%E5%92%8Cweb%E6%A3%80%E6%B5%8B%E5%92%8C%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86%E5%AE%9E%E8%B7%B5/image-24.png"
+	width="1342"
+	height="517"
+	srcset="/p/8-%E9%A9%AC%E5%93%A5zabbixsnmp%E5%92%8Cweb%E6%A3%80%E6%B5%8B%E5%92%8C%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86%E5%AE%9E%E8%B7%B5/image-24_hu_47d600ef823f5ef6.png 480w, /p/8-%E9%A9%AC%E5%93%A5zabbixsnmp%E5%92%8Cweb%E6%A3%80%E6%B5%8B%E5%92%8C%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86%E5%AE%9E%E8%B7%B5/image-24_hu_e2f039bb819dd8b3.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="259"
+		data-flex-basis="622px"
+	
+></p>
+<p>注意：如果用户的权限调整为User role的话，使用yline用户登录看到的信息就更加的少了</p>
+<h4>创建用户组</h4>
+<p>点击左边栏的用户的用户组功能</p>
+<p><img src="/p/8-%E9%A9%AC%E5%93%A5zabbixsnmp%E5%92%8Cweb%E6%A3%80%E6%B5%8B%E5%92%8C%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86%E5%AE%9E%E8%B7%B5/image-25.png"
+	width="1513"
+	height="490"
+	srcset="/p/8-%E9%A9%AC%E5%93%A5zabbixsnmp%E5%92%8Cweb%E6%A3%80%E6%B5%8B%E5%92%8C%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86%E5%AE%9E%E8%B7%B5/image-25_hu_6cc3bd06653a1692.png 480w, /p/8-%E9%A9%AC%E5%93%A5zabbixsnmp%E5%92%8Cweb%E6%A3%80%E6%B5%8B%E5%92%8C%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86%E5%AE%9E%E8%B7%B5/image-25_hu_2088b111cd48d8a6.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="308"
+		data-flex-basis="741px"
+	
+></p>
+<p>点击创建用户组，按照如下方式输入内，关于用户可以输入关键字yline后选择即可</p>
+<p><img src="/p/8-%E9%A9%AC%E5%93%A5zabbixsnmp%E5%92%8Cweb%E6%A3%80%E6%B5%8B%E5%92%8C%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86%E5%AE%9E%E8%B7%B5/image-26.png"
+	width="1342"
+	height="403"
+	srcset="/p/8-%E9%A9%AC%E5%93%A5zabbixsnmp%E5%92%8Cweb%E6%A3%80%E6%B5%8B%E5%92%8C%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86%E5%AE%9E%E8%B7%B5/image-26_hu_1f4661a8f5dd5271.png 480w, /p/8-%E9%A9%AC%E5%93%A5zabbixsnmp%E5%92%8Cweb%E6%A3%80%E6%B5%8B%E5%92%8C%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86%E5%AE%9E%E8%B7%B5/image-26_hu_56696d9807f8110f.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="333"
+		data-flex-basis="799px"
+	
+></p>
+<p>点击主机权限，选择一个群组，赋予读写权限</p>
+<p><img src="/p/8-%E9%A9%AC%E5%93%A5zabbixsnmp%E5%92%8Cweb%E6%A3%80%E6%B5%8B%E5%92%8C%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86%E5%AE%9E%E8%B7%B5/image-27.png"
+	width="1341"
+	height="248"
+	srcset="/p/8-%E9%A9%AC%E5%93%A5zabbixsnmp%E5%92%8Cweb%E6%A3%80%E6%B5%8B%E5%92%8C%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86%E5%AE%9E%E8%B7%B5/image-27_hu_b1e2ee3056c8ed59.png 480w, /p/8-%E9%A9%AC%E5%93%A5zabbixsnmp%E5%92%8Cweb%E6%A3%80%E6%B5%8B%E5%92%8C%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86%E5%AE%9E%E8%B7%B5/image-27_hu_7c7c16a4fcc3830f.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="540"
+		data-flex-basis="1297px"
+	
+></p>
+<p>点击添加</p>
+<p><img src="/p/8-%E9%A9%AC%E5%93%A5zabbixsnmp%E5%92%8Cweb%E6%A3%80%E6%B5%8B%E5%92%8C%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86%E5%AE%9E%E8%B7%B5/image-28.png"
+	width="1341"
+	height="586"
+	srcset="/p/8-%E9%A9%AC%E5%93%A5zabbixsnmp%E5%92%8Cweb%E6%A3%80%E6%B5%8B%E5%92%8C%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86%E5%AE%9E%E8%B7%B5/image-28_hu_2d3975ad66e8b0cc.png 480w, /p/8-%E9%A9%AC%E5%93%A5zabbixsnmp%E5%92%8Cweb%E6%A3%80%E6%B5%8B%E5%92%8C%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86%E5%AE%9E%E8%B7%B5/image-28_hu_7a9d3cc35d3387af.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="228"
+		data-flex-basis="549px"
+	
+></p>
+<h4>角色实践</h4>
+<p>点击左边栏用户的用户角色</p>
+<p><img src="/p/8-%E9%A9%AC%E5%93%A5zabbixsnmp%E5%92%8Cweb%E6%A3%80%E6%B5%8B%E5%92%8C%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86%E5%AE%9E%E8%B7%B5/image-29.png"
+	width="1517"
+	height="491"
+	srcset="/p/8-%E9%A9%AC%E5%93%A5zabbixsnmp%E5%92%8Cweb%E6%A3%80%E6%B5%8B%E5%92%8C%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86%E5%AE%9E%E8%B7%B5/image-29_hu_c391b3c79b4b62ce.png 480w, /p/8-%E9%A9%AC%E5%93%A5zabbixsnmp%E5%92%8Cweb%E6%A3%80%E6%B5%8B%E5%92%8C%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86%E5%AE%9E%E8%B7%B5/image-29_hu_c7074f6ce716cdf8.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="308"
+		data-flex-basis="741px"
+	
+></p>
+<p>点击创建用户角色，这里面有三种默认的权限选项：用户、管理员、超级管理员，每一种类型都是默认的权限</p>
+<p><img src="/p/8-%E9%A9%AC%E5%93%A5zabbixsnmp%E5%92%8Cweb%E6%A3%80%E6%B5%8B%E5%92%8C%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86%E5%AE%9E%E8%B7%B5/image-30.png"
+	width="1517"
+	height="910"
+	srcset="/p/8-%E9%A9%AC%E5%93%A5zabbixsnmp%E5%92%8Cweb%E6%A3%80%E6%B5%8B%E5%92%8C%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86%E5%AE%9E%E8%B7%B5/image-30_hu_fb149e83c6710b4e.png 480w, /p/8-%E9%A9%AC%E5%93%A5zabbixsnmp%E5%92%8Cweb%E6%A3%80%E6%B5%8B%E5%92%8C%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86%E5%AE%9E%E8%B7%B5/image-30_hu_25285c9174ac67ff.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="166"
+		data-flex-basis="400px"
+	
+></p>
+<p>设置权限</p>
+<p><img src="/p/8-%E9%A9%AC%E5%93%A5zabbixsnmp%E5%92%8Cweb%E6%A3%80%E6%B5%8B%E5%92%8C%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86%E5%AE%9E%E8%B7%B5/image-31.png"
+	width="1492"
+	height="707"
+	srcset="/p/8-%E9%A9%AC%E5%93%A5zabbixsnmp%E5%92%8Cweb%E6%A3%80%E6%B5%8B%E5%92%8C%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86%E5%AE%9E%E8%B7%B5/image-31_hu_8115e931d4ca9bc7.png 480w, /p/8-%E9%A9%AC%E5%93%A5zabbixsnmp%E5%92%8Cweb%E6%A3%80%E6%B5%8B%E5%92%8C%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86%E5%AE%9E%E8%B7%B5/image-31_hu_a92c20257923ad82.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="211"
+		data-flex-basis="506px"
+	
+></p>
+<p>点击添加</p>
+<p><img src="/p/8-%E9%A9%AC%E5%93%A5zabbixsnmp%E5%92%8Cweb%E6%A3%80%E6%B5%8B%E5%92%8C%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86%E5%AE%9E%E8%B7%B5/image-32.png"
+	width="1517"
+	height="524"
+	srcset="/p/8-%E9%A9%AC%E5%93%A5zabbixsnmp%E5%92%8Cweb%E6%A3%80%E6%B5%8B%E5%92%8C%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86%E5%AE%9E%E8%B7%B5/image-32_hu_cf9fae270edba318.png 480w, /p/8-%E9%A9%AC%E5%93%A5zabbixsnmp%E5%92%8Cweb%E6%A3%80%E6%B5%8B%E5%92%8C%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86%E5%AE%9E%E8%B7%B5/image-32_hu_d0b9f47bbd804a51.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="289"
+		data-flex-basis="694px"
+	
+></p>
+
+</section>
+
+
+    <footer class="article-footer">
+    
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+<aside class="related-content--wrapper">
+    <h2 class="section-title">相关文章</h2>
+    <div class="related-content">
+        <div class="flex article-list--tile">
+            
+                
+<article class="">
+    <a href="/p/10-%E9%A9%AC%E5%93%A5zabbix%E5%91%8A%E8%AD%A6%E5%86%85%E5%AE%B9%E5%AE%9A%E5%88%B6%E5%92%8C%E5%91%8A%E8%AD%A6%E5%8D%87%E7%BA%A7%E5%AE%9E%E8%B7%B5/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">10-[马哥][zabbix]告警内容定制和告警升级实践</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/9-%E9%A9%AC%E5%93%A5zabbix%E5%8F%AF%E8%A7%86%E5%8C%96%E7%AE%A1%E7%90%86%E5%92%8C%E5%91%8A%E8%AD%A6%E7%AE%A1%E7%90%86%E5%9F%BA%E7%A1%80/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">9-[马哥][zabbix]可视化管理和告警管理基础</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">7-[马哥][zabbix]触发器和模板使用</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/6-%E9%A9%AC%E5%93%A5zabbixgraph%E5%92%8Cdashboard/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">6-[马哥][zabbix]graph和dashboard</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/5-%E9%A9%AC%E5%93%A5zabbix%E8%87%AA%E5%AE%9A%E4%B9%89%E7%9B%91%E6%8E%A7%E9%A1%B9/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">5-[马哥][zabbix]自定义监控项</h2>
+        </div>
+    </a>
+</article>
+
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+            2025 - 
+        
+        2026 リンボの個人ブログ
+    </section>
+    
+    <section class="powerby">
+         <br />
+        
+    </section>
+</footer>
+
+
+    
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+    
+    <div class="pswp__bg"></div>
+
+    
+    <div class="pswp__scroll-wrap">
+
+        
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+
+        
+        <div class="pswp__ui pswp__ui--hidden">
+
+            <div class="pswp__top-bar">
+
+                
+
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+
+                <button class="pswp__button pswp__button--share" title="Share"></button>
+
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+
+                
+                
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                        <div class="pswp__preloader__cut">
+                            <div class="pswp__preloader__donut"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div>
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.js"integrity="sha256-ePwmChbbvXbsO02lbM3HoHbSHTHFAeChekF1xKJdleo="crossorigin="anonymous"
+                defer
+                >
+            </script><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe-ui-default.min.js"integrity="sha256-UKkzOn/w1mBxRmLLGrSeyB4e1xbrp4xylgAWb3M42pU="crossorigin="anonymous"
+                defer
+                >
+            </script><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/default-skin/default-skin.min.css"crossorigin="anonymous"
+            ><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.css"crossorigin="anonymous"
+            >
+
+            </main>
+        </div>
+        <script 
+                src="https://cdn.jsdelivr.net/npm/node-vibrant@3.1.6/dist/vibrant.min.js"integrity="sha256-awcR2jno4kI5X0zL8ex0vi2z&#43;KMkF24hUW8WePSA9HM="crossorigin="anonymous"
+                
+                >
+            </script><script type="text/javascript" src="/ts/main.1e9a3bafd846ced4c345d084b355fb8c7bae75701c338f8a1f8a82c780137826.js" defer></script>
+<script>
+    (function () {
+        const customFont = document.createElement('link');
+        customFont.href = "https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap";
+
+        customFont.type = "text/css";
+        customFont.rel = "stylesheet";
+
+        document.head.appendChild(customFont);
+    }());
+</script>
+
+    </body>
+</html>
