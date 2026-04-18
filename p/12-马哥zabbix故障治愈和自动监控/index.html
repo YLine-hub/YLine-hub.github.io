@@ -1,0 +1,1695 @@
+<!DOCTYPE html>
+<html lang="en-us" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="故障自愈 基础知识 功能定位 Zabbix是一款广泛使用的开源监控系统，其故障自愈功能是较为高级且实用的特性\n1 Zabbix通过对各种监控指标(如服务器的cPU使用率、内存占用、网络流量等)设置阈值来判断系统是否出现故障。当监控指标超过或低于设定的阈值时，Zabbix会触发相应的告警。故障自愈功能则在此基础上，根据预设的规则和操作，尝试自动对故障进行修复，以减少故障对业务的影响时间。 环境配置 基础环境配置 故障自愈的核心特点在于zabbix能够执行远程的linux系统命令，所以需要在zabbix上面配置远程执行命令的功能。\n">
+<title>12-[马哥][zabbix]故障治愈和自动监控</title>
+
+<link rel='canonical' href='https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/'>
+
+<link rel="stylesheet" href="/scss/style.min.6a692fd055deae459f2a9767f57f3855ba80cafd5041317f24f7360f6ca47cdf.css"><meta property='og:title' content="12-[马哥][zabbix]故障治愈和自动监控">
+<meta property='og:description' content="故障自愈 基础知识 功能定位 Zabbix是一款广泛使用的开源监控系统，其故障自愈功能是较为高级且实用的特性\n1 Zabbix通过对各种监控指标(如服务器的cPU使用率、内存占用、网络流量等)设置阈值来判断系统是否出现故障。当监控指标超过或低于设定的阈值时，Zabbix会触发相应的告警。故障自愈功能则在此基础上，根据预设的规则和操作，尝试自动对故障进行修复，以减少故障对业务的影响时间。 环境配置 基础环境配置 故障自愈的核心特点在于zabbix能够执行远程的linux系统命令，所以需要在zabbix上面配置远程执行命令的功能。\n">
+<meta property='og:url' content='https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/'>
+<meta property='og:site_name' content='リンボの個人ブログ'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:published_time' content='2026-04-07T20:17:26&#43;08:00'/><meta property='article:modified_time' content='2026-04-07T20:17:26&#43;08:00'/>
+<meta name="twitter:title" content="12-[马哥][zabbix]故障治愈和自动监控">
+<meta name="twitter:description" content="故障自愈 基础知识 功能定位 Zabbix是一款广泛使用的开源监控系统，其故障自愈功能是较为高级且实用的特性\n1 Zabbix通过对各种监控指标(如服务器的cPU使用率、内存占用、网络流量等)设置阈值来判断系统是否出现故障。当监控指标超过或低于设定的阈值时，Zabbix会触发相应的告警。故障自愈功能则在此基础上，根据预设的规则和操作，尝试自动对故障进行修复，以减少故障对业务的影响时间。 环境配置 基础环境配置 故障自愈的核心特点在于zabbix能够执行远程的linux系统命令，所以需要在zabbix上面配置远程执行命令的功能。\n">
+    <link rel="shortcut icon" href="/favicon.ico" />
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        
+            
+            <figure class="site-avatar">
+                <a href="/">
+                
+                    
+                    
+                    
+                        
+                        <img src="/img/avatar_hu_de528bff5d5e9598.png" width="300"
+                            height="300" class="site-logo" loading="lazy" alt="Avatar">
+                    
+                
+                </a>
+                
+                    <span class="emoji">🏖️</span>
+                
+            </figure>
+            
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">リンボの個人ブログ</a></h1>
+            <h2 class="site-description">努力不一定能获得回报，但不努力一定不会有回报。</h2>
+        </div>
+    </header><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-home" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <polyline points="5 12 3 12 12 3 21 12 19 12" />
+  <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7" />
+  <path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6" />
+</svg>
+
+
+
+                
+                <span>主页</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/%E5%85%B3%E4%BA%8E/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/archives/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/search/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-search" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="10" cy="10" r="7" />
+  <line x1="21" y1="21" x2="15" y2="15" />
+</svg>
+
+
+
+                
+                <span>搜索</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav id="TableOfContents">
+  <ol>
+    <li><a href="#故障自愈">故障自愈</a>
+      <ol>
+        <li><a href="#基础知识">基础知识</a>
+          <ol>
+            <li><a href="#功能定位">功能定位</a></li>
+          </ol>
+        </li>
+        <li><a href="#环境配置">环境配置</a>
+          <ol>
+            <li><a href="#基础环境配置">基础环境配置</a></li>
+            <li><a href="#zabbix服务账号-推荐zabbix-server">zabbix服务账号-推荐（zabbix server）</a></li>
+          </ol>
+        </li>
+        <li><a href="#自愈实践">自愈实践</a>
+          <ol>
+            <li><a href="#内置脚本">内置脚本</a></li>
+            <li><a href="#环境部署zabbix-agent">环境部署（zabbix agent）</a></li>
+            <li><a href="#界面实践">界面实践</a></li>
+            <li><a href="#定制策略">定制策略</a></li>
+          </ol>
+        </li>
+      </ol>
+    </li>
+    <li><a href="#主动监控">主动监控</a>
+      <ol>
+        <li><a href="#基础知识-1">基础知识</a>
+          <ol>
+            <li><a href="#场景需求">场景需求</a></li>
+          </ol>
+        </li>
+        <li><a href="#纯主动监控方式">纯主动监控方式</a>
+          <ol>
+            <li><a href="#定制配置">定制配置</a></li>
+          </ol>
+        </li>
+      </ol>
+    </li>
+  </ol>
+</nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            <a href="/categories/zabbix/" >
+                Zabbix
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/">12-[马哥][zabbix]故障治愈和自动监控</a>
+        </h2>
+    
+        
+    </div>
+
+    
+    
+    
+    
+    <footer class="article-time">
+        
+            <div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                <time class="article-time--published">2026-04-07</time>
+            </div>
+        
+
+        
+    </footer>
+    
+
+    
+</div>
+
+</header>
+
+    <section class="article-content">
+    
+    
+    <h2 id="故障自愈">故障自愈
+</h2><h3 id="基础知识">基础知识
+</h3><h4 id="功能定位">功能定位
+</h4><p>Zabbix是一款广泛使用的开源监控系统，其故障自愈功能是较为高级且实用的特性</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">Zabbix通过对各种监控指标(如服务器的cPU使用率、内存占用、网络流量等)设置阈值来判断系统是否出现故障。当监控指标超过或低于设定的阈值时，Zabbix会触发相应的告警。故障自愈功能则在此基础上，根据预设的规则和操作，尝试自动对故障进行修复，以减少故障对业务的影响时间。
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="环境配置">环境配置
+</h3><h4 id="基础环境配置">基础环境配置
+</h4><p>故障自愈的核心特点在于zabbix能够执行远程的linux系统命令，所以需要在zabbix上面配置远程执行命令的功能。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">配置远程命令的操作类似于发送消息，区别在于一个执行命令，一个发送消息;远程命令可以直接在ZabbixServer，ZabbixProxy和ZabbixAgent上执行。
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>在Zabbix agent和Zabbix proxy上，远程命令默认是不开启的，它们可以通过以下方式启用[该部分非必须]:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">vim /etc/zabbix/zabbix_agentd.conf
+</span></span><span class="line"><span class="cl"><span class="c1"># </span>
+</span></span><span class="line"><span class="cl"><span class="nv">AllowKey</span><span class="o">=</span>system.run<span class="o">[</span>*<span class="o">]</span>      <span class="c1"># 新版没有该属性，可以在agent配置中添加</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># DenyKey=system.run[*]     # 新版有该属性，可以根据该属性的样式配置AllowKey的属性</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># EnableRemoteCommands=1    # 开启远程执行命令,此指令在zabbix5.0版本以上淘汰</span>
+</span></span><span class="line"><span class="cl"><span class="nv">UnsafeUserParameters</span><span class="o">=</span><span class="m">1</span>      <span class="c1"># 允许远程执行命令的时候使用不安全的参数(特殊字符串,如:</span>
+</span></span><span class="line"><span class="cl">                            <span class="c1"># \ &#39; * ? [] {} ~ $ ! &amp; ; () &lt;&gt; 等)</span>
+</span></span><span class="line"><span class="cl">                            <span class="c1"># 1表示允许，默认为0不允许</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>重启服务</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">systemctl restart zabbix-agent.service
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="zabbix服务账号-推荐zabbix-server">zabbix服务账号-推荐（zabbix server）
+</h4><h4>sudo方式</h4>
+<p>一般情况下，我们推荐采用sudo方式</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">vim /etc/sudoers
+</span></span><span class="line"><span class="cl"><span class="c1"># NOPASSWD: 后面存在空格</span>
+</span></span><span class="line"><span class="cl">zabbix <span class="nv">ALL</span><span class="o">=(</span>ALL:ALL<span class="o">)</span> NOPASSWD: ALL
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-18.png"
+	width="305"
+	height="50"
+	srcset="/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-18_hu_d31521fe4adcbaa6.png 480w, /p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-18_hu_5a9e3c9084240259.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="610"
+		data-flex-basis="1464px"
+	
+></p>
+<p>检测语法</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">visudo -c
+</span></span><span class="line"><span class="cl">/etc/sudoers: 解析正确
+</span></span><span class="line"><span class="cl">/etc/sudoers.d/README: 解析正确
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-19.png"
+	width="280"
+	height="46"
+	srcset="/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-19_hu_7dc10f9d684ec107.png 480w, /p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-19_hu_88c4981cd69768b2.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="608"
+		data-flex-basis="1460px"
+	
+></p>
+<p>测试效果</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">su -s /bin/bash zabbix -c <span class="s2">&#34;sudo systemctl restart redis&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="nb">echo</span> <span class="nv">$?</span>
+</span></span><span class="line"><span class="cl"><span class="m">0</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="自愈实践">自愈实践
+</h3><h4 id="内置脚本">内置脚本
+</h4><p>Zabbix 6.0+ 版本需要将执行的故障自愈脚本事先创建出来，才能创建下面的故障自愈的动作</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">在Zabbix6.0 之前版本，直接在 Action 的 Operations 选项卡里填入对应的远程命令即可，但是从 6.0 版本开始，需要先在 告警- Scripts 里添加脚本，才能在 Operations 选项卡里选中。
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>点击告警-脚本，查看内置的脚本模版</p>
+<p><img src="/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image.png"
+	width="1517"
+	height="484"
+	srcset="/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image_hu_90f8b3ad6dd13fa2.png 480w, /p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image_hu_f944eeb4c927a6e6.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="313"
+		data-flex-basis="752px"
+	
+></p>
+<p>点击ping查看脚本的效果</p>
+<p><img src="/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-1.png"
+	width="1517"
+	height="699"
+	srcset="/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-1_hu_57db1623a5aed770.png 480w, /p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-1_hu_2661659fb93542c0.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="217"
+		data-flex-basis="520px"
+	
+></p>
+<p>根据这里面的内容信息提示，我们可以定制一个动作，然后使用zabbix客户杜纳的方式，远程到主机中，执行一个脚本即可。</p>
+<h4 id="环境部署zabbix-agent">环境部署（zabbix agent）
+</h4><h4>基础环境定制</h4>
+<p>查看防火墙状态</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">systemctl status firewalld.service
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-2.png"
+	width="730"
+	height="200"
+	srcset="/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-2_hu_5397a41796e5884f.png 480w, /p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-2_hu_c3d28949052d94c.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="365"
+		data-flex-basis="876px"
+	
+></p>
+<p>关闭防火墙</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">systemctl disable --now firewalld.service
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-3.png"
+	width="597"
+	height="47"
+	srcset="/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-3_hu_a6942230cfed018b.png 480w, /p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-3_hu_796d353201125273.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="1270"
+		data-flex-basis="3048px"
+	
+></p>
+<p>禁用SELINUX</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sed -i <span class="s1">&#39;s/^SELINUX=e.*/SELINUX=disabled/&#39;</span> /etc/selinux/config
+</span></span><span class="line"><span class="cl">grep <span class="s1">&#39;^SELINUX&#39;</span> /etc/selinux/config
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-6.png"
+	width="662"
+	height="60"
+	srcset="/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-6_hu_a9d310f8ee3686be.png 480w, /p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-6_hu_9ae5620b595bb915.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="1103"
+		data-flex-basis="2648px"
+	
+></p>
+<p>重启主机</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">reboot
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4>Nginx环境部署</h4>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">yum install nginx net-tools -y
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-8.png"
+	width="1327"
+	height="786"
+	srcset="/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-8_hu_2baaa8d60349b533.png 480w, /p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-8_hu_cb0afa2b994b397d.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="168"
+		data-flex-basis="405px"
+	
+></p>
+<p>启动服务</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">systemctl start nginx
+</span></span><span class="line"><span class="cl">systemctl <span class="nb">enable</span> nginx.service
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-7.png"
+	width="928"
+	height="44"
+	srcset="/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-7_hu_f99d03919bb5bd03.png 480w, /p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-7_hu_1521077a906320c2.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="2109"
+		data-flex-basis="5061px"
+	
+></p>
+<p>测试效果</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">netstat -tnulp <span class="p">|</span> grep nginx
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-9.png"
+	width="826"
+	height="43"
+	srcset="/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-9_hu_b4449778c8e6d7c1.png 480w, /p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-9_hu_ddc0e6c95bb09191.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="1920"
+		data-flex-basis="4610px"
+	
+></p>
+<h4>安装软件源</h4>
+<p>软件源的选择，参考rocky9系统</p>
+<p><img src="/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-4.png"
+	width="1288"
+	height="678"
+	srcset="/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-4_hu_d77fd6f3fca35248.png 480w, /p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-4_hu_d22f542d23b05c82.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="189"
+		data-flex-basis="455px"
+	
+></p>
+<p>安装软件源</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">rpm -Uvh https://repo.zabbix.com/zabbix/7.0/rocky/9/x86_64/zabbix-release-latest-7.0.el9.noarch.rpm
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-10.png"
+	width="975"
+	height="105"
+	srcset="/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-10_hu_a3cbdc0d2bc23993.png 480w, /p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-10_hu_268dcb2aa732a275.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="928"
+		data-flex-basis="2228px"
+	
+></p>
+<p>安装agent</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">yum install -y zabbix-agent
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-11.png"
+	width="1327"
+	height="673"
+	srcset="/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-11_hu_8e86f55de5393c6c.png 480w, /p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-11_hu_2967150b31009776.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="197"
+		data-flex-basis="473px"
+	
+></p>
+<h4>定制配置</h4>
+<p>修改zabbix agent的配置</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">vi /etc/zabbix/zabbix_agentd.conf
+</span></span><span class="line"><span class="cl">grep -Env <span class="s1">&#39;#|^$&#39;</span> /etc/zabbix/zabbix_agentd.conf
+</span></span><span class="line"><span class="cl"><span class="nv">PidFile</span><span class="o">=</span>/run/zabbix/zabbix_agentd.pid
+</span></span><span class="line"><span class="cl"><span class="nv">LogFile</span><span class="o">=</span>/var/log/zabbix/zabbix_agentd.log
+</span></span><span class="line"><span class="cl"><span class="nv">LogFileSize</span><span class="o">=</span><span class="m">0</span>
+</span></span><span class="line"><span class="cl"><span class="nv">Server</span><span class="o">=</span>192.168.172.120                          <span class="c1"># 设定zabbix server地址</span>
+</span></span><span class="line"><span class="cl"><span class="nv">Hostname</span><span class="o">=</span>192.168.172.131                        <span class="c1"># 设定自己的主机名字</span>
+</span></span><span class="line"><span class="cl"><span class="nv">Include</span><span class="o">=</span>/etc/zabbix/zabbix_agentd.d/*.conf
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-12.png"
+	width="549"
+	height="120"
+	srcset="/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-12_hu_3f98cf3e43af50f8.png 480w, /p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-12_hu_e80fa34842f941a5.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="457"
+		data-flex-basis="1098px"
+	
+></p>
+<p>重启服务</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">systemctl <span class="nb">enable</span> --now zabbix-agent
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-13.png"
+	width="1052"
+	height="31"
+	srcset="/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-13_hu_d6b0333848c0975a.png 480w, /p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-13_hu_1a626d8b0bdea44a.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="3393"
+		data-flex-basis="8144px"
+	
+></p>
+<p>查看启动的应用</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">netstat -tnulp
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-14.png"
+	width="830"
+	height="163"
+	srcset="/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-14_hu_575168ef70ef6ec2.png 480w, /p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-14_hu_1861c7e53b488305.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="509"
+		data-flex-basis="1222px"
+	
+></p>
+<h4>测试item（zabbix server）</h4>
+<p>zabbix的agent提供了大量的内置的监控item,比如监听远程服务端口的监控项net.tcp.listen[xxx]</p>
+<p>在zabbix server端[120]尝试测试openeuler主机的监控项</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# zabbix_get -s 192.168.172.131 -p <span class="m">10050</span> -k <span class="s2">&#34;net.tcp.listen[80]&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="m">1</span>
+</span></span><span class="line"><span class="cl">root@lin-server:~# zabbix_get -s 192.168.172.131 -p <span class="m">10050</span> -k <span class="s2">&#34;net.tcp.listen[81]&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="m">0</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-15.png"
+	width="661"
+	height="59"
+	srcset="/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-15_hu_8dc0d3702f73ed83.png 480w, /p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-15_hu_18c5cc71eb1be19e.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="1120"
+		data-flex-basis="2688px"
+	
+></p>
+<p>关闭openeluer主机的nginx服务</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">systemctl stop nginx
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-16.png"
+	width="333"
+	height="48"
+	srcset="/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-16_hu_c0d45739e6d5aa76.png 480w, /p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-16_hu_c7ccbe1d542c74b8.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="693"
+		data-flex-basis="1665px"
+	
+></p>
+<p>在zabbix server端[120]尝试测试openeuler主机的监控项</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# zabbix_get -s 192.168.172.131 -p <span class="m">10050</span> -k <span class="s2">&#34;net.tcp.listen[80]&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="m">0</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-17.png"
+	width="659"
+	height="30"
+	srcset="/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-17_hu_2364b44320740be7.png 480w, /p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-17_hu_ea0de2ddda898358.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="2196"
+		data-flex-basis="5272px"
+	
+></p>
+<h4>定制sudo配置</h4>
+<p>一般情况下，我们推荐采用sudo方式</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">vi /etc/sudoers
+</span></span><span class="line"><span class="cl"><span class="c1"># NOPASSWD: 后面存在空格</span>
+</span></span><span class="line"><span class="cl">zabbix <span class="nv">ALL</span><span class="o">=(</span>ALL<span class="o">)</span> NOPASSWD: ALL
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-20.png"
+	width="356"
+	height="48"
+	srcset="/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-20_hu_c33d1e5938719103.png 480w, /p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-20_hu_5124ff39f33af583.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="741"
+		data-flex-basis="1780px"
+	
+></p>
+<p>检测语法</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">visudo -c
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-21.png"
+	width="247"
+	height="29"
+	srcset="/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-21_hu_2a98d9882f0724db.png 480w, /p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-21_hu_b218d54213167917.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="851"
+		data-flex-basis="2044px"
+	
+></p>
+<p>测试效果</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">su -s /bin/bash zabbix -c <span class="s2">&#34;sudo systemctl restart nginx&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="nb">echo</span> <span class="nv">$?</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-22.png"
+	width="949"
+	height="301"
+	srcset="/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-22_hu_f280a061821505b7.png 480w, /p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-22_hu_781143e275b4c2bd.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="315"
+		data-flex-basis="756px"
+	
+></p>
+<p>可以看到，这里使用zabbix重启了nginx</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">netstat -tnulp <span class="p">|</span> grep nginx
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-23.png"
+	width="802"
+	height="47"
+	srcset="/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-23_hu_b489873a19335339.png 480w, /p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-23_hu_3670cfb73734c287.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="1706"
+		data-flex-basis="4095px"
+	
+></p>
+<h4 id="界面实践">界面实践
+</h4><h4>添加主机</h4>
+<p>在zabbix的操作界面上，点击 数据采集-主机-添加主机</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">主机名字：192.168.172.131
+</span></span><span class="line"><span class="cl">模板：Linux by zabbix agent 和 Nginx by Zabbix agent
+</span></span><span class="line"><span class="cl">主机群组：web-group
+</span></span><span class="line"><span class="cl">接口：192.168.172.131,10050
+</span></span><span class="line"><span class="cl">描述：使用被动模式添加openeuler的nginx服务
+</span></span><span class="line"><span class="cl">监控对象：服务器
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-24.png"
+	width="1517"
+	height="702"
+	srcset="/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-24_hu_be62034c87b1c34c.png 480w, /p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-24_hu_7951620682b8e7d9.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="216"
+		data-flex-basis="518px"
+	
+></p>
+<p>点击添加后的效果</p>
+<p><img src="/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-25.png"
+	width="1517"
+	height="811"
+	srcset="/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-25_hu_dc6d17bf67396b4f.png 480w, /p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-25_hu_4a5415263be38a2b.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="187"
+		data-flex-basis="448px"
+	
+></p>
+<h4>添加监控项-主机方式</h4>
+<p>点击192.168.172.131主机条目右侧的监控项</p>
+<p><img src="/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-26.png"
+	width="1517"
+	height="733"
+	srcset="/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-26_hu_a789e8d5aaa013aa.png 480w, /p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-26_hu_8c3eb6f084061361.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="206"
+		data-flex-basis="496px"
+	
+></p>
+<p><img src="/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-27.png"
+	width="1517"
+	height="951"
+	srcset="/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-27_hu_17a825a5fc108cd1.png 480w, /p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-27_hu_efdacf56b28d90d1.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="159"
+		data-flex-basis="382px"
+	
+></p>
+<p>点击创建监控项，增加一个专属的监控项</p>
+<p><img src="/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-28.png"
+	width="1517"
+	height="868"
+	srcset="/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-28_hu_73ed15f7b9d0c08.png 480w, /p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-28_hu_ce74370c2b47ee39.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="174"
+		data-flex-basis="419px"
+	
+></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">名称：Nginx服务状态
+</span></span><span class="line"><span class="cl">键值：net.tcp.listen[80]
+</span></span><span class="line"><span class="cl">主机接口：192.168.172.131:10050
+</span></span><span class="line"><span class="cl">更新间隔：10s, 默认是1min
+</span></span><span class="line"><span class="cl">描述：添加Nginx服务的检测状态
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>点击测试，因为远程主机的nginx服务已经关闭，所以这里获取的值是0</p>
+<p><img src="/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-29.png"
+	width="1517"
+	height="866"
+	srcset="/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-29_hu_5aa10e93d8e8537b.png 480w, /p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-29_hu_b507805494245456.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="175"
+		data-flex-basis="420px"
+	
+></p>
+<p>测试完毕后，点击添加按钮，查看item效果</p>
+<p><img src="/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-30.png"
+	width="1517"
+	height="709"
+	srcset="/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-30_hu_ca100186c1a41e26.png 480w, /p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-30_hu_3d63b77781e0ebb0.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="213"
+		data-flex-basis="513px"
+	
+></p>
+<p>点击 检测-主机-最新数据-搜索nginx关键字，确认效果</p>
+<p><img src="/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-31.png"
+	width="1517"
+	height="639"
+	srcset="/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-31_hu_be37502f028d5d71.png 480w, /p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-31_hu_9f0bd2ace6fd5cfd.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="237"
+		data-flex-basis="569px"
+	
+></p>
+<p>结果显示：可以正常的获取数据。</p>
+<h4>添加监控项-模板方式</h4>
+<p>自定义的监控项只能应用在某一台具体的主机上，对于大规模操作来说，不太好，所以我们可以通过模板的方式来实现。在一个自定义的方式，获取到的item值是0和1，对于普通人来说，不太友好，我还可以再模板的基础上。对于这个值进行状态的定制。</p>
+<p>点击 数据采集-模板-搜索nginx，查看效果</p>
+<p><img src="/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-32.png"
+	width="1517"
+	height="561"
+	srcset="/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-32_hu_f2e040a2b2fdb4ce.png 480w, /p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-32_hu_1ea20603f68d3674.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="270"
+		data-flex-basis="648px"
+	
+></p>
+<h4>定制触发器</h4>
+<p>点击 数据采集-主机-触发器，查看效果</p>
+<p><img src="/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-33.png"
+	width="1517"
+	height="734"
+	srcset="/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-33_hu_b48f2fe912d69ce0.png 480w, /p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-33_hu_50c36f0f2d43c252.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="206"
+		data-flex-basis="496px"
+	
+></p>
+<p>点击创建触发器</p>
+<p><img src="/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-34.png"
+	width="1517"
+	height="683"
+	srcset="/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-34_hu_fdc72cf8d99801ac.png 480w, /p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-34_hu_da7882932c1071d9.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="222"
+		data-flex-basis="533px"
+	
+></p>
+<p><img src="/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-35.png"
+	width="1517"
+	height="861"
+	srcset="/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-35_hu_1ab9e15cd53b3bae.png 480w, /p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-35_hu_aab5d8ab87133d38.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="176"
+		data-flex-basis="422px"
+	
+></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">事件名称：Nginx服务状态异常
+</span></span><span class="line"><span class="cl">表达式：last(/Nginx by Zabbix agent/net.tcp.listen[80])=0
+</span></span><span class="line"><span class="cl">    表达式来源：可以通过条件的方式自动生成
+</span></span><span class="line"><span class="cl">描述：Nginx服务状态异常
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>点击添加</p>
+<p><img src="/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-36.png"
+	width="1517"
+	height="861"
+	srcset="/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-36_hu_f87a0986a3120928.png 480w, /p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-36_hu_bdf08d95d86c3887.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="176"
+		data-flex-basis="422px"
+	
+></p>
+<h4 id="定制策略">定制策略
+</h4><h4>定制Nginx故障自愈脚本</h4>
+<p>点击 告警-脚本-创建脚本，按照如下方式创建一个故障自愈脚本</p>
+<p><img src="/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-37.png"
+	width="1517"
+	height="566"
+	srcset="/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-37_hu_62d2ec56731f5f25.png 480w, /p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-37_hu_d7c7f5584b20dd57.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="268"
+		data-flex-basis="643px"
+	
+></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">名称：Nginx故障自愈
+</span></span><span class="line"><span class="cl">范围：动作操作
+</span></span><span class="line"><span class="cl">类型：脚本
+</span></span><span class="line"><span class="cl">执行在：Zabbix客户端
+</span></span><span class="line"><span class="cl">命令：sudo systemctl restart nginx
+</span></span><span class="line"><span class="cl">描述：故障自愈：发现远程主机的服务状态异常，自动重启服务
+</span></span><span class="line"><span class="cl">主机群组：所有
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>点击添加后查看效果</p>
+<p><img src="/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-38.png"
+	width="1517"
+	height="479"
+	srcset="/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-38_hu_84a4e073699fbff0.png 480w, /p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-38_hu_f76c428a2982b73c.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="316"
+		data-flex-basis="760px"
+	
+></p>
+<h4>定制告警动作</h4>
+<p>注意:告警动作生效的作用范围，仅限于设置完成后发生的问题，历史发生的，或者正在发生的问题，不管用。</p>
+<p>之前的告警是，等到一定的级别后才会进入到邮件告警的动作，这里面我们需要建立的是一个一旦发生Nginx服务异常，我们就将Nginx服务启动的触发器。</p>
+<p>点击 告警-动作-触发器动作，查看效果</p>
+<p><img src="/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-39.png"
+	width="1517"
+	height="555"
+	srcset="/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-39_hu_31972f44c351ad6e.png 480w, /p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-39_hu_cdc748329bbdcf30.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="273"
+		data-flex-basis="656px"
+	
+></p>
+<p>点击 创建动作，条件选择为 我们之前定制的主机级别的触发器</p>
+<p><img src="/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-40.png"
+	width="1517"
+	height="477"
+	srcset="/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-40_hu_23d6a12f75d3f328.png 480w, /p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-40_hu_71ca2718e0413d3c.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="318"
+		data-flex-basis="763px"
+	
+></p>
+<p><img src="/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-41.png"
+	width="1517"
+	height="476"
+	srcset="/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-41_hu_c835826959374a64.png 480w, /p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-41_hu_6e22d43bf1b907fb.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="318"
+		data-flex-basis="764px"
+	
+></p>
+<p>点击添加</p>
+<p><img src="/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-42.png"
+	width="1517"
+	height="476"
+	srcset="/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-42_hu_b005eb373732cdb7.png 480w, /p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-42_hu_966efeb2d8d59f2b.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="318"
+		data-flex-basis="764px"
+	
+></p>
+<h4>定制告警操作</h4>
+<p>点击 操作</p>
+<p><img src="/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-43.png"
+	width="1517"
+	height="559"
+	srcset="/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-43_hu_f58f9ae793be5278.png 480w, /p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-43_hu_e3736d15838c9805.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="271"
+		data-flex-basis="651px"
+	
+></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">在操作部分，选择的操作位 Nginx故障自愈 的脚本功能
+</span></span><span class="line"><span class="cl">目标列表:勾选当前主机即可
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>点击添加后，查看效果</p>
+<p><img src="/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-44.png"
+	width="1517"
+	height="584"
+	srcset="/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-44_hu_ad1a8ea5a95da87b.png 480w, /p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-44_hu_9946c416397dfaa9.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="259"
+		data-flex-basis="623px"
+	
+></p>
+<p>点击 添加后，确定 触发器动作</p>
+<p><img src="/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-45.png"
+	width="1517"
+	height="562"
+	srcset="/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-45_hu_5e0ce18c4bd4149a.png 480w, /p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-45_hu_2782538a15347c31.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="269"
+		data-flex-basis="647px"
+	
+></p>
+<h4>确认效果</h4>
+<p>到oepneuler主机上确认Nginx服务效果</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">systemctl status nginx
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-46.png"
+	width="947"
+	height="289"
+	srcset="/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-46_hu_f2cee08df5b9b0f8.png 480w, /p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-46_hu_79e28ab20ac7a63a.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="327"
+		data-flex-basis="786px"
+	
+></p>
+<p>关闭nginx</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">systemctl stop nginx
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>紧接着就再次查看Nginx的状态</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">systemctl status nginx
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-47.png"
+	width="953"
+	height="270"
+	srcset="/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-47_hu_cda2d5c25236dc06.png 480w, /p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-47_hu_e5e14d7a616a8538.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="352"
+		data-flex-basis="847px"
+	
+></p>
+<p>结果显示：服务的故障自愈动作就完成了。</p>
+<h2 id="主动监控">主动监控
+</h2><h3 id="基础知识-1">基础知识
+</h3><h4 id="场景需求">场景需求
+</h4><p>需求</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">如果Zabbix监控大量主机，比如超过500台左右的主机，就可能会出现延迟比较大的问题,比如数据采集慢，队列等待较多等。
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>点击管理菜单，点击Queue菜单，找到队列概述，如果好多item需要5-10分钟才获得值，那么就是遇到性能瓶颈了。</p>
+<p><img src="/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-5.png"
+	width="1517"
+	height="681"
+	srcset="/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-5_hu_5a02aad3cee8f2bb.png 480w, /p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-5_hu_70379eb8b4f2be4d.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="222"
+		data-flex-basis="534px"
+	
+></p>
+<h3 id="纯主动监控方式">纯主动监控方式
+</h3><h4 id="定制配置">定制配置
+</h4><p>主机定制配置文件内容</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">vim /etc/zabbix/zabbix_agentd.conf
+</span></span><span class="line"><span class="cl">grep -Env <span class="s1">&#39;#|^$&#39;</span> /etc/zabbix/zabbix_agentd.conf
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>重启服务</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">systemctl restart zabbix-agent.service
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>查看zabbix_server服务器上的日志</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"></code></pre></td></tr></table>
+</div>
+</div>
+</section>
+
+
+    <footer class="article-footer">
+    
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+<aside class="related-content--wrapper">
+    <h2 class="section-title">相关文章</h2>
+    <div class="related-content">
+        <div class="flex article-list--tile">
+            
+                
+<article class="">
+    <a href="/p/11-%E9%A9%AC%E5%93%A5zabbix%E5%BE%AE%E4%BF%A1%E5%91%8A%E8%AD%A6%E5%92%8C%E9%92%89%E9%92%89%E5%91%8A%E8%AD%A6/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">11-[马哥][zabbix]微信告警和钉钉告警</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/10-%E9%A9%AC%E5%93%A5zabbix%E5%91%8A%E8%AD%A6%E5%86%85%E5%AE%B9%E5%AE%9A%E5%88%B6%E5%92%8C%E5%91%8A%E8%AD%A6%E5%8D%87%E7%BA%A7%E5%AE%9E%E8%B7%B5/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">10-[马哥][zabbix]告警内容定制和告警升级实践</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/9-%E9%A9%AC%E5%93%A5zabbix%E5%8F%AF%E8%A7%86%E5%8C%96%E7%AE%A1%E7%90%86%E5%92%8C%E5%91%8A%E8%AD%A6%E7%AE%A1%E7%90%86%E5%9F%BA%E7%A1%80/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">9-[马哥][zabbix]可视化管理和告警管理基础</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/8-%E9%A9%AC%E5%93%A5zabbixsnmp%E5%92%8Cweb%E6%A3%80%E6%B5%8B%E5%92%8C%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86%E5%AE%9E%E8%B7%B5/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">8-[马哥][zabbix]snmp和web检测和用户管理实践</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/7-%E9%A9%AC%E5%93%A5zabbix%E8%A7%A6%E5%8F%91%E5%99%A8%E5%92%8C%E6%A8%A1%E6%9D%BF%E4%BD%BF%E7%94%A8/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">7-[马哥][zabbix]触发器和模板使用</h2>
+        </div>
+    </a>
+</article>
+
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+            2025 - 
+        
+        2026 リンボの個人ブログ
+    </section>
+    
+    <section class="powerby">
+         <br />
+        
+    </section>
+</footer>
+
+
+    
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+    
+    <div class="pswp__bg"></div>
+
+    
+    <div class="pswp__scroll-wrap">
+
+        
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+
+        
+        <div class="pswp__ui pswp__ui--hidden">
+
+            <div class="pswp__top-bar">
+
+                
+
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+
+                <button class="pswp__button pswp__button--share" title="Share"></button>
+
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+
+                
+                
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                        <div class="pswp__preloader__cut">
+                            <div class="pswp__preloader__donut"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div>
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.js"integrity="sha256-ePwmChbbvXbsO02lbM3HoHbSHTHFAeChekF1xKJdleo="crossorigin="anonymous"
+                defer
+                >
+            </script><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe-ui-default.min.js"integrity="sha256-UKkzOn/w1mBxRmLLGrSeyB4e1xbrp4xylgAWb3M42pU="crossorigin="anonymous"
+                defer
+                >
+            </script><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/default-skin/default-skin.min.css"crossorigin="anonymous"
+            ><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.css"crossorigin="anonymous"
+            >
+
+            </main>
+        </div>
+        <script 
+                src="https://cdn.jsdelivr.net/npm/node-vibrant@3.1.6/dist/vibrant.min.js"integrity="sha256-awcR2jno4kI5X0zL8ex0vi2z&#43;KMkF24hUW8WePSA9HM="crossorigin="anonymous"
+                
+                >
+            </script><script type="text/javascript" src="/ts/main.1e9a3bafd846ced4c345d084b355fb8c7bae75701c338f8a1f8a82c780137826.js" defer></script>
+<script>
+    (function () {
+        const customFont = document.createElement('link');
+        customFont.href = "https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap";
+
+        customFont.type = "text/css";
+        customFont.rel = "stylesheet";
+
+        document.head.appendChild(customFont);
+    }());
+</script>
+
+    </body>
+</html>

@@ -7,7 +7,1189 @@
         <generator>Hugo -- gohugo.io</generator>
         <language>en-us</language>
         <copyright>リンボの個人ブログ</copyright>
-        <lastBuildDate>Wed, 25 Mar 2026 15:46:13 +0800</lastBuildDate><atom:link href="https://YLine-hub.github.io/categories/zabbix/index.xml" rel="self" type="application/rss+xml" /><item>
+        <lastBuildDate>Tue, 07 Apr 2026 20:17:26 +0800</lastBuildDate><atom:link href="https://YLine-hub.github.io/categories/zabbix/index.xml" rel="self" type="application/rss+xml" /><item>
+        <title>12-[马哥][zabbix]故障治愈和自动监控</title>
+        <link>https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/</link>
+        <pubDate>Tue, 07 Apr 2026 20:17:26 +0800</pubDate>
+        
+        <guid>https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/</guid>
+        <description>&lt;h2 id=&#34;故障自愈&#34;&gt;故障自愈
+&lt;/h2&gt;&lt;h3 id=&#34;基础知识&#34;&gt;基础知识
+&lt;/h3&gt;&lt;h4 id=&#34;功能定位&#34;&gt;功能定位
+&lt;/h4&gt;&lt;p&gt;Zabbix是一款广泛使用的开源监控系统，其故障自愈功能是较为高级且实用的特性&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-fallback&#34; data-lang=&#34;fallback&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;Zabbix通过对各种监控指标(如服务器的cPU使用率、内存占用、网络流量等)设置阈值来判断系统是否出现故障。当监控指标超过或低于设定的阈值时，Zabbix会触发相应的告警。故障自愈功能则在此基础上，根据预设的规则和操作，尝试自动对故障进行修复，以减少故障对业务的影响时间。
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;h3 id=&#34;环境配置&#34;&gt;环境配置
+&lt;/h3&gt;&lt;h4 id=&#34;基础环境配置&#34;&gt;基础环境配置
+&lt;/h4&gt;&lt;p&gt;故障自愈的核心特点在于zabbix能够执行远程的linux系统命令，所以需要在zabbix上面配置远程执行命令的功能。&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-fallback&#34; data-lang=&#34;fallback&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;配置远程命令的操作类似于发送消息，区别在于一个执行命令，一个发送消息;远程命令可以直接在ZabbixServer，ZabbixProxy和ZabbixAgent上执行。
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;在Zabbix agent和Zabbix proxy上，远程命令默认是不开启的，它们可以通过以下方式启用[该部分非必须]:&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;2
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;3
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;4
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;5
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;6
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;7
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;8
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;vim /etc/zabbix/zabbix_agentd.conf
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c1&#34;&gt;# &lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;nv&#34;&gt;AllowKey&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;system.run&lt;span class=&#34;o&#34;&gt;[&lt;/span&gt;*&lt;span class=&#34;o&#34;&gt;]&lt;/span&gt;      &lt;span class=&#34;c1&#34;&gt;# 新版没有该属性，可以在agent配置中添加&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c1&#34;&gt;# DenyKey=system.run[*]     # 新版有该属性，可以根据该属性的样式配置AllowKey的属性&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c1&#34;&gt;# EnableRemoteCommands=1    # 开启远程执行命令,此指令在zabbix5.0版本以上淘汰&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;nv&#34;&gt;UnsafeUserParameters&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;m&#34;&gt;1&lt;/span&gt;      &lt;span class=&#34;c1&#34;&gt;# 允许远程执行命令的时候使用不安全的参数(特殊字符串,如:&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;                            &lt;span class=&#34;c1&#34;&gt;# \ &amp;#39; * ? [] {} ~ $ ! &amp;amp; ; () &amp;lt;&amp;gt; 等)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;                            &lt;span class=&#34;c1&#34;&gt;# 1表示允许，默认为0不允许&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;重启服务&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;systemctl restart zabbix-agent.service
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;h4 id=&#34;zabbix服务账号-推荐zabbix-server&#34;&gt;zabbix服务账号-推荐（zabbix server）
+&lt;/h4&gt;&lt;h4&gt;sudo方式&lt;/h4&gt;
+&lt;p&gt;一般情况下，我们推荐采用sudo方式&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;2
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;3
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;vim /etc/sudoers
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c1&#34;&gt;# NOPASSWD: 后面存在空格&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;zabbix &lt;span class=&#34;nv&#34;&gt;ALL&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=(&lt;/span&gt;ALL:ALL&lt;span class=&#34;o&#34;&gt;)&lt;/span&gt; NOPASSWD: ALL
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;&lt;img src=&#34;https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-18.png&#34;
+	width=&#34;305&#34;
+	height=&#34;50&#34;
+	srcset=&#34;https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-18_hu_d31521fe4adcbaa6.png 480w, https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-18_hu_5a9e3c9084240259.png 1024w&#34;
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;alt text&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;610&#34;
+		data-flex-basis=&#34;1464px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;p&gt;检测语法&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;2
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;3
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;visudo -c
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;/etc/sudoers: 解析正确
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;/etc/sudoers.d/README: 解析正确
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;&lt;img src=&#34;https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-19.png&#34;
+	width=&#34;280&#34;
+	height=&#34;46&#34;
+	srcset=&#34;https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-19_hu_7dc10f9d684ec107.png 480w, https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-19_hu_88c4981cd69768b2.png 1024w&#34;
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;alt text&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;608&#34;
+		data-flex-basis=&#34;1460px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;p&gt;测试效果&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;2
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;3
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;su -s /bin/bash zabbix -c &lt;span class=&#34;s2&#34;&gt;&amp;#34;sudo systemctl restart redis&amp;#34;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;nb&#34;&gt;echo&lt;/span&gt; &lt;span class=&#34;nv&#34;&gt;$?&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;m&#34;&gt;0&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;h3 id=&#34;自愈实践&#34;&gt;自愈实践
+&lt;/h3&gt;&lt;h4 id=&#34;内置脚本&#34;&gt;内置脚本
+&lt;/h4&gt;&lt;p&gt;Zabbix 6.0+ 版本需要将执行的故障自愈脚本事先创建出来，才能创建下面的故障自愈的动作&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-fallback&#34; data-lang=&#34;fallback&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;在Zabbix6.0 之前版本，直接在 Action 的 Operations 选项卡里填入对应的远程命令即可，但是从 6.0 版本开始，需要先在 告警- Scripts 里添加脚本，才能在 Operations 选项卡里选中。
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;点击告警-脚本，查看内置的脚本模版&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image.png&#34;
+	width=&#34;1517&#34;
+	height=&#34;484&#34;
+	srcset=&#34;https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image_hu_90f8b3ad6dd13fa2.png 480w, https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image_hu_f944eeb4c927a6e6.png 1024w&#34;
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;alt text&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;313&#34;
+		data-flex-basis=&#34;752px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;p&gt;点击ping查看脚本的效果&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-1.png&#34;
+	width=&#34;1517&#34;
+	height=&#34;699&#34;
+	srcset=&#34;https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-1_hu_57db1623a5aed770.png 480w, https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-1_hu_2661659fb93542c0.png 1024w&#34;
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;alt text&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;217&#34;
+		data-flex-basis=&#34;520px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;p&gt;根据这里面的内容信息提示，我们可以定制一个动作，然后使用zabbix客户杜纳的方式，远程到主机中，执行一个脚本即可。&lt;/p&gt;
+&lt;h4 id=&#34;环境部署zabbix-agent&#34;&gt;环境部署（zabbix agent）
+&lt;/h4&gt;&lt;h4&gt;基础环境定制&lt;/h4&gt;
+&lt;p&gt;查看防火墙状态&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;systemctl status firewalld.service
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;&lt;img src=&#34;https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-2.png&#34;
+	width=&#34;730&#34;
+	height=&#34;200&#34;
+	srcset=&#34;https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-2_hu_5397a41796e5884f.png 480w, https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-2_hu_c3d28949052d94c.png 1024w&#34;
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;alt text&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;365&#34;
+		data-flex-basis=&#34;876px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;p&gt;关闭防火墙&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;systemctl disable --now firewalld.service
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;&lt;img src=&#34;https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-3.png&#34;
+	width=&#34;597&#34;
+	height=&#34;47&#34;
+	srcset=&#34;https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-3_hu_a6942230cfed018b.png 480w, https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-3_hu_796d353201125273.png 1024w&#34;
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;alt text&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;1270&#34;
+		data-flex-basis=&#34;3048px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;p&gt;禁用SELINUX&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;2
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;sed -i &lt;span class=&#34;s1&#34;&gt;&amp;#39;s/^SELINUX=e.*/SELINUX=disabled/&amp;#39;&lt;/span&gt; /etc/selinux/config
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;grep &lt;span class=&#34;s1&#34;&gt;&amp;#39;^SELINUX&amp;#39;&lt;/span&gt; /etc/selinux/config
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;&lt;img src=&#34;https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-6.png&#34;
+	width=&#34;662&#34;
+	height=&#34;60&#34;
+	srcset=&#34;https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-6_hu_a9d310f8ee3686be.png 480w, https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-6_hu_9ae5620b595bb915.png 1024w&#34;
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;alt text&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;1103&#34;
+		data-flex-basis=&#34;2648px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;p&gt;重启主机&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;reboot
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;h4&gt;Nginx环境部署&lt;/h4&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;yum install nginx net-tools -y
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;&lt;img src=&#34;https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-8.png&#34;
+	width=&#34;1327&#34;
+	height=&#34;786&#34;
+	srcset=&#34;https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-8_hu_2baaa8d60349b533.png 480w, https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-8_hu_cb0afa2b994b397d.png 1024w&#34;
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;alt text&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;168&#34;
+		data-flex-basis=&#34;405px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;p&gt;启动服务&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;2
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;systemctl start nginx
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;systemctl &lt;span class=&#34;nb&#34;&gt;enable&lt;/span&gt; nginx.service
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;&lt;img src=&#34;https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-7.png&#34;
+	width=&#34;928&#34;
+	height=&#34;44&#34;
+	srcset=&#34;https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-7_hu_f99d03919bb5bd03.png 480w, https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-7_hu_1521077a906320c2.png 1024w&#34;
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;alt text&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;2109&#34;
+		data-flex-basis=&#34;5061px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;p&gt;测试效果&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;netstat -tnulp &lt;span class=&#34;p&#34;&gt;|&lt;/span&gt; grep nginx
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;&lt;img src=&#34;https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-9.png&#34;
+	width=&#34;826&#34;
+	height=&#34;43&#34;
+	srcset=&#34;https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-9_hu_b4449778c8e6d7c1.png 480w, https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-9_hu_ddc0e6c95bb09191.png 1024w&#34;
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;alt text&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;1920&#34;
+		data-flex-basis=&#34;4610px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;h4&gt;安装软件源&lt;/h4&gt;
+&lt;p&gt;软件源的选择，参考rocky9系统&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-4.png&#34;
+	width=&#34;1288&#34;
+	height=&#34;678&#34;
+	srcset=&#34;https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-4_hu_d77fd6f3fca35248.png 480w, https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-4_hu_d22f542d23b05c82.png 1024w&#34;
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;alt text&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;189&#34;
+		data-flex-basis=&#34;455px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;p&gt;安装软件源&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;rpm -Uvh https://repo.zabbix.com/zabbix/7.0/rocky/9/x86_64/zabbix-release-latest-7.0.el9.noarch.rpm
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;&lt;img src=&#34;https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-10.png&#34;
+	width=&#34;975&#34;
+	height=&#34;105&#34;
+	srcset=&#34;https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-10_hu_a3cbdc0d2bc23993.png 480w, https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-10_hu_268dcb2aa732a275.png 1024w&#34;
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;alt text&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;928&#34;
+		data-flex-basis=&#34;2228px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;p&gt;安装agent&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;yum install -y zabbix-agent
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;&lt;img src=&#34;https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-11.png&#34;
+	width=&#34;1327&#34;
+	height=&#34;673&#34;
+	srcset=&#34;https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-11_hu_8e86f55de5393c6c.png 480w, https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-11_hu_2967150b31009776.png 1024w&#34;
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;alt text&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;197&#34;
+		data-flex-basis=&#34;473px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;h4&gt;定制配置&lt;/h4&gt;
+&lt;p&gt;修改zabbix agent的配置&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;2
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;3
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;4
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;5
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;6
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;7
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;8
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;vi /etc/zabbix/zabbix_agentd.conf
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;grep -Env &lt;span class=&#34;s1&#34;&gt;&amp;#39;#|^$&amp;#39;&lt;/span&gt; /etc/zabbix/zabbix_agentd.conf
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;nv&#34;&gt;PidFile&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;/run/zabbix/zabbix_agentd.pid
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;nv&#34;&gt;LogFile&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;/var/log/zabbix/zabbix_agentd.log
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;nv&#34;&gt;LogFileSize&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;m&#34;&gt;0&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;nv&#34;&gt;Server&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;192.168.172.120                          &lt;span class=&#34;c1&#34;&gt;# 设定zabbix server地址&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;nv&#34;&gt;Hostname&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;192.168.172.131                        &lt;span class=&#34;c1&#34;&gt;# 设定自己的主机名字&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;nv&#34;&gt;Include&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;/etc/zabbix/zabbix_agentd.d/*.conf
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;&lt;img src=&#34;https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-12.png&#34;
+	width=&#34;549&#34;
+	height=&#34;120&#34;
+	srcset=&#34;https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-12_hu_3f98cf3e43af50f8.png 480w, https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-12_hu_e80fa34842f941a5.png 1024w&#34;
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;alt text&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;457&#34;
+		data-flex-basis=&#34;1098px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;p&gt;重启服务&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;systemctl &lt;span class=&#34;nb&#34;&gt;enable&lt;/span&gt; --now zabbix-agent
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;&lt;img src=&#34;https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-13.png&#34;
+	width=&#34;1052&#34;
+	height=&#34;31&#34;
+	srcset=&#34;https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-13_hu_d6b0333848c0975a.png 480w, https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-13_hu_1a626d8b0bdea44a.png 1024w&#34;
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;alt text&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;3393&#34;
+		data-flex-basis=&#34;8144px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;p&gt;查看启动的应用&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;netstat -tnulp
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;&lt;img src=&#34;https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-14.png&#34;
+	width=&#34;830&#34;
+	height=&#34;163&#34;
+	srcset=&#34;https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-14_hu_575168ef70ef6ec2.png 480w, https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-14_hu_1861c7e53b488305.png 1024w&#34;
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;alt text&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;509&#34;
+		data-flex-basis=&#34;1222px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;h4&gt;测试item（zabbix server）&lt;/h4&gt;
+&lt;p&gt;zabbix的agent提供了大量的内置的监控item,比如监听远程服务端口的监控项net.tcp.listen[xxx]&lt;/p&gt;
+&lt;p&gt;在zabbix server端[120]尝试测试openeuler主机的监控项&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;2
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;3
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;4
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;root@lin-server:~# zabbix_get -s 192.168.172.131 -p &lt;span class=&#34;m&#34;&gt;10050&lt;/span&gt; -k &lt;span class=&#34;s2&#34;&gt;&amp;#34;net.tcp.listen[80]&amp;#34;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;m&#34;&gt;1&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;root@lin-server:~# zabbix_get -s 192.168.172.131 -p &lt;span class=&#34;m&#34;&gt;10050&lt;/span&gt; -k &lt;span class=&#34;s2&#34;&gt;&amp;#34;net.tcp.listen[81]&amp;#34;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;m&#34;&gt;0&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;&lt;img src=&#34;https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-15.png&#34;
+	width=&#34;661&#34;
+	height=&#34;59&#34;
+	srcset=&#34;https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-15_hu_8dc0d3702f73ed83.png 480w, https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-15_hu_18c5cc71eb1be19e.png 1024w&#34;
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;alt text&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;1120&#34;
+		data-flex-basis=&#34;2688px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;p&gt;关闭openeluer主机的nginx服务&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;systemctl stop nginx
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;&lt;img src=&#34;https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-16.png&#34;
+	width=&#34;333&#34;
+	height=&#34;48&#34;
+	srcset=&#34;https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-16_hu_c0d45739e6d5aa76.png 480w, https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-16_hu_c7ccbe1d542c74b8.png 1024w&#34;
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;alt text&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;693&#34;
+		data-flex-basis=&#34;1665px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;p&gt;在zabbix server端[120]尝试测试openeuler主机的监控项&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;2
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;root@lin-server:~# zabbix_get -s 192.168.172.131 -p &lt;span class=&#34;m&#34;&gt;10050&lt;/span&gt; -k &lt;span class=&#34;s2&#34;&gt;&amp;#34;net.tcp.listen[80]&amp;#34;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;m&#34;&gt;0&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;&lt;img src=&#34;https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-17.png&#34;
+	width=&#34;659&#34;
+	height=&#34;30&#34;
+	srcset=&#34;https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-17_hu_2364b44320740be7.png 480w, https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-17_hu_ea0de2ddda898358.png 1024w&#34;
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;alt text&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;2196&#34;
+		data-flex-basis=&#34;5272px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;h4&gt;定制sudo配置&lt;/h4&gt;
+&lt;p&gt;一般情况下，我们推荐采用sudo方式&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;2
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;3
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;vi /etc/sudoers
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c1&#34;&gt;# NOPASSWD: 后面存在空格&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;zabbix &lt;span class=&#34;nv&#34;&gt;ALL&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=(&lt;/span&gt;ALL&lt;span class=&#34;o&#34;&gt;)&lt;/span&gt; NOPASSWD: ALL
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;&lt;img src=&#34;https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-20.png&#34;
+	width=&#34;356&#34;
+	height=&#34;48&#34;
+	srcset=&#34;https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-20_hu_c33d1e5938719103.png 480w, https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-20_hu_5124ff39f33af583.png 1024w&#34;
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;alt text&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;741&#34;
+		data-flex-basis=&#34;1780px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;p&gt;检测语法&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;visudo -c
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;&lt;img src=&#34;https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-21.png&#34;
+	width=&#34;247&#34;
+	height=&#34;29&#34;
+	srcset=&#34;https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-21_hu_2a98d9882f0724db.png 480w, https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-21_hu_b218d54213167917.png 1024w&#34;
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;alt text&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;851&#34;
+		data-flex-basis=&#34;2044px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;p&gt;测试效果&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;2
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;su -s /bin/bash zabbix -c &lt;span class=&#34;s2&#34;&gt;&amp;#34;sudo systemctl restart nginx&amp;#34;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;nb&#34;&gt;echo&lt;/span&gt; &lt;span class=&#34;nv&#34;&gt;$?&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;&lt;img src=&#34;https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-22.png&#34;
+	width=&#34;949&#34;
+	height=&#34;301&#34;
+	srcset=&#34;https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-22_hu_f280a061821505b7.png 480w, https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-22_hu_781143e275b4c2bd.png 1024w&#34;
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;alt text&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;315&#34;
+		data-flex-basis=&#34;756px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;p&gt;可以看到，这里使用zabbix重启了nginx&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;netstat -tnulp &lt;span class=&#34;p&#34;&gt;|&lt;/span&gt; grep nginx
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;&lt;img src=&#34;https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-23.png&#34;
+	width=&#34;802&#34;
+	height=&#34;47&#34;
+	srcset=&#34;https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-23_hu_b489873a19335339.png 480w, https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-23_hu_3670cfb73734c287.png 1024w&#34;
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;alt text&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;1706&#34;
+		data-flex-basis=&#34;4095px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;h4 id=&#34;界面实践&#34;&gt;界面实践
+&lt;/h4&gt;&lt;h4&gt;添加主机&lt;/h4&gt;
+&lt;p&gt;在zabbix的操作界面上，点击 数据采集-主机-添加主机&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;2
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;3
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;4
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;5
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;6
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-fallback&#34; data-lang=&#34;fallback&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;主机名字：192.168.172.131
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;模板：Linux by zabbix agent 和 Nginx by Zabbix agent
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;主机群组：web-group
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;接口：192.168.172.131,10050
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;描述：使用被动模式添加openeuler的nginx服务
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;监控对象：服务器
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;&lt;img src=&#34;https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-24.png&#34;
+	width=&#34;1517&#34;
+	height=&#34;702&#34;
+	srcset=&#34;https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-24_hu_be62034c87b1c34c.png 480w, https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-24_hu_7951620682b8e7d9.png 1024w&#34;
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;alt text&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;216&#34;
+		data-flex-basis=&#34;518px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;p&gt;点击添加后的效果&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-25.png&#34;
+	width=&#34;1517&#34;
+	height=&#34;811&#34;
+	srcset=&#34;https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-25_hu_dc6d17bf67396b4f.png 480w, https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-25_hu_4a5415263be38a2b.png 1024w&#34;
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;alt text&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;187&#34;
+		data-flex-basis=&#34;448px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;h4&gt;添加监控项-主机方式&lt;/h4&gt;
+&lt;p&gt;点击192.168.172.131主机条目右侧的监控项&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-26.png&#34;
+	width=&#34;1517&#34;
+	height=&#34;733&#34;
+	srcset=&#34;https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-26_hu_a789e8d5aaa013aa.png 480w, https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-26_hu_8c3eb6f084061361.png 1024w&#34;
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;alt text&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;206&#34;
+		data-flex-basis=&#34;496px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-27.png&#34;
+	width=&#34;1517&#34;
+	height=&#34;951&#34;
+	srcset=&#34;https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-27_hu_17a825a5fc108cd1.png 480w, https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-27_hu_efdacf56b28d90d1.png 1024w&#34;
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;alt text&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;159&#34;
+		data-flex-basis=&#34;382px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;p&gt;点击创建监控项，增加一个专属的监控项&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-28.png&#34;
+	width=&#34;1517&#34;
+	height=&#34;868&#34;
+	srcset=&#34;https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-28_hu_73ed15f7b9d0c08.png 480w, https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-28_hu_ce74370c2b47ee39.png 1024w&#34;
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;alt text&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;174&#34;
+		data-flex-basis=&#34;419px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;2
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;3
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;4
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;5
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-fallback&#34; data-lang=&#34;fallback&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;名称：Nginx服务状态
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;键值：net.tcp.listen[80]
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;主机接口：192.168.172.131:10050
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;更新间隔：10s, 默认是1min
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;描述：添加Nginx服务的检测状态
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;点击测试，因为远程主机的nginx服务已经关闭，所以这里获取的值是0&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-29.png&#34;
+	width=&#34;1517&#34;
+	height=&#34;866&#34;
+	srcset=&#34;https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-29_hu_5aa10e93d8e8537b.png 480w, https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-29_hu_b507805494245456.png 1024w&#34;
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;alt text&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;175&#34;
+		data-flex-basis=&#34;420px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;p&gt;测试完毕后，点击添加按钮，查看item效果&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-30.png&#34;
+	width=&#34;1517&#34;
+	height=&#34;709&#34;
+	srcset=&#34;https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-30_hu_ca100186c1a41e26.png 480w, https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-30_hu_3d63b77781e0ebb0.png 1024w&#34;
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;alt text&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;213&#34;
+		data-flex-basis=&#34;513px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;p&gt;点击 检测-主机-最新数据-搜索nginx关键字，确认效果&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-31.png&#34;
+	width=&#34;1517&#34;
+	height=&#34;639&#34;
+	srcset=&#34;https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-31_hu_be37502f028d5d71.png 480w, https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-31_hu_9f0bd2ace6fd5cfd.png 1024w&#34;
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;alt text&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;237&#34;
+		data-flex-basis=&#34;569px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;p&gt;结果显示：可以正常的获取数据。&lt;/p&gt;
+&lt;h4&gt;添加监控项-模板方式&lt;/h4&gt;
+&lt;p&gt;自定义的监控项只能应用在某一台具体的主机上，对于大规模操作来说，不太好，所以我们可以通过模板的方式来实现。在一个自定义的方式，获取到的item值是0和1，对于普通人来说，不太友好，我还可以再模板的基础上。对于这个值进行状态的定制。&lt;/p&gt;
+&lt;p&gt;点击 数据采集-模板-搜索nginx，查看效果&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-32.png&#34;
+	width=&#34;1517&#34;
+	height=&#34;561&#34;
+	srcset=&#34;https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-32_hu_f2e040a2b2fdb4ce.png 480w, https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-32_hu_1ea20603f68d3674.png 1024w&#34;
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;alt text&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;270&#34;
+		data-flex-basis=&#34;648px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;h4&gt;定制触发器&lt;/h4&gt;
+&lt;p&gt;点击 数据采集-主机-触发器，查看效果&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-33.png&#34;
+	width=&#34;1517&#34;
+	height=&#34;734&#34;
+	srcset=&#34;https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-33_hu_b48f2fe912d69ce0.png 480w, https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-33_hu_50c36f0f2d43c252.png 1024w&#34;
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;alt text&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;206&#34;
+		data-flex-basis=&#34;496px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;p&gt;点击创建触发器&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-34.png&#34;
+	width=&#34;1517&#34;
+	height=&#34;683&#34;
+	srcset=&#34;https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-34_hu_fdc72cf8d99801ac.png 480w, https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-34_hu_da7882932c1071d9.png 1024w&#34;
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;alt text&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;222&#34;
+		data-flex-basis=&#34;533px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-35.png&#34;
+	width=&#34;1517&#34;
+	height=&#34;861&#34;
+	srcset=&#34;https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-35_hu_1ab9e15cd53b3bae.png 480w, https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-35_hu_aab5d8ab87133d38.png 1024w&#34;
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;alt text&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;176&#34;
+		data-flex-basis=&#34;422px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;2
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;3
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;4
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-fallback&#34; data-lang=&#34;fallback&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;事件名称：Nginx服务状态异常
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;表达式：last(/Nginx by Zabbix agent/net.tcp.listen[80])=0
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    表达式来源：可以通过条件的方式自动生成
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;描述：Nginx服务状态异常
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;点击添加&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-36.png&#34;
+	width=&#34;1517&#34;
+	height=&#34;861&#34;
+	srcset=&#34;https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-36_hu_f87a0986a3120928.png 480w, https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-36_hu_bdf08d95d86c3887.png 1024w&#34;
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;alt text&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;176&#34;
+		data-flex-basis=&#34;422px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;h4 id=&#34;定制策略&#34;&gt;定制策略
+&lt;/h4&gt;&lt;h4&gt;定制Nginx故障自愈脚本&lt;/h4&gt;
+&lt;p&gt;点击 告警-脚本-创建脚本，按照如下方式创建一个故障自愈脚本&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-37.png&#34;
+	width=&#34;1517&#34;
+	height=&#34;566&#34;
+	srcset=&#34;https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-37_hu_62d2ec56731f5f25.png 480w, https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-37_hu_d7c7f5584b20dd57.png 1024w&#34;
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;alt text&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;268&#34;
+		data-flex-basis=&#34;643px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;2
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;3
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;4
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;5
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;6
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;7
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-fallback&#34; data-lang=&#34;fallback&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;名称：Nginx故障自愈
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;范围：动作操作
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;类型：脚本
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;执行在：Zabbix客户端
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;命令：sudo systemctl restart nginx
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;描述：故障自愈：发现远程主机的服务状态异常，自动重启服务
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;主机群组：所有
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;点击添加后查看效果&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-38.png&#34;
+	width=&#34;1517&#34;
+	height=&#34;479&#34;
+	srcset=&#34;https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-38_hu_84a4e073699fbff0.png 480w, https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-38_hu_f76c428a2982b73c.png 1024w&#34;
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;alt text&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;316&#34;
+		data-flex-basis=&#34;760px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;h4&gt;定制告警动作&lt;/h4&gt;
+&lt;p&gt;注意:告警动作生效的作用范围，仅限于设置完成后发生的问题，历史发生的，或者正在发生的问题，不管用。&lt;/p&gt;
+&lt;p&gt;之前的告警是，等到一定的级别后才会进入到邮件告警的动作，这里面我们需要建立的是一个一旦发生Nginx服务异常，我们就将Nginx服务启动的触发器。&lt;/p&gt;
+&lt;p&gt;点击 告警-动作-触发器动作，查看效果&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-39.png&#34;
+	width=&#34;1517&#34;
+	height=&#34;555&#34;
+	srcset=&#34;https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-39_hu_31972f44c351ad6e.png 480w, https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-39_hu_cdc748329bbdcf30.png 1024w&#34;
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;alt text&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;273&#34;
+		data-flex-basis=&#34;656px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;p&gt;点击 创建动作，条件选择为 我们之前定制的主机级别的触发器&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-40.png&#34;
+	width=&#34;1517&#34;
+	height=&#34;477&#34;
+	srcset=&#34;https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-40_hu_23d6a12f75d3f328.png 480w, https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-40_hu_71ca2718e0413d3c.png 1024w&#34;
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;alt text&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;318&#34;
+		data-flex-basis=&#34;763px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-41.png&#34;
+	width=&#34;1517&#34;
+	height=&#34;476&#34;
+	srcset=&#34;https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-41_hu_c835826959374a64.png 480w, https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-41_hu_6e22d43bf1b907fb.png 1024w&#34;
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;alt text&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;318&#34;
+		data-flex-basis=&#34;764px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;p&gt;点击添加&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-42.png&#34;
+	width=&#34;1517&#34;
+	height=&#34;476&#34;
+	srcset=&#34;https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-42_hu_b005eb373732cdb7.png 480w, https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-42_hu_966efeb2d8d59f2b.png 1024w&#34;
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;alt text&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;318&#34;
+		data-flex-basis=&#34;764px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;h4&gt;定制告警操作&lt;/h4&gt;
+&lt;p&gt;点击 操作&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-43.png&#34;
+	width=&#34;1517&#34;
+	height=&#34;559&#34;
+	srcset=&#34;https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-43_hu_f58f9ae793be5278.png 480w, https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-43_hu_e3736d15838c9805.png 1024w&#34;
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;alt text&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;271&#34;
+		data-flex-basis=&#34;651px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;2
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-fallback&#34; data-lang=&#34;fallback&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;在操作部分，选择的操作位 Nginx故障自愈 的脚本功能
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;目标列表:勾选当前主机即可
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;点击添加后，查看效果&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-44.png&#34;
+	width=&#34;1517&#34;
+	height=&#34;584&#34;
+	srcset=&#34;https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-44_hu_ad1a8ea5a95da87b.png 480w, https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-44_hu_9946c416397dfaa9.png 1024w&#34;
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;alt text&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;259&#34;
+		data-flex-basis=&#34;623px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;p&gt;点击 添加后，确定 触发器动作&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-45.png&#34;
+	width=&#34;1517&#34;
+	height=&#34;562&#34;
+	srcset=&#34;https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-45_hu_5e0ce18c4bd4149a.png 480w, https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-45_hu_2782538a15347c31.png 1024w&#34;
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;alt text&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;269&#34;
+		data-flex-basis=&#34;647px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;h4&gt;确认效果&lt;/h4&gt;
+&lt;p&gt;到oepneuler主机上确认Nginx服务效果&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;systemctl status nginx
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;&lt;img src=&#34;https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-46.png&#34;
+	width=&#34;947&#34;
+	height=&#34;289&#34;
+	srcset=&#34;https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-46_hu_f2cee08df5b9b0f8.png 480w, https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-46_hu_79e28ab20ac7a63a.png 1024w&#34;
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;alt text&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;327&#34;
+		data-flex-basis=&#34;786px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;p&gt;关闭nginx&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;systemctl stop nginx
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;紧接着就再次查看Nginx的状态&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;systemctl status nginx
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;&lt;img src=&#34;https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-47.png&#34;
+	width=&#34;953&#34;
+	height=&#34;270&#34;
+	srcset=&#34;https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-47_hu_cda2d5c25236dc06.png 480w, https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-47_hu_e5e14d7a616a8538.png 1024w&#34;
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;alt text&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;352&#34;
+		data-flex-basis=&#34;847px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;p&gt;结果显示：服务的故障自愈动作就完成了。&lt;/p&gt;
+&lt;h2 id=&#34;主动监控&#34;&gt;主动监控
+&lt;/h2&gt;&lt;h3 id=&#34;基础知识-1&#34;&gt;基础知识
+&lt;/h3&gt;&lt;h4 id=&#34;场景需求&#34;&gt;场景需求
+&lt;/h4&gt;&lt;p&gt;需求&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-fallback&#34; data-lang=&#34;fallback&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;如果Zabbix监控大量主机，比如超过500台左右的主机，就可能会出现延迟比较大的问题,比如数据采集慢，队列等待较多等。
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;点击管理菜单，点击Queue菜单，找到队列概述，如果好多item需要5-10分钟才获得值，那么就是遇到性能瓶颈了。&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-5.png&#34;
+	width=&#34;1517&#34;
+	height=&#34;681&#34;
+	srcset=&#34;https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-5_hu_5a02aad3cee8f2bb.png 480w, https://YLine-hub.github.io/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/image-5_hu_70379eb8b4f2be4d.png 1024w&#34;
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;alt text&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;222&#34;
+		data-flex-basis=&#34;534px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;h3 id=&#34;纯主动监控方式&#34;&gt;纯主动监控方式
+&lt;/h3&gt;&lt;h4 id=&#34;定制配置&#34;&gt;定制配置
+&lt;/h4&gt;&lt;p&gt;主机定制配置文件内容&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;2
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;vim /etc/zabbix/zabbix_agentd.conf
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;grep -Env &lt;span class=&#34;s1&#34;&gt;&amp;#39;#|^$&amp;#39;&lt;/span&gt; /etc/zabbix/zabbix_agentd.conf
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;重启服务&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;systemctl restart zabbix-agent.service
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;查看zabbix_server服务器上的日志&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;</description>
+        </item>
+        <item>
         <title>11-[马哥][zabbix]微信告警和钉钉告警</title>
         <link>https://YLine-hub.github.io/p/11-%E9%A9%AC%E5%93%A5zabbix%E5%BE%AE%E4%BF%A1%E5%91%8A%E8%AD%A6%E5%92%8C%E9%92%89%E9%92%89%E5%91%8A%E8%AD%A6/</link>
         <pubDate>Wed, 25 Mar 2026 15:46:13 +0800</pubDate>
