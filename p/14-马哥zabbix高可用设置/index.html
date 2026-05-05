@@ -1,0 +1,2317 @@
+<!DOCTYPE html>
+<html lang="en-us" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="Zabbix高可用 功能定位 高可用需求 在前面的部署架构中,Zabbix Server 和MySQL都有只有一台主机,存在单点问题，可以使用Zabbix Server的高可用。\n基础架构为LAMP或LNMP环境，采用keepalived实现zabbix服务器高可用，保证主服务器或者Httpd宕掉后能切换到从服务器。MySQL数据库做主主同步，保证两边服务器数据的一致性，实现数据库的高可用。\n">
+<title>14-[马哥][zabbix]高可用设置</title>
+
+<link rel='canonical' href='https://YLine-hub.github.io/p/14-%E9%A9%AC%E5%93%A5zabbix%E9%AB%98%E5%8F%AF%E7%94%A8%E8%AE%BE%E7%BD%AE/'>
+
+<link rel="stylesheet" href="/scss/style.min.6a692fd055deae459f2a9767f57f3855ba80cafd5041317f24f7360f6ca47cdf.css"><meta property='og:title' content="14-[马哥][zabbix]高可用设置">
+<meta property='og:description' content="Zabbix高可用 功能定位 高可用需求 在前面的部署架构中,Zabbix Server 和MySQL都有只有一台主机,存在单点问题，可以使用Zabbix Server的高可用。\n基础架构为LAMP或LNMP环境，采用keepalived实现zabbix服务器高可用，保证主服务器或者Httpd宕掉后能切换到从服务器。MySQL数据库做主主同步，保证两边服务器数据的一致性，实现数据库的高可用。\n">
+<meta property='og:url' content='https://YLine-hub.github.io/p/14-%E9%A9%AC%E5%93%A5zabbix%E9%AB%98%E5%8F%AF%E7%94%A8%E8%AE%BE%E7%BD%AE/'>
+<meta property='og:site_name' content='リンボの個人ブログ'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:published_time' content='2026-04-25T18:42:59&#43;08:00'/><meta property='article:modified_time' content='2026-04-25T18:42:59&#43;08:00'/>
+<meta name="twitter:title" content="14-[马哥][zabbix]高可用设置">
+<meta name="twitter:description" content="Zabbix高可用 功能定位 高可用需求 在前面的部署架构中,Zabbix Server 和MySQL都有只有一台主机,存在单点问题，可以使用Zabbix Server的高可用。\n基础架构为LAMP或LNMP环境，采用keepalived实现zabbix服务器高可用，保证主服务器或者Httpd宕掉后能切换到从服务器。MySQL数据库做主主同步，保证两边服务器数据的一致性，实现数据库的高可用。\n">
+    <link rel="shortcut icon" href="/favicon.ico" />
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        
+            
+            <figure class="site-avatar">
+                <a href="/">
+                
+                    
+                    
+                    
+                        
+                        <img src="/img/avatar_hu_de528bff5d5e9598.png" width="300"
+                            height="300" class="site-logo" loading="lazy" alt="Avatar">
+                    
+                
+                </a>
+                
+                    <span class="emoji">🏖️</span>
+                
+            </figure>
+            
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">リンボの個人ブログ</a></h1>
+            <h2 class="site-description">努力不一定能获得回报，但不努力一定不会有回报。</h2>
+        </div>
+    </header><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-home" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <polyline points="5 12 3 12 12 3 21 12 19 12" />
+  <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7" />
+  <path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6" />
+</svg>
+
+
+
+                
+                <span>主页</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/%E5%85%B3%E4%BA%8E/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/archives/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/search/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-search" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="10" cy="10" r="7" />
+  <line x1="21" y1="21" x2="15" y2="15" />
+</svg>
+
+
+
+                
+                <span>搜索</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav id="TableOfContents">
+  <ol>
+    <li><a href="#zabbix高可用">Zabbix高可用</a>
+      <ol>
+        <li><a href="#功能定位">功能定位</a>
+          <ol>
+            <li><a href="#高可用需求">高可用需求</a></li>
+            <li><a href="#高可用方案">高可用方案</a></li>
+            <li><a href="#高可用方案细节">高可用方案细节</a></li>
+            <li><a href="#其他信息">其他信息</a></li>
+          </ol>
+        </li>
+        <li><a href="#集群高可用">集群高可用</a>
+          <ol>
+            <li><a href="#高可用环境">高可用环境</a></li>
+            <li><a href="#mysql环境">mysql环境</a></li>
+            <li><a href="#zabbix高可用-1">zabbix高可用</a></li>
+          </ol>
+        </li>
+      </ol>
+    </li>
+    <li><a href="#zabbbix优化思路">Zabbbix优化思路</a>
+      <ol>
+        <li><a href="#通用的优化思路">通用的优化思路</a>
+          <ol>
+            <li><a href="#数据库层面">数据库层面</a></li>
+            <li><a href="#服务器性能层面">服务器性能层面</a></li>
+            <li><a href="#监控项层面">监控项层面</a></li>
+            <li><a href="#网络层面">网络层面</a></li>
+            <li><a href="#前端界面层面">前端界面层面</a></li>
+          </ol>
+        </li>
+        <li><a href="#哪些监控项是比较重要">哪些监控项是比较重要</a>
+          <ol>
+            <li><a href="#服务器硬件">服务器硬件</a></li>
+            <li><a href="#应用程序">应用程序</a></li>
+          </ol>
+        </li>
+        <li><a href="#不同规模的监控实施">不同规模的监控实施</a>
+          <ol>
+            <li><a href="#小规模实施">小规模实施</a></li>
+            <li><a href="#中规模实施">中规模实施</a></li>
+            <li><a href="#大规模实施">大规模实施</a></li>
+            <li><a href="#超大规模实施">超大规模实施</a></li>
+          </ol>
+        </li>
+      </ol>
+    </li>
+  </ol>
+</nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            <a href="/categories/zabbix/" >
+                Zabbix
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/p/14-%E9%A9%AC%E5%93%A5zabbix%E9%AB%98%E5%8F%AF%E7%94%A8%E8%AE%BE%E7%BD%AE/">14-[马哥][zabbix]高可用设置</a>
+        </h2>
+    
+        
+    </div>
+
+    
+    
+    
+    
+    <footer class="article-time">
+        
+            <div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                <time class="article-time--published">2026-04-25</time>
+            </div>
+        
+
+        
+    </footer>
+    
+
+    
+</div>
+
+</header>
+
+    <section class="article-content">
+    
+    
+    <h2 id="zabbix高可用">Zabbix高可用
+</h2><h3 id="功能定位">功能定位
+</h3><h4 id="高可用需求">高可用需求
+</h4><p>在前面的部署架构中,Zabbix Server 和MySQL都有只有一台主机,存在单点问题，可以使用Zabbix Server的高可用。</p>
+<blockquote>
+<p>基础架构为LAMP或LNMP环境，采用keepalived实现zabbix服务器高可用，保证主服务器或者Httpd宕掉后能切换到从服务器。MySQL数据库做主主同步，保证两边服务器数据的一致性，实现数据库的高可用。</p>
+</blockquote>
+<p>从Zabbix 6.0版本开始，官方提供了高可用解决方案</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">https://www.zabbix.com/documentation/7.0/zh/manual/concepts/server/ha
+</span></span><span class="line"><span class="cl">https://www.zabbix.com/documentation/6.0/zh/manual/concepts/server/ha
+</span></span><span class="line"><span class="cl">https://www.zabbix.com/documentation/6.0/zh/manual/concepts/server/ha#implementation-details
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="高可用方案">高可用方案
+</h4><p>Zabbix的高可用方案</p>
+<blockquote>
+<p>  通常高可用性(HA)需要在几乎不需要停机的关键基础设施中使用。为了在服务出现任何失败故障时进行故障转移，进行接管。</p>
+</blockquote>
+<blockquote>
+<p>  Zabbix提供了一个本地的高可用性解决方案，方便设置，不需要任何HA专业知识也可以完成。本地Zabbix HA对于防止Zabbix server的软件/硬件故障或减少维护停机时间是有用的。</p>
+</blockquote>
+<blockquote>
+<p>  Zabbix高可用模式下，多台Zabbix server作为集群中的节点运行。当集群中的一个Zabbix server处于active时，其他服务器处于standy，随时准备在必要时接管。</p>
+</blockquote>
+<p><img src="/p/14-%E9%A9%AC%E5%93%A5zabbix%E9%AB%98%E5%8F%AF%E7%94%A8%E8%AE%BE%E7%BD%AE/image.png"
+	width="1028"
+	height="318"
+	srcset="/p/14-%E9%A9%AC%E5%93%A5zabbix%E9%AB%98%E5%8F%AF%E7%94%A8%E8%AE%BE%E7%BD%AE/image_hu_b16cb019837c625e.png 480w, /p/14-%E9%A9%AC%E5%93%A5zabbix%E9%AB%98%E5%8F%AF%E7%94%A8%E8%AE%BE%E7%BD%AE/image_hu_a12893c268491868.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="323"
+		data-flex-basis="775px"
+	
+></p>
+<h4 id="高可用方案细节">高可用方案细节
+</h4><p>在server配置中需要两个参数来启动Zabbix server作为集群节点:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">HANodeName 集群中每个zabbix server节点名称必须要有且唯一。
+</span></span><span class="line"><span class="cl">    这是将在agent和proxy配置中引用server的名称(例如:zabbix-node-01)。
+</span></span><span class="line"><span class="cl">    如果您没有指定HANodeName，那么服务器将以standalone模式启动。
+</span></span></code></pre></td></tr></table>
+</div>
+</div><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">NodeAddress参数必须为每个节点指定。
+</span></span><span class="line"><span class="cl">    NodeAddress参数(address:port)将被Zabbix前端用来连接到主server节点。
+</span></span><span class="line"><span class="cl">    NodeAddress必须匹配相应Zabbix server的IP或FQDN名称。
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>在对配置文件进行更改后，重新启动所有Zabbix server。-它们现在将作为集群节点启动。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">server的新状态可以在报表→系统信息查看，也可以用以下命令查看:
+</span></span><span class="line"><span class="cl">    zabbix_server -R ha_status
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="其他信息">其他信息
+</h4><p>Zabbix HA解决方案由多个zabbix_server实例或节点组成。每个节点独立配置，但数据库是使用同一个实例。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">Zabbix HA节点包括以下几种状态:
+</span></span><span class="line"><span class="cl">    active(活动)
+</span></span><span class="line"><span class="cl">    standby(备用)
+</span></span><span class="line"><span class="cl">    unavailable(不可用)
+</span></span><span class="line"><span class="cl">    stopped(停止)
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>在同一个Zabbix HA集群中，只有一个实例或节点处于active(活动)状态，standby(备用)节点不进行数据收集、处理或其他任务，并且不监听端口，并保持一个最少的数据库连接。</p>
+<h3 id="集群高可用">集群高可用
+</h3><h4 id="高可用环境">高可用环境
+</h4><h4>ubuntu24-1 部署 haproxy</h4>
+<p>HAProxy作为反向代理软件，相较于nginx来说，配置起来更加的简单，但是有一点需要注意: HAProxy可以通过不存在的ip地址，作为反向代理的入口。只不过需要让内核参数支持该功能</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# <span class="nb">echo</span> <span class="s1">&#39;net.ipv4.ip_nonlocal_bind = 1&#39;</span> &gt;&gt;/etc/sysctl.conf
+</span></span><span class="line"><span class="cl">root@lin-server:~# sysctl -p
+</span></span><span class="line"><span class="cl">net.ipv4.ip_nonlocal_bind <span class="o">=</span> <span class="m">1</span>
+</span></span><span class="line"><span class="cl">root@lin-server:~# sysctl -a <span class="p">|</span> grep nonlocal
+</span></span><span class="line"><span class="cl">net.ipv4.ip_nonlocal_bind <span class="o">=</span> <span class="m">1</span>
+</span></span><span class="line"><span class="cl">net.ipv6.ip_nonlocal_bind <span class="o">=</span> <span class="m">0</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>安装软件</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# apt install haproxy -y
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>定制配置</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# cat &gt;&gt; /etc/haproxy/haproxy.cfg <span class="s">&lt;&lt;- eof
+</span></span></span><span class="line"><span class="cl"><span class="s">frontend web_front
+</span></span></span><span class="line"><span class="cl"><span class="s">    bind 192.168.172.100:80
+</span></span></span><span class="line"><span class="cl"><span class="s">    default_backend web_back
+</span></span></span><span class="line"><span class="cl"><span class="s">
+</span></span></span><span class="line"><span class="cl"><span class="s">backend web_back
+</span></span></span><span class="line"><span class="cl"><span class="s">    balance source
+</span></span></span><span class="line"><span class="cl"><span class="s">    server web01 192.168.172.13:8080 check
+</span></span></span><span class="line"><span class="cl"><span class="s">    server web02 192.168.172.16:8080 check
+</span></span></span><span class="line"><span class="cl"><span class="s">
+</span></span></span><span class="line"><span class="cl"><span class="s">frontend db_front
+</span></span></span><span class="line"><span class="cl"><span class="s">    bind 192.168.172.200:3306
+</span></span></span><span class="line"><span class="cl"><span class="s">    mode tcp
+</span></span></span><span class="line"><span class="cl"><span class="s">    default_backend db_back
+</span></span></span><span class="line"><span class="cl"><span class="s">
+</span></span></span><span class="line"><span class="cl"><span class="s">backend db_back
+</span></span></span><span class="line"><span class="cl"><span class="s">    balance source
+</span></span></span><span class="line"><span class="cl"><span class="s">    mode tcp
+</span></span></span><span class="line"><span class="cl"><span class="s">    server mysql01 192.168.172.15:3306 check
+</span></span></span><span class="line"><span class="cl"><span class="s">eof</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>启动服务</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# systemctl restart haproxy
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/14-%E9%A9%AC%E5%93%A5zabbix%E9%AB%98%E5%8F%AF%E7%94%A8%E8%AE%BE%E7%BD%AE/image-1.png"
+	width="672"
+	height="333"
+	srcset="/p/14-%E9%A9%AC%E5%93%A5zabbix%E9%AB%98%E5%8F%AF%E7%94%A8%E8%AE%BE%E7%BD%AE/image-1_hu_2ad2c646e88628e3.png 480w, /p/14-%E9%A9%AC%E5%93%A5zabbix%E9%AB%98%E5%8F%AF%E7%94%A8%E8%AE%BE%E7%BD%AE/image-1_hu_33e63ea1384c1a8c.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="201"
+		data-flex-basis="484px"
+	
+></p>
+<p>表示没有后端</p>
+<p>监测效果</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# netstat -tnulp <span class="p">|</span> grep hap
+</span></span><span class="line"><span class="cl">tcp        <span class="m">0</span>      <span class="m">0</span> 192.168.172.100:80      0.0.0.0:*               LISTEN      15562/haproxy
+</span></span><span class="line"><span class="cl">tcp        <span class="m">0</span>      <span class="m">0</span> 192.168.172.200:3306    0.0.0.0:*               LISTEN      15562/haproxy
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4>ubuntu24-2 部署 haproxy</h4>
+<p>HAProxy作为反向代理软件，相较于nginx来说，配置起来更加的简单，但是有一点需要注意: HAProxy可以通过不存在的ip地址，作为反向代理的入口。只不过需要让内核参数支持该功能</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# <span class="nb">echo</span> <span class="s1">&#39;net.ipv4.ip_nonlocal_bind = 1&#39;</span> &gt;&gt;/etc/sysctl.conf
+</span></span><span class="line"><span class="cl">root@lin-server:~# sysctl -p
+</span></span><span class="line"><span class="cl">net.ipv4.ip_nonlocal_bind <span class="o">=</span> <span class="m">1</span>
+</span></span><span class="line"><span class="cl">root@lin-server:~# sysctl -a <span class="p">|</span> grep nonlocal
+</span></span><span class="line"><span class="cl">net.ipv4.ip_nonlocal_bind <span class="o">=</span> <span class="m">1</span>
+</span></span><span class="line"><span class="cl">net.ipv6.ip_nonlocal_bind <span class="o">=</span> <span class="m">0</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>安装软件</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# apt install haproxy -y
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>定制配置</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# cat &gt;&gt; /etc/haproxy/haproxy.cfg <span class="s">&lt;&lt;- eof
+</span></span></span><span class="line"><span class="cl"><span class="s">frontend web_front
+</span></span></span><span class="line"><span class="cl"><span class="s">    bind 192.168.172.100:80
+</span></span></span><span class="line"><span class="cl"><span class="s">    default_backend web_back
+</span></span></span><span class="line"><span class="cl"><span class="s">
+</span></span></span><span class="line"><span class="cl"><span class="s">backend web_back
+</span></span></span><span class="line"><span class="cl"><span class="s">    balance source
+</span></span></span><span class="line"><span class="cl"><span class="s">    server web01 192.168.172.13:8080 check
+</span></span></span><span class="line"><span class="cl"><span class="s">    server web02 192.168.172.16:8080 check
+</span></span></span><span class="line"><span class="cl"><span class="s">
+</span></span></span><span class="line"><span class="cl"><span class="s">frontend db_front
+</span></span></span><span class="line"><span class="cl"><span class="s">    bind 192.168.172.200:3306
+</span></span></span><span class="line"><span class="cl"><span class="s">    mode tcp
+</span></span></span><span class="line"><span class="cl"><span class="s">    default_backend db_back
+</span></span></span><span class="line"><span class="cl"><span class="s">
+</span></span></span><span class="line"><span class="cl"><span class="s">backend db_back
+</span></span></span><span class="line"><span class="cl"><span class="s">    balance source
+</span></span></span><span class="line"><span class="cl"><span class="s">    mode tcp
+</span></span></span><span class="line"><span class="cl"><span class="s">    server mysql01 192.168.172.15:3306 check
+</span></span></span><span class="line"><span class="cl"><span class="s">
+</span></span></span><span class="line"><span class="cl"><span class="s">listen stats
+</span></span></span><span class="line"><span class="cl"><span class="s">    mode http
+</span></span></span><span class="line"><span class="cl"><span class="s">    bind 192.168.172.16:9999
+</span></span></span><span class="line"><span class="cl"><span class="s">    stats enable
+</span></span></span><span class="line"><span class="cl"><span class="s">    log global
+</span></span></span><span class="line"><span class="cl"><span class="s">    stats uri /haproxy-status
+</span></span></span><span class="line"><span class="cl"><span class="s">    stats auth haadmin:123456
+</span></span></span><span class="line"><span class="cl"><span class="s">eof</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>启动服务</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# systemctl restart haproxy
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>监测效果</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# netstat -tnulp <span class="p">|</span> grep hap
+</span></span><span class="line"><span class="cl">tcp        <span class="m">0</span>      <span class="m">0</span> 192.168.172.16:9999     0.0.0.0:*               LISTEN      4363/haproxy
+</span></span><span class="line"><span class="cl">tcp        <span class="m">0</span>      <span class="m">0</span> 192.168.172.100:80      0.0.0.0:*               LISTEN      4363/haproxy
+</span></span><span class="line"><span class="cl">tcp        <span class="m">0</span>      <span class="m">0</span> 192.168.172.200:3306    0.0.0.0:*               LISTEN      4363/haproxy
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>访问监控页面</p>
+<p><a class="link" href="http://192.168.172.16:9999/haproxy-status"  target="_blank" rel="noopener"
+    >haproxy-status</a></p>
+<p>用户名：haadmin
+密码：123456</p>
+<p><img src="/p/14-%E9%A9%AC%E5%93%A5zabbix%E9%AB%98%E5%8F%AF%E7%94%A8%E8%AE%BE%E7%BD%AE/image-2.png"
+	width="1249"
+	height="972"
+	srcset="/p/14-%E9%A9%AC%E5%93%A5zabbix%E9%AB%98%E5%8F%AF%E7%94%A8%E8%AE%BE%E7%BD%AE/image-2_hu_bb70d9d9df242728.png 480w, /p/14-%E9%A9%AC%E5%93%A5zabbix%E9%AB%98%E5%8F%AF%E7%94%A8%E8%AE%BE%E7%BD%AE/image-2_hu_c6ae94b5da700516.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="128"
+		data-flex-basis="308px"
+	
+></p>
+<p><img src="/p/14-%E9%A9%AC%E5%93%A5zabbix%E9%AB%98%E5%8F%AF%E7%94%A8%E8%AE%BE%E7%BD%AE/image-3.png"
+	width="1241"
+	height="971"
+	srcset="/p/14-%E9%A9%AC%E5%93%A5zabbix%E9%AB%98%E5%8F%AF%E7%94%A8%E8%AE%BE%E7%BD%AE/image-3_hu_bea996ca77446251.png 480w, /p/14-%E9%A9%AC%E5%93%A5zabbix%E9%AB%98%E5%8F%AF%E7%94%A8%E8%AE%BE%E7%BD%AE/image-3_hu_e021797a56b94c4d.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="127"
+		data-flex-basis="306px"
+	
+></p>
+<h4>ubuntu24-1部署keepalived</h4>
+<p>安装软件</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# apt install keepalived -y
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>定制文件</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# <span class="nb">cd</span> /etc/keepalived
+</span></span><span class="line"><span class="cl">root@lin-server:/etc/keepalived# ls
+</span></span><span class="line"><span class="cl">keepalived.conf.sample
+</span></span><span class="line"><span class="cl">root@lin-server:/etc/keepalived# mv keepalived.conf.sample keepalived.conf
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>定制配置</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span><span class="lnt">51
+</span><span class="lnt">52
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:/etc/keepalived# vim /etc/keepalived/keepalived.conf
+</span></span><span class="line"><span class="cl">root@lin-server:/etc/keepalived# cat /etc/keepalived/keepalived.conf
+</span></span><span class="line"><span class="cl">global_defs <span class="o">{</span>
+</span></span><span class="line"><span class="cl">    router_id ubuntu24-1
+</span></span><span class="line"><span class="cl">    script_user root
+</span></span><span class="line"><span class="cl">    enable_script_security
+</span></span><span class="line"><span class="cl"><span class="o">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">vrrp_script check_haproxy <span class="o">{</span>
+</span></span><span class="line"><span class="cl">    script <span class="s2">&#34;/usr/bin/killall -0 haproxy&#34;</span>
+</span></span><span class="line"><span class="cl">    interval <span class="m">2</span>
+</span></span><span class="line"><span class="cl">    fall <span class="m">2</span>
+</span></span><span class="line"><span class="cl">    rise <span class="m">2</span>
+</span></span><span class="line"><span class="cl"><span class="o">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">vrrp_instance web_vip <span class="o">{</span>
+</span></span><span class="line"><span class="cl">    state MASTER
+</span></span><span class="line"><span class="cl">    interface ens33                 <span class="c1"># 本机网卡名称</span>
+</span></span><span class="line"><span class="cl">    virtual_router_id <span class="m">51</span>
+</span></span><span class="line"><span class="cl">    priority <span class="m">100</span>
+</span></span><span class="line"><span class="cl">    nopreempt
+</span></span><span class="line"><span class="cl">    advert_int <span class="m">1</span>
+</span></span><span class="line"><span class="cl">    authentication <span class="o">{</span>
+</span></span><span class="line"><span class="cl">        auth_type PASS
+</span></span><span class="line"><span class="cl">        auth_pass secret123
+</span></span><span class="line"><span class="cl">    <span class="o">}</span>
+</span></span><span class="line"><span class="cl">    virtual_ipaddress <span class="o">{</span>
+</span></span><span class="line"><span class="cl">        192.168.172.100
+</span></span><span class="line"><span class="cl">    <span class="o">}</span>
+</span></span><span class="line"><span class="cl">    track_script <span class="o">{</span>
+</span></span><span class="line"><span class="cl">        check_haproxy
+</span></span><span class="line"><span class="cl">    <span class="o">}</span>
+</span></span><span class="line"><span class="cl"><span class="o">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">vrrp_instance db_vip <span class="o">{</span>
+</span></span><span class="line"><span class="cl">    state BACKUP
+</span></span><span class="line"><span class="cl">    interface ens33
+</span></span><span class="line"><span class="cl">    virtual_router_id <span class="m">52</span>
+</span></span><span class="line"><span class="cl">    priority <span class="m">90</span>
+</span></span><span class="line"><span class="cl">    nopreempt
+</span></span><span class="line"><span class="cl">    advert_int <span class="m">1</span>
+</span></span><span class="line"><span class="cl">    authentication <span class="o">{</span>
+</span></span><span class="line"><span class="cl">        auth_type PASS
+</span></span><span class="line"><span class="cl">        auth_pass secret456
+</span></span><span class="line"><span class="cl">    <span class="o">}</span>
+</span></span><span class="line"><span class="cl">    virtual_ipaddress <span class="o">{</span>
+</span></span><span class="line"><span class="cl">        192.168.172.200
+</span></span><span class="line"><span class="cl">    <span class="o">}</span>
+</span></span><span class="line"><span class="cl">    track_script <span class="o">{</span>
+</span></span><span class="line"><span class="cl">        check_haproxy
+</span></span><span class="line"><span class="cl">    <span class="o">}</span>
+</span></span><span class="line"><span class="cl"><span class="o">}</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>启动keepalived</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:/etc/keepalived# systemctl restart keepalived
+</span></span><span class="line"><span class="cl">root@lin-server:/etc/keepalived# systemctl status keepalived
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>检查效果</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:/etc/keepalived# hostname -I
+</span></span><span class="line"><span class="cl">192.168.172.13 192.168.172.100 192.168.172.200
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4>ubuntu24-2部署keepalived</h4>
+<p>安装软件</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# apt install keepalived -y
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>定制文件</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# <span class="nb">cd</span> /etc/keepalived
+</span></span><span class="line"><span class="cl">root@lin-server:/etc/keepalived# ls
+</span></span><span class="line"><span class="cl">keepalived.conf.sample
+</span></span><span class="line"><span class="cl">root@lin-server:/etc/keepalived# mv keepalived.conf.sample keepalived.conf
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>定制配置</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span><span class="lnt">51
+</span><span class="lnt">52
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# vim /etc/keepalived/keepalived.conf
+</span></span><span class="line"><span class="cl">root@lin-server:~# cat /etc/keepalived/keepalived.conf
+</span></span><span class="line"><span class="cl">global_defs <span class="o">{</span>
+</span></span><span class="line"><span class="cl">    router_id ubuntu24-2
+</span></span><span class="line"><span class="cl">    script_user root
+</span></span><span class="line"><span class="cl">    enable_script_security
+</span></span><span class="line"><span class="cl"><span class="o">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">vrrp_script check_haproxy <span class="o">{</span>
+</span></span><span class="line"><span class="cl">    script <span class="s2">&#34;/usr/bin/killall -0 haproxy&#34;</span>
+</span></span><span class="line"><span class="cl">    interval <span class="m">2</span>
+</span></span><span class="line"><span class="cl">    fall <span class="m">2</span>
+</span></span><span class="line"><span class="cl">    rise <span class="m">2</span>
+</span></span><span class="line"><span class="cl"><span class="o">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">vrrp_instance web_vip <span class="o">{</span>
+</span></span><span class="line"><span class="cl">    state BACKUP
+</span></span><span class="line"><span class="cl">    interface ens33                 
+</span></span><span class="line"><span class="cl">    virtual_router_id <span class="m">51</span>
+</span></span><span class="line"><span class="cl">    priority <span class="m">90</span>
+</span></span><span class="line"><span class="cl">    nopreempt
+</span></span><span class="line"><span class="cl">    advert_int <span class="m">1</span>
+</span></span><span class="line"><span class="cl">    authentication <span class="o">{</span>
+</span></span><span class="line"><span class="cl">        auth_type PASS
+</span></span><span class="line"><span class="cl">        auth_pass secret123
+</span></span><span class="line"><span class="cl">    <span class="o">}</span>
+</span></span><span class="line"><span class="cl">    virtual_ipaddress <span class="o">{</span>
+</span></span><span class="line"><span class="cl">        192.168.172.100
+</span></span><span class="line"><span class="cl">    <span class="o">}</span>
+</span></span><span class="line"><span class="cl">    track_script <span class="o">{</span>
+</span></span><span class="line"><span class="cl">        check_haproxy
+</span></span><span class="line"><span class="cl">    <span class="o">}</span>
+</span></span><span class="line"><span class="cl"><span class="o">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">vrrp_instance db_vip <span class="o">{</span>
+</span></span><span class="line"><span class="cl">    state MASTER
+</span></span><span class="line"><span class="cl">    interface ens33
+</span></span><span class="line"><span class="cl">    virtual_router_id <span class="m">52</span>
+</span></span><span class="line"><span class="cl">    priority <span class="m">100</span>
+</span></span><span class="line"><span class="cl">    nopreempt
+</span></span><span class="line"><span class="cl">    advert_int <span class="m">1</span>
+</span></span><span class="line"><span class="cl">    authentication <span class="o">{</span>
+</span></span><span class="line"><span class="cl">        auth_type PASS
+</span></span><span class="line"><span class="cl">        auth_pass secret456
+</span></span><span class="line"><span class="cl">    <span class="o">}</span>
+</span></span><span class="line"><span class="cl">    virtual_ipaddress <span class="o">{</span>
+</span></span><span class="line"><span class="cl">        192.168.172.200
+</span></span><span class="line"><span class="cl">    <span class="o">}</span>
+</span></span><span class="line"><span class="cl">    track_script <span class="o">{</span>
+</span></span><span class="line"><span class="cl">        check_haproxy
+</span></span><span class="line"><span class="cl">    <span class="o">}</span>
+</span></span><span class="line"><span class="cl"><span class="o">}</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>启动keepalived</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:/etc/keepalived# systemctl restart keepalived.service
+</span></span><span class="line"><span class="cl">root@lin-server:/etc/keepalived# systemctl status keepalived.service
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>监测效果</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:/etc/keepalived# hostname -I
+</span></span><span class="line"><span class="cl">192.168.172.16 192.168.172.200
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="mysql环境">mysql环境
+</h4><h4>基础环境配置</h4>
+<p>因为是Rocky环境，所以保证Selinux和firewalld服务禁用</p>
+<p>查看selinux</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="o">[</span>root@localhost ~<span class="o">]</span><span class="c1"># getenforce</span>
+</span></span><span class="line"><span class="cl">Enforcing
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>禁用selinux</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="o">[</span>root@localhost ~<span class="o">]</span><span class="c1"># sed -i &#39;s/^SELINUX=e.*/SELINUX=disabled/&#39; /etc/selinux/config</span>
+</span></span><span class="line"><span class="cl"><span class="o">[</span>root@localhost ~<span class="o">]</span><span class="c1"># grep &#39;^SELINUX&#39; /etc/selinux/config</span>
+</span></span><span class="line"><span class="cl"><span class="nv">SELINUX</span><span class="o">=</span>disabled
+</span></span><span class="line"><span class="cl"><span class="nv">SELINUXTYPE</span><span class="o">=</span>targeted
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>禁用firewakkd服务</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="o">[</span>root@localhost ~<span class="o">]</span><span class="c1"># systemctl disable --now firewalld.service</span>
+</span></span><span class="line"><span class="cl">Removed <span class="s2">&#34;/etc/systemd/system/multi-user.target.wants/firewalld.service&#34;</span>.
+</span></span><span class="line"><span class="cl">Removed <span class="s2">&#34;/etc/systemd/system/dbus-org.fedoraproject.FirewallD1.service&#34;</span>.
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>重启主机</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="o">[</span>root@localhost ~<span class="o">]</span><span class="c1"># reboot</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4>安装mysql环境</h4>
+<p>安装数据库</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">yum install mysql-server -y
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>定制二进制目录</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="o">[</span>root@localhost ~<span class="o">]</span><span class="c1"># mkdir -pv /data/mysql/login</span>
+</span></span><span class="line"><span class="cl">mkdir: created directory <span class="s1">&#39;/data&#39;</span>
+</span></span><span class="line"><span class="cl">mkdir: created directory <span class="s1">&#39;/data/mysql&#39;</span>
+</span></span><span class="line"><span class="cl">mkdir: created directory <span class="s1">&#39;/data/mysql/login&#39;</span>
+</span></span><span class="line"><span class="cl"><span class="o">[</span>root@localhost ~<span class="o">]</span><span class="c1"># chown -R mysql:mysql /data/mysql</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>定制配置</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="o">[</span>root@localhost ~<span class="o">]</span><span class="c1"># vim /etc/my.cnf.d/mysql-server.cnf</span>
+</span></span><span class="line"><span class="cl"><span class="o">[</span>root@localhost ~<span class="o">]</span><span class="c1"># cat /etc/my.cnf.d/mysql-server.cnf</span>
+</span></span><span class="line"><span class="cl"><span class="o">[</span>mysqld<span class="o">]</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># 增加下面三行</span>
+</span></span><span class="line"><span class="cl">server-id<span class="o">=</span><span class="m">15</span>
+</span></span><span class="line"><span class="cl">log-bin<span class="o">=</span>/data/mysql/login/mysql-bin
+</span></span><span class="line"><span class="cl"><span class="nv">default_authentication_plugin</span><span class="o">=</span>mysql_native_password
+</span></span><span class="line"><span class="cl"><span class="nv">datadir</span><span class="o">=</span>/var/lib/mysql
+</span></span><span class="line"><span class="cl"><span class="nv">socket</span><span class="o">=</span>/var/lib/mysql/mysql.sock
+</span></span><span class="line"><span class="cl">log-error<span class="o">=</span>/var/log/mysql/mysqld.log
+</span></span><span class="line"><span class="cl">pid-file<span class="o">=</span>/run/mysqld/mysqld.pid
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>启动服务</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="o">[</span>root@localhost ~<span class="o">]</span><span class="c1"># systemctl start mysqld.service</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4>创建数据库</h4>
+<p>定制数据库</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="o">[</span>root@localhost ~<span class="o">]</span><span class="c1"># mysql</span>
+</span></span><span class="line"><span class="cl">Welcome to the MySQL monitor.  Commands end with <span class="p">;</span> or <span class="se">\g</span>.
+</span></span><span class="line"><span class="cl">Your MySQL connection id is <span class="m">8</span>
+</span></span><span class="line"><span class="cl">Server version: 8.0.45 Source distribution
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">Copyright <span class="o">(</span>c<span class="o">)</span> 2000, 2026, Oracle and/or its affiliates.
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">Oracle is a registered trademark of Oracle Corporation and/or its
+</span></span><span class="line"><span class="cl">affiliates. Other names may be trademarks of their respective
+</span></span><span class="line"><span class="cl">owners.
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">Type <span class="s1">&#39;help;&#39;</span> or <span class="s1">&#39;\h&#39;</span> <span class="k">for</span> help. Type <span class="s1">&#39;\c&#39;</span> to clear the current input statement.
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">mysql&gt;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>定制数据库</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">mysql&gt; create database zabbix character <span class="nb">set</span> utf8mb4 collate utf8mb4_bin<span class="p">;</span>
+</span></span><span class="line"><span class="cl">Query OK, <span class="m">1</span> row affected <span class="o">(</span>0.00 sec<span class="o">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">mysql&gt; create user zabbix@<span class="s1">&#39;192.168.172.%&#39;</span> identified by <span class="s1">&#39;password&#39;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">Query OK, <span class="m">0</span> rows affected <span class="o">(</span>0.01 sec<span class="o">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">mysql&gt; grant all privileges on zabbix.* to zabbix@<span class="s1">&#39;192.168.172.%&#39;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">Query OK, <span class="m">0</span> rows affected <span class="o">(</span>0.00 sec<span class="o">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">mysql&gt; GRANT SUPER ON *.* TO zabbix@<span class="s1">&#39;192.168.172.%&#39;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">Query OK, <span class="m">0</span> rows affected, <span class="m">1</span> warning <span class="o">(</span>0.01 sec<span class="o">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">mysql&gt; <span class="nb">set</span> global <span class="nv">log_bin_trust_function_creators</span> <span class="o">=</span> 1<span class="p">;</span>
+</span></span><span class="line"><span class="cl">Query OK, <span class="m">0</span> rows affected, <span class="m">1</span> warning <span class="o">(</span>0.00 sec<span class="o">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">mysql&gt; quit<span class="p">;</span>
+</span></span><span class="line"><span class="cl">Bye
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4>初始化数据库</h4>
+<p>定制软件源</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 确认有无epel源</span>
+</span></span><span class="line"><span class="cl">ls /etc/yum.repos.d/
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 有epel源进行如下处理</span>
+</span></span><span class="line"><span class="cl"><span class="o">[</span>epel<span class="o">]</span>
+</span></span><span class="line"><span class="cl">...
+</span></span><span class="line"><span class="cl"><span class="nv">excludepkgs</span><span class="o">=</span>zabbix*
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>安装软件源</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="o">[</span>root@localhost ~<span class="o">]</span><span class="c1"># rpm -Uvh https://repo.zabbix.com/zabbix/7.0/rocky/9/x86_64/zabbix-release-latest-7.0.el9.noarch.rpm</span>
+</span></span><span class="line"><span class="cl">Retrieving https://repo.zabbix.com/zabbix/7.0/rocky/9/x86_64/zabbix-release-latest-7.0.el9.noarch.rpm
+</span></span><span class="line"><span class="cl">warning: /var/tmp/rpm-tmp.dEJgkz: Header V4 RSA/SHA512 Signature, key ID b5333005: NOKEY
+</span></span><span class="line"><span class="cl">Verifying...                          <span class="c1">################################# [100%]</span>
+</span></span><span class="line"><span class="cl">Preparing...                          <span class="c1">################################# [100%]</span>
+</span></span><span class="line"><span class="cl">Updating / installing...
+</span></span><span class="line"><span class="cl">   1:zabbix-release-7.0-5.el9         <span class="c1">################################# [100%]</span>
+</span></span><span class="line"><span class="cl"><span class="o">[</span>root@localhost ~<span class="o">]</span><span class="c1"># yum makecache</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>安装软件</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="o">[</span>root@localhost ~<span class="o">]</span><span class="c1"># yum install -y zabbix-sql-scripts</span>
+</span></span><span class="line"><span class="cl"><span class="o">[</span>root@localhost ~<span class="o">]</span><span class="c1"># rpm -ql zabbix-sql-scripts | grep sql.gz</span>
+</span></span><span class="line"><span class="cl">/usr/share/zabbix-sql-scripts/mysql/server.sql.gz
+</span></span><span class="line"><span class="cl">/usr/share/zabbix-sql-scripts/postgresql/server.sql.gz
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>加载sql数据</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="o">[</span>root@localhost ~<span class="o">]</span><span class="c1"># zcat /usr/share/zabbix-sql-scripts/mysql/server.sql.gz | mysql --default-character-set=utf8mb4 -uzabbix -ppassword -h192.168.172.15 zabbix</span>
+</span></span><span class="line"><span class="cl">mysql: <span class="o">[</span>Warning<span class="o">]</span> Using a password on the <span class="nb">command</span> line interface can be insecure.
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>还原数据库配置</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="o">[</span>root@localhost ~<span class="o">]</span><span class="c1"># mysql</span>
+</span></span><span class="line"><span class="cl">Welcome to the MySQL monitor.  Commands end with <span class="p">;</span> or <span class="se">\g</span>.
+</span></span><span class="line"><span class="cl">Your MySQL connection id is <span class="m">293</span>
+</span></span><span class="line"><span class="cl">Server version: 8.0.45 Source distribution
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">Copyright <span class="o">(</span>c<span class="o">)</span> 2000, 2026, Oracle and/or its affiliates.
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">Oracle is a registered trademark of Oracle Corporation and/or its
+</span></span><span class="line"><span class="cl">affiliates. Other names may be trademarks of their respective
+</span></span><span class="line"><span class="cl">owners.
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">Type <span class="s1">&#39;help;&#39;</span> or <span class="s1">&#39;\h&#39;</span> <span class="k">for</span> help. Type <span class="s1">&#39;\c&#39;</span> to clear the current input statement.
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">mysql&gt; <span class="nb">set</span> global <span class="nv">log_bin_trust_function_creators</span> <span class="o">=</span> 0<span class="p">;</span>
+</span></span><span class="line"><span class="cl">Query OK, <span class="m">0</span> rows affected, <span class="m">1</span> warning <span class="o">(</span>0.00 sec<span class="o">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">mysql&gt; <span class="nb">exit</span>
+</span></span><span class="line"><span class="cl">Bye
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>确认效果</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="o">[</span>root@localhost ~<span class="o">]</span><span class="c1"># mysql -uzabbix -ppassword -h192.168.172.15 -e &#34;show tables from zabbix;&#34;</span>
+</span></span><span class="line"><span class="cl">+----------------------------+
+</span></span><span class="line"><span class="cl"><span class="p">|</span> Tables_in_zabbix           <span class="p">|</span>
+</span></span><span class="line"><span class="cl">+----------------------------+
+</span></span><span class="line"><span class="cl"><span class="p">|</span> acknowledges               <span class="p">|</span>
+</span></span><span class="line"><span class="cl"><span class="p">|</span> actions                    <span class="p">|</span>
+</span></span><span class="line"><span class="cl"><span class="p">|</span> alerts                     <span class="p">|</span>
+</span></span><span class="line"><span class="cl"><span class="p">|</span> auditlog                   <span class="p">|</span>
+</span></span><span class="line"><span class="cl"><span class="p">|</span> autoreg_host               <span class="p">|</span>
+</span></span><span class="line"><span class="cl"><span class="p">|</span> changelog                  <span class="p">|</span>
+</span></span><span class="line"><span class="cl">......
+</span></span><span class="line"><span class="cl"><span class="p">|</span> valuemap                   <span class="p">|</span>
+</span></span><span class="line"><span class="cl"><span class="p">|</span> valuemap_mapping           <span class="p">|</span>
+</span></span><span class="line"><span class="cl"><span class="p">|</span> widget                     <span class="p">|</span>
+</span></span><span class="line"><span class="cl"><span class="p">|</span> widget_field               <span class="p">|</span>
+</span></span><span class="line"><span class="cl">+----------------------------+
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>查看数据库配置</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">mysql&gt; <span class="k">select</span> 
+</span></span><span class="line"><span class="cl">    table_schema as <span class="s1">&#39;数据库&#39;</span>,
+</span></span><span class="line"><span class="cl">    sum<span class="o">(</span>table_rows<span class="o">)</span> as <span class="s1">&#39;记录数&#39;</span>, 
+</span></span><span class="line"><span class="cl">    sum<span class="o">(</span>truncate<span class="o">(</span>data_length/1024/1024, 2<span class="o">))</span> as <span class="s1">&#39;数据容量(MB)&#39;</span>, 
+</span></span><span class="line"><span class="cl">    sum<span class="o">(</span>truncate<span class="o">(</span>index_length/1024/1024, 2<span class="o">))</span> as <span class="s1">&#39;索引容量(MB)&#39;</span>, 
+</span></span><span class="line"><span class="cl">    sum<span class="o">(</span>truncate<span class="o">(</span>DATA_FREE/1024/1024, 2<span class="o">))</span> as <span class="s1">&#39;碎片占用(MB)&#39;</span> 
+</span></span><span class="line"><span class="cl">from 
+</span></span><span class="line"><span class="cl">    information_schema.tables 
+</span></span><span class="line"><span class="cl">where 
+</span></span><span class="line"><span class="cl">    <span class="nv">table_schema</span> <span class="o">=</span> <span class="s1">&#39;zabbix&#39;</span> 
+</span></span><span class="line"><span class="cl">group by 
+</span></span><span class="line"><span class="cl">    table_schema<span class="p">;</span>
+</span></span><span class="line"><span class="cl">+-----------+-----------+------------------+------------------+------------------+
+</span></span><span class="line"><span class="cl"><span class="p">|</span> 数据库    <span class="p">|</span> 记录数    <span class="p">|</span> 数据容量<span class="o">(</span>MB<span class="o">)</span>     <span class="p">|</span> 索引容量<span class="o">(</span>MB<span class="o">)</span>     <span class="p">|</span> 碎片占用<span class="o">(</span>MB<span class="o">)</span>     <span class="p">|</span>
+</span></span><span class="line"><span class="cl">+-----------+-----------+------------------+------------------+------------------+
+</span></span><span class="line"><span class="cl"><span class="p">|</span> zabbix    <span class="p">|</span>    <span class="m">189029</span> <span class="p">|</span>            40.78 <span class="p">|</span>            29.18 <span class="p">|</span>            58.00 <span class="p">|</span>
+</span></span><span class="line"><span class="cl">+-----------+-----------+------------------+------------------+------------------+
+</span></span><span class="line"><span class="cl"><span class="m">1</span> row in <span class="nb">set</span> <span class="o">(</span>0.06 sec<span class="o">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="zabbix高可用-1">zabbix高可用
+</h4><h4>ubuntu24-1 安装 zabbix</h4>
+<p>获取最新版的软件源</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# wget https://repo.zabbix.com/zabbix/7.0/ubuntu/pool/main/z/zabbix-release/zabbix-release_latest_7.0+ubuntu24.04_all.deb
+</span></span><span class="line"><span class="cl">root@lin-server:~# dpkg -i zabbix-release_latest_7.0+ubuntu24.04_all.deb
+</span></span><span class="line"><span class="cl">root@lin-server:~# apt update
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>安装zabbix server和前端工具以及代理agent</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# apt install -y zabbix-server-mysql zabbix-frontend-php zabbix-nginx-conf zabbix-agent
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>删除默认的nginx首页配置文件</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# rm -f /etc/nginx/sites-enabled/default
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>定制zabbix的配置文件</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# vim /etc/nginx/conf.d/zabbix.conf
+</span></span><span class="line"><span class="cl">server <span class="o">{</span>
+</span></span><span class="line"><span class="cl">    listen  8080<span class="p">;</span>
+</span></span><span class="line"><span class="cl">    ...
+</span></span><span class="line"><span class="cl"><span class="c1"># 解析：</span>
+</span></span><span class="line"><span class="cl"><span class="c1">#       定制http配置段内部默认的server配置段属性</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>修改php配置</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">cat &gt;&gt; /etc/zabbix/php-fpm.conf <span class="s">&lt;&lt;-eof
+</span></span></span><span class="line"><span class="cl"><span class="s">php_value[date.timezone] = Asia/Shanghai
+</span></span></span><span class="line"><span class="cl"><span class="s">eof</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>定制zabbix配置</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# vim /etc/zabbix/zabbix_server.conf
+</span></span><span class="line"><span class="cl">root@lin-server:~# grep -Ev <span class="s1">&#39;#|^$&#39;</span> /etc/zabbix/zabbix_server.conf
+</span></span><span class="line"><span class="cl"><span class="nv">SourceIP</span><span class="o">=</span>192.168.172.100
+</span></span><span class="line"><span class="cl"><span class="nv">LogFile</span><span class="o">=</span>/var/log/zabbix/zabbix_server.log 
+</span></span><span class="line"><span class="cl"><span class="nv">LogFileSize</span><span class="o">=</span><span class="m">0</span>
+</span></span><span class="line"><span class="cl"><span class="nv">PidFile</span><span class="o">=</span>/run/zabbix/zabbix_server.pid
+</span></span><span class="line"><span class="cl"><span class="nv">SocketDir</span><span class="o">=</span>/run/zabbix
+</span></span><span class="line"><span class="cl"><span class="nv">DBHost</span><span class="o">=</span>192.168.172.200           <span class="c1"># 必须开启，因为默认使用的localhost</span>
+</span></span><span class="line"><span class="cl"><span class="nv">DBName</span><span class="o">=</span>zabbix
+</span></span><span class="line"><span class="cl"><span class="nv">DBUser</span><span class="o">=</span>zabbix
+</span></span><span class="line"><span class="cl"><span class="nv">DBPassword</span><span class="o">=</span>password         <span class="c1"># 定制密码</span>
+</span></span><span class="line"><span class="cl"><span class="nv">SNMPTrapperFile</span><span class="o">=</span>/var/log/snmptrap/snmptrap.log
+</span></span><span class="line"><span class="cl"><span class="nv">Timeout</span><span class="o">=</span><span class="m">4</span>
+</span></span><span class="line"><span class="cl"><span class="nv">FpingLocation</span><span class="o">=</span>/usr/bin/fping
+</span></span><span class="line"><span class="cl"><span class="nv">Fping6Location</span><span class="o">=</span>/usr/bin/fping6
+</span></span><span class="line"><span class="cl"><span class="nv">LogSlowQueries</span><span class="o">=</span><span class="m">3000</span>
+</span></span><span class="line"><span class="cl"><span class="nv">StatsAllowedIP</span><span class="o">=</span>127.0.0.1
+</span></span><span class="line"><span class="cl"><span class="nv">EnableGlobalScripts</span><span class="o">=</span><span class="m">0</span>
+</span></span><span class="line"><span class="cl"><span class="nv">HANodeName</span><span class="o">=</span>ubuntu24-1
+</span></span><span class="line"><span class="cl"><span class="nv">NodeAddress</span><span class="o">=</span>192.168.172.13:10051
+</span></span><span class="line"><span class="cl"><span class="c1"># 注意：</span>
+</span></span><span class="line"><span class="cl"><span class="c1">#       在高可用性(HA)环境中，使用VIP作为SourceIP能够确保Zabbix Server在主备节点切换时，依然可以使用相同的IP地址与外部设备进行通信，从而保证监控服务的连续性。</span>
+</span></span><span class="line"><span class="cl"><span class="c1">#       第一次安装的时候，不推荐使用SourceIP，等界面设定完毕后，再设定</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span><span class="lnt">9
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# vim /etc/zabbix/zabbix_agentd.conf
+</span></span><span class="line"><span class="cl">root@lin-server:~# grep -Ev <span class="s1">&#39;#|^$&#39;</span> /etc/zabbix/zabbix_agentd.conf
+</span></span><span class="line"><span class="cl"><span class="nv">PidFile</span><span class="o">=</span>/run/zabbix/zabbix_agentd.pid
+</span></span><span class="line"><span class="cl"><span class="nv">LogFile</span><span class="o">=</span>/var/log/zabbix/zabbix_agentd.log 
+</span></span><span class="line"><span class="cl"><span class="nv">LogFileSize</span><span class="o">=</span><span class="m">0</span>
+</span></span><span class="line"><span class="cl"><span class="nv">Server</span><span class="o">=</span>127.0.0.1,192.168.172.13
+</span></span><span class="line"><span class="cl"><span class="nv">ServerActive</span><span class="o">=</span>127.0.0.1,192.168.172.13
+</span></span><span class="line"><span class="cl"><span class="nv">Hostname</span><span class="o">=</span>192.168.172.13
+</span></span><span class="line"><span class="cl"><span class="nv">Include</span><span class="o">=</span>/etc/zabbix/zabbix_agentd.d/*.conf
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>设置服务开机自启动</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# systemctl <span class="nb">enable</span> zabbix-server zabbix-agent nginx php8.3-fpm
+</span></span><span class="line"><span class="cl">root@lin-server:~# systemctl restart zabbix-server zabbix-agent nginx php8.3-fpm
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4>ubuntu24-2安装zabbix</h4>
+<p>获取最新版本的软件源</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# wget https://repo.zabbix.com/zabbix/7.0/ubuntu/pool/main/z/zabbix-release/zabbix-release_latest_7.0+ubuntu24.04_all.deb
+</span></span><span class="line"><span class="cl">root@lin-server:~# dpkg -i zabbix-release_latest_7.0+ubuntu24.04_all.deb
+</span></span><span class="line"><span class="cl">root@lin-server:~# apt update
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>安装zabbix server和前端工具以及代理agent</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# apt install -y zabbix-server-mysql zabbix-frontend-php zabbix-nginx-conf zabbix-agent
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>删除默认的nginx首页配置文件</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# rm -f /etc/nginx/sites-enabled/default
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>定制zabbix的配置文件</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# vim /etc/nginx/conf.d/zabbix.conf
+</span></span><span class="line"><span class="cl">server <span class="o">{</span>
+</span></span><span class="line"><span class="cl">        listen      8080<span class="p">;</span>
+</span></span><span class="line"><span class="cl">        ...
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 解析：</span>
+</span></span><span class="line"><span class="cl"><span class="c1">#       定制http配置段内部默认的server配置段属性</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>修改php配置</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# vim /etc/zabbix/zabbix_server.conf
+</span></span><span class="line"><span class="cl">root@lin-server:~# grep -Ev <span class="s1">&#39;#|^$&#39;</span> /etc/zabbix/zabbix_server.conf
+</span></span><span class="line"><span class="cl"><span class="nv">SourceIP</span><span class="o">=</span>192.168.172.100
+</span></span><span class="line"><span class="cl"><span class="nv">LogFile</span><span class="o">=</span>/var/log/zabbix/zabbix_server.log 
+</span></span><span class="line"><span class="cl"><span class="nv">LogFileSize</span><span class="o">=</span><span class="m">0</span>
+</span></span><span class="line"><span class="cl"><span class="nv">PidFile</span><span class="o">=</span>/run/zabbix/zabbix_server.pid
+</span></span><span class="line"><span class="cl"><span class="nv">SocketDir</span><span class="o">=</span>/run/zabbix
+</span></span><span class="line"><span class="cl"><span class="nv">DBHost</span><span class="o">=</span>192.168.172.200           <span class="c1"># 必须开启，因为默认使用的localhost</span>
+</span></span><span class="line"><span class="cl"><span class="nv">DBName</span><span class="o">=</span>zabbix
+</span></span><span class="line"><span class="cl"><span class="nv">DBUser</span><span class="o">=</span>zabbix
+</span></span><span class="line"><span class="cl"><span class="nv">DBPassword</span><span class="o">=</span>password         <span class="c1"># 定制密码</span>
+</span></span><span class="line"><span class="cl"><span class="nv">SNMPTrapperFile</span><span class="o">=</span>/var/log/snmptrap/snmptrap.log
+</span></span><span class="line"><span class="cl"><span class="nv">Timeout</span><span class="o">=</span><span class="m">4</span>
+</span></span><span class="line"><span class="cl"><span class="nv">FpingLocation</span><span class="o">=</span>/usr/bin/fping
+</span></span><span class="line"><span class="cl"><span class="nv">Fping6Location</span><span class="o">=</span>/usr/bin/fping6
+</span></span><span class="line"><span class="cl"><span class="nv">LogSlowQueries</span><span class="o">=</span><span class="m">3000</span>
+</span></span><span class="line"><span class="cl"><span class="nv">StatsAllowedIP</span><span class="o">=</span>127.0.0.1
+</span></span><span class="line"><span class="cl"><span class="nv">EnableGlobalScripts</span><span class="o">=</span><span class="m">0</span>
+</span></span><span class="line"><span class="cl"><span class="nv">HANodeName</span><span class="o">=</span>ubuntu24-2       <span class="c1"># 增加主机标识</span>
+</span></span><span class="line"><span class="cl"><span class="nv">NodeAddress</span><span class="o">=</span>192.168.172.16:10051
+</span></span><span class="line"><span class="cl"><span class="c1"># 注意：</span>
+</span></span><span class="line"><span class="cl"><span class="c1">#       在高可用性(HA)环境中，使用VIP作为SourceIP能够确保Zabbix Server在主备节点切换时，依然可以使用相同的IP地址与外部设备进行通信，从而保证监控服务的连续性。</span>
+</span></span><span class="line"><span class="cl"><span class="c1">#       第一次安装的时候，不推荐使用SourceIP，等界面设定完毕后，再设定</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span><span class="lnt">9
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# vim /etc/zabbix/zabbix_agentd.conf
+</span></span><span class="line"><span class="cl">root@lin-server:~# grep -Ev <span class="s1">&#39;#|^$&#39;</span> /etc/zabbix/zabbix_agentd.conf
+</span></span><span class="line"><span class="cl"><span class="nv">PidFile</span><span class="o">=</span>/run/zabbix/zabbix_agentd.pid
+</span></span><span class="line"><span class="cl"><span class="nv">LogFile</span><span class="o">=</span>/var/log/zabbix/zabbix_agentd.log 
+</span></span><span class="line"><span class="cl"><span class="nv">LogFileSize</span><span class="o">=</span><span class="m">0</span>
+</span></span><span class="line"><span class="cl"><span class="nv">Server</span><span class="o">=</span>127.0.0.1,192.168.172.16
+</span></span><span class="line"><span class="cl"><span class="nv">ServerActive</span><span class="o">=</span>127.0.0.1,192.168.172.16
+</span></span><span class="line"><span class="cl"><span class="nv">Hostname</span><span class="o">=</span>192.168.172.16
+</span></span><span class="line"><span class="cl"><span class="nv">Include</span><span class="o">=</span>/etc/zabbix/zabbix_agentd.d/*.conf
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>设置服务开机自启动</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">root@lin-server:~# systemctl <span class="nb">enable</span> zabbix-server zabbix-agent nginx php8.3-fpm
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">root@lin-server:~# systemctl restart zabbix-server zabbix-agent nginx php8.3-fpm
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4>ubuntu24-1的web配置</h4>
+<p>注意：因为涉及到前端的基本环境配置，所以，两台主机首次访问的时候，都会有web的配置过程，都执行一遍即可</p>
+<p>浏览器访问Zabbix server主机的ip地址，以
+http://192.168.172.13:8080 或者 http://192.168.172.100:8080/ 为例</p>
+<p><img src="/p/14-%E9%A9%AC%E5%93%A5zabbix%E9%AB%98%E5%8F%AF%E7%94%A8%E8%AE%BE%E7%BD%AE/image-4.png"
+	width="1172"
+	height="930"
+	srcset="/p/14-%E9%A9%AC%E5%93%A5zabbix%E9%AB%98%E5%8F%AF%E7%94%A8%E8%AE%BE%E7%BD%AE/image-4_hu_7ffc6f540aa921de.png 480w, /p/14-%E9%A9%AC%E5%93%A5zabbix%E9%AB%98%E5%8F%AF%E7%94%A8%E8%AE%BE%E7%BD%AE/image-4_hu_e3a897764c0ccde6.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="126"
+		data-flex-basis="302px"
+	
+></p>
+<h4>数据库配置</h4>
+<p><img src="/p/14-%E9%A9%AC%E5%93%A5zabbix%E9%AB%98%E5%8F%AF%E7%94%A8%E8%AE%BE%E7%BD%AE/image-5.png"
+	width="1172"
+	height="927"
+	srcset="/p/14-%E9%A9%AC%E5%93%A5zabbix%E9%AB%98%E5%8F%AF%E7%94%A8%E8%AE%BE%E7%BD%AE/image-5_hu_4f9215929811621b.png 480w, /p/14-%E9%A9%AC%E5%93%A5zabbix%E9%AB%98%E5%8F%AF%E7%94%A8%E8%AE%BE%E7%BD%AE/image-5_hu_fded319324f0e0c4.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="126"
+		data-flex-basis="303px"
+	
+></p>
+<h4>设置完成</h4>
+<p><img src="/p/14-%E9%A9%AC%E5%93%A5zabbix%E9%AB%98%E5%8F%AF%E7%94%A8%E8%AE%BE%E7%BD%AE/image-6.png"
+	width="1172"
+	height="926"
+	srcset="/p/14-%E9%A9%AC%E5%93%A5zabbix%E9%AB%98%E5%8F%AF%E7%94%A8%E8%AE%BE%E7%BD%AE/image-6_hu_7225e1c1514b20ae.png 480w, /p/14-%E9%A9%AC%E5%93%A5zabbix%E9%AB%98%E5%8F%AF%E7%94%A8%E8%AE%BE%E7%BD%AE/image-6_hu_a0749ac154e427af.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="126"
+		data-flex-basis="303px"
+	
+></p>
+<h4>界面查看</h4>
+<p>登录到zabbix界面后，点击报表-系统信息，可以看到高可用集群的节点</p>
+<p><img src="/p/14-%E9%A9%AC%E5%93%A5zabbix%E9%AB%98%E5%8F%AF%E7%94%A8%E8%AE%BE%E7%BD%AE/image-7.png"
+	width="1445"
+	height="718"
+	srcset="/p/14-%E9%A9%AC%E5%93%A5zabbix%E9%AB%98%E5%8F%AF%E7%94%A8%E8%AE%BE%E7%BD%AE/image-7_hu_3f91fb4962f611af.png 480w, /p/14-%E9%A9%AC%E5%93%A5zabbix%E9%AB%98%E5%8F%AF%E7%94%A8%E8%AE%BE%E7%BD%AE/image-7_hu_47ffe4e92356a264.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="201"
+		data-flex-basis="483px"
+	
+></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">注意：
+</span></span><span class="line"><span class="cl">    关于节点的状态，是谁后开启zabbix-server，谁处于主动式状态，谁先开启zabbix-server，谁处于待机状态
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>关闭Ubuntu24-1主机的zabbix-server</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">systemctl stop zabbix-server zabbix-agent nginx php8.3-fpm
+</span></span><span class="line"><span class="cl"><span class="c1"># 关闭zabbix-server服务即可，不用全部关闭</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4>定制中文</h4>
+<p>ubuntu24-1定制图形的字体环境</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="nb">cd</span> /usr/share/zabbix/assets/fonts
+</span></span><span class="line"><span class="cl">mv /graphfront.ttf graphfront.ttf-bak
+</span></span><span class="line"><span class="cl">mv ~/SIMKAI.TTF graphfront.ttf
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4>ubuntu24-2的web配置</h4>
+<p>注意：因为涉及到前端的基本环境配置，所以，两台主机首次访问的时候，都会有web的配置过程，都执行一遍即可</p>
+<p>浏览器访问Zabbix server主机的ip地址，以
+http://192.168.172.16:8080 或者 http://192.168.172.200:8080/ 为例</p>
+<p><img src="/p/14-%E9%A9%AC%E5%93%A5zabbix%E9%AB%98%E5%8F%AF%E7%94%A8%E8%AE%BE%E7%BD%AE/image-8.png"
+	width="1453"
+	height="931"
+	srcset="/p/14-%E9%A9%AC%E5%93%A5zabbix%E9%AB%98%E5%8F%AF%E7%94%A8%E8%AE%BE%E7%BD%AE/image-8_hu_6b42f599380598a6.png 480w, /p/14-%E9%A9%AC%E5%93%A5zabbix%E9%AB%98%E5%8F%AF%E7%94%A8%E8%AE%BE%E7%BD%AE/image-8_hu_ccfa1c14751f3a6c.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="156"
+		data-flex-basis="374px"
+	
+></p>
+<h4>数据库配置</h4>
+<p><img src="/p/14-%E9%A9%AC%E5%93%A5zabbix%E9%AB%98%E5%8F%AF%E7%94%A8%E8%AE%BE%E7%BD%AE/image-9.png"
+	width="1453"
+	height="934"
+	srcset="/p/14-%E9%A9%AC%E5%93%A5zabbix%E9%AB%98%E5%8F%AF%E7%94%A8%E8%AE%BE%E7%BD%AE/image-9_hu_b727b6c69a1607e.png 480w, /p/14-%E9%A9%AC%E5%93%A5zabbix%E9%AB%98%E5%8F%AF%E7%94%A8%E8%AE%BE%E7%BD%AE/image-9_hu_2fec0a4e2990007f.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="155"
+		data-flex-basis="373px"
+	
+></p>
+<h4>设置完成</h4>
+<p><img src="/p/14-%E9%A9%AC%E5%93%A5zabbix%E9%AB%98%E5%8F%AF%E7%94%A8%E8%AE%BE%E7%BD%AE/image-10.png"
+	width="1453"
+	height="934"
+	srcset="/p/14-%E9%A9%AC%E5%93%A5zabbix%E9%AB%98%E5%8F%AF%E7%94%A8%E8%AE%BE%E7%BD%AE/image-10_hu_b0ecb1f32fa0a42a.png 480w, /p/14-%E9%A9%AC%E5%93%A5zabbix%E9%AB%98%E5%8F%AF%E7%94%A8%E8%AE%BE%E7%BD%AE/image-10_hu_f7ca9e05e2bd8026.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="155"
+		data-flex-basis="373px"
+	
+></p>
+<h4>界面查看</h4>
+<p>登录到zabbix界面后，点击报表-系统信息，可以看到高可用集群的节点</p>
+<p><img src="/p/14-%E9%A9%AC%E5%93%A5zabbix%E9%AB%98%E5%8F%AF%E7%94%A8%E8%AE%BE%E7%BD%AE/image-11.png"
+	width="1453"
+	height="728"
+	srcset="/p/14-%E9%A9%AC%E5%93%A5zabbix%E9%AB%98%E5%8F%AF%E7%94%A8%E8%AE%BE%E7%BD%AE/image-11_hu_5e2ff231a0ceaab0.png 480w, /p/14-%E9%A9%AC%E5%93%A5zabbix%E9%AB%98%E5%8F%AF%E7%94%A8%E8%AE%BE%E7%BD%AE/image-11_hu_f01480d3eb8228a1.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="199"
+		data-flex-basis="479px"
+	
+></p>
+<h4>查看zabbix的界面效果</h4>
+<p>关于集群状态的查看，只能去主动活跃的主机上测试</p>
+<ul>
+<li>ubuntu24-1</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# zabbix_server -R ha_status
+</span></span><span class="line"><span class="cl">Failover delay: <span class="m">60</span> seconds
+</span></span><span class="line"><span class="cl">Cluster status:
+</span></span><span class="line"><span class="cl">   <span class="c1">#  ID                        Name                      Address                        Status      Last Access</span>
+</span></span><span class="line"><span class="cl">   1. cmoofvyue00016vtxitwuga90 ubuntu24-1                192.168.172.13:10051           active      2s
+</span></span><span class="line"><span class="cl">   2. cmoqtvr760001rmtxm7erto8v ubuntu24-2                192.168.172.16:10051           standby     1s
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>ubuntu24-2</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 备用服务器无法使用</span>
+</span></span><span class="line"><span class="cl">root@lin-server:~# zabbix_server -R ha_status
+</span></span><span class="line"><span class="cl">Runtime commands can be executed only in active mode
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4>关闭ubuntu24-1主机的zabbix-server</h4>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 关闭zabbix-server服务即可，不用全部关闭</span>
+</span></span><span class="line"><span class="cl">root@lin-server:~# systemctl stop zabbix-server zabbix-agent nginx php8.3-fpm
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4>查看zabbix的界面效果</h4>
+<p><img src="/p/14-%E9%A9%AC%E5%93%A5zabbix%E9%AB%98%E5%8F%AF%E7%94%A8%E8%AE%BE%E7%BD%AE/image-12.png"
+	width="1453"
+	height="733"
+	srcset="/p/14-%E9%A9%AC%E5%93%A5zabbix%E9%AB%98%E5%8F%AF%E7%94%A8%E8%AE%BE%E7%BD%AE/image-12_hu_820eefc7d8340d50.png 480w, /p/14-%E9%A9%AC%E5%93%A5zabbix%E9%AB%98%E5%8F%AF%E7%94%A8%E8%AE%BE%E7%BD%AE/image-12_hu_c9cbf6a56f5ddf04.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="198"
+		data-flex-basis="475px"
+	
+></p>
+<h2 id="zabbbix优化思路">Zabbbix优化思路
+</h2><h3 id="通用的优化思路">通用的优化思路
+</h3><h4 id="数据库层面">数据库层面
+</h4><h4 id="服务器性能层面">服务器性能层面
+</h4><p>合理配置硬件资源</p>
+<blockquote>
+<p>根据监控规模和业务需求，为 Zabbix Server和Proxy分配足够的硬件资源，包括CPU、内存、磁盘和网络带宽。对于大规模监控，可考虑使用多核CPU、大容量内存和高速存储设备(如SSD)，以满足数据处理、存储和传输的需求。</p>
+</blockquote>
+<p>优化Zabbix进程参数</p>
+<blockquote>
+<p>调整 Zabbix Server和 Agent 配置文件中的进程参数，如StartPollers、StartTrappers、StartDiscoverers等，以适应不同的监控场景和负载情况。增加这些参数的值可以提高数据采集、接收和发现的并发能力，但要根据服务器硬件资源进行合理调整，避免资源过度占用。</p>
+</blockquote>
+<p>监控服务器资源使用情况</p>
+<blockquote>
+<p>使用系统自带的监控工具或第三方监控工具，实时监控Zabbix Server和Proxy所在服务器的CPU使用率、内存使用率、磁盘I/O、网络流量等资源指标。根据监控数据及时发现性能瓶颈，并进行相应的调整和优化。</p>
+</blockquote>
+<p>采用分布式架构</p>
+<h4 id="监控项层面">监控项层面
+</h4><p>精简监控项</p>
+<blockquote>
+<p>对监控项进行全面梳理，去除不必要的监控指标，只保留对系统运行和业务关键的监控项。避免监控过多无关紧要的信息，以减少数据采集和存储量，降低系统负载。</p>
+</blockquote>
+<p>设置合理的监控频率</p>
+<blockquote>
+<p>根据监控项的重要性和变化频率，设置不同的监控频率。对于关键的性能指标，如CPU使用率、内存使用率、网络带宽等，可设置较高的监控频率(如每分钟采集一次);对于相对稳定的配置信息或变化缓慢的指标，可适当降低监控频率(如每小时或每天采集一次)。</p>
+</blockquote>
+<p>设置合理的监控频率</p>
+<blockquote>
+<p>根据监控项的重要性和变化频率，设置不同的监控频率。对于关键的性能指标，如CPU使用率、内存使用率、网络带宽等，可设置较高的监控频率(如每分钟采集一次);对于相对稳定的配置信息或变化缓慢的指标，可适当降低监控频率(如每小时或每天采集一次)。</p>
+</blockquote>
+<p>使用监控模板和宏</p>
+<blockquote>
+<p>创建和使用监控模板来统一管理同类设备或服务的监控项配置，提高配置效率和一致性。同时，利用宏来动态设置监控项的参数，以便在不同的环境中灵活应用监控模板。</p>
+</blockquote>
+<p>监控项分组和聚合</p>
+<blockquote>
+<p>将相关的监控项进行分组，方便管理和查看。对于一些具有相关性的监控项，可以进行聚合计算，如计算平均值、总和、最大值等，以更直观地反映系统的整体状态。</p>
+</blockquote>
+<h4 id="网络层面">网络层面
+</h4><h4 id="前端界面层面">前端界面层面
+</h4><p>启用缓存机制</p>
+<blockquote>
+<p>在 Zabbix前端服务器上启用缓存，如使用Memcached 或 Redis等缓存系统，缓存常用的监控数据、配置信息和页面元素等。通过缓存可以减少对数据库的查询次数，提高前端页面的加载速度和响应性能。</p>
+</blockquote>
+<p>优化前端页面设计</p>
+<blockquote>
+<p>对 Zabbix前端界面进行优化，简化页面布局，减少不必要的图表和信息展示，提高页面的可读性和易用性。同时，合理设置图表的显示参数，如时间范围、数据粒度等，以快速呈现关键信息。</p>
+</blockquote>
+<p>使用异步加载和分页技术</p>
+<blockquote>
+<p>对于大量数据的展示页面，采用异步加载和分页技术，避免一次性加载过多数据导致页面加载缓慢。用户可以通过分页浏览数据，同时后台异步加载下一页的数据，提高用户体验。</p>
+</blockquote>
+<p>监控前端性能指标</p>
+<blockquote>
+<p>使用前端性能监控工具，如 Chrome 开发者工具、GTmetrix等，监控 Zabbix 前端页面的性能指标，如页面加载时间、资源加载时间、HTTP请求数等。根据监控结果找出性能瓶颈，并进行相应的优化，如压缩图片、合并CSS和JavaScribt文件、减少HTTP请求等。</p>
+</blockquote>
+<h3 id="哪些监控项是比较重要">哪些监控项是比较重要
+</h3><h4 id="服务器硬件">服务器硬件
+</h4><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">CPU 使用率:
+</span></span><span class="line"><span class="cl">    反映CPU的工作负载，过高的使用率可能表示系统负载过重，影响系统性能。
+</span></span><span class="line"><span class="cl">内存 使用率：
+</span></span><span class="line"><span class="cl">    显示内存的使用情况，内存不足可能导致系统频繁交换，降低系统运行速度。
+</span></span><span class="line"><span class="cl">磁盘 I/O:
+</span></span><span class="line"><span class="cl">    包括磁盘读写速度、I/O 等待时间等，可帮助发现磁盘性能瓶颈，如磁盘读写频繁可能导致系统响应缓慢。
+</span></span><span class="line"><span class="cl">硬件温度:
+</span></span><span class="line"><span class="cl">    监控服务器硬件设备<span class="o">(</span>如CPU、硬盘等<span class="o">)</span>的温度，过高的温度可能会影响设备的稳定性和寿命，甚至导致硬件故障。
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="应用程序">应用程序
+</h4><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">应用程序响应时间:
+</span></span><span class="line"><span class="cl">    指从用户发出请求到收到响应的时间，是衡量应用程序性能的重要指标，过长的响应时间会影响用户体验。
+</span></span><span class="line"><span class="cl">应用程序错误率:
+</span></span><span class="line"><span class="cl">    监控应用程序中出现的错误数量和比例，及时发现应用程序的故障和异常，以便快速定位和解决问题。
+</span></span><span class="line"><span class="cl">业务关键指标:
+</span></span><span class="line"><span class="cl">    根据具体业务需求，监控与业务相关的关键指标，如电商网站的订单量、支付成功率，视频网站的播放量、用户活跃度等，这些指标直接反映了业务的运行状况。
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="不同规模的监控实施">不同规模的监控实施
+</h3><h4 id="小规模实施">小规模实施
+</h4><p>【100台】核心目标：快速部署与单点可靠性</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">架构:
+</span></span><span class="line"><span class="cl">    单 Zabbix Server + Agent 直连，无需 Proxy，简化网络层级。
+</span></span><span class="line"><span class="cl">配置:
+</span></span><span class="line"><span class="cl">    手动配置为主，模板复用率高(如统一应用LinuX模板)，关注主机级基础指标(CPU/内存/磁盘IO)
+</span></span><span class="line"><span class="cl">管理:
+</span></span><span class="line"><span class="cl">    人工巡检为主，告警阈值宽松(如内存使用率&gt;80%触发通知)，侧重单主机故障响应(如服务进程异常)。
+</span></span><span class="line"><span class="cl">优化:
+</span></span><span class="line"><span class="cl">    数据库无需分表，定期清理历史数据(保留30天)，前端界面聚焦主机列表与最新告警。
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="中规模实施">中规模实施
+</h4><p>【500台】核心目标：分组管理与性能基线</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">架构:
+</span></span><span class="line"><span class="cl">    引入 Zabbix Proxy (按机房/业务分组)，分散Server 负载，优化跨机房数据采集。
+</span></span><span class="line"><span class="cl">配置:
+</span></span><span class="line"><span class="cl">    模板分层(基础模板+业务模板)，监控项精细化(如区分Web服务器与数据库服务器的指标)。
+</span></span><span class="line"><span class="cl">管理:
+</span></span><span class="line"><span class="cl">    建立性能基线(如CPU平均负载24小时曲线)，告警分级(关键业务高优先级，非关键低优先级)。
+</span></span><span class="line"><span class="cl">优化:
+</span></span><span class="line"><span class="cl">    数据库开启压缩(History表压缩)，使用Zabbix 自带的自动发现(LLD)减少手动配置，网络关注跨VLAN流量。
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="大规模实施">大规模实施
+</h4><p>【1000台】核心目标：分布式架构与自动化</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">架构:
+</span></span><span class="line"><span class="cl">    分布式集群(Server+Proxy+Active Agent)，数据库读写分离(MySQL主从或 PostgresQL 流复制)。
+</span></span><span class="line"><span class="cl">配置:
+</span></span><span class="line"><span class="cl">    动态监控项(如根据主机角色自动加载模板)，禁用余指标(如非存储节点关闭磁盘分区监控)。
+</span></span><span class="line"><span class="cl">管理:
+</span></span><span class="line"><span class="cl">    自动化运维(Ansible批量部署Agent，SaltStack同步配置)，故障自愈(如自动重启异常服务的Playbook)。
+</span></span><span class="line"><span class="cl">优化:
+</span></span><span class="line"><span class="cl">    数据库分表(History/Trends按时间或主机 ID 分片)，Agent 主动模式减少 Server 连接数，前端启用缓存(Redis/APC)加速界面加载。
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="超大规模实施">超大规模实施
+</h4><p>【1500台】核心目标：弹性扩展与智能分析</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">架构:
+</span></span><span class="line"><span class="cl">    微服务化改造(Zabbix组件解耦:APIServer、Poller、Cache分离部署)，云原生适配(K8s部署Agent，Prometheus 指标对接)。
+</span></span><span class="line"><span class="cl">配置:
+</span></span><span class="line"><span class="cl">    监控项动态剪裁(基于AI算法识别无效指标，如长期无波动的磁盘温度)，业务指标抽象(如聚合Nginx集群QPS为业务健康度)
+</span></span><span class="line"><span class="cl">管理:
+</span></span><span class="line"><span class="cl">    智能告警(机器学习识别异常模式，减少误报)，容量规划(预测未来3个月主机资源需求)。
+</span></span></code></pre></td></tr></table>
+</div>
+</div>
+</section>
+
+
+    <footer class="article-footer">
+    
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+<aside class="related-content--wrapper">
+    <h2 class="section-title">相关文章</h2>
+    <div class="related-content">
+        <div class="flex article-list--tile">
+            
+                
+<article class="">
+    <a href="/p/13-%E9%A9%AC%E5%93%A5zabbix%E5%88%86%E5%B8%83%E5%BC%8F%E5%92%8Capi%E7%AE%A1%E7%90%86/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">13-[马哥][zabbix]分布式和api管理</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/12-%E9%A9%AC%E5%93%A5zabbix%E6%95%85%E9%9A%9C%E6%B2%BB%E6%84%88%E5%92%8C%E8%87%AA%E5%8A%A8%E7%9B%91%E6%8E%A7/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">12-[马哥][zabbix]故障治愈和自动监控</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/11-%E9%A9%AC%E5%93%A5zabbix%E5%BE%AE%E4%BF%A1%E5%91%8A%E8%AD%A6%E5%92%8C%E9%92%89%E9%92%89%E5%91%8A%E8%AD%A6/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">11-[马哥][zabbix]微信告警和钉钉告警</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/10-%E9%A9%AC%E5%93%A5zabbix%E5%91%8A%E8%AD%A6%E5%86%85%E5%AE%B9%E5%AE%9A%E5%88%B6%E5%92%8C%E5%91%8A%E8%AD%A6%E5%8D%87%E7%BA%A7%E5%AE%9E%E8%B7%B5/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">10-[马哥][zabbix]告警内容定制和告警升级实践</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/9-%E9%A9%AC%E5%93%A5zabbix%E5%8F%AF%E8%A7%86%E5%8C%96%E7%AE%A1%E7%90%86%E5%92%8C%E5%91%8A%E8%AD%A6%E7%AE%A1%E7%90%86%E5%9F%BA%E7%A1%80/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">9-[马哥][zabbix]可视化管理和告警管理基础</h2>
+        </div>
+    </a>
+</article>
+
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+            2025 - 
+        
+        2026 リンボの個人ブログ
+    </section>
+    
+    <section class="powerby">
+         <br />
+        
+    </section>
+</footer>
+
+
+    
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+    
+    <div class="pswp__bg"></div>
+
+    
+    <div class="pswp__scroll-wrap">
+
+        
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+
+        
+        <div class="pswp__ui pswp__ui--hidden">
+
+            <div class="pswp__top-bar">
+
+                
+
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+
+                <button class="pswp__button pswp__button--share" title="Share"></button>
+
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+
+                
+                
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                        <div class="pswp__preloader__cut">
+                            <div class="pswp__preloader__donut"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div>
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.js"integrity="sha256-ePwmChbbvXbsO02lbM3HoHbSHTHFAeChekF1xKJdleo="crossorigin="anonymous"
+                defer
+                >
+            </script><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe-ui-default.min.js"integrity="sha256-UKkzOn/w1mBxRmLLGrSeyB4e1xbrp4xylgAWb3M42pU="crossorigin="anonymous"
+                defer
+                >
+            </script><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/default-skin/default-skin.min.css"crossorigin="anonymous"
+            ><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.css"crossorigin="anonymous"
+            >
+
+            </main>
+        </div>
+        <script 
+                src="https://cdn.jsdelivr.net/npm/node-vibrant@3.1.6/dist/vibrant.min.js"integrity="sha256-awcR2jno4kI5X0zL8ex0vi2z&#43;KMkF24hUW8WePSA9HM="crossorigin="anonymous"
+                
+                >
+            </script><script type="text/javascript" src="/ts/main.1e9a3bafd846ced4c345d084b355fb8c7bae75701c338f8a1f8a82c780137826.js" defer></script>
+<script>
+    (function () {
+        const customFont = document.createElement('link');
+        customFont.href = "https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap";
+
+        customFont.type = "text/css";
+        customFont.rel = "stylesheet";
+
+        document.head.appendChild(customFont);
+    }());
+</script>
+
+    </body>
+</html>
