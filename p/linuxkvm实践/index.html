@@ -1,0 +1,1170 @@
+<!DOCTYPE html>
+<html lang="en-us" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="kvm 实践 备份编辑 基础知识 需求\n手工修改虚拟机的配置，限制太多。学习虚拟机配置文件的专用的操作功能。\n基本操作\n1 2 3 4 5 6 7 8 9 10 备份 作用：文件内容的版本保存 格式：virsh dumpxml 虚拟主机名 &gt; backup_vmhost.file 注意：备份文件如果想在本机使用的话，需要vim修改一下主机名和uuid，才可以 编辑 作用：文件内容的编辑动作 格式：virsh edit 虚拟主机名 注意：备份的虚拟机文件如果想要使用virsh edit编辑的话，必须要保证该文件已经注册到虚拟机管理 设备中了 备份实践 查看效果\n">
+<title>[Linux]kvm实践</title>
+
+<link rel='canonical' href='https://YLine-hub.github.io/p/linuxkvm%E5%AE%9E%E8%B7%B5/'>
+
+<link rel="stylesheet" href="/scss/style.min.6a692fd055deae459f2a9767f57f3855ba80cafd5041317f24f7360f6ca47cdf.css"><meta property='og:title' content="[Linux]kvm实践">
+<meta property='og:description' content="kvm 实践 备份编辑 基础知识 需求\n手工修改虚拟机的配置，限制太多。学习虚拟机配置文件的专用的操作功能。\n基本操作\n1 2 3 4 5 6 7 8 9 10 备份 作用：文件内容的版本保存 格式：virsh dumpxml 虚拟主机名 &gt; backup_vmhost.file 注意：备份文件如果想在本机使用的话，需要vim修改一下主机名和uuid，才可以 编辑 作用：文件内容的编辑动作 格式：virsh edit 虚拟主机名 注意：备份的虚拟机文件如果想要使用virsh edit编辑的话，必须要保证该文件已经注册到虚拟机管理 设备中了 备份实践 查看效果\n">
+<meta property='og:url' content='https://YLine-hub.github.io/p/linuxkvm%E5%AE%9E%E8%B7%B5/'>
+<meta property='og:site_name' content='リンボの個人ブログ'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:published_time' content='2026-05-06T09:33:51&#43;08:00'/><meta property='article:modified_time' content='2026-05-06T09:33:51&#43;08:00'/>
+<meta name="twitter:title" content="[Linux]kvm实践">
+<meta name="twitter:description" content="kvm 实践 备份编辑 基础知识 需求\n手工修改虚拟机的配置，限制太多。学习虚拟机配置文件的专用的操作功能。\n基本操作\n1 2 3 4 5 6 7 8 9 10 备份 作用：文件内容的版本保存 格式：virsh dumpxml 虚拟主机名 &gt; backup_vmhost.file 注意：备份文件如果想在本机使用的话，需要vim修改一下主机名和uuid，才可以 编辑 作用：文件内容的编辑动作 格式：virsh edit 虚拟主机名 注意：备份的虚拟机文件如果想要使用virsh edit编辑的话，必须要保证该文件已经注册到虚拟机管理 设备中了 备份实践 查看效果\n">
+    <link rel="shortcut icon" href="/favicon.ico" />
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        
+            
+            <figure class="site-avatar">
+                <a href="/">
+                
+                    
+                    
+                    
+                        
+                        <img src="/img/avatar_hu_de528bff5d5e9598.png" width="300"
+                            height="300" class="site-logo" loading="lazy" alt="Avatar">
+                    
+                
+                </a>
+                
+                    <span class="emoji">🏖️</span>
+                
+            </figure>
+            
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">リンボの個人ブログ</a></h1>
+            <h2 class="site-description">努力不一定能获得回报，但不努力一定不会有回报。</h2>
+        </div>
+    </header><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-home" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <polyline points="5 12 3 12 12 3 21 12 19 12" />
+  <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7" />
+  <path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6" />
+</svg>
+
+
+
+                
+                <span>主页</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/%E5%85%B3%E4%BA%8E/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/archives/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/search/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-search" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="10" cy="10" r="7" />
+  <line x1="21" y1="21" x2="15" y2="15" />
+</svg>
+
+
+
+                
+                <span>搜索</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav id="TableOfContents">
+  <ol>
+    <li><a href="#备份编辑">备份编辑</a>
+      <ol>
+        <li><a href="#基础知识">基础知识</a></li>
+        <li><a href="#备份实践">备份实践</a>
+          <ol>
+            <li><a href="#编辑实践">编辑实践</a></li>
+          </ol>
+        </li>
+      </ol>
+    </li>
+    <li><a href="#其他内容">其他内容</a>
+      <ol>
+        <li><a href="#基础信息">基础信息</a></li>
+        <li><a href="#无需磁盘创建vm">无需磁盘创建VM</a></li>
+        <li><a href="#桥接方式创建vm">桥接方式创建VM</a></li>
+        <li><a href="#图形化管理">图形化管理</a>
+          <ol>
+            <li><a href="#打开vm">打开VM</a></li>
+            <li><a href="#关闭vm">关闭VM</a></li>
+            <li><a href="#克隆vm">克隆VM</a></li>
+          </ol>
+        </li>
+      </ol>
+    </li>
+    <li><a href="#存储管理">存储管理</a>
+      <ol>
+        <li><a href="#存储池">存储池</a>
+          <ol>
+            <li><a href="#存储池环境">存储池环境</a></li>
+            <li><a href="#基础知识-1">基础知识</a></li>
+          </ol>
+        </li>
+      </ol>
+    </li>
+  </ol>
+</nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            <a href="/categories/kvm/" >
+                Kvm
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/p/linuxkvm%E5%AE%9E%E8%B7%B5/">[Linux]kvm实践</a>
+        </h2>
+    
+        
+    </div>
+
+    
+    
+    
+    
+    <footer class="article-time">
+        
+            <div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                <time class="article-time--published">2026-05-06</time>
+            </div>
+        
+
+        
+    </footer>
+    
+
+    
+</div>
+
+</header>
+
+    <section class="article-content">
+    
+    
+    <h1 id="kvm-实践">kvm 实践
+</h1><h2 id="备份编辑">备份编辑
+</h2><h3 id="基础知识">基础知识
+</h3><p>需求</p>
+<blockquote>
+<p>手工修改虚拟机的配置，限制太多。学习虚拟机配置文件的专用的操作功能。</p>
+</blockquote>
+<p>基本操作</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">备份
+</span></span><span class="line"><span class="cl">    作用：文件内容的版本保存
+</span></span><span class="line"><span class="cl">    格式：virsh dumpxml 虚拟主机名 &gt; backup_vmhost.file
+</span></span><span class="line"><span class="cl">    注意：备份文件如果想在本机使用的话，需要vim修改一下主机名和uuid，才可以
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">编辑
+</span></span><span class="line"><span class="cl">    作用：文件内容的编辑动作
+</span></span><span class="line"><span class="cl">    格式：virsh edit 虚拟主机名
+</span></span><span class="line"><span class="cl">    注意：备份的虚拟机文件如果想要使用virsh edit编辑的话，必须要保证该文件已经注册到虚拟机管理
+</span></span><span class="line"><span class="cl">设备中了
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="备份实践">备份实践
+</h3><p>查看效果</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="nb">cd</span> /etc/libvirt/qemu
+</span></span><span class="line"><span class="cl">ls
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E5%AE%9E%E8%B7%B5/image-99.png"
+	width="518"
+	height="68"
+	srcset="/p/linuxkvm%E5%AE%9E%E8%B7%B5/image-99_hu_fe1bbd0a4e1b5519.png 480w, /p/linuxkvm%E5%AE%9E%E8%B7%B5/image-99_hu_9a956aa4e2d21830.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="761"
+		data-flex-basis="1828px"
+	
+></p>
+<p>备份文件</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 相当于cp CentOS-7-x86_64虚拟机的xml的内容到CentOS-backup.xml中</span>
+</span></span><span class="line"><span class="cl">virsh dumpxml CentOS-7-x86_64 &gt; CentOS-backup.xml
+</span></span><span class="line"><span class="cl">ls
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E5%AE%9E%E8%B7%B5/image-100.png"
+	width="669"
+	height="119"
+	srcset="/p/linuxkvm%E5%AE%9E%E8%B7%B5/image-100_hu_d4386f6358faa14a.png 480w, /p/linuxkvm%E5%AE%9E%E8%B7%B5/image-100_hu_c2c18f233b7b31a1.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="562"
+		data-flex-basis="1349px"
+	
+></p>
+<p>备份文件如果想在本机使用的话，需要vim修改一下主机名和uuid</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">vim CentOS-backup.xml
+</span></span><span class="line"><span class="cl">&lt;domain <span class="nv">type</span><span class="o">=</span><span class="s1">&#39;kvm&#39;</span> <span class="nv">id</span><span class="o">=</span><span class="s1">&#39;1&#39;</span>&gt;
+</span></span><span class="line"><span class="cl">  &lt;name&gt;CentOS-7-x86_64-bak&lt;/name&gt;
+</span></span><span class="line"><span class="cl">  &lt;uuid&gt;ed7ef913-ea9f-4ef7-887e-5dcb51e9cd58&lt;/uuid&gt;
+</span></span><span class="line"><span class="cl">  ......
+</span></span><span class="line"><span class="cl"><span class="c1"># 注意：仅仅修改name和uuid即可</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>创建虚拟机</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virsh define CentOS-backup.xml
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E5%AE%9E%E8%B7%B5/image-101.png"
+	width="483"
+	height="56"
+	srcset="/p/linuxkvm%E5%AE%9E%E8%B7%B5/image-101_hu_3d0acd63197f8dda.png 480w, /p/linuxkvm%E5%AE%9E%E8%B7%B5/image-101_hu_902036fedfe78362.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="862"
+		data-flex-basis="2070px"
+	
+></p>
+<p>查看效果</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virsh list --all
+</span></span><span class="line"><span class="cl"><span class="c1"># 可以看到：</span>
+</span></span><span class="line"><span class="cl"><span class="c1">#       创建的虚拟机默认情况下是关闭状态的。</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E5%AE%9E%E8%B7%B5/image-102.png"
+	width="352"
+	height="119"
+	srcset="/p/linuxkvm%E5%AE%9E%E8%B7%B5/image-102_hu_2ea4cb4b306aa446.png 480w, /p/linuxkvm%E5%AE%9E%E8%B7%B5/image-102_hu_fd73b91d0f4a0db4.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="295"
+		data-flex-basis="709px"
+	
+></p>
+<h4 id="编辑实践">编辑实践
+</h4><p>为了避免资源抢占，这里将所有的虚拟机关闭</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virsh list
+</span></span><span class="line"><span class="cl">virsh shutdown <span class="m">1</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E5%AE%9E%E8%B7%B5/image-103.png"
+	width="345"
+	height="173"
+	srcset="/p/linuxkvm%E5%AE%9E%E8%B7%B5/image-103_hu_23aa4c88cc8ee9c3.png 480w, /p/linuxkvm%E5%AE%9E%E8%B7%B5/image-103_hu_f78a25e33aefa187.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="199"
+		data-flex-basis="478px"
+	
+></p>
+<p>编辑虚拟机</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virsh edit CentOS-7-x86_64-bak
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">Select an editor.  To change later, run <span class="s1">&#39;select-editor&#39;</span>.
+</span></span><span class="line"><span class="cl">  1. /bin/nano        &lt;---- easiest
+</span></span><span class="line"><span class="cl">  2. /usr/bin/vim.basic
+</span></span><span class="line"><span class="cl">  3. /usr/bin/vim.tiny
+</span></span><span class="line"><span class="cl">  4. /bin/ed
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">Choose 1-4 <span class="o">[</span>1<span class="o">]</span>:
+</span></span><span class="line"><span class="cl">Domain <span class="s1">&#39;CentOS-7-x86_64-bak&#39;</span> XML configuration edited.
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>内容</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">原内容：
+</span></span><span class="line"><span class="cl">    &lt;graphics <span class="nv">type</span><span class="o">=</span><span class="s1">&#39;vnc&#39;</span> <span class="nv">port</span><span class="o">=</span><span class="s1">&#39;-1&#39;</span> <span class="nv">autoport</span><span class="o">=</span><span class="s1">&#39;yes&#39;</span> <span class="nv">listen</span><span class="o">=</span><span class="s1">&#39;0.0.0.0&#39;</span>&gt;
+</span></span><span class="line"><span class="cl">    &lt;listen <span class="nv">type</span><span class="o">=</span><span class="s1">&#39;address&#39;</span> <span class="nv">address</span><span class="o">=</span><span class="s1">&#39;0.0.0.0&#39;</span>/&gt;
+</span></span><span class="line"><span class="cl">    &lt;/graphics&gt;
+</span></span><span class="line"><span class="cl">修改后内容：
+</span></span><span class="line"><span class="cl">    &lt;graphics <span class="nv">type</span><span class="o">=</span><span class="s1">&#39;vnc&#39;</span> <span class="nv">port</span><span class="o">=</span><span class="s1">&#39;8888&#39;</span> <span class="nv">listen</span><span class="o">=</span><span class="s1">&#39;0.0.0.0&#39;</span> <span class="nv">passwd</span><span class="o">=</span><span class="s1">&#39;654321&#39;</span>&gt;
+</span></span><span class="line"><span class="cl">    &lt;listen <span class="nv">type</span><span class="o">=</span><span class="s1">&#39;address&#39;</span> <span class="nv">address</span><span class="o">=</span><span class="s1">&#39;0.0.0.0&#39;</span>/&gt;
+</span></span><span class="line"><span class="cl">    &lt;/graphics&gt;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E5%AE%9E%E8%B7%B5/image-104.png"
+	width="470"
+	height="61"
+	srcset="/p/linuxkvm%E5%AE%9E%E8%B7%B5/image-104_hu_86da9f5aa3a3995b.png 480w, /p/linuxkvm%E5%AE%9E%E8%B7%B5/image-104_hu_da140cd7e29aa77e.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="770"
+		data-flex-basis="1849px"
+	
+></p>
+<p>(ubuntu)如果想要修改编辑器的话，可以使用&rsquo;select-editor'</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo <span class="k">select</span>-editor
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E5%AE%9E%E8%B7%B5/image-105.png"
+	width="463"
+	height="161"
+	srcset="/p/linuxkvm%E5%AE%9E%E8%B7%B5/image-105_hu_ae52b2541120ac28.png 480w, /p/linuxkvm%E5%AE%9E%E8%B7%B5/image-105_hu_f601e9aa6407190c.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="287"
+		data-flex-basis="690px"
+	
+></p>
+<p>启动 CentOS-7-x86_64-bak</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virsh start CentOS-7-x86_64-bak
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E5%AE%9E%E8%B7%B5/image-106.png"
+	width="461"
+	height="60"
+	srcset="/p/linuxkvm%E5%AE%9E%E8%B7%B5/image-106_hu_ecaad9c8a9f2311f.png 480w, /p/linuxkvm%E5%AE%9E%E8%B7%B5/image-106_hu_6a3b13190339d8e.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="768"
+		data-flex-basis="1844px"
+	
+></p>
+<p>查看端口号</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virsh domdisplay CentOS-7-x86_64-bak
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E5%AE%9E%E8%B7%B5/image-107.png"
+	width="509"
+	height="54"
+	srcset="/p/linuxkvm%E5%AE%9E%E8%B7%B5/image-107_hu_c82d31ae08613ff2.png 480w, /p/linuxkvm%E5%AE%9E%E8%B7%B5/image-107_hu_eb84c3cadcc224fd.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="942"
+		data-flex-basis="2262px"
+	
+></p>
+<p><font color=red>注意：关于vnc的连接，可以是 192.168.172.100:8888，不可以是192.168.172.100:2988</font></p>
+<p>上面测试的信息是给 vnc 连接时候登录用的，不是给 virsh console 连接用的，因为virsh console 不走vnc。</p>
+<p><img src="/p/linuxkvm%E5%AE%9E%E8%B7%B5/image-108.png"
+	width="464"
+	height="630"
+	srcset="/p/linuxkvm%E5%AE%9E%E8%B7%B5/image-108_hu_24d558963bc58166.png 480w, /p/linuxkvm%E5%AE%9E%E8%B7%B5/image-108_hu_d236e2f3e0468365.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="73"
+		data-flex-basis="176px"
+	
+></p>
+<p><img src="/p/linuxkvm%E5%AE%9E%E8%B7%B5/image-109.png"
+	width="481"
+	height="350"
+	srcset="/p/linuxkvm%E5%AE%9E%E8%B7%B5/image-109_hu_458f043b07b98663.png 480w, /p/linuxkvm%E5%AE%9E%E8%B7%B5/image-109_hu_e3e0eb55e102cc09.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="137"
+		data-flex-basis="329px"
+	
+></p>
+<p><img src="/p/linuxkvm%E5%AE%9E%E8%B7%B5/image-110.png"
+	width="400"
+	height="246"
+	srcset="/p/linuxkvm%E5%AE%9E%E8%B7%B5/image-110_hu_aec6e2d88c8c497.png 480w, /p/linuxkvm%E5%AE%9E%E8%B7%B5/image-110_hu_6a7eefb53d8f0066.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="162"
+		data-flex-basis="390px"
+	
+></p>
+<p><img src="/p/linuxkvm%E5%AE%9E%E8%B7%B5/image-111.png"
+	width="1280"
+	height="830"
+	srcset="/p/linuxkvm%E5%AE%9E%E8%B7%B5/image-111_hu_748c197e21854c21.png 480w, /p/linuxkvm%E5%AE%9E%E8%B7%B5/image-111_hu_f7287bc73f8a0b35.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="154"
+		data-flex-basis="370px"
+	
+></p>
+<h2 id="其他内容">其他内容
+</h2><h3 id="基础信息">基础信息
+</h3><p>查看virsh默认支持的虚拟机操作系统</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virt-install --osinfo list <span class="p">|</span> wc -l
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E5%AE%9E%E8%B7%B5/image-112.png"
+	width="457"
+	height="55"
+	srcset="/p/linuxkvm%E5%AE%9E%E8%B7%B5/image-112_hu_c70a1b02860eb0f8.png 480w, /p/linuxkvm%E5%AE%9E%E8%B7%B5/image-112_hu_2a602c988c60e95e.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="830"
+		data-flex-basis="1994px"
+	
+></p>
+<p>查看支持的win系列的操作系统</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virt-install --osinfo list <span class="p">|</span>grep win
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E5%AE%9E%E8%B7%B5/image-113.png"
+	width="470"
+	height="470"
+	srcset="/p/linuxkvm%E5%AE%9E%E8%B7%B5/image-113_hu_32def4da5b974c61.png 480w, /p/linuxkvm%E5%AE%9E%E8%B7%B5/image-113_hu_3272483abf23ed32.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="100"
+		data-flex-basis="240px"
+	
+></p>
+<h3 id="无需磁盘创建vm">无需磁盘创建VM
+</h3><p>无需事先创建磁盘文件，直接创建虚拟机</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 确认支持的系统版本</span>
+</span></span><span class="line"><span class="cl">virt-install --osinfo list <span class="p">|</span> grep centos7
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E5%AE%9E%E8%B7%B5/image-114.png"
+	width="512"
+	height="56"
+	srcset="/p/linuxkvm%E5%AE%9E%E8%B7%B5/image-114_hu_4b7b4710989d1c57.png 480w, /p/linuxkvm%E5%AE%9E%E8%B7%B5/image-114_hu_4da6926629d39fad.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="914"
+		data-flex-basis="2194px"
+	
+></p>
+<p>创建虚拟机</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virt-install --virt-type kvm --os-variant<span class="o">=</span>centos7 --name centos7 --ram <span class="m">1024</span> --vcpus <span class="m">1</span> --cdrom<span class="o">=</span>/data/images/CentOS-7-x86_64-Minimal-2009.iso --disk <span class="nv">path</span><span class="o">=</span>/home/newdisk/CentOS-7-x86_64.qcow2,size<span class="o">=</span>10,format<span class="o">=</span>qcow2,bus<span class="o">=</span>virtio --network <span class="nv">network</span><span class="o">=</span>default --graphics vnc,listen<span class="o">=</span>0.0.0.0 --noautoconso
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>由于根目录下少于10G，不足以创建新虚拟机，这里加了一个20G的新盘，挂载到/home/newdisk目录下</p>
+<p>确认效果</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virsh list
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E5%AE%9E%E8%B7%B5/image-115.png"
+	width="274"
+	height="100"
+	srcset="/p/linuxkvm%E5%AE%9E%E8%B7%B5/image-115_hu_8e743893881986eb.png 480w, /p/linuxkvm%E5%AE%9E%E8%B7%B5/image-115_hu_a726b83e47651afe.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="274"
+		data-flex-basis="657px"
+	
+></p>
+<h3 id="桥接方式创建vm">桥接方式创建VM
+</h3><p>注意：使用桥接方式创建vm，需要提前保证是存在桥接网卡的，否则下面的命令无法执行</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virt-install --virt-type kvm --os-variant<span class="o">=</span>centos7 --name 
+</span></span><span class="line"><span class="cl">centos7-bridge --ram <span class="m">1024</span> --vcpus <span class="m">1</span> --cdrom<span class="o">=</span>/data/images/CentOS-7-x86_64-Minimal-2009.iso --disk <span class="nv">path</span><span class="o">=</span>/opt/CentOS-7-x86_64.qcow2,size<span class="o">=</span>10,format<span class="o">=</span>qcow2,bus<span class="o">=</span>virtio --network <span class="nv">network</span><span class="o">=</span>bridge:virbr1,model<span class="o">=</span>virtio --graphics vnc,listen<span class="o">=</span>0.0.0.0 --noautoconsole
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="图形化管理">图形化管理
+</h3><p>打开virt-manager</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virt-manager
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E5%AE%9E%E8%B7%B5/image-116.png"
+	width="281"
+	height="49"
+	srcset="/p/linuxkvm%E5%AE%9E%E8%B7%B5/image-116_hu_8ff9cd1b649a11d5.png 480w, /p/linuxkvm%E5%AE%9E%E8%B7%B5/image-116_hu_d89a085e9dc13c41.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="573"
+		data-flex-basis="1376px"
+	
+></p>
+<p><img src="/p/linuxkvm%E5%AE%9E%E8%B7%B5/image-117.png"
+	width="550"
+	height="580"
+	srcset="/p/linuxkvm%E5%AE%9E%E8%B7%B5/image-117_hu_f659b47eee1cf2f0.png 480w, /p/linuxkvm%E5%AE%9E%E8%B7%B5/image-117_hu_eeba2a9441b982d4.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="94"
+		data-flex-basis="227px"
+	
+></p>
+<h4 id="打开vm">打开VM
+</h4><p>双击运行中的主机</p>
+<p><img src="/p/linuxkvm%E5%AE%9E%E8%B7%B5/image-118.png"
+	width="1024"
+	height="865"
+	srcset="/p/linuxkvm%E5%AE%9E%E8%B7%B5/image-118_hu_a7bb8ec212233b6c.png 480w, /p/linuxkvm%E5%AE%9E%E8%B7%B5/image-118_hu_771f8d89c938ccfc.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="118"
+		data-flex-basis="284px"
+	
+></p>
+<h4 id="关闭vm">关闭VM
+</h4><p>右键运行中的VM，点击关机</p>
+<p><img src="/p/linuxkvm%E5%AE%9E%E8%B7%B5/image-119.png"
+	width="550"
+	height="580"
+	srcset="/p/linuxkvm%E5%AE%9E%E8%B7%B5/image-119_hu_b47030454d62315f.png 480w, /p/linuxkvm%E5%AE%9E%E8%B7%B5/image-119_hu_27e953c2565c6749.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="94"
+		data-flex-basis="227px"
+	
+></p>
+<p><img src="/p/linuxkvm%E5%AE%9E%E8%B7%B5/image-120.png"
+	width="550"
+	height="579"
+	srcset="/p/linuxkvm%E5%AE%9E%E8%B7%B5/image-120_hu_677feae406de6033.png 480w, /p/linuxkvm%E5%AE%9E%E8%B7%B5/image-120_hu_36e47d961d4840bd.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="94"
+		data-flex-basis="227px"
+	
+></p>
+<h4 id="克隆vm">克隆VM
+</h4><p>clone的方式，仅限于关闭的主机场景</p>
+<p><img src="/p/linuxkvm%E5%AE%9E%E8%B7%B5/image-121.png"
+	width="550"
+	height="580"
+	srcset="/p/linuxkvm%E5%AE%9E%E8%B7%B5/image-121_hu_f2334c81a6250d62.png 480w, /p/linuxkvm%E5%AE%9E%E8%B7%B5/image-121_hu_361dc0e6c17d12bd.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="94"
+		data-flex-basis="227px"
+	
+></p>
+<p>点击克隆</p>
+<p><img src="/p/linuxkvm%E5%AE%9E%E8%B7%B5/image-122.png"
+	width="446"
+	height="536"
+	srcset="/p/linuxkvm%E5%AE%9E%E8%B7%B5/image-122_hu_5264794296892bdf.png 480w, /p/linuxkvm%E5%AE%9E%E8%B7%B5/image-122_hu_7630b5060b69e2d2.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="83"
+		data-flex-basis="199px"
+	
+></p>
+<p>克隆的主机能同时运行</p>
+<h2 id="存储管理">存储管理
+</h2><h3 id="存储池">存储池
+</h3><h4 id="存储池环境">存储池环境
+</h4><h4 id="基础知识-1">基础知识
+</h4><p>需求</p>
+<blockquote>
+<p>  为了使虚拟机获得更强大的后端存储能力，libvirt 提供了对各种各样的存储介质支持，包括本地文件系统，网络文件系统，iSCSI，LVM 等多种后端存储系统。在虚拟机中主要以存储池(pool)与存储卷(volume)的形式存在。</br>
+  libvirt 中的存储管理独立于虚拟机管理。也就是存储池和存储卷的操作独立于虚拟机的操作存在，即使是没有虚拟机的场景。工作中我们可以当虚拟机需要存储资源时再进行灵活分配。</p>
+</blockquote>
+<p>存储池</p>
+<blockquote>
+<p>  KVM平台以存储池的形式对存储进行统一管理。它可以理解为一种映射关系，即将宿主机器上的存储空间形成可被KVM使用的逻辑存储池，以方便虚拟主机存储资源的统一管理。</br>
+  宿主机的存储空间，可以是本地的、网络的等kvm支持的任意形式。</p>
+</blockquote>
+<p><img src="/p/linuxkvm%E5%AE%9E%E8%B7%B5/image-123.png"
+	width="954"
+	height="414"
+	srcset="/p/linuxkvm%E5%AE%9E%E8%B7%B5/image-123_hu_d90d35d465ef3f92.png 480w, /p/linuxkvm%E5%AE%9E%E8%B7%B5/image-123_hu_dd491819cc104ae6.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="230"
+		data-flex-basis="553px"
+	
+></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">默认KvM将这些存储池的配置文件存放于/etc/libvirt/storage，因为我在创建虚拟机的时候，涉及到两个目录，所以这两个目录在虚拟机创建的时候，自动有存在了。
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">通过virsh中pool命令能够查看、创建、激活、注册、删除存储池
+</span></span><span class="line"><span class="cl">    virsh --help | grep pool
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h5 id="基础操作">基础操作
+</h5><p>信息查看</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">存储列表：virsh pool-list
+</span></span><span class="line"><span class="cl">具体信息：virsh pool-info pool_name
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>创建存储池</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">常见两种创建方法，基于文件夹和文件系统，我们主要介绍基于文件夹的方式。
+</span></span><span class="line"><span class="cl">    定义永久池+创建池：virsh pool-define-as + virsh pool-build
+</span></span><span class="line"><span class="cl">    创建临时池+启动池：virsh pool-create-as
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>命令格式</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">命令格式一：virsh pool-define-as vmware_pool --type dir --target /kvm/images
+</span></span><span class="line"><span class="cl">    注释：
+</span></span><span class="line"><span class="cl">        vmware_pool             定义的存储池名称
+</span></span><span class="line"><span class="cl">        --type dir              我们的类型是一个dir
+</span></span><span class="line"><span class="cl">        --target /kvm/images    存储池的在宿主机上的目录是/kvm/images
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">命令格式二：virsh pool-create-as --name vmware_pool --type dir --target /kvm/images
+</span></span><span class="line"><span class="cl">    注释：直接创建并启动一个存储池
+</span></span><span class="line"><span class="cl">        vmware_pool             定义的存储池名称
+</span></span><span class="line"><span class="cl">        --type dir              我们得类型是一个dir
+</span></span><span class="line"><span class="cl">        --target /kvm/images    存储池的在宿主机上的目录是/kvm/images
+</span></span></code></pre></td></tr></table>
+</div>
+</div>
+</section>
+
+
+    <footer class="article-footer">
+    
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+<aside class="related-content--wrapper">
+    <h2 class="section-title">相关文章</h2>
+    <div class="related-content">
+        <div class="flex article-list--tile">
+            
+                
+<article class="">
+    <a href="/p/linuxkvm%E8%99%9A%E6%8B%9F%E5%8C%96/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Linux]kvm虚拟化</h2>
+        </div>
+    </a>
+</article>
+
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+            2025 - 
+        
+        2026 リンボの個人ブログ
+    </section>
+    
+    <section class="powerby">
+         <br />
+        
+    </section>
+</footer>
+
+
+    
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+    
+    <div class="pswp__bg"></div>
+
+    
+    <div class="pswp__scroll-wrap">
+
+        
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+
+        
+        <div class="pswp__ui pswp__ui--hidden">
+
+            <div class="pswp__top-bar">
+
+                
+
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+
+                <button class="pswp__button pswp__button--share" title="Share"></button>
+
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+
+                
+                
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                        <div class="pswp__preloader__cut">
+                            <div class="pswp__preloader__donut"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div>
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.js"integrity="sha256-ePwmChbbvXbsO02lbM3HoHbSHTHFAeChekF1xKJdleo="crossorigin="anonymous"
+                defer
+                >
+            </script><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe-ui-default.min.js"integrity="sha256-UKkzOn/w1mBxRmLLGrSeyB4e1xbrp4xylgAWb3M42pU="crossorigin="anonymous"
+                defer
+                >
+            </script><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/default-skin/default-skin.min.css"crossorigin="anonymous"
+            ><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.css"crossorigin="anonymous"
+            >
+
+            </main>
+        </div>
+        <script 
+                src="https://cdn.jsdelivr.net/npm/node-vibrant@3.1.6/dist/vibrant.min.js"integrity="sha256-awcR2jno4kI5X0zL8ex0vi2z&#43;KMkF24hUW8WePSA9HM="crossorigin="anonymous"
+                
+                >
+            </script><script type="text/javascript" src="/ts/main.1e9a3bafd846ced4c345d084b355fb8c7bae75701c338f8a1f8a82c780137826.js" defer></script>
+<script>
+    (function () {
+        const customFont = document.createElement('link');
+        customFont.href = "https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap";
+
+        customFont.type = "text/css";
+        customFont.rel = "stylesheet";
+
+        document.head.appendChild(customFont);
+    }());
+</script>
+
+    </body>
+</html>
