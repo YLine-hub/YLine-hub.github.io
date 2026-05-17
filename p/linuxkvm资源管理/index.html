@@ -1,0 +1,2826 @@
+<!DOCTYPE html>
+<html lang="en-us" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="kvm资源管理 cpu简介 基础知识 场景需求 简介\n在虚拟机不关机的情况下，对CPU进行调整操作叫热调整。它是在Redhat7.0以后才出现的功能，所以要使用这功能，那必须要求KVM宿主机和虚拟机规格必须一致，而且在7.0+版本。 目前cpu热调整命令，只能增加，不能减少，想要减少的话，可以进入虚拟机中，关闭某个使用的CPU即可。\n">
+<title>[Linux]kvm资源管理</title>
+
+<link rel='canonical' href='https://YLine-hub.github.io/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/'>
+
+<link rel="stylesheet" href="/scss/style.min.6a692fd055deae459f2a9767f57f3855ba80cafd5041317f24f7360f6ca47cdf.css"><meta property='og:title' content="[Linux]kvm资源管理">
+<meta property='og:description' content="kvm资源管理 cpu简介 基础知识 场景需求 简介\n在虚拟机不关机的情况下，对CPU进行调整操作叫热调整。它是在Redhat7.0以后才出现的功能，所以要使用这功能，那必须要求KVM宿主机和虚拟机规格必须一致，而且在7.0+版本。 目前cpu热调整命令，只能增加，不能减少，想要减少的话，可以进入虚拟机中，关闭某个使用的CPU即可。\n">
+<meta property='og:url' content='https://YLine-hub.github.io/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/'>
+<meta property='og:site_name' content='リンボの個人ブログ'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:published_time' content='2026-05-12T13:51:12&#43;08:00'/><meta property='article:modified_time' content='2026-05-12T13:51:12&#43;08:00'/>
+<meta name="twitter:title" content="[Linux]kvm资源管理">
+<meta name="twitter:description" content="kvm资源管理 cpu简介 基础知识 场景需求 简介\n在虚拟机不关机的情况下，对CPU进行调整操作叫热调整。它是在Redhat7.0以后才出现的功能，所以要使用这功能，那必须要求KVM宿主机和虚拟机规格必须一致，而且在7.0+版本。 目前cpu热调整命令，只能增加，不能减少，想要减少的话，可以进入虚拟机中，关闭某个使用的CPU即可。\n">
+    <link rel="shortcut icon" href="/favicon.ico" />
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        
+            
+            <figure class="site-avatar">
+                <a href="/">
+                
+                    
+                    
+                    
+                        
+                        <img src="/img/avatar_hu_de528bff5d5e9598.png" width="300"
+                            height="300" class="site-logo" loading="lazy" alt="Avatar">
+                    
+                
+                </a>
+                
+                    <span class="emoji">🏖️</span>
+                
+            </figure>
+            
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">リンボの個人ブログ</a></h1>
+            <h2 class="site-description">努力不一定能获得回报，但不努力一定不会有回报。</h2>
+        </div>
+    </header><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-home" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <polyline points="5 12 3 12 12 3 21 12 19 12" />
+  <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7" />
+  <path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6" />
+</svg>
+
+
+
+                
+                <span>主页</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/%E5%85%B3%E4%BA%8E/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/archives/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/search/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-search" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="10" cy="10" r="7" />
+  <line x1="21" y1="21" x2="15" y2="15" />
+</svg>
+
+
+
+                
+                <span>搜索</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav id="TableOfContents">
+  <ol>
+    <li><a href="#cpu简介">cpu简介</a>
+      <ol>
+        <li><a href="#基础知识">基础知识</a>
+          <ol>
+            <li><a href="#场景需求">场景需求</a></li>
+            <li><a href="#常见命令">常见命令</a></li>
+            <li><a href="#准备工作">准备工作</a></li>
+            <li><a href="#让cpu支持动态调整功能">让cpu支持动态调整功能</a></li>
+          </ol>
+        </li>
+        <li><a href="#简单实践">简单实践</a>
+          <ol>
+            <li><a href="#动态调整">动态调整</a></li>
+            <li><a href="#配置实践">配置实践</a></li>
+          </ol>
+        </li>
+      </ol>
+    </li>
+    <li><a href="#内存实践">内存实践</a>
+      <ol>
+        <li><a href="#基础知识-1">基础知识</a>
+          <ol>
+            <li><a href="#场景需求-1">场景需求</a></li>
+            <li><a href="#基本语法">基本语法</a></li>
+            <li><a href="#资源超配">资源超配</a></li>
+          </ol>
+        </li>
+        <li><a href="#简单实践-1">简单实践</a>
+          <ol>
+            <li><a href="#调整内存">调整内存</a></li>
+            <li><a href="#调整最大上限">调整最大上限</a></li>
+            <li><a href="#调整实践">调整实践</a></li>
+          </ol>
+        </li>
+      </ol>
+    </li>
+    <li><a href="#磁盘实践">磁盘实践</a>
+      <ol>
+        <li><a href="#基础知识-2">基础知识</a>
+          <ol>
+            <li><a href="#场景需求-2">场景需求</a></li>
+            <li><a href="#常见语法">常见语法</a></li>
+          </ol>
+        </li>
+        <li><a href="#简单实践-2">简单实践</a>
+          <ol>
+            <li><a href="#磁盘容量调整">磁盘容量调整</a></li>
+            <li><a href="#磁盘基本操作">磁盘基本操作</a></li>
+            <li><a href="#新增磁盘实践">新增磁盘实践</a></li>
+            <li><a href="#磁盘迁移">磁盘迁移</a></li>
+          </ol>
+        </li>
+      </ol>
+    </li>
+  </ol>
+</nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            <a href="/categories/kvm/" >
+                Kvm
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/">[Linux]kvm资源管理</a>
+        </h2>
+    
+        
+    </div>
+
+    
+    
+    
+    
+    <footer class="article-time">
+        
+            <div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                <time class="article-time--published">2026-05-12</time>
+            </div>
+        
+
+        
+    </footer>
+    
+
+    
+</div>
+
+</header>
+
+    <section class="article-content">
+    
+    
+    <h1 id="kvm资源管理">kvm资源管理
+</h1><h2 id="cpu简介">cpu简介
+</h2><h3 id="基础知识">基础知识
+</h3><h4 id="场景需求">场景需求
+</h4><p>简介</p>
+<blockquote>
+<p>  在虚拟机不关机的情况下，对CPU进行调整操作叫热调整。它是在Redhat7.0以后才出现的功能，所以要使用这功能，那必须要求KVM宿主机和虚拟机规格必须一致，而且在7.0+版本。</br>
+  目前cpu热调整命令，只能增加，不能减少，想要减少的话，可以进入虚拟机中，关闭某个使用的CPU即可。</p>
+</blockquote>
+<p>公有云上的虚拟机为什么不支持cpu的热调整？</p>
+<ol>
+<li>因为客户创建的虚拟机类型不一致，不满足热添加和热删除的前提条件，所以为了管理的方便就统一不允许了</li>
+<li>因为创建虚拟机会有个调度的问题，创建的虚拟机的命令，会将创建的虚拟机调度到某一台宿主机上，具体调度到哪台宿主机上，没有办法保证，由于受宿主机的配置影响，所以热添加和热删除的功能没有办法保证</li>
+</ol>
+<h4 id="常见命令">常见命令
+</h4><p>热调整</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virsh setvcpus &lt;虚拟机名称&gt; &lt;cpu个数&gt; --live
+</span></span><span class="line"><span class="cl"><span class="c1">#    注意：</span>
+</span></span><span class="line"><span class="cl"><span class="c1">#        默认后面会有 --live 属性，标识热调整，默认不会更改后端的配置</span>
+</span></span><span class="line"><span class="cl"><span class="c1">#        如果需要更改后端的配置，需要使用 --config</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>cpu绑定</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virsh vcpupin &lt;虚拟机名称&gt; &lt;虚拟机CPU号&gt; &lt;宿主机CPU号&gt;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>cpu重置</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virsh shutdown &lt;虚拟机名称&gt;
+</span></span><span class="line"><span class="cl">virsh start &lt;虚拟机名称&gt;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="准备工作">准备工作
+</h4><p>查看宿主机的cpu个数</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="o">[</span>root@lin-server ~ <span class="o">]</span><span class="c1"># lscpu</span>
+</span></span><span class="line"><span class="cl">Architecture:                x86_64
+</span></span><span class="line"><span class="cl">  CPU op-mode<span class="o">(</span>s<span class="o">)</span>:            32-bit, 64-bit
+</span></span><span class="line"><span class="cl">  Address sizes:             <span class="m">45</span> bits physical, <span class="m">48</span> bits virtual
+</span></span><span class="line"><span class="cl">  Byte Order:                Little Endian
+</span></span><span class="line"><span class="cl">CPU<span class="o">(</span>s<span class="o">)</span>:                      <span class="m">8</span>
+</span></span><span class="line"><span class="cl">  On-line CPU<span class="o">(</span>s<span class="o">)</span> list:       0-7
+</span></span><span class="line"><span class="cl">Vendor ID:                   AuthenticAMD
+</span></span><span class="line"><span class="cl">  BIOS Vendor ID:            AuthenticAMD
+</span></span><span class="line"><span class="cl">  Model name:                AMD Ryzen <span class="m">7</span> 9700X 8-Core Processor
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 可以看到：</span>
+</span></span><span class="line"><span class="cl"><span class="c1">#           我们的宿主机的cpu个数为8个,目前全部在线</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>宿主机查看所有cpu状态，宿主机的7个cpu处于工作状态</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="o">[</span>root@lin-server ~ <span class="o">]</span><span class="c1"># cat /sys/devices/system/cpu/cpu1/online</span>
+</span></span><span class="line"><span class="cl"><span class="m">1</span>
+</span></span><span class="line"><span class="cl"><span class="o">[</span>root@lin-server ~ <span class="o">]</span><span class="c1"># cat /sys/devices/system/cpu/cpu2/online</span>
+</span></span><span class="line"><span class="cl"><span class="m">1</span>
+</span></span><span class="line"><span class="cl"><span class="o">[</span>root@lin-server ~ <span class="o">]</span><span class="c1"># cat /sys/devices/system/cpu/cpu3/online</span>
+</span></span><span class="line"><span class="cl"><span class="m">1</span>
+</span></span><span class="line"><span class="cl"><span class="o">[</span>root@lin-server ~ <span class="o">]</span><span class="c1"># cat /sys/devices/system/cpu/cpu4/online</span>
+</span></span><span class="line"><span class="cl"><span class="m">1</span>
+</span></span><span class="line"><span class="cl"><span class="o">[</span>root@lin-server ~ <span class="o">]</span><span class="c1"># cat /sys/devices/system/cpu/cpu5/online</span>
+</span></span><span class="line"><span class="cl"><span class="m">1</span>
+</span></span><span class="line"><span class="cl"><span class="o">[</span>root@lin-server ~ <span class="o">]</span><span class="c1"># cat /sys/devices/system/cpu/cpu6/online</span>
+</span></span><span class="line"><span class="cl"><span class="m">1</span>
+</span></span><span class="line"><span class="cl"><span class="o">[</span>root@lin-server ~ <span class="o">]</span><span class="c1"># cat /sys/devices/system/cpu/cpu7/online</span>
+</span></span><span class="line"><span class="cl"><span class="m">1</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>cpu0里面有可能没有online，这不影响，如果非要看的话，可以手工添加个</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="o">[</span>root@lin-server ~ <span class="o">]</span><span class="c1"># cat /sys/devices/system/cpu/cpu0/online</span>
+</span></span><span class="line"><span class="cl">cat: /sys/devices/system/cpu/cpu0/online: No such file or directory
+</span></span><span class="line"><span class="cl"><span class="o">[</span>root@lin-server ~ <span class="o">]</span><span class="c1"># ls /sys/devices/system/cpu/cpu0/</span>
+</span></span><span class="line"><span class="cl">cache  crash_notes  crash_notes_size  driver  firmware_node  hotplug  node0  power  subsystem  topology  uevent
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>看虚拟机当前的cpu状态</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="o">[</span>root@lin-server ~ <span class="o">]</span><span class="c1"># virsh edit CentOS-7-x86_64</span>
+</span></span><span class="line"><span class="cl">...
+</span></span><span class="line"><span class="cl">&lt;vcpu <span class="nv">placement</span><span class="o">=</span><span class="s1">&#39;static&#39;</span>&gt;2&lt;/vcpu&gt;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="让cpu支持动态调整功能">让cpu支持动态调整功能
+</h4><p>关闭虚拟机</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virsh shutdown CentOS-7-x86_64
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image.png"
+	width="431"
+	height="63"
+	srcset="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image_hu_31e0cad466090b98.png 480w, /p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image_hu_9a0224baa128efbe.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="684"
+		data-flex-basis="1641px"
+	
+></p>
+<p>查看虚拟机</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virsh list --all
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-1.png"
+	width="333"
+	height="164"
+	srcset="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-1_hu_787d689a5e85c263.png 480w, /p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-1_hu_afc11896798718b8.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="203"
+		data-flex-basis="487px"
+	
+></p>
+<p>编辑虚拟机配置</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virsh edit CentOS-7-x86_64
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-2.png"
+	width="413"
+	height="58"
+	srcset="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-2_hu_c1444a77d535e66d.png 480w, /p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-2_hu_cbbe5480f2f21821.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="712"
+		data-flex-basis="1708px"
+	
+></p>
+<p>修改内容</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 原内容</span>
+</span></span><span class="line"><span class="cl">&lt;vcpu <span class="nv">placement</span><span class="o">=</span><span class="s1">&#39;static&#39;</span>&gt;2&lt;/vcpu&gt;
+</span></span><span class="line"><span class="cl"><span class="c1"># 修改后</span>
+</span></span><span class="line"><span class="cl">&lt;vcpu <span class="nv">placement</span><span class="o">=</span><span class="s1">&#39;static&#39;</span> <span class="nv">current</span><span class="o">=</span><span class="s1">&#39;1&#39;</span>&gt;4&lt;/vcpu&gt; 
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>启动虚拟机后查看效果</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virsh start CentOS-7-x86_64
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-3.png"
+	width="410"
+	height="56"
+	srcset="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-3_hu_2c8a25c4d9096a94.png 480w, /p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-3_hu_33852cb42b4e3699.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="732"
+		data-flex-basis="1757px"
+	
+></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virsh dominfo CentOS-7-x86_64
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-4.png"
+	width="590"
+	height="265"
+	srcset="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-4_hu_fee68133d28edf4.png 480w, /p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-4_hu_1122931ba30e342c.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="222"
+		data-flex-basis="534px"
+	
+></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="o">[</span>root@rocky9-12 ~<span class="o">]</span><span class="c1"># virsh vcpuinfo CentOS-7-x86_64</span>
+</span></span><span class="line"><span class="cl">VCPU:           <span class="m">0</span>
+</span></span><span class="line"><span class="cl">CPU:            <span class="m">4</span>   
+</span></span><span class="line"><span class="cl">状态：          运行
+</span></span><span class="line"><span class="cl">CPU 时间：      13.4s
+</span></span><span class="line"><span class="cl">CPU关系:        yyyyyyyy
+</span></span></code></pre></td></tr></table>
+</div>
+</div><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">CPU关系的值：
+</span></span><span class="line"><span class="cl">    如果是 y，表示该虚拟 CPU 可以在对应的物理 CPU 核心上运行；如果是 n，则表示不可以。
+</span></span><span class="line"><span class="cl">    上面有 8 个 y，说明这个虚拟 CPU 可以在系统中的所有 8 个物理 CPU 核心上运行，也就是说它与
+</span></span><span class="line"><span class="cl">所有 8 个物理 CPU 核心都具有亲和性，调度程序可以根据系统负载等情况将这个虚拟 CPU 的任务分配到这 
+</span></span><span class="line"><span class="cl">8 个核心中的任意一个上执行。
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="简单实践">简单实践
+</h3><h4 id="动态调整">动态调整
+</h4><h5 id="增加cpu">增加cpu
+</h5><p>增加cpu的数量不能超过限制</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="o">[</span>root@lin-server ~ <span class="o">]</span><span class="c1"># virsh setvcpus CentOS-7-x86_64 8</span>
+</span></span><span class="line"><span class="cl">error: invalid argument: requested vcpus is greater than max allowable vcpus <span class="k">for</span> the live domain: <span class="m">8</span> &gt; <span class="m">4</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>增加cpu后检查</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virsh setvcpus CentOS-7-x86_64 <span class="m">4</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>确认效果,cpu已经添加为4个了</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virsh vcpuinfo CentOS-7-x86_64
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-5.png"
+	width="424"
+	height="359"
+	srcset="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-5_hu_3d3e01cc2be3f269.png 480w, /p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-5_hu_90b5bd6b2ac864cd.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="118"
+		data-flex-basis="283px"
+	
+></p>
+<h5 id="删除">删除
+</h5><p>删减cpu</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virsh setvcpus CentOS-7-x86_64 <span class="m">2</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>删减cpu后检查，cpu的数量减少为2个</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virsh vcpuinfo CentOS-7-x86_64
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-6.png"
+	width="423"
+	height="211"
+	srcset="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-6_hu_fde3f51fb45b54ce.png 480w, /p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-6_hu_d141ba08c018025b.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="200"
+		data-flex-basis="481px"
+	
+></p>
+<p>查看配置,配置没有发生变动</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="o">[</span>root@lin-server ~ <span class="o">]</span><span class="c1"># grep vcpu /etc/libvirt/qemu/CentOS-7-x86_64.xml</span>
+</span></span><span class="line"><span class="cl">  &lt;vcpu <span class="nv">placement</span><span class="o">=</span><span class="s1">&#39;static&#39;</span> <span class="nv">current</span><span class="o">=</span><span class="s1">&#39;1&#39;</span>&gt;4&lt;/vcpu&gt;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="配置实践">配置实践
+</h4><h5 id="更新配置">更新配置
+</h5><p>修改配置</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virsh setvcpus CentOS-7-x86_64 <span class="m">3</span> --config
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-7.png"
+	width="516"
+	height="43"
+	srcset="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-7_hu_907dcf5c1d20e478.png 480w, /p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-7_hu_2eb6b426cc8027f5.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="1200"
+		data-flex-basis="2880px"
+	
+></p>
+<p>cpu的运行数量没有变化</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virsh vcpuinfo CentOS-7-x86_64
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-8.png"
+	width="426"
+	height="211"
+	srcset="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-8_hu_20d4c4539a63c379.png 480w, /p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-8_hu_cf1fe3790c4e8c8b.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="201"
+		data-flex-basis="484px"
+	
+></p>
+<p>但是配置文件发生了改变</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">grep vcpu /etc/libvirt/qemu/CentOS-7-x86_64
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-9.png"
+	width="556"
+	height="54"
+	srcset="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-9_hu_45f8755ee6d30a94.png 480w, /p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-9_hu_2c08ffdd321ef6ef.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="1029"
+		data-flex-basis="2471px"
+	
+></p>
+<h5 id="重置cpu">重置cpu
+</h5><p>普通重置</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virsh shutdown CentOS-7-x86_64
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-10.png"
+	width="426"
+	height="56"
+	srcset="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-10_hu_fd5a5b5b989f3f7.png 480w, /p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-10_hu_109ad36ee2c153bb.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="760"
+		data-flex-basis="1825px"
+	
+></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virsh list
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-11.png"
+	width="265"
+	height="80"
+	srcset="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-11_hu_9fbad1de8b94b30c.png 480w, /p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-11_hu_79fa716ed5873ea0.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="331"
+		data-flex-basis="795px"
+	
+></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virsh start CentOS-7-x86_64
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-12.png"
+	width="404"
+	height="63"
+	srcset="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-12_hu_30ab0553b455540d.png 480w, /p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-12_hu_4aff31c5624b9693.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="641"
+		data-flex-basis="1539px"
+	
+></p>
+<p>查看效果,会按照配置里面的 信息进行加载环境信息</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virsh vcpuinfo CentOS-7-x86_64
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-13.png"
+	width="425"
+	height="310"
+	srcset="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-13_hu_17e1fc1d03f07e2b.png 480w, /p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-13_hu_ff27c825dca86256.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="137"
+		data-flex-basis="329px"
+	
+></p>
+<h5 id="cpu绑定">cpu绑定
+</h5><p>将kvm的0号cpu绑定在宿主机的1号cpu上</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virsh vcpupin CentOS-7-x86_64 <span class="m">0</span> <span class="m">1</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-14.png"
+	width="462"
+	height="61"
+	srcset="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-14_hu_c109253662a4db7d.png 480w, /p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-14_hu_b55348afde4f1a5d.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="757"
+		data-flex-basis="1817px"
+	
+></p>
+<p>将kvm的1号cpu绑定在宿主机的2号cpu上</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virsh vcpupin CentOS-7-x86_64 <span class="m">1</span> <span class="m">2</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-15.png"
+	width="452"
+	height="44"
+	srcset="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-15_hu_fea321935becfc77.png 480w, /p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-15_hu_6d8158cbec65545c.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="1027"
+		data-flex-basis="2465px"
+	
+></p>
+<p>将kvm的3号cpu绑定在宿主机的0号cpu上</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virsh vcpupin CentOS-7-x86_64 <span class="m">2</span> <span class="m">0</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-16.png"
+	width="456"
+	height="52"
+	srcset="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-16_hu_354a4aa34b1c4646.png 480w, /p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-16_hu_220d95a8eec656bb.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="876"
+		data-flex-basis="2104px"
+	
+></p>
+<p>查看效果</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virsh vcpuinfo CentOS-7-x86_64
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-17.png"
+	width="430"
+	height="300"
+	srcset="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-17_hu_278bf17514a4a805.png 480w, /p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-17_hu_d217035187137b2b.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="143"
+		data-flex-basis="344px"
+	
+></p>
+<h2 id="内存实践">内存实践
+</h2><h3 id="基础知识-1">基础知识
+</h3><h4 id="场景需求-1">场景需求
+</h4><p>需求</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">需要根据实际情况，对kvm进行内存资源调整
+</span></span><span class="line"><span class="cl">注意：
+</span></span><span class="line"><span class="cl">    不推荐频繁切换，否则导致虚拟机启动异常
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="基本语法">基本语法
+</h4><p>立刻生效</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virsh qemu-monitor-command &lt;虚拟机名称&gt; --hmp --cmd 命令
+</span></span><span class="line"><span class="cl">    命令解析：
+</span></span><span class="line"><span class="cl">        查看所有信息 info
+</span></span><span class="line"><span class="cl">        查看内存  info balloon
+</span></span><span class="line"><span class="cl">        调整内存  balloon 定制容量
+</span></span><span class="line"><span class="cl">    特点：
+</span></span><span class="line"><span class="cl">        只管调整，不管系统是否重启成功
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>重启后生效</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virsh setmem &lt;虚拟机名称&gt; 定制容量
+</span></span><span class="line"><span class="cl">    注意：
+</span></span><span class="line"><span class="cl">        该方法上课时候不推荐，因为不是及时生效
+</span></span><span class="line"><span class="cl">        因为它涉及到虚拟机资源的重新加载<span class="o">(</span>重启主机<span class="o">)</span>，如果内存过小，导致系统无法启动。
+</span></span><span class="line"><span class="cl">        再一个，频繁执行次数过多导致虚拟机卡死
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="资源超配">资源超配
+</h4><p>超限使用</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">原则上，宿主机的资源是不允许超限使用的，比如，我要在 100G的电脑上，存储 200G的资源。这是不可能的。
+</span></span><span class="line"><span class="cl">根据我们之前对虚拟磁盘的原理解析，我们知道，分配的资源和使用的资源是有区别的，实际使用的远远小于分配的资源。所以我们在分配内存的时候，可以对内存进行超配的使用
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>查看配置文件</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="o">[</span>root@lin-server ~ <span class="o">]</span><span class="c1"># virsh dumpxml CentOS-7-x86_64|grep -i memo</span>
+</span></span><span class="line"><span class="cl">  &lt;memory <span class="nv">unit</span><span class="o">=</span><span class="s1">&#39;KiB&#39;</span>&gt;1048576&lt;/memory&gt;
+</span></span><span class="line"><span class="cl">  &lt;currentMemory <span class="nv">unit</span><span class="o">=</span><span class="s1">&#39;KiB&#39;</span>&gt;1048576&lt;/currentMemory&gt;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>查看虚拟机内存信息</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="o">[</span>root@lin-server ~ <span class="o">]</span><span class="c1"># virsh dominfo CentOS-7-x86_64| grep -E &#34;mem|内存&#34;</span>
+</span></span><span class="line"><span class="cl">Max memory:     <span class="m">1048576</span> KiB
+</span></span><span class="line"><span class="cl">Used memory:    <span class="m">1048576</span> KiB
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="简单实践-1">简单实践
+</h3><h4 id="调整内存">调整内存
+</h4><p>查看内存信息</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="o">[</span>root@lin-server ~ <span class="o">]</span><span class="c1"># virsh qemu-monitor-command CentOS-7-x86_64 --hmp --cmd info balloon</span>
+</span></span><span class="line"><span class="cl">balloon: <span class="nv">actual</span><span class="o">=</span><span class="m">1024</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>调整内存信息</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virsh qemu-monitor-command CentOS-7-x86_64 --hmp --cmd balloon <span class="m">512</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-18.png"
+	width="718"
+	height="45"
+	srcset="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-18_hu_e33ae5118ad147b3.png 480w, /p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-18_hu_f803b250a77934ed.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="1595"
+		data-flex-basis="3829px"
+	
+></p>
+<p>确认内存信息</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virsh qemu-monitor-command CentOS-7-x86_64 --hmp --cmd info balloon
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-19.png"
+	width="727"
+	height="54"
+	srcset="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-19_hu_be6fc9732a2cd03c.png 480w, /p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-19_hu_9be2e953166271ae.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="1346"
+		data-flex-basis="3231px"
+	
+></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="o">[</span>root@lin-server ~ <span class="o">]</span><span class="c1"># virsh dumpxml CentOS-7-x86_64|grep -i memo</span>
+</span></span><span class="line"><span class="cl">  &lt;memory <span class="nv">unit</span><span class="o">=</span><span class="s1">&#39;KiB&#39;</span>&gt;1048576&lt;/memory&gt;
+</span></span><span class="line"><span class="cl">  &lt;currentMemory <span class="nv">unit</span><span class="o">=</span><span class="s1">&#39;KiB&#39;</span>&gt;524288&lt;/currentMemory&gt;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="o">[</span>root@lin-server ~ <span class="o">]</span><span class="c1"># virsh dominfo CentOS-7-x86_64| grep -E &#34;mem|内存&#34;</span>
+</span></span><span class="line"><span class="cl">Max memory:     <span class="m">1048576</span> KiB
+</span></span><span class="line"><span class="cl">Used memory:    <span class="m">524288</span> KiB
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><font color=red>结果显示：主机的内存信息和配置信息都同步更改了</font></p>
+<p>在存在最大内存的前提下，是无法调整到限制之外的</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virsh qemu-monitor-command CentOS-7-x86_64 --hmp --cmd balloon <span class="m">3000</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># 因为最大内存的限制，所以最大的值只能调整到1G</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-20.png"
+	width="724"
+	height="40"
+	srcset="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-20_hu_a5fb14b4cd0f411e.png 480w, /p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-20_hu_827c8350ea8240.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="1810"
+		data-flex-basis="4344px"
+	
+></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virsh qemu-monitor-command CentOS-7-x86_64 --hmp --cmd info balloon
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-21.png"
+	width="718"
+	height="59"
+	srcset="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-21_hu_da52b97a9bb25b1c.png 480w, /p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-21_hu_1645f73378d2b8c1.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="1216"
+		data-flex-basis="2920px"
+	
+></p>
+<h4 id="调整最大上限">调整最大上限
+</h4><p>调整内存的限制</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="o">[</span>root@lin-server ~ <span class="o">]</span><span class="c1"># virsh edit CentOS-7-x86_64</span>
+</span></span><span class="line"><span class="cl">    ...   
+</span></span><span class="line"><span class="cl">    &lt;memory <span class="nv">unit</span><span class="o">=</span><span class="s1">&#39;KiB&#39;</span>&gt;3170304&lt;/memory&gt;
+</span></span><span class="line"><span class="cl">    &lt;currentMemory <span class="nv">unit</span><span class="o">=</span><span class="s1">&#39;KiB&#39;</span>&gt;1048576&lt;/currentMemory&gt;
+</span></span><span class="line"><span class="cl">    说明：
+</span></span><span class="line"><span class="cl">        调整了内存的最大值为3G，当前的内存大小为1G
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>但是实际运行确没有生效</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="o">[</span>root@lin-server ~ <span class="o">]</span><span class="c1"># virsh dumpxml CentOS-7-x86_64|grep -i memo</span>
+</span></span><span class="line"><span class="cl">  &lt;memory <span class="nv">unit</span><span class="o">=</span><span class="s1">&#39;KiB&#39;</span>&gt;1048576&lt;/memory&gt;
+</span></span><span class="line"><span class="cl">  &lt;currentMemory <span class="nv">unit</span><span class="o">=</span><span class="s1">&#39;KiB&#39;</span>&gt;1048576&lt;/currentMemory&gt;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>重启vm之后，生效</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virsh shutdown CentOS-7-x86_64
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-22.png"
+	width="428"
+	height="59"
+	srcset="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-22_hu_9e347440de3677cb.png 480w, /p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-22_hu_903831ffa94d5a25.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="725"
+		data-flex-basis="1741px"
+	
+></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virsh start CentOS-7-x86_64
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-23.png"
+	width="404"
+	height="63"
+	srcset="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-23_hu_884bf6b55e9f31ef.png 480w, /p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-23_hu_de9f29a20094ffb5.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="641"
+		data-flex-basis="1539px"
+	
+></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virsh dumpxml CentOS-7-x86_64<span class="p">|</span>grep -i memo
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-24.png"
+	width="522"
+	height="72"
+	srcset="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-24_hu_6462c4afab4e9211.png 480w, /p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-24_hu_fc6e01f68b09b0af.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="725"
+		data-flex-basis="1740px"
+	
+></p>
+<h4 id="调整实践">调整实践
+</h4><p>动态调大内存</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virsh qemu-monitor-command CentOS-7-x86_64 --hmp --cmd balloon <span class="m">2048</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-25.png"
+	width="726"
+	height="38"
+	srcset="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-25_hu_2b71b6f8dc0754a.png 480w, /p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-25_hu_c3d9026d0ca922e6.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="1910"
+		data-flex-basis="4585px"
+	
+></p>
+<p>查看当前内存大小</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virsh dominfo CentOS-7-x86_64<span class="p">|</span> grep -E <span class="s2">&#34;mem|内存&#34;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-26.png"
+	width="574"
+	height="69"
+	srcset="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-26_hu_d0a7f634959f9f3c.png 480w, /p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-26_hu_70b460e05efc57b0.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="831"
+		data-flex-basis="1996px"
+	
+></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virsh qemu-monitor-command CentOS-7-x86_64 --hmp --cmd info balloon
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-27.png"
+	width="721"
+	height="56"
+	srcset="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-27_hu_ab65ff639cf2ab62.png 480w, /p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-27_hu_5334e094467ad4c5.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="1287"
+		data-flex-basis="3090px"
+	
+></p>
+<p>动态调大内存</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virsh qemu-monitor-command CentOS-7-x86_64 --hmp --cmd balloon <span class="m">3000</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-28.png"
+	width="729"
+	height="42"
+	srcset="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-28_hu_24b38def31f9f09e.png 480w, /p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-28_hu_a27d8ebe6285b393.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="1735"
+		data-flex-basis="4165px"
+	
+></p>
+<p>确认虚拟机效果</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virsh console CentOS-7-x86_64
+</span></span><span class="line"><span class="cl">free -m
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-29.png"
+	width="645"
+	height="250"
+	srcset="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-29_hu_b9554a34849b7531.png 480w, /p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-29_hu_bc7f9956ad449d5f.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="258"
+		data-flex-basis="619px"
+	
+></p>
+<h2 id="磁盘实践">磁盘实践
+</h2><h3 id="基础知识-2">基础知识
+</h3><h4 id="场景需求-2">场景需求
+</h4><p>虚拟机在操作过程中，会遇到各种数据容量操作，我们常见的操作就是</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">初始化时候，磁盘容量不合适，我们可以进行调整
+</span></span><span class="line"><span class="cl">数据容量不足，我们就增加一块数据磁盘
+</span></span><span class="line"><span class="cl">数据容量过大，我们就删减一块数据磁盘
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="常见语法">常见语法
+</h4><p>磁盘基本信息</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virsh domblklist --details 虚拟磁盘名称
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>磁盘容量调整</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">qemu-img resize 虚拟磁盘名称 +5G
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>挂载磁盘</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virsh attach-disk &lt;虚拟机名称&gt; --source &lt;新磁盘名&gt; --target &lt;磁盘类型名&gt; --persistent
+</span></span><span class="line"><span class="cl">注意：
+</span></span><span class="line"><span class="cl">    磁盘类型名一般是 sda~  或者 vda~
+</span></span><span class="line"><span class="cl">    这里的 vda 不一定是磁盘内部的信息，而是kvm管理的名称
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>卸载磁盘</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virsh detach-disk &lt;虚拟机名称&gt; &lt;磁盘类型名&gt;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="简单实践-2">简单实践
+</h3><h4 id="磁盘容量调整">磁盘容量调整
+</h4><h5 id="调整前确认效果">调整前确认效果
+</h5><p>查看磁盘空间效果，大概是11G</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virsh console CentOS-7-x86_64
+</span></span><span class="line"><span class="cl">fdisk -l
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-30.png"
+	width="685"
+	height="427"
+	srcset="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-30_hu_10471b88bbfc1730.png 480w, /p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-30_hu_7f4579fa5ad3fbf0.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="160"
+		data-flex-basis="385px"
+	
+></p>
+<h5 id="关闭虚拟机">关闭虚拟机
+</h5><p>确认磁盘文件</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virsh dumpxml CentOS-7-x86_64 <span class="p">|</span> grep opt
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-31.png"
+	width="511"
+	height="57"
+	srcset="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-31_hu_5d719b9b271ebbb8.png 480w, /p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-31_hu_43e937d4d97334ae.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="896"
+		data-flex-basis="2151px"
+	
+></p>
+<p>正常运行的vm主机无法查看磁盘状态</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">qemu-img info /opt/CentOS-7-x86_64.qcow2
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-32.png"
+	width="715"
+	height="79"
+	srcset="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-32_hu_a85e7efa291e2665.png 480w, /p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-32_hu_595453f5c5e3ac8d.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="905"
+		data-flex-basis="2172px"
+	
+></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virsh list
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-33.png"
+	width="279"
+	height="88"
+	srcset="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-33_hu_12779b6bb7a86bb1.png 480w, /p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-33_hu_d2f8c03467179e6.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="317"
+		data-flex-basis="760px"
+	
+></p>
+<p>关闭虚拟机</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virsh shutdown CentOS-7-x86_64
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-34.png"
+	width="432"
+	height="64"
+	srcset="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-34_hu_f47e097f65107fdc.png 480w, /p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-34_hu_9872cbb11ffbd963.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="675"
+		data-flex-basis="1620px"
+	
+></p>
+<p>正常运行的磁盘</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 查看当前磁盘状态</span>
+</span></span><span class="line"><span class="cl">qemu-img info /opt/CentOS-7-x86_64.qcow2
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-35.png"
+	width="507"
+	height="295"
+	srcset="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-35_hu_56d8895dd02f4b88.png 480w, /p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-35_hu_4345cefcac43eb37.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="171"
+		data-flex-basis="412px"
+	
+></p>
+<h5 id="调整大小">调整大小
+</h5><p>调整磁盘大小</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">qemu-img resize /opt/CentOS-7-x86_64.qcow2 +1G
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-36.png"
+	width="560"
+	height="57"
+	srcset="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-36_hu_e776db3466573dfe.png 480w, /p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-36_hu_3a3ec0f1a8d89c4b.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="982"
+		data-flex-basis="2357px"
+	
+></p>
+<p>查看磁盘状态</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">qemu-img info /opt/CentOS-7-x86_64.qcow2
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-37.png"
+	width="499"
+	height="293"
+	srcset="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-37_hu_aefce34a5ceefa38.png 480w, /p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-37_hu_e4ac40bb5382f2ac.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="170"
+		data-flex-basis="408px"
+	
+></p>
+<h5 id="调整大小-1">调整大小
+</h5><p>再次调整磁盘大小</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">qemu-img resize /opt/CentOS-7-x86_64.qcow2 +2G
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-38.png"
+	width="552"
+	height="51"
+	srcset="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-38_hu_15bd1177a95eb319.png 480w, /p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-38_hu_b3626da8fc33fd82.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="1082"
+		data-flex-basis="2597px"
+	
+></p>
+<p>查看磁盘状态</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">qemu-img info /opt/CentOS-7-x86_64.qcow2
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-39.png"
+	width="508"
+	height="299"
+	srcset="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-39_hu_93a76e47c0dbd909.png 480w, /p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-39_hu_1c3cfcd4693623ef.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="169"
+		data-flex-basis="407px"
+	
+></p>
+<h5 id="确认效果">确认效果
+</h5><p>重启虚拟机</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virsh start CentOS-7-x86_64
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-40.png"
+	width="401"
+	height="53"
+	srcset="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-40_hu_ae39b51c45482a37.png 480w, /p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-40_hu_61f5d41deba1b739.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="756"
+		data-flex-basis="1815px"
+	
+></p>
+<p>进入虚拟机查看磁盘大小</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virsh console CentOS-7-x86_64
+</span></span><span class="line"><span class="cl">fdisk -l
+</span></span><span class="line"><span class="cl"><span class="c1"># 虽然标称14G，但是字节是和qemu-img info查看到的字节效果一样</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-41.png"
+	width="699"
+	height="526"
+	srcset="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-41_hu_7d1a18ea5afd8681.png 480w, /p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-41_hu_247dff996099304b.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="132"
+		data-flex-basis="318px"
+	
+></p>
+<p>Gi 和 G</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="o">[</span>root@lin-server ~ <span class="o">]</span><span class="c1"># echo &#34;scale=2; 13958643712 /1000 /1000 / 1000&#34;| bc</span>
+</span></span><span class="line"><span class="cl">13.95
+</span></span><span class="line"><span class="cl"><span class="o">[</span>root@lin-server ~ <span class="o">]</span><span class="c1"># echo &#34;scale=2; 13958643712 /1024 /1024 / 1024&#34;| bc</span>
+</span></span><span class="line"><span class="cl">13.00
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="磁盘基本操作">磁盘基本操作
+</h4><h5 id="新增磁盘">新增磁盘
+</h5><p>创建新磁盘</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">qemu-img create -f raw /opt/storage.qcow2 2G
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-42.png"
+	width="543"
+	height="53"
+	srcset="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-42_hu_be4d59961ff42afc.png 480w, /p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-42_hu_b87dfd84ba3805e3.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="1024"
+		data-flex-basis="2458px"
+	
+></p>
+<p>增加新磁盘到虚拟机</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virsh attach-disk CentOS-7-x86_64 --source /opt/storage.qcow2 --target vdb --persistent
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-43.png"
+	width="881"
+	height="52"
+	srcset="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-43_hu_1349c889ebc8d990.png 480w, /p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-43_hu_9b26b3446df728a7.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="1694"
+		data-flex-basis="4066px"
+	
+></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virsh domblklist --details  CentOS-7-x86_64
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-44.png"
+	width="523"
+	height="117"
+	srcset="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-44_hu_720988e855296dcc.png 480w, /p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-44_hu_b90bb5decdae6b42.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="447"
+		data-flex-basis="1072px"
+	
+></p>
+<h5 id="确认效果-1">确认效果
+</h5><p>登录虚拟机</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virsh console CentOS-7-x86_64
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-45.png"
+	width="421"
+	height="98"
+	srcset="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-45_hu_b1f84cc2e7b695c5.png 480w, /p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-45_hu_8f739612cf28b35e.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="429"
+		data-flex-basis="1031px"
+	
+></p>
+<p>登录到虚拟机中检查效果</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">fdisk -l <span class="p">|</span> grep vd
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-46.png"
+	width="535"
+	height="97"
+	srcset="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-46_hu_7fdb30d2773e9b46.png 480w, /p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-46_hu_bd4794c34966c460.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="551"
+		data-flex-basis="1323px"
+	
+></p>
+<h5 id="移除磁盘">移除磁盘
+</h5><p>删除虚拟机的某磁盘</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virsh detach-disk CentOS-7-x86_64 --target vdb --persistent
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-47.png"
+	width="658"
+	height="56"
+	srcset="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-47_hu_365552c97103728d.png 480w, /p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-47_hu_ccdebb8e6984d0bb.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="1175"
+		data-flex-basis="2820px"
+	
+></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virsh domblklist --details  CentOS-7-x86_64
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-48.png"
+	width="530"
+	height="100"
+	srcset="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-48_hu_6c1394c2a47afc7c.png 480w, /p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-48_hu_5c993cc542a672d9.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="530"
+		data-flex-basis="1272px"
+	
+></p>
+<p>登录到虚拟机中检查效果，立刻生效了</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virsh console CentOS-7-x86_64
+</span></span><span class="line"><span class="cl">fdisk -l <span class="p">|</span> grep vd
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-49.png"
+	width="540"
+	height="158"
+	srcset="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-49_hu_7313aa6dbe7349da.png 480w, /p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-49_hu_de5bec3ee8f4aa04.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="341"
+		data-flex-basis="820px"
+	
+></p>
+<h4 id="新增磁盘实践">新增磁盘实践
+</h4><h5 id="新增磁盘-1">新增磁盘
+</h5><p>关闭虚拟机</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virsh shutdown CentOS-7-x86_64
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-50.png"
+	width="428"
+	height="57"
+	srcset="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-50_hu_9c111f046b015ae7.png 480w, /p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-50_hu_adb5ae75fc5e8ea0.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="750"
+		data-flex-basis="1802px"
+	
+></p>
+<p>新增一块磁盘</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">qemu-img create -f raw /opt/image.raw 2G
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-51.png"
+	width="507"
+	height="55"
+	srcset="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-51_hu_e49068c00de80264.png 480w, /p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-51_hu_911fd59890bd9194.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="921"
+		data-flex-basis="2212px"
+	
+></p>
+<p>查看效果</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">ll /opt/
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-52.png"
+	width="618"
+	height="213"
+	srcset="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-52_hu_58fc50709980d2da.png 480w, /p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-52_hu_4f6c89162801ace.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="290"
+		data-flex-basis="696px"
+	
+></p>
+<h5 id="关联磁盘">关联磁盘
+</h5><p>编辑配置文件</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virsh edit CentOS-7-x86_64
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>修改内容</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">...
+</span></span><span class="line"><span class="cl">&lt;devices&gt;
+</span></span><span class="line"><span class="cl">  &lt;emulator&gt;/usr/libexec/qemu-kvm&lt;/emulator&gt;
+</span></span><span class="line"><span class="cl">  &lt;disk <span class="nv">type</span><span class="o">=</span><span class="s1">&#39;file&#39;</span> <span class="nv">device</span><span class="o">=</span><span class="s1">&#39;disk&#39;</span>&gt;
+</span></span><span class="line"><span class="cl">    &lt;driver <span class="nv">name</span><span class="o">=</span><span class="s1">&#39;qemu&#39;</span> <span class="nv">type</span><span class="o">=</span><span class="s1">&#39;qcow2&#39;</span>/&gt;
+</span></span><span class="line"><span class="cl">    &lt;<span class="nb">source</span> <span class="nv">file</span><span class="o">=</span><span class="s1">&#39;/opt/CentOS-7-x86_64.qcow2&#39;</span>/&gt;
+</span></span><span class="line"><span class="cl">    &lt;target <span class="nv">dev</span><span class="o">=</span><span class="s1">&#39;vda&#39;</span> <span class="nv">bus</span><span class="o">=</span><span class="s1">&#39;virtio&#39;</span>/&gt;
+</span></span><span class="line"><span class="cl">    &lt;address <span class="nv">type</span><span class="o">=</span><span class="s1">&#39;pci&#39;</span> <span class="nv">domain</span><span class="o">=</span><span class="s1">&#39;0x0000&#39;</span> <span class="nv">bus</span><span class="o">=</span><span class="s1">&#39;0x04&#39;</span> <span class="nv">slot</span><span class="o">=</span><span class="s1">&#39;0x00&#39;</span> <span class="k">function</span><span class="o">=</span><span class="s1">&#39;0x0&#39;</span>/&gt;
+</span></span><span class="line"><span class="cl">  &lt;/disk&gt;
+</span></span><span class="line"><span class="cl"><span class="c1"># 增加如下磁盘内容</span>
+</span></span><span class="line"><span class="cl">  &lt;disk <span class="nv">type</span><span class="o">=</span><span class="s1">&#39;file&#39;</span> <span class="nv">device</span><span class="o">=</span><span class="s1">&#39;disk&#39;</span>&gt;
+</span></span><span class="line"><span class="cl">    &lt;driver <span class="nv">name</span><span class="o">=</span><span class="s1">&#39;qemu&#39;</span> <span class="nv">type</span><span class="o">=</span><span class="s1">&#39;raw&#39;</span>/&gt;
+</span></span><span class="line"><span class="cl">    &lt;<span class="nb">source</span> <span class="nv">file</span><span class="o">=</span><span class="s1">&#39;/opt/image.raw&#39;</span>/&gt;
+</span></span><span class="line"><span class="cl">    &lt;target <span class="nv">dev</span><span class="o">=</span><span class="s1">&#39;vdc&#39;</span> <span class="nv">bus</span><span class="o">=</span><span class="s1">&#39;virtio&#39;</span>/&gt;          <span class="c1"># dev的名字不能重复</span>
+</span></span><span class="line"><span class="cl">  &lt;/disk&gt;
+</span></span><span class="line"><span class="cl">...
+</span></span><span class="line"><span class="cl"><span class="c1"># 和之前的disk配置缺少了&lt;address type=&#39;pci&#39;... 的内容。 -- 该部分内容会自动增加</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-53.png"
+	width="412"
+	height="60"
+	srcset="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-53_hu_f3e7e5704b81c332.png 480w, /p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-53_hu_6783ab8f95e636c4.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="686"
+		data-flex-basis="1648px"
+	
+></p>
+<p>启动虚拟机</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virsh start CentOS-7-x86_64
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-54.png"
+	width="405"
+	height="57"
+	srcset="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-54_hu_1be8c72dd2106b46.png 480w, /p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-54_hu_6bce306288ad88bd.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="710"
+		data-flex-basis="1705px"
+	
+></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virsh domblklist --details CentOS-7-x86_64
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-55.png"
+	width="436"
+	height="114"
+	srcset="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-55_hu_b94b9256dd231abc.png 480w, /p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-55_hu_a20d9783cc761c4.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="382"
+		data-flex-basis="917px"
+	
+></p>
+<p>连接进入虚拟机确认新增磁盘已识别，但是，盘标识是 递增出来的</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">fdisk -l <span class="p">|</span> grep vd
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-56.png"
+	width="540"
+	height="177"
+	srcset="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-56_hu_c0a5ab7d5d5b400.png 480w, /p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-56_hu_36b2c0d17c2e2f23.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="305"
+		data-flex-basis="732px"
+	
+></p>
+<p>计算大小</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="nb">echo</span> <span class="s2">&#34;2147483648 / 1024 / 1024 / 1024&#34;</span> <span class="p">|</span> bc
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-57.png"
+	width="519"
+	height="30"
+	srcset="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-57_hu_53a1f6cff38aa41f.png 480w, /p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-57_hu_8b9e8a7031268ad8.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="1730"
+		data-flex-basis="4152px"
+	
+></p>
+<p>在基于 Linux 内核的虚拟机里，通常会按照设备被检测到的顺序来命名，依次为 vda 、vdb 等。宿主机指定的设备名不会影响虚拟机内核的命名规则。</p>
+<p>单位换算</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">1 Byte = 8 bit
+</span></span><span class="line"><span class="cl">1 KB = 1024 Byte
+</span></span><span class="line"><span class="cl">1 MB = 1024 KB
+</span></span><span class="line"><span class="cl">1 GB = 1024 MB
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h5 id="使用磁盘">使用磁盘
+</h5><p>格式化磁盘</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">mkfs.ext4 /dev/vdb
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-58.png"
+	width="518"
+	height="315"
+	srcset="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-58_hu_7a54f086bb072908.png 480w, /p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-58_hu_d5d34f21888628fe.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="164"
+		data-flex-basis="394px"
+	
+></p>
+<p>新建一个目录来挂载新硬盘</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">mkdir /data/
+</span></span><span class="line"><span class="cl">mount /dev/vdb /data
+</span></span><span class="line"><span class="cl">mount <span class="p">|</span> grep vdb
+</span></span><span class="line"><span class="cl"><span class="c1"># 取消挂载</span>
+</span></span><span class="line"><span class="cl">umount /data
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-59.png"
+	width="512"
+	height="97"
+	srcset="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-59_hu_a6100d396af01972.png 480w, /p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-59_hu_b55d3c1df4316711.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="527"
+		data-flex-basis="1266px"
+	
+></p>
+<p>开机自动挂载</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">blkid /dev/vdb
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-60.png"
+	width="534"
+	height="30"
+	srcset="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-60_hu_e364b17ec0a5ec6b.png 480w, /p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-60_hu_6350d8b0241ceb97.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="1780"
+		data-flex-basis="4272px"
+	
+></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="nb">echo</span> <span class="s1">&#39;UUID=88576c05-22b3-402c-baaf-2378556cd040 /data ext4 defaults 0 0&#39;</span>&gt;&gt; /etc/fstab
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-61.png"
+	width="642"
+	height="44"
+	srcset="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-61_hu_9ce549005151a757.png 480w, /p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-61_hu_188223bd1f6d6a46.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="1459"
+		data-flex-basis="3501px"
+	
+></p>
+<p><img src="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-63.png"
+	width="670"
+	height="377"
+	srcset="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-63_hu_ec18c13a035b7a80.png 480w, /p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-63_hu_b4bd018195d4d623.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="177"
+		data-flex-basis="426px"
+	
+></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 挂载所有在 /etc/fstab 文件中定义但尚未挂载的文件系统。</span>
+</span></span><span class="line"><span class="cl">mount -a
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-62.png"
+	width="244"
+	height="35"
+	srcset="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-62_hu_90aa068da4bc2228.png 480w, /p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-62_hu_1e6127cfa71b015.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="697"
+		data-flex-basis="1673px"
+	
+></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">mount <span class="p">|</span> grep vdb
+</span></span><span class="line"><span class="cl">df -h <span class="p">|</span> egrep <span class="s1">&#39;Files|vd&#39;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-64.png"
+	width="564"
+	height="108"
+	srcset="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-64_hu_72b5efe9fa08f791.png 480w, /p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-64_hu_b71751e5fe79fd9d.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="522"
+		data-flex-basis="1253px"
+	
+></p>
+<blockquote>
+<p>可以看到：新增磁盘的方法调整虚拟机的磁盘容量，在虚拟机中想要看到效果，必须重启虚拟机</p>
+</blockquote>
+<p>向磁盘中增加数据</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">dd <span class="k">if</span><span class="o">=</span>/dev/zero <span class="nv">of</span><span class="o">=</span>/data/1M.img <span class="nv">bs</span><span class="o">=</span>10M <span class="nv">count</span><span class="o">=</span><span class="m">1</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-65.png"
+	width="544"
+	height="80"
+	srcset="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-65_hu_171b4ffc09285eec.png 480w, /p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-65_hu_e27b0192ce6987de.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="680"
+		data-flex-basis="1632px"
+	
+></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">ll /data/ -h
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-66.png"
+	width="429"
+	height="61"
+	srcset="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-66_hu_470507c07207ba3a.png 480w, /p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-66_hu_efb1123cac341dcb.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="703"
+		data-flex-basis="1687px"
+	
+></p>
+<h4 id="磁盘迁移">磁盘迁移
+</h4><h5 id="磁盘移除">磁盘移除
+</h5><p>从CentOS-7-x86_64中移除磁盘</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virsh detach-disk CentOS-7-x86_64 --target vdc --persistent
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-67.png"
+	width="657"
+	height="59"
+	srcset="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-67_hu_eb935d976a2402d2.png 480w, /p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-67_hu_30581dd2fc8d398c.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="1113"
+		data-flex-basis="2672px"
+	
+></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virsh domblklist --details  CentOS-7-x86_64
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-68.png"
+	width="528"
+	height="101"
+	srcset="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-68_hu_fb9fcd7ac3aa5b81.png 480w, /p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-68_hu_5f035a0bbec7bea.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="522"
+		data-flex-basis="1254px"
+	
+></p>
+<p>直接查看效果,CentOS-7-x86_64 中已看不到磁盘了</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">fdisk -l <span class="p">|</span> grep vd
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-69.png"
+	width="534"
+	height="85"
+	srcset="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-69_hu_a8d7d396c86bae77.png 480w, /p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-69_hu_7e36534c18bc596b.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="628"
+		data-flex-basis="1507px"
+	
+></p>
+<h5 id="磁盘挂载">磁盘挂载
+</h5><p>启动vm主机</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virsh start CentOS-7-clone
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-70.png"
+	width="396"
+	height="57"
+	srcset="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-70_hu_9426ee6b2312b6ec.png 480w, /p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-70_hu_6b885e71336630bc.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="694"
+		data-flex-basis="1667px"
+	
+></p>
+<p>挂载新磁盘</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virsh attach-disk CentOS-7-clone --source /opt/image.raw --target vdx --persistent
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-71.png"
+	width="842"
+	height="60"
+	srcset="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-71_hu_be5daae4a50944fa.png 480w, /p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-71_hu_92bdb3559aa404fc.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="1403"
+		data-flex-basis="3368px"
+	
+></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virsh domblklist --details CentOS-7-clone
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-72.png"
+	width="512"
+	height="123"
+	srcset="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-72_hu_865cd7c58ff1c3e1.png 480w, /p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-72_hu_dc6092a523d1245f.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="416"
+		data-flex-basis="999px"
+	
+></p>
+<p>登录到虚拟机确认效果</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virsh console CentOS-7-clone
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-73.png"
+	width="408"
+	height="99"
+	srcset="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-73_hu_c367147e32f64a78.png 480w, /p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-73_hu_4175b6b18ce0ad99.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="412"
+		data-flex-basis="989px"
+	
+></p>
+<p>查询磁盘</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">fdisk -l <span class="p">|</span> grep vd
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-74.png"
+	width="532"
+	height="102"
+	srcset="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-74_hu_6b32312bab1ec2f3.png 480w, /p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-74_hu_6f48975aadcae648.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="521"
+		data-flex-basis="1251px"
+	
+></p>
+<p>挂载磁盘确认效果,可以看到迁移之前的数据效果</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">mkdir /data
+</span></span><span class="line"><span class="cl">mount /dev/vdb /data
+</span></span><span class="line"><span class="cl">ll -h /data/
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-75.png"
+	width="423"
+	height="108"
+	srcset="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-75_hu_64414aaa198018e2.png 480w, /p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/image-75_hu_24bc65f15e9202e8.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="391"
+		data-flex-basis="940px"
+	
+></p>
+
+</section>
+
+
+    <footer class="article-footer">
+    
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+<aside class="related-content--wrapper">
+    <h2 class="section-title">相关文章</h2>
+    <div class="related-content">
+        <div class="flex article-list--tile">
+            
+                
+<article class="">
+    <a href="/p/linuxkvm%E8%B5%84%E6%BA%90%E8%99%9A%E6%8B%9F%E5%8C%96/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Linux]kvm资源虚拟化</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/linuxkvm%E5%AE%9E%E8%B7%B5/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Linux]kvm实践</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/linuxkvm%E5%9F%BA%E7%A1%80/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Linux]kvm基础</h2>
+        </div>
+    </a>
+</article>
+
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+            2025 - 
+        
+        2026 リンボの個人ブログ
+    </section>
+    
+    <section class="powerby">
+         <br />
+        
+    </section>
+</footer>
+
+
+    
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+    
+    <div class="pswp__bg"></div>
+
+    
+    <div class="pswp__scroll-wrap">
+
+        
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+
+        
+        <div class="pswp__ui pswp__ui--hidden">
+
+            <div class="pswp__top-bar">
+
+                
+
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+
+                <button class="pswp__button pswp__button--share" title="Share"></button>
+
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+
+                
+                
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                        <div class="pswp__preloader__cut">
+                            <div class="pswp__preloader__donut"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div>
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.js"integrity="sha256-ePwmChbbvXbsO02lbM3HoHbSHTHFAeChekF1xKJdleo="crossorigin="anonymous"
+                defer
+                >
+            </script><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe-ui-default.min.js"integrity="sha256-UKkzOn/w1mBxRmLLGrSeyB4e1xbrp4xylgAWb3M42pU="crossorigin="anonymous"
+                defer
+                >
+            </script><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/default-skin/default-skin.min.css"crossorigin="anonymous"
+            ><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.css"crossorigin="anonymous"
+            >
+
+            </main>
+        </div>
+        <script 
+                src="https://cdn.jsdelivr.net/npm/node-vibrant@3.1.6/dist/vibrant.min.js"integrity="sha256-awcR2jno4kI5X0zL8ex0vi2z&#43;KMkF24hUW8WePSA9HM="crossorigin="anonymous"
+                
+                >
+            </script><script type="text/javascript" src="/ts/main.1e9a3bafd846ced4c345d084b355fb8c7bae75701c338f8a1f8a82c780137826.js" defer></script>
+<script>
+    (function () {
+        const customFont = document.createElement('link');
+        customFont.href = "https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap";
+
+        customFont.type = "text/css";
+        customFont.rel = "stylesheet";
+
+        document.head.appendChild(customFont);
+    }());
+</script>
+
+    </body>
+</html>

@@ -1,0 +1,1137 @@
+<!DOCTYPE html>
+<html lang="en-us" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="虚拟化原理 cpu虚拟化 技术细节 时间分片 操作系统安装后，CPU默认情况下就是被虚拟化了的，只不过是基于&quot;时间片&quot;的方式，所以虚拟化技术也需要基于&quot;分时技术&quot;来实现，只不过比进程的虚拟化实现麻烦很多。 原因就在于工作中的任务都是由进程来实现的。\n">
+<title>[Linux]kvm资源虚拟化</title>
+
+<link rel='canonical' href='https://YLine-hub.github.io/p/linuxkvm%E8%B5%84%E6%BA%90%E8%99%9A%E6%8B%9F%E5%8C%96/'>
+
+<link rel="stylesheet" href="/scss/style.min.6a692fd055deae459f2a9767f57f3855ba80cafd5041317f24f7360f6ca47cdf.css"><meta property='og:title' content="[Linux]kvm资源虚拟化">
+<meta property='og:description' content="虚拟化原理 cpu虚拟化 技术细节 时间分片 操作系统安装后，CPU默认情况下就是被虚拟化了的，只不过是基于&quot;时间片&quot;的方式，所以虚拟化技术也需要基于&quot;分时技术&quot;来实现，只不过比进程的虚拟化实现麻烦很多。 原因就在于工作中的任务都是由进程来实现的。\n">
+<meta property='og:url' content='https://YLine-hub.github.io/p/linuxkvm%E8%B5%84%E6%BA%90%E8%99%9A%E6%8B%9F%E5%8C%96/'>
+<meta property='og:site_name' content='リンボの個人ブログ'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:published_time' content='2026-05-15T19:00:55&#43;08:00'/><meta property='article:modified_time' content='2026-05-15T19:00:55&#43;08:00'/>
+<meta name="twitter:title" content="[Linux]kvm资源虚拟化">
+<meta name="twitter:description" content="虚拟化原理 cpu虚拟化 技术细节 时间分片 操作系统安装后，CPU默认情况下就是被虚拟化了的，只不过是基于&quot;时间片&quot;的方式，所以虚拟化技术也需要基于&quot;分时技术&quot;来实现，只不过比进程的虚拟化实现麻烦很多。 原因就在于工作中的任务都是由进程来实现的。\n">
+    <link rel="shortcut icon" href="/favicon.ico" />
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        
+            
+            <figure class="site-avatar">
+                <a href="/">
+                
+                    
+                    
+                    
+                        
+                        <img src="/img/avatar_hu_de528bff5d5e9598.png" width="300"
+                            height="300" class="site-logo" loading="lazy" alt="Avatar">
+                    
+                
+                </a>
+                
+                    <span class="emoji">🏖️</span>
+                
+            </figure>
+            
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">リンボの個人ブログ</a></h1>
+            <h2 class="site-description">努力不一定能获得回报，但不努力一定不会有回报。</h2>
+        </div>
+    </header><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-home" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <polyline points="5 12 3 12 12 3 21 12 19 12" />
+  <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7" />
+  <path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6" />
+</svg>
+
+
+
+                
+                <span>主页</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/%E5%85%B3%E4%BA%8E/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/archives/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/search/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-search" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="10" cy="10" r="7" />
+  <line x1="21" y1="21" x2="15" y2="15" />
+</svg>
+
+
+
+                
+                <span>搜索</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav id="TableOfContents">
+  <ol>
+    <li><a href="#cpu虚拟化">cpu虚拟化</a>
+      <ol>
+        <li><a href="#技术细节">技术细节</a>
+          <ol>
+            <li><a href="#时间分片">时间分片</a></li>
+            <li><a href="#系统调用">系统调用</a></li>
+            <li><a href="#虚拟场景的系统调用">虚拟场景的系统调用</a></li>
+            <li><a href="#硬件辅助虚拟化">硬件辅助虚拟化</a></li>
+          </ol>
+        </li>
+        <li><a href="#虚拟化技术">虚拟化技术</a>
+          <ol>
+            <li><a href="#模拟">模拟</a></li>
+            <li><a href="#完全虚拟化">完全虚拟化</a></li>
+            <li><a href="#硬件辅助虚拟化-1">硬件辅助虚拟化</a></li>
+            <li><a href="#半虚拟化">半虚拟化</a></li>
+          </ol>
+        </li>
+      </ol>
+    </li>
+    <li><a href="#内存虚拟化">内存虚拟化</a>
+      <ol>
+        <li><a href="#基础知识">基础知识</a>
+          <ol>
+            <li><a href="#内存虚拟化-1">内存虚拟化</a></li>
+            <li><a href="#tlb">TLB</a></li>
+          </ol>
+        </li>
+        <li><a href="#虚拟化技术-1">虚拟化技术</a>
+          <ol>
+            <li><a href="#影子页表">影子页表</a></li>
+            <li><a href="#mmu虚拟化">mmu虚拟化</a></li>
+            <li><a href="#tlb虚拟化">TLB虚拟化</a></li>
+          </ol>
+        </li>
+      </ol>
+    </li>
+    <li><a href="#io虚拟化">IO虚拟化</a>
+      <ol>
+        <li><a href="#基础设施">基础设施</a></li>
+        <li><a href="#虚拟化技术-2">虚拟化技术</a>
+          <ol>
+            <li><a href="#模拟-1">模拟</a></li>
+            <li><a href="#半虚拟化-1">半虚拟化</a></li>
+            <li><a href="#透传">透传</a></li>
+            <li><a href="#硬件虚拟化">硬件虚拟化</a></li>
+          </ol>
+        </li>
+      </ol>
+    </li>
+    <li><a href="#网络虚拟化">网络虚拟化</a>
+      <ol>
+        <li><a href="#虚拟原理">虚拟原理</a></li>
+        <li><a href="#网络模式">网络模式</a>
+          <ol>
+            <li><a href="#桥接模型">桥接模型</a></li>
+            <li><a href="#路由模型型仅主机模型">路由模型型(仅主机模型)</a></li>
+            <li><a href="#net模型">net模型</a></li>
+            <li><a href="#隔离模型">隔离模型</a></li>
+          </ol>
+        </li>
+      </ol>
+    </li>
+  </ol>
+</nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            <a href="/categories/kvm/" >
+                Kvm
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/p/linuxkvm%E8%B5%84%E6%BA%90%E8%99%9A%E6%8B%9F%E5%8C%96/">[Linux]kvm资源虚拟化</a>
+        </h2>
+    
+        
+    </div>
+
+    
+    
+    
+    
+    <footer class="article-time">
+        
+            <div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                <time class="article-time--published">2026-05-15</time>
+            </div>
+        
+
+        
+    </footer>
+    
+
+    
+</div>
+
+</header>
+
+    <section class="article-content">
+    
+    
+    <h1 id="虚拟化原理">虚拟化原理
+</h1><h2 id="cpu虚拟化">cpu虚拟化
+</h2><h3 id="技术细节">技术细节
+</h3><h4 id="时间分片">时间分片
+</h4><p><img src="/p/linuxkvm%E8%B5%84%E6%BA%90%E8%99%9A%E6%8B%9F%E5%8C%96/image.png"
+	width="1192"
+	height="364"
+	srcset="/p/linuxkvm%E8%B5%84%E6%BA%90%E8%99%9A%E6%8B%9F%E5%8C%96/image_hu_47edcab2539d65c0.png 480w, /p/linuxkvm%E8%B5%84%E6%BA%90%E8%99%9A%E6%8B%9F%E5%8C%96/image_hu_3c24db25e80813d2.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="327"
+		data-flex-basis="785px"
+	
+></p>
+<blockquote>
+<p>  操作系统安装后，CPU默认情况下就是被虚拟化了的，只不过是基于&quot;时间片&quot;的方式，所以虚拟化技术也需要基于&quot;分时技术&quot;来实现，只不过比进程的虚拟化实现麻烦很多。</br>
+  原因就在于工作中的任务都是由进程来实现的。</p>
+</blockquote>
+<h4 id="系统调用">系统调用
+</h4><p><img src="/p/linuxkvm%E8%B5%84%E6%BA%90%E8%99%9A%E6%8B%9F%E5%8C%96/image-1.png"
+	width="1350"
+	height="476"
+	srcset="/p/linuxkvm%E8%B5%84%E6%BA%90%E8%99%9A%E6%8B%9F%E5%8C%96/image-1_hu_cad4286ddf77e8ef.png 480w, /p/linuxkvm%E8%B5%84%E6%BA%90%E8%99%9A%E6%8B%9F%E5%8C%96/image-1_hu_fe3cc402f62049ee.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="283"
+		data-flex-basis="680px"
+	
+></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">为了协调多任务，操作系统被分成了两段：
+</span></span><span class="line"><span class="cl">内核空间：接近硬件，主要执行特权指令
+</span></span><span class="line"><span class="cl">用户空间：执行普通的指令
+</span></span><span class="line"><span class="cl">用户空间的执行想要执行某些特权指令，就需要进行&#34;系统调用&#34;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="虚拟场景的系统调用">虚拟场景的系统调用
+</h4><p>虚拟机内部的cpu指令</p>
+<p><img src="/p/linuxkvm%E8%B5%84%E6%BA%90%E8%99%9A%E6%8B%9F%E5%8C%96/image-2.png"
+	width="1292"
+	height="780"
+	srcset="/p/linuxkvm%E8%B5%84%E6%BA%90%E8%99%9A%E6%8B%9F%E5%8C%96/image-2_hu_d16711dd504aba73.png 480w, /p/linuxkvm%E8%B5%84%E6%BA%90%E8%99%9A%E6%8B%9F%E5%8C%96/image-2_hu_77cb57720d478141.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="165"
+		data-flex-basis="397px"
+	
+></p>
+<h4 id="硬件辅助虚拟化">硬件辅助虚拟化
+</h4><p>CPU 虚拟化技术是实现虚拟化的基础，它允许在单个物理 CPU 上同时运行多个虚拟机。英特尔的 VT 和 AMD 的 AMD-V 就是为了支持高效的 CPU 虚拟化而开发的硬件辅助虚拟化技术。</p>
+<h5 id="英特尔vt技术">英特尔VT技术
+</h5><p>VT-x: 引入了新的操作模式，即 VMX（Virtual Machine eXtensions）模式。</p>
+<blockquote>
+<p>  该模式包含根操作模式（VMX root operation）和非根操作模式（VMX non-root operation）。虚拟机监视器（VMM）运行在根操作模式下，负责管理和调度虚拟机；而虚拟机则运行在非根操作模式下。
+  当虚拟机执行敏感指令时，会触发 VM 退出（VM exit），将控制权交给 VMM，VMM 处理完后再通过 VM 进入（VM entry）将控制权交还给虚拟机</p>
+</blockquote>
+<p>VT-d</p>
+<blockquote>
+<p>主要针对 I/O 虚拟化，通过直接 I/O 分配技术，允许虚拟机直接访问物理 I/O 设备，减少了 VMM 的干预，提高了 I/O 性能。它通过引入 I/O 内存管理单元（IOMMU），将设备的物理地址映射到虚拟机的虚拟地址空间，实现了设备的隔离和直接访问。</p>
+</blockquote>
+<h5 id="amd-v技术">AMD-V技术
+</h5><p>SVM（Secure Virtual Machine）</p>
+<blockquote>
+<p>  与英特尔的 VT-x 类似，AMD-V 引入了虚拟机控制结构（VMCB）来管理虚拟机的状态。它也支持两种操作模式：虚拟机模式（VM mode）和主机模式（host mode）。
+  当虚拟机执行敏感操作时，会发生 VMEXIT 事件，控制权转移到主机模式下的 VMM，VMM 处理后再通过 VMENTRY 事件将控制权返回给虚拟机。</p>
+</blockquote>
+<p>IOMMU</p>
+<blockquote>
+<p>  和英特尔的 VT-d 类似，AMD 也提供了 I/O 虚拟化的支持，通过 IOMMU 实现设备的直接分配和地址转换，提高 I/O 性能和安全性。</p>
+</blockquote>
+<h3 id="虚拟化技术">虚拟化技术
+</h3><p>实现虚拟机操作宿主机的资源的方式很多，主要是通过以下几种方式来实现：模拟、完全虚拟化、硬件辅助虚拟化、半虚拟化</p>
+<h4 id="模拟">模拟
+</h4><p><img src="/p/linuxkvm%E8%B5%84%E6%BA%90%E8%99%9A%E6%8B%9F%E5%8C%96/image-3.png"
+	width="1030"
+	height="789"
+	srcset="/p/linuxkvm%E8%B5%84%E6%BA%90%E8%99%9A%E6%8B%9F%E5%8C%96/image-3_hu_822ac0fe8e7e048c.png 480w, /p/linuxkvm%E8%B5%84%E6%BA%90%E8%99%9A%E6%8B%9F%E5%8C%96/image-3_hu_769c6567319a8a76.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="130"
+		data-flex-basis="313px"
+	
+></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">关机场景：   
+</span></span><span class="line"><span class="cl">    使用宿主机的进程来模拟虚拟机的CPU，那么虚拟机的操作指令都转发给宿主机的进程来执行，最终关闭宿主机的进程来模拟虚拟机的电源功能。
+</span></span><span class="line"><span class="cl">缺点：
+</span></span><span class="line"><span class="cl">    虚拟机大量进程间的转换导致宿主机的cpu切片频繁发生，导致性能很不好。
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="完全虚拟化">完全虚拟化
+</h4><h5 id="功能定位">功能定位
+</h5><p>完全虚拟化：各虚拟主机不知道自己是一个虚拟主机</p>
+<p><img src="/p/linuxkvm%E8%B5%84%E6%BA%90%E8%99%9A%E6%8B%9F%E5%8C%96/image-4.png"
+	width="940"
+	height="784"
+	srcset="/p/linuxkvm%E8%B5%84%E6%BA%90%E8%99%9A%E6%8B%9F%E5%8C%96/image-4_hu_f0c2bbbf9952cf0e.png 480w, /p/linuxkvm%E8%B5%84%E6%BA%90%E8%99%9A%E6%8B%9F%E5%8C%96/image-4_hu_1bd841cf8a9ab231.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="119"
+		data-flex-basis="287px"
+	
+></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">因为虚拟机指令转发给宿主机进程太消耗性能了，所以就出来了一种新的技术:BT(二进制转换)将虚拟机对特权指令的调用，在调用的那一刻直接翻译成对宿主机的特权指令的调用，
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">缺点：
+</span></span><span class="line"><span class="cl">    比分时技术稍好一些，但性能依然很差，达到物理性能的80%。
+</span></span><span class="line"><span class="cl">    某些用户空间指令没有必要翻译，可直接执行在主机的ring3上，
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h5 id="bt">BT
+</h5><p>功能定位</p>
+<blockquote>
+<p>  在虚拟化环境中，虚拟机里的操作系统运行时会执行各种指令，其中部分指令属于特权指令。在传统虚拟化方式下，当虚拟机执行特权指令时，会触发陷入（trap）机制，将控制权转交给宿主机的虚拟机监视器（VMM），VMM 再模拟执行这些指令，最后把控制权交回虚拟机。这种频繁的上下文切换和指令模拟操作会产生较大的性能开销。</br></p>
+</blockquote>
+<blockquote>
+<p>  而二进制转换技术是在虚拟机执行特权指令的瞬间，直接把虚拟机的二进制指令转换为宿主机可以直接执行的二进制指令。这样一来，宿主机就能直接执行转换后的指令，无需再经过复杂的陷入 - 模拟 - 返回流程，大大减少了性能损耗。</p>
+</blockquote>
+<p>工作流程</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">指令捕获：
+</span></span><span class="line"><span class="cl">    VMM 实时监控虚拟机的指令执行情况，一旦检测到虚拟机要执行特权指令，就立刻捕获该指令。
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">翻译规则匹配：
+</span></span><span class="line"><span class="cl">    VMM 依据预先设定的翻译规则，把捕获到的虚拟机特权指令映射成宿主机对应的特权指令。这些翻译规则会考虑虚拟机和宿主机的指令集架构、操作系统等方面的差异。
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">指令转换：
+</span></span><span class="line"><span class="cl">    按照匹配到的翻译规则，把虚拟机的二进制指令转换为宿主机能够直接执行的二进制指令。
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">执行转换后的指令：
+</span></span><span class="line"><span class="cl">    宿主机直接执行转换后的特权指令，执行完成后把结果反馈给虚拟机。
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>局限性</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">翻译复杂度：
+</span></span><span class="line"><span class="cl">    不同的指令集架构和操作系统之间的转换规则非常复杂，需要耗费大量的时间和精力来维护和更新翻译规则。
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">性能开销：
+</span></span><span class="line"><span class="cl">    二进制转换本身也会带来一定的性能开销，尤其是在处理复杂指令或者动态代码时，可能会影响整体性能。
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="硬件辅助虚拟化-1">硬件辅助虚拟化
+</h4><p>由于BT技术的缺点，所以有了第三种技术:HVM(硬件辅助技术),常见的有：Intel的VT-x或AMD的AMD-V</p>
+<p><img src="/p/linuxkvm%E8%B5%84%E6%BA%90%E8%99%9A%E6%8B%9F%E5%8C%96/image-5.png"
+	width="908"
+	height="803"
+	srcset="/p/linuxkvm%E8%B5%84%E6%BA%90%E8%99%9A%E6%8B%9F%E5%8C%96/image-5_hu_748cd527f3ade69a.png 480w, /p/linuxkvm%E8%B5%84%E6%BA%90%E8%99%9A%E6%8B%9F%E5%8C%96/image-5_hu_2a4abdf08d768a0d.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="113"
+		data-flex-basis="271px"
+	
+></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">    宿主机通过硬件辅助技术生成一个ring-1，虚拟机上的其他指令直接在主机的ring3上执行，特权指令直接在ring0上运行，宿主机CPU硬件可以直接将ring0上的特权指令转换成ring-1中的特权指令，然后执行指令。
+</span></span><span class="line"><span class="cl">据说：达到物理主机性能的85%。
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="半虚拟化">半虚拟化
+</h4><p>宿主机中接收虚拟机指令的组件叫hypervisor，它直接管理宿主机的CPU和mem硬件，不包括io硬件。</p>
+<p><img src="/p/linuxkvm%E8%B5%84%E6%BA%90%E8%99%9A%E6%8B%9F%E5%8C%96/image-6.png"
+	width="984"
+	height="788"
+	srcset="/p/linuxkvm%E8%B5%84%E6%BA%90%E8%99%9A%E6%8B%9F%E5%8C%96/image-6_hu_90dc734fbe3a764c.png 480w, /p/linuxkvm%E8%B5%84%E6%BA%90%E8%99%9A%E6%8B%9F%E5%8C%96/image-6_hu_2429aea6b3f46540.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="124"
+		data-flex-basis="299px"
+	
+></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">半虚拟化：修改操作系统的内核，让虚拟机的内核知道自己是在虚拟环境中，不能执行特权指令。虚拟主机发现要执行一个特权指令，那么虚拟主机内核向宿主机发起hyper call，交由宿主机的hypervisor组件去执行相应的硬件。
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">据说：达到物理主机性能的90~95%
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="内存虚拟化">内存虚拟化
+</h2><h3 id="基础知识">基础知识
+</h3><h4 id="内存虚拟化-1">内存虚拟化
+</h4><p>内存本身就是虚拟化的。因为进程看到的是线性地址空间，内核看到的是物理地址空间。</p>
+<blockquote>
+<p>  没有虚拟化的时候，主机内核以为自己操作的是整个内存空间，而在虚拟化场景中，每个虚拟机内核都认为自己操作的是整个内存空间，这是不现实的。</p>
+</blockquote>
+<p>基本原理</p>
+<p><img src="/p/linuxkvm%E8%B5%84%E6%BA%90%E8%99%9A%E6%8B%9F%E5%8C%96/image-7.png"
+	width="1033"
+	height="505"
+	srcset="/p/linuxkvm%E8%B5%84%E6%BA%90%E8%99%9A%E6%8B%9F%E5%8C%96/image-7_hu_8e79550c37fa74bf.png 480w, /p/linuxkvm%E8%B5%84%E6%BA%90%E8%99%9A%E6%8B%9F%E5%8C%96/image-7_hu_6aefc7f8162150fe.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="204"
+		data-flex-basis="490px"
+	
+></p>
+<h4 id="tlb">TLB
+</h4><p>TLB（Translation Lookaside Buffer）即快表，是一种高速缓存，用于存储最近访问的虚拟地址到物理地址的转换映射，可加速地址转换过程。</p>
+<blockquote>
+<p>  在非虚拟化环境中，操作系统直接管理 TLB，当进程进行地址转换时，会先在 TLB 中查找映射关系，如果找到则直接使用，找不到则进行页表查询并更新 TLB。</p>
+</blockquote>
+<blockquote>
+<p>  而在虚拟化环境下，存在多个虚拟机，每个虚拟机都有自己的虚拟地址空间和页表，这就需要对 TLB 进行特殊处理，以保证不同虚拟机之间的隔离和高效运行。</p>
+</blockquote>
+<h3 id="虚拟化技术-1">虚拟化技术
+</h3><h4 id="影子页表">影子页表
+</h4><p>为每个虚拟机维护一份影子页表，影子页表是宿主机物理地址到虚拟机物理地址的映射。当虚拟机进行地址转换时，VMM（虚拟机监视器）会将虚拟机的虚拟地址转换为影子页表中的物理地址，然后再通过宿主机的 TLB 进行查找。</p>
+<p><img src="/p/linuxkvm%E8%B5%84%E6%BA%90%E8%99%9A%E6%8B%9F%E5%8C%96/image-8.png"
+	width="1100"
+	height="595"
+	srcset="/p/linuxkvm%E8%B5%84%E6%BA%90%E8%99%9A%E6%8B%9F%E5%8C%96/image-8_hu_ec7136245010796e.png 480w, /p/linuxkvm%E8%B5%84%E6%BA%90%E8%99%9A%E6%8B%9F%E5%8C%96/image-8_hu_56e93f8a10ba1db0.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="184"
+		data-flex-basis="443px"
+	
+></p>
+<blockquote>
+<p>  虚拟机进程经过CPU的MMU的转换到虚拟机的内存中找到了相应的地址，但是这个地址不是真正的宿主机的内存地址，所以再次经过shadow page table的技术，将虚拟的内存地址转换成真正的物理地址，找到对应的存储元素。</p>
+</blockquote>
+<blockquote>
+<p>缺点：</br>
+  shadow page table 必须和虚拟机一一对应使用</br>
+  维护影子页表的开销较大: TLB缓存相应的虚拟机A地址转换信息，但是当切换虚拟机B使用的时候，TLB内容就失效了。</p>
+</blockquote>
+<h4 id="mmu虚拟化">mmu虚拟化
+</h4><p>MMU（Memory Management Unit，内存管理单元）虚拟化是虚拟化技术里的关键部分，其主要作用是让多个虚拟机能够在同一物理硬件上高效且安全地使用内存资源。</p>
+<blockquote>
+<p>  在非虚拟化环境中，MMU 负责把虚拟地址转换为物理地址，从而让操作系统能够更有效地管理内存。而在虚拟化环境下，由于存在多个虚拟机，每个虚拟机都有自己的虚拟地址空间，这就需要对 MMU 进行虚拟化处理，使得虚拟机的虚拟地址能够正确映射到宿主机的物理地址。</p>
+</blockquote>
+<p><img src="/p/linuxkvm%E8%B5%84%E6%BA%90%E8%99%9A%E6%8B%9F%E5%8C%96/image-9.png"
+	width="1085"
+	height="604"
+	srcset="/p/linuxkvm%E8%B5%84%E6%BA%90%E8%99%9A%E6%8B%9F%E5%8C%96/image-9_hu_b6724d69f1146095.png 480w, /p/linuxkvm%E8%B5%84%E6%BA%90%E8%99%9A%E6%8B%9F%E5%8C%96/image-9_hu_b20743ac276eb9b3.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="179"
+		data-flex-basis="431px"
+	
+></p>
+<blockquote>
+<p>  借助于cpu的硬件虚拟化作用[Intel 的 EPT（Extended Page Tables）和 AMD 的 NPT（Nested Page Tables）]，这些技术允许在硬件层面支持多级页表转换，虚拟机的页表和宿主机的页表可以同时存在于硬件中。</p>
+</blockquote>
+<blockquote>
+<p>  在虚拟机进行线性地址转换的同时，硬件会自动处理地址转换，通过虚拟MMU将其转换成宿主机内存的物理地址，减少了 VMM 的干预，提升了内存的性能。</p>
+</blockquote>
+<blockquote>
+<p>缺点：</br>
+  TLB的命中率还是比较低</p>
+</blockquote>
+<h4 id="tlb虚拟化">TLB虚拟化
+</h4><p>在 MMU（内存管理单元）虚拟化的基础上引入 TLB（Translation Lookaside Buffer，快表）虚拟化功能，在缓存信息的时候，增加一个标签的功能，类似数据库表字段。可以进一步优化虚拟化环境下的地址转换性能。</p>
+<p><img src="/p/linuxkvm%E8%B5%84%E6%BA%90%E8%99%9A%E6%8B%9F%E5%8C%96/image-10.png"
+	width="533"
+	height="71"
+	srcset="/p/linuxkvm%E8%B5%84%E6%BA%90%E8%99%9A%E6%8B%9F%E5%8C%96/image-10_hu_6338316f817d5f5a.png 480w, /p/linuxkvm%E8%B5%84%E6%BA%90%E8%99%9A%E6%8B%9F%E5%8C%96/image-10_hu_ed5763298e4ff5ae.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="750"
+		data-flex-basis="1801px"
+	
+></p>
+<blockquote>
+<p>  类似于影子页表，为每个虚拟机维护一个影子 TLB。当虚拟机进行地址转换时，首先在其影子 TLB 中查找映射信息，如果找到则直接使用，找不到则通过 MMU 的虚拟化机制（如影子页表或硬件辅助的页表）进行查找，并更新影子 TLB。</p>
+</blockquote>
+<p>优势解读</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">提高地址转换性能：
+</span></span><span class="line"><span class="cl">    通过在 TLB 中缓存常用的地址映射信息，可以减少 MMU 对页表的访问次数，从而加快地址转换速度。
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">增强虚拟机隔离性：
+</span></span><span class="line"><span class="cl">    TLB 虚拟化可以确保不同虚拟机的地址映射信息不会相互干扰，提高了虚拟机之间的隔离性和安全性。
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">优化内存使用效率：
+</span></span><span class="line"><span class="cl">    合理管理 TLB 可以减少 TLB 缺失的情况，避免因频繁的页表查找而导致的内存访问延迟，提高内存使用效率。
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="io虚拟化">IO虚拟化
+</h2><h3 id="基础设施">基础设施
+</h3><p>常见IO设备</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">对服务器来说的必备IO设备：
+</span></span><span class="line"><span class="cl">外存设备：   硬盘、光盘、U盘             网络设备：   网卡
+</span></span><span class="line"><span class="cl">显示设备：   VGA                        键盘鼠标：   ps/2, usb
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>io原理(以网卡为例)</p>
+<p><img src="/p/linuxkvm%E8%B5%84%E6%BA%90%E8%99%9A%E6%8B%9F%E5%8C%96/image-11.png"
+	width="648"
+	height="609"
+	srcset="/p/linuxkvm%E8%B5%84%E6%BA%90%E8%99%9A%E6%8B%9F%E5%8C%96/image-11_hu_374a1e0e5011ccaa.png 480w, /p/linuxkvm%E8%B5%84%E6%BA%90%E8%99%9A%E6%8B%9F%E5%8C%96/image-11_hu_ba6434befb2bdff2.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="106"
+		data-flex-basis="255px"
+	
+></p>
+<blockquote>
+<p>  主机用户空间中的一个程序，发出一个信息报文，通过系统调用，由内核调用该设备的驱动程序，由主机硬件中的网卡设备将信息报文输出</p>
+</blockquote>
+<h3 id="虚拟化技术-2">虚拟化技术
+</h3><p>实现虚拟机操作宿主机的资源的方式很多，主要是通过以下几种方式来实现：模拟、半虚拟化、透传、硬件虚拟化</p>
+<h4 id="模拟-1">模拟
+</h4><p>完全使用软件来模拟真实的常见的硬件使用场景。</p>
+<p><img src="/p/linuxkvm%E8%B5%84%E6%BA%90%E8%99%9A%E6%8B%9F%E5%8C%96/image-12.png"
+	width="862"
+	height="784"
+	srcset="/p/linuxkvm%E8%B5%84%E6%BA%90%E8%99%9A%E6%8B%9F%E5%8C%96/image-12_hu_2ec51fbf589f7c31.png 480w, /p/linuxkvm%E8%B5%84%E6%BA%90%E8%99%9A%E6%8B%9F%E5%8C%96/image-12_hu_b8af9d7f4f4a2a69.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="109"
+		data-flex-basis="263px"
+	
+></p>
+<blockquote>
+<p>  虚拟主机用户空间中的一个程序，发出一个信息报文，通过系统调用，由内核调用该设备的驱动程序，由主机硬件中的网卡设备将信息报文输出，该信息交给宿主机的hypervisor上对应的网卡设备，然后把该网卡接收到的信息暂存到IO栈中，然后调用宿主机的网卡设备驱动，经宿主机网卡将该信息报文发出去。</p>
+</blockquote>
+<blockquote>
+<p>缺点：</br>
+  虚拟机上的设备驱动以及虚拟网卡发送信息所做的工作和hypervisor是重复的。</br>
+  物理硬件的性能发挥60%左右</p>
+</blockquote>
+<h4 id="半虚拟化-1">半虚拟化
+</h4><p>借助硬件虚拟化功能，将设备驱动分成两部分，前端驱动和后端驱动，前端驱动是虚拟机专用的，后端驱动是统一使用的。</p>
+<p><img src="/p/linuxkvm%E8%B5%84%E6%BA%90%E8%99%9A%E6%8B%9F%E5%8C%96/image-13.png"
+	width="855"
+	height="789"
+	srcset="/p/linuxkvm%E8%B5%84%E6%BA%90%E8%99%9A%E6%8B%9F%E5%8C%96/image-13_hu_390c9620a5c1a5d.png 480w, /p/linuxkvm%E8%B5%84%E6%BA%90%E8%99%9A%E6%8B%9F%E5%8C%96/image-13_hu_26d4c54c68a7f7f4.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="108"
+		data-flex-basis="260px"
+	
+></p>
+<blockquote>
+<p>  虚拟主机用户空间中的一个程序，发出一个信息报文，通过系统调用，内核不做任何处理，直接由该设备的虚拟驱动程序&ndash;前端驱动，该信息交给宿主机的hypervisor上对应的网卡设备，然后把该网卡接收到的信息暂存到IO栈中，然后调用网卡驱动&ndash;后端驱动，经宿主机网卡将该信息报文发出去。</br>
+  这样就省略了虚拟机中重复调用驱动发送信息的动作。可以使用物理硬件95%的性能</p>
+</blockquote>
+<blockquote>
+<p>缺点：</br>
+  前后端驱动的方法只适用于硬盘和网卡设备，</br>
+  显卡设备的虚拟，一般使用frame buffer机制来实现。目前显卡的虚拟，可以在Centos7上使用半虚拟化方式来实现。</p>
+</blockquote>
+<h4 id="透传">透传
+</h4><p><img src="/p/linuxkvm%E8%B5%84%E6%BA%90%E8%99%9A%E6%8B%9F%E5%8C%96/image-14.png"
+	width="845"
+	height="728"
+	srcset="/p/linuxkvm%E8%B5%84%E6%BA%90%E8%99%9A%E6%8B%9F%E5%8C%96/image-14_hu_12d7c72056d8bb66.png 480w, /p/linuxkvm%E8%B5%84%E6%BA%90%E8%99%9A%E6%8B%9F%E5%8C%96/image-14_hu_80ea0871b3f14f17.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="116"
+		data-flex-basis="278px"
+	
+></p>
+<blockquote>
+<p>  宿主机上有多块盘，每个虚拟机直接使用一块专用盘，像这种场景方法就叫IO透传。前提是我们的硬件必须支持响应的透传技术.</p>
+</blockquote>
+<blockquote>
+<p>  宿主机上的hypervisor管理所有的存储设备，然后分配给VM虚拟机一个专用的存储设备，虚拟机使用的时候，直接通过内核空间中的设备驱动，操作该分配的存储设备。</p>
+</blockquote>
+<h4 id="硬件虚拟化">硬件虚拟化
+</h4><p><img src="/p/linuxkvm%E8%B5%84%E6%BA%90%E8%99%9A%E6%8B%9F%E5%8C%96/image-15.png"
+	width="834"
+	height="728"
+	srcset="/p/linuxkvm%E8%B5%84%E6%BA%90%E8%99%9A%E6%8B%9F%E5%8C%96/image-15_hu_bdf059b0b1db09eb.png 480w, /p/linuxkvm%E8%B5%84%E6%BA%90%E8%99%9A%E6%8B%9F%E5%8C%96/image-15_hu_9bab582bb7a8b671.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="114"
+		data-flex-basis="274px"
+	
+></p>
+<blockquote>
+<p>  传统的x86架构的设备有一个集中式的管理设备叫DMA(直接内存访问)，它是一种加速io访问性能的方式，在它内部有一个IOMMU，它可以进行IO寄存器和IO设备端口的自动映射工作。</p>
+</blockquote>
+<blockquote>
+<p>  如果在宿主机用DMA，所有的虚拟机都连接一个DMA，所以虚拟机io设备的调用必须在IOMMU级别上实现隔离，VT-d就是基于北桥的硬件辅助的虚拟化技术，提高了IO设备的可靠性、灵活性和性能。</p>
+</blockquote>
+<h2 id="网络虚拟化">网络虚拟化
+</h2><h3 id="虚拟原理">虚拟原理
+</h3><p>虚拟网络设备创建的原理：</p>
+<p><img src="/p/linuxkvm%E8%B5%84%E6%BA%90%E8%99%9A%E6%8B%9F%E5%8C%96/image-16.png"
+	width="840"
+	height="455"
+	srcset="/p/linuxkvm%E8%B5%84%E6%BA%90%E8%99%9A%E6%8B%9F%E5%8C%96/image-16_hu_eefe9efebae02f71.png 480w, /p/linuxkvm%E8%B5%84%E6%BA%90%E8%99%9A%E6%8B%9F%E5%8C%96/image-16_hu_2ff9a6904af33064.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="184"
+		data-flex-basis="443px"
+	
+></p>
+<blockquote>
+<p>  虚拟网络设备是由软件实现的，它们是成对出现的：即虚拟机和hypervisor会生成一对虚拟网卡设备，vm通过vnet0和绑定在hypervisor上的vnet0进行通信，反之一样。</p>
+</blockquote>
+<blockquote>
+<p>  该虚拟网络设备主要有两种方式：TUN(基本不用)与TAP，TAP模拟以太网设备，操作第二层数据包。TUN模拟网络层设备，操作第三层数据包。</p>
+</blockquote>
+<h3 id="网络模式">网络模式
+</h3><p>网络的虚拟化，一般是由四种模型来实现的：桥接模型、路由模型(仅主机模型)、net模型、隔离模型</p>
+<h4 id="桥接模型">桥接模型
+</h4><p>桥接模式的核心原理是创建一个虚拟网桥设备，这个网桥就像是一个物理的以太网交换机。虚拟机的虚拟网卡和宿主机的物理网卡都会连接到这个虚拟网桥上。</p>
+<p><img src="/p/linuxkvm%E8%B5%84%E6%BA%90%E8%99%9A%E6%8B%9F%E5%8C%96/image-17.png"
+	width="1365"
+	height="461"
+	srcset="/p/linuxkvm%E8%B5%84%E6%BA%90%E8%99%9A%E6%8B%9F%E5%8C%96/image-17_hu_9691b93090a155c5.png 480w, /p/linuxkvm%E8%B5%84%E6%BA%90%E8%99%9A%E6%8B%9F%E5%8C%96/image-17_hu_755367b5edf6a0a9.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="296"
+		data-flex-basis="710px"
+	
+></p>
+<blockquote>
+<p>  当虚拟机发送网络数据包时，数据包会先到达虚拟网桥，然后由网桥根据目标 MAC 地址将数据包转发到合适的端口，可能是宿主机的物理网卡，也可能是其他连接到网桥的虚拟机的虚拟网卡。</p>
+</blockquote>
+<h4 id="路由模型型仅主机模型">路由模型型(仅主机模型)
+</h4><p><img src="/p/linuxkvm%E8%B5%84%E6%BA%90%E8%99%9A%E6%8B%9F%E5%8C%96/image-18.png"
+	width="1368"
+	height="461"
+	srcset="/p/linuxkvm%E8%B5%84%E6%BA%90%E8%99%9A%E6%8B%9F%E5%8C%96/image-18_hu_56a46c46b903879b.png 480w, /p/linuxkvm%E8%B5%84%E6%BA%90%E8%99%9A%E6%8B%9F%E5%8C%96/image-18_hu_6cf6b152d6fd2d3f.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="296"
+		data-flex-basis="712px"
+	
+></p>
+<blockquote>
+<p>  宿主机就像一个路由器，它有自己的网络接口连接到外部网络，同时通过虚拟网络接口与虚拟机进行通信。当虚拟机需要与外部网络通信时，数据包会先到达宿主机，然后由宿主机根据路由表将数据包转发到合适的目标网络。</p>
+</blockquote>
+<h4 id="net模型">net模型
+</h4><p>NAT 模式的核心原理是在宿主机上创建一个虚拟的 NAT 设备，它就像一个网络地址翻译器。</p>
+<p><img src="/p/linuxkvm%E8%B5%84%E6%BA%90%E8%99%9A%E6%8B%9F%E5%8C%96/image-19.png"
+	width="1373"
+	height="461"
+	srcset="/p/linuxkvm%E8%B5%84%E6%BA%90%E8%99%9A%E6%8B%9F%E5%8C%96/image-19_hu_b6b638284f3b348f.png 480w, /p/linuxkvm%E8%B5%84%E6%BA%90%E8%99%9A%E6%8B%9F%E5%8C%96/image-19_hu_58869d939e29d2f3.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="297"
+		data-flex-basis="714px"
+	
+></p>
+<blockquote>
+<p>  虚拟机使用私有 IP 地址，处于一个与宿主机隔离的虚拟网络中。当虚拟机要与外部网络通信时，NAT 设备会将虚拟机数据包中的源 IP 地址替换为宿主机的公网 IP 地址，同时记录下这个转换关系，以便外部网络返回数据包时能正确地将其转发给对应的虚拟机。</p>
+</blockquote>
+<h4 id="隔离模型">隔离模型
+</h4><p>网卡虚拟化中的隔离模式是一种将虚拟机的网络与外部网络或其他虚拟机网络隔离开来的网络配置方式，以满足特定的安全、隐私或测试需求。</p>
+<p><img src="/p/linuxkvm%E8%B5%84%E6%BA%90%E8%99%9A%E6%8B%9F%E5%8C%96/image-20.png"
+	width="1371"
+	height="460"
+	srcset="/p/linuxkvm%E8%B5%84%E6%BA%90%E8%99%9A%E6%8B%9F%E5%8C%96/image-20_hu_e9e9a575267bc87e.png 480w, /p/linuxkvm%E8%B5%84%E6%BA%90%E8%99%9A%E6%8B%9F%E5%8C%96/image-20_hu_afb3caf03594d7e4.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="298"
+		data-flex-basis="715px"
+	
+></p>
+<blockquote>
+<p>  在隔离模式下，虚拟网卡通过特殊的网络配置，使虚拟机处于一个独立的网络空间中。它通常会创建一个专用的虚拟网络，该网络与宿主机的物理网络以及其他虚拟机所在的网络相互隔离。实现方式可以是通过虚拟交换机的设置，将属于隔离模式的虚拟机连接到特定的虚拟端口组，这些端口组之间在网络层是相互隔离的，数据包无法直接在不同隔离网络之间传输。</p>
+</blockquote>
+<blockquote>
+<p>  虚拟机在隔离模式下，只能与同一隔离网络中的其他虚拟机或设备进行通信。与外部网络的通信被完全阻断，除非通过特定的网络策略或代理机制进行设置。这意味着虚拟机无法直接访问互联网或其他非隔离网络中的资源，外部网络也无法直接访问隔离模式下的虚拟机，从而实现了网络层面的数据隔离。</p>
+</blockquote>
+
+</section>
+
+
+    <footer class="article-footer">
+    
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+<aside class="related-content--wrapper">
+    <h2 class="section-title">相关文章</h2>
+    <div class="related-content">
+        <div class="flex article-list--tile">
+            
+                
+<article class="">
+    <a href="/p/linuxkvm%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Linux]kvm资源管理</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/linuxkvm%E5%AE%9E%E8%B7%B5/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Linux]kvm实践</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/linuxkvm%E5%9F%BA%E7%A1%80/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Linux]kvm基础</h2>
+        </div>
+    </a>
+</article>
+
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+            2025 - 
+        
+        2026 リンボの個人ブログ
+    </section>
+    
+    <section class="powerby">
+         <br />
+        
+    </section>
+</footer>
+
+
+    
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+    
+    <div class="pswp__bg"></div>
+
+    
+    <div class="pswp__scroll-wrap">
+
+        
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+
+        
+        <div class="pswp__ui pswp__ui--hidden">
+
+            <div class="pswp__top-bar">
+
+                
+
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+
+                <button class="pswp__button pswp__button--share" title="Share"></button>
+
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+
+                
+                
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                        <div class="pswp__preloader__cut">
+                            <div class="pswp__preloader__donut"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div>
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.js"integrity="sha256-ePwmChbbvXbsO02lbM3HoHbSHTHFAeChekF1xKJdleo="crossorigin="anonymous"
+                defer
+                >
+            </script><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe-ui-default.min.js"integrity="sha256-UKkzOn/w1mBxRmLLGrSeyB4e1xbrp4xylgAWb3M42pU="crossorigin="anonymous"
+                defer
+                >
+            </script><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/default-skin/default-skin.min.css"crossorigin="anonymous"
+            ><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.css"crossorigin="anonymous"
+            >
+
+            </main>
+        </div>
+        <script 
+                src="https://cdn.jsdelivr.net/npm/node-vibrant@3.1.6/dist/vibrant.min.js"integrity="sha256-awcR2jno4kI5X0zL8ex0vi2z&#43;KMkF24hUW8WePSA9HM="crossorigin="anonymous"
+                
+                >
+            </script><script type="text/javascript" src="/ts/main.1e9a3bafd846ced4c345d084b355fb8c7bae75701c338f8a1f8a82c780137826.js" defer></script>
+<script>
+    (function () {
+        const customFont = document.createElement('link');
+        customFont.href = "https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap";
+
+        customFont.type = "text/css";
+        customFont.rel = "stylesheet";
+
+        document.head.appendChild(customFont);
+    }());
+</script>
+
+    </body>
+</html>
