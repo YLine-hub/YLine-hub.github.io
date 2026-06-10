@@ -1,0 +1,1870 @@
+<!DOCTYPE html>
+<html lang="en-us" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="redis客户端和程序访问及多例实现 Redis工具和客户端连接 安装的相关程序介绍 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 #Redis7.0以上 [root@ubuntu2204 ~]#ll /apps/redis/bin/ total 32772 -rwxr-xr-x 1 root root 4366792 Feb 16 21:12 redis-benchmark #性能测试程序 -rwxr-xr-x 1 root root 8125184 Feb 16 21:12 redis-check-aof -&gt; redis-server #AOF文件检查程序 -rwxr-xr-x 1 root root 8125184 Feb 16 21:12 redis-check-rdb -&gt; redis-server #RDB文件检查程序 -rwxr-xr-x 1 root root 4807856 Feb 16 21:12 redis-cli #客户端程序 lrwxrwxrwx 1 root root 12 Feb 16 21:12 redis-sentinel -&gt; redis-server #哨兵程序，软连接到服务器端主程序 -rwxr-xr-x 1 root root 8125184 Feb 16 21:12 redis-server #服务端主程序 #Redis6.0以下 [root@centos8 ~]#ll /apps/redis/bin/ total 32772 -rwxr-xr-x 1 root root 4366792 Feb 16 21:12 redis-benchmark #性能测试程序 -rwxr-xr-x 1 root root 8125184 Feb 16 21:12 redis-check-aof #AOF文件检查程序 -rwxr-xr-x 1 root root 8125184 Feb 16 21:12 redis-check-rdb #RDB文件检查程序 -rwxr-xr-x 1 root root 4807856 Feb 16 21:12 redis-cli #客户端程序 lrwxrwxrwx 1 root root 12 Feb 16 21:12 redis-sentinel -&gt; redis-server #哨兵程序，软连接到服务器端主程序 -rwxr-xr-x 1 root root 8125184 Feb 16 21:12 redis-server #服务端主程序 客户端程序 redis-cli 远程连接112-redis服务器\n">
+<title>[马哥][redis]客户端和程序访问及多例实现</title>
+
+<link rel='canonical' href='https://YLine-hub.github.io/p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/'>
+
+<link rel="stylesheet" href="/scss/style.min.6a692fd055deae459f2a9767f57f3855ba80cafd5041317f24f7360f6ca47cdf.css"><meta property='og:title' content="[马哥][redis]客户端和程序访问及多例实现">
+<meta property='og:description' content="redis客户端和程序访问及多例实现 Redis工具和客户端连接 安装的相关程序介绍 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 #Redis7.0以上 [root@ubuntu2204 ~]#ll /apps/redis/bin/ total 32772 -rwxr-xr-x 1 root root 4366792 Feb 16 21:12 redis-benchmark #性能测试程序 -rwxr-xr-x 1 root root 8125184 Feb 16 21:12 redis-check-aof -&gt; redis-server #AOF文件检查程序 -rwxr-xr-x 1 root root 8125184 Feb 16 21:12 redis-check-rdb -&gt; redis-server #RDB文件检查程序 -rwxr-xr-x 1 root root 4807856 Feb 16 21:12 redis-cli #客户端程序 lrwxrwxrwx 1 root root 12 Feb 16 21:12 redis-sentinel -&gt; redis-server #哨兵程序，软连接到服务器端主程序 -rwxr-xr-x 1 root root 8125184 Feb 16 21:12 redis-server #服务端主程序 #Redis6.0以下 [root@centos8 ~]#ll /apps/redis/bin/ total 32772 -rwxr-xr-x 1 root root 4366792 Feb 16 21:12 redis-benchmark #性能测试程序 -rwxr-xr-x 1 root root 8125184 Feb 16 21:12 redis-check-aof #AOF文件检查程序 -rwxr-xr-x 1 root root 8125184 Feb 16 21:12 redis-check-rdb #RDB文件检查程序 -rwxr-xr-x 1 root root 4807856 Feb 16 21:12 redis-cli #客户端程序 lrwxrwxrwx 1 root root 12 Feb 16 21:12 redis-sentinel -&gt; redis-server #哨兵程序，软连接到服务器端主程序 -rwxr-xr-x 1 root root 8125184 Feb 16 21:12 redis-server #服务端主程序 客户端程序 redis-cli 远程连接112-redis服务器\n">
+<meta property='og:url' content='https://YLine-hub.github.io/p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/'>
+<meta property='og:site_name' content='リンボの個人ブログ'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:published_time' content='2026-06-04T14:28:23&#43;08:00'/><meta property='article:modified_time' content='2026-06-04T14:28:23&#43;08:00'/>
+<meta name="twitter:title" content="[马哥][redis]客户端和程序访问及多例实现">
+<meta name="twitter:description" content="redis客户端和程序访问及多例实现 Redis工具和客户端连接 安装的相关程序介绍 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 #Redis7.0以上 [root@ubuntu2204 ~]#ll /apps/redis/bin/ total 32772 -rwxr-xr-x 1 root root 4366792 Feb 16 21:12 redis-benchmark #性能测试程序 -rwxr-xr-x 1 root root 8125184 Feb 16 21:12 redis-check-aof -&gt; redis-server #AOF文件检查程序 -rwxr-xr-x 1 root root 8125184 Feb 16 21:12 redis-check-rdb -&gt; redis-server #RDB文件检查程序 -rwxr-xr-x 1 root root 4807856 Feb 16 21:12 redis-cli #客户端程序 lrwxrwxrwx 1 root root 12 Feb 16 21:12 redis-sentinel -&gt; redis-server #哨兵程序，软连接到服务器端主程序 -rwxr-xr-x 1 root root 8125184 Feb 16 21:12 redis-server #服务端主程序 #Redis6.0以下 [root@centos8 ~]#ll /apps/redis/bin/ total 32772 -rwxr-xr-x 1 root root 4366792 Feb 16 21:12 redis-benchmark #性能测试程序 -rwxr-xr-x 1 root root 8125184 Feb 16 21:12 redis-check-aof #AOF文件检查程序 -rwxr-xr-x 1 root root 8125184 Feb 16 21:12 redis-check-rdb #RDB文件检查程序 -rwxr-xr-x 1 root root 4807856 Feb 16 21:12 redis-cli #客户端程序 lrwxrwxrwx 1 root root 12 Feb 16 21:12 redis-sentinel -&gt; redis-server #哨兵程序，软连接到服务器端主程序 -rwxr-xr-x 1 root root 8125184 Feb 16 21:12 redis-server #服务端主程序 客户端程序 redis-cli 远程连接112-redis服务器\n">
+    <link rel="shortcut icon" href="/favicon.ico" />
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        
+            
+            <figure class="site-avatar">
+                <a href="/">
+                
+                    
+                    
+                    
+                        
+                        <img src="/img/avatar_hu_de528bff5d5e9598.png" width="300"
+                            height="300" class="site-logo" loading="lazy" alt="Avatar">
+                    
+                
+                </a>
+                
+                    <span class="emoji">🏖️</span>
+                
+            </figure>
+            
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">リンボの個人ブログ</a></h1>
+            <h2 class="site-description">努力不一定能获得回报，但不努力一定不会有回报。</h2>
+        </div>
+    </header><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-home" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <polyline points="5 12 3 12 12 3 21 12 19 12" />
+  <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7" />
+  <path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6" />
+</svg>
+
+
+
+                
+                <span>主页</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/%E5%85%B3%E4%BA%8E/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/archives/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/search/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-search" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="10" cy="10" r="7" />
+  <line x1="21" y1="21" x2="15" y2="15" />
+</svg>
+
+
+
+                
+                <span>搜索</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav id="TableOfContents">
+  <ol>
+    <li><a href="#redis工具和客户端连接">Redis工具和客户端连接</a>
+      <ol>
+        <li><a href="#安装的相关程序介绍">安装的相关程序介绍</a></li>
+        <li><a href="#客户端程序-redis-cli">客户端程序 redis-cli</a></li>
+        <li><a href="#程序连接-redis">程序连接 redis</a>
+          <ol>
+            <li><a href="#redis的简单使用">redis的简单使用</a></li>
+            <li><a href="#shell-脚本访问redis">Shell 脚本访问Redis</a></li>
+            <li><a href="#python-程序访问redis">Python 程序访问Redis</a></li>
+            <li><a href="#golang-程序访问redis">Golang 程序访问redis</a></li>
+          </ol>
+        </li>
+        <li><a href="#图形工具">图形工具</a>
+          <ol>
+            <li><a href="#redisinsight">RedisInsight</a></li>
+            <li><a href="#another-redis-desktop-manager">Another-Redis-Desktop-Manager</a></li>
+            <li><a href="#redisdesktopmanager">RedisDesktopManager</a></li>
+          </ol>
+        </li>
+      </ol>
+    </li>
+    <li><a href="#redis多例实现">Redis多例实现</a></li>
+  </ol>
+</nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            <a href="/categories/redis/" >
+                Redis
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/">[马哥][redis]客户端和程序访问及多例实现</a>
+        </h2>
+    
+        
+    </div>
+
+    
+    
+    
+    
+    <footer class="article-time">
+        
+            <div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                <time class="article-time--published">2026-06-04</time>
+            </div>
+        
+
+        
+    </footer>
+    
+
+    
+</div>
+
+</header>
+
+    <section class="article-content">
+    
+    
+    <h1 id="redis客户端和程序访问及多例实现">redis客户端和程序访问及多例实现
+</h1><h2 id="redis工具和客户端连接">Redis工具和客户端连接
+</h2><h3 id="安装的相关程序介绍">安装的相关程序介绍
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1">#Redis7.0以上</span>
+</span></span><span class="line"><span class="cl"><span class="o">[</span>root@ubuntu2204 ~<span class="o">]</span><span class="c1">#ll /apps/redis/bin/</span>
+</span></span><span class="line"><span class="cl">total <span class="m">32772</span>
+</span></span><span class="line"><span class="cl">-rwxr-xr-x <span class="m">1</span> root root <span class="m">4366792</span> Feb <span class="m">16</span> 21:12 redis-benchmark <span class="c1">#性能测试程序</span>
+</span></span><span class="line"><span class="cl">-rwxr-xr-x <span class="m">1</span> root root <span class="m">8125184</span> Feb <span class="m">16</span> 21:12 redis-check-aof -&gt; redis-server <span class="c1">#AOF文件检查程序</span>
+</span></span><span class="line"><span class="cl">-rwxr-xr-x <span class="m">1</span> root root <span class="m">8125184</span> Feb <span class="m">16</span> 21:12 redis-check-rdb -&gt; redis-server
+</span></span><span class="line"><span class="cl"><span class="c1">#RDB文件检查程序</span>
+</span></span><span class="line"><span class="cl">-rwxr-xr-x <span class="m">1</span> root root <span class="m">4807856</span> Feb <span class="m">16</span> 21:12 redis-cli   <span class="c1">#客户端程序    </span>
+</span></span><span class="line"><span class="cl">lrwxrwxrwx <span class="m">1</span> root root      <span class="m">12</span> Feb <span class="m">16</span> 21:12 redis-sentinel -&gt; redis-server <span class="c1">#哨兵程序，软连接到服务器端主程序</span>
+</span></span><span class="line"><span class="cl">-rwxr-xr-x <span class="m">1</span> root root <span class="m">8125184</span> Feb <span class="m">16</span> 21:12 redis-server <span class="c1">#服务端主程序</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">#Redis6.0以下</span>
+</span></span><span class="line"><span class="cl"><span class="o">[</span>root@centos8 ~<span class="o">]</span><span class="c1">#ll /apps/redis/bin/</span>
+</span></span><span class="line"><span class="cl">total <span class="m">32772</span>
+</span></span><span class="line"><span class="cl">-rwxr-xr-x <span class="m">1</span> root root <span class="m">4366792</span> Feb <span class="m">16</span> 21:12 redis-benchmark <span class="c1">#性能测试程序</span>
+</span></span><span class="line"><span class="cl">-rwxr-xr-x <span class="m">1</span> root root <span class="m">8125184</span> Feb <span class="m">16</span> 21:12 redis-check-aof <span class="c1">#AOF文件检查程序</span>
+</span></span><span class="line"><span class="cl">-rwxr-xr-x <span class="m">1</span> root root <span class="m">8125184</span> Feb <span class="m">16</span> 21:12 redis-check-rdb <span class="c1">#RDB文件检查程序</span>
+</span></span><span class="line"><span class="cl">-rwxr-xr-x <span class="m">1</span> root root <span class="m">4807856</span> Feb <span class="m">16</span> 21:12 redis-cli       <span class="c1">#客户端程序</span>
+</span></span><span class="line"><span class="cl">lrwxrwxrwx <span class="m">1</span> root root      <span class="m">12</span> Feb <span class="m">16</span> 21:12 redis-sentinel -&gt; redis-server <span class="c1">#哨兵程序，软连接到服务器端主程序</span>
+</span></span><span class="line"><span class="cl">-rwxr-xr-x <span class="m">1</span> root root <span class="m">8125184</span> Feb <span class="m">16</span> 21:12 redis-server <span class="c1">#服务端主程序</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="客户端程序-redis-cli">客户端程序 redis-cli
+</h3><p>远程连接112-redis服务器</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">redis-cli -h 192.168.172.112 -a <span class="m">123456</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image.png"
+	width="787"
+	height="66"
+	srcset="/p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image_hu_501bb7909f35ceea.png 480w, /p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image_hu_975239cf72a217ce.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="1192"
+		data-flex-basis="2861px"
+	
+></p>
+<p>远程连接112-redis服务器，并取消报警</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">redis-cli -h 192.168.172.112 -a <span class="m">123456</span> --no-auth-warning
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-1.png"
+	width="625"
+	height="52"
+	srcset="/p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-1_hu_a1fa73c44dfcb9e7.png 480w, /p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-1_hu_b81e6345b49ed919.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="1201"
+		data-flex-basis="2884px"
+	
+></p>
+<h3 id="程序连接-redis">程序连接 redis
+</h3><p>Redis 支持多种开发语言访问</p>
+<blockquote>
+<p><a class="link" href="https://redis.io/clients"  target="_blank" rel="noopener"
+    >https://redis.io/clients</a></p>
+</blockquote>
+<h4 id="redis的简单使用">redis的简单使用
+</h4><p>查询redis信息</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="o">[</span>root@redis-110 ~ <span class="o">]</span><span class="c1"># redis-cli</span>
+</span></span><span class="line"><span class="cl">127.0.0.1:6379&gt; info
+</span></span><span class="line"><span class="cl">NOAUTH Authentication required.
+</span></span><span class="line"><span class="cl">127.0.0.1:6379&gt;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-3.png"
+	width="267"
+	height="79"
+	srcset="/p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-3_hu_56eb2b5895e99112.png 480w, /p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-3_hu_253cc6e28f3a9317.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="337"
+		data-flex-basis="811px"
+	
+></p>
+<p>由于设置了密码，如果不用密码登录的话，无法使用功能</p>
+<p>使用密码登录</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">redis-cli -a <span class="m">123456</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>远程连接redis，并运行info命令（有密码暴露的风险）</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">redis-cli -h 192.168.172.112 -a <span class="m">123456</span> info
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>远程连接并登录</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 远程连接</span>
+</span></span><span class="line"><span class="cl">redis-cli -h 192.168.172.112
+</span></span><span class="line"><span class="cl"><span class="c1"># 使用密码登录</span>
+</span></span><span class="line"><span class="cl">auth <span class="m">123456</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>登录并存入key</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 登录112redis</span>
+</span></span><span class="line"><span class="cl">redis-cli -h 192.168.172.112 -a <span class="m">123456</span> --no-auth-warning
+</span></span><span class="line"><span class="cl"><span class="c1"># 存入key</span>
+</span></span><span class="line"><span class="cl"><span class="nb">set</span> class m63
+</span></span><span class="line"><span class="cl"><span class="c1"># 查询所有key</span>
+</span></span><span class="line"><span class="cl">keys *
+</span></span><span class="line"><span class="cl"><span class="c1"># 通过key获取value</span>
+</span></span><span class="line"><span class="cl">get class
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-4.png"
+	width="627"
+	height="143"
+	srcset="/p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-4_hu_9b953859f4896443.png 480w, /p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-4_hu_bb35c7ed10148d9c.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="438"
+		data-flex-basis="1052px"
+	
+></p>
+<p>远程使用密码设置key</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">redis-cli -h 192.168.172.112 -a <span class="m">123456</span> <span class="nb">set</span> class m65
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-5.png"
+	width="781"
+	height="72"
+	srcset="/p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-5_hu_91e043a9fbb9c9fb.png 480w, /p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-5_hu_951fc862524bf9eb.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="1084"
+		data-flex-basis="2603px"
+	
+></p>
+<p>远程使用密码获取value</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">redis-cli -h 192.168.172.112 -a <span class="m">123456</span> get class
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-6.png"
+	width="786"
+	height="72"
+	srcset="/p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-6_hu_ee197e48b7ed6b73.png 480w, /p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-6_hu_1c3260a15a7a8707.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="1091"
+		data-flex-basis="2620px"
+	
+></p>
+<h4 id="shell-脚本访问redis">Shell 脚本访问Redis
+</h4><p>redis_test.sh</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="o">[</span>root@redis-110 ~ <span class="o">]</span><span class="c1"># vim redis_test.sh</span>
+</span></span><span class="line"><span class="cl"><span class="o">[</span>root@redis-110 ~ <span class="o">]</span><span class="c1"># cat redis_test.sh</span>
+</span></span><span class="line"><span class="cl"><span class="c1">#!/bin/bash</span>
+</span></span><span class="line"><span class="cl"><span class="nv">NUM</span><span class="o">=</span><span class="m">10000</span>
+</span></span><span class="line"><span class="cl"><span class="nv">PASS</span><span class="o">=</span><span class="m">123456</span>
+</span></span><span class="line"><span class="cl"><span class="nv">HOST</span><span class="o">=</span>127.0.0.1
+</span></span><span class="line"><span class="cl"><span class="nv">PORT</span><span class="o">=</span><span class="m">6379</span>
+</span></span><span class="line"><span class="cl"><span class="nv">DATABASE</span><span class="o">=</span><span class="m">0</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">for</span> i in <span class="sb">`</span>seq <span class="nv">$NUM</span><span class="sb">`</span><span class="p">;</span><span class="k">do</span>
+</span></span><span class="line"><span class="cl">    redis-cli -h <span class="si">${</span><span class="nv">HOST</span><span class="si">}</span> -a <span class="s2">&#34;</span><span class="nv">$PASS</span><span class="s2">&#34;</span> -p <span class="si">${</span><span class="nv">PORT</span><span class="si">}</span> -n <span class="si">${</span><span class="nv">DATABASE</span><span class="si">}</span> --no-auth-warning  <span class="nb">set</span> key<span class="si">${</span><span class="nv">i</span><span class="si">}</span> value<span class="si">${</span><span class="nv">i</span><span class="si">}</span>
+</span></span><span class="line"><span class="cl">    <span class="nb">echo</span> <span class="s2">&#34;key</span><span class="si">${</span><span class="nv">i</span><span class="si">}</span><span class="s2"> value</span><span class="si">${</span><span class="nv">i</span><span class="si">}</span><span class="s2"> 写入完成&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="k">done</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nb">echo</span> <span class="s2">&#34;</span><span class="nv">$NUM个</span><span class="s2"> key写入到Redis完成&#34;</span>  
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>运行脚本，并查看运行时间</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="nb">time</span> <span class="o">(</span>bash redis_test.sh<span class="o">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-2.png"
+	width="233"
+	height="96"
+	srcset="/p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-2_hu_222ad04545bf33ec.png 480w, /p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-2_hu_d0648685084c45d7.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="242"
+		data-flex-basis="582px"
+	
+></p>
+<p>这里脚本执行开始到结束用了6.863s</p>
+<h4 id="python-程序访问redis">Python 程序访问Redis
+</h4><p>安装依赖</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">apt update <span class="o">&amp;&amp;</span> apt -y install  python3-redis
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>redis_test.py</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="ch">#!/usr/bin/python3</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">redis</span>
+</span></span><span class="line"><span class="cl"><span class="n">pool</span> <span class="o">=</span> <span class="n">redis</span><span class="o">.</span><span class="n">ConnectionPool</span><span class="p">(</span><span class="n">host</span><span class="o">=</span><span class="s2">&#34;127.0.0.1&#34;</span><span class="p">,</span><span class="n">port</span><span class="o">=</span><span class="mi">6379</span><span class="p">,</span><span class="n">password</span><span class="o">=</span><span class="s2">&#34;123456&#34;</span><span class="p">,</span><span class="n">decode_responses</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">r</span> <span class="o">=</span> <span class="n">redis</span><span class="o">.</span><span class="n">Redis</span><span class="p">(</span><span class="n">connection_pool</span><span class="o">=</span><span class="n">pool</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">10000</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="n">r</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="s2">&#34;k</span><span class="si">%d</span><span class="s2">&#34;</span> <span class="o">%</span> <span class="n">i</span><span class="p">,</span><span class="s2">&#34;v</span><span class="si">%d</span><span class="s2">&#34;</span> <span class="o">%</span> <span class="n">i</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">data</span><span class="o">=</span><span class="n">r</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&#34;k</span><span class="si">%d</span><span class="s2">&#34;</span> <span class="o">%</span> <span class="n">i</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="nb">print</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>查看redis中的数据量</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">info 
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-7.png"
+	width="912"
+	height="614"
+	srcset="/p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-7_hu_508f1e0eea4f372b.png 480w, /p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-7_hu_436590903607c882.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="148"
+		data-flex-basis="356px"
+	
+></p>
+<p>或者使用dbsize查看redis数据量</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">dbsize
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-8.png"
+	width="192"
+	height="28"
+	srcset="/p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-8_hu_cb82f50c0f48ab8.png 480w, /p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-8_hu_76286ea9ee929320.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="685"
+		data-flex-basis="1645px"
+	
+></p>
+<p>运行python脚本</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="nb">time</span> <span class="o">(</span>python3 redis_test.py<span class="o">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-9.png"
+	width="191"
+	height="614"
+	srcset="/p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-9_hu_4145bb97a2458d4.png 480w, /p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-9_hu_ca9d442e5d0aa7e9.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="31"
+		data-flex-basis="74px"
+	
+></p>
+<p>可以看到python运行只有1.185s</p>
+<h4 id="golang-程序访问redis">Golang 程序访问redis
+</h4><p>创建redis-go文件夹并进入</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">mkdir redis-go
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>编写main.go文件</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="err">#</span><span class="nx">准备Golang代码</span><span class="err">，</span><span class="nx">注意</span><span class="err">：</span><span class="nx">文件名为main</span><span class="p">.</span><span class="k">go</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">[</span><span class="nx">root</span><span class="err">@</span><span class="nx">ubuntu2204</span><span class="w"> </span><span class="nx">redis</span><span class="o">-</span><span class="k">go</span><span class="p">]</span><span class="err">#</span><span class="nx">cat</span><span class="w"> </span><span class="nx">main</span><span class="p">.</span><span class="k">go</span><span class="w"> 
+</span></span></span><span class="line"><span class="cl"><span class="kn">package</span><span class="w"> </span><span class="nx">main</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="kn">import</span><span class="w"> </span><span class="p">(</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="s">&#34;context&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="s">&#34;fmt&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="s">&#34;github.com/redis/go-redis/v9&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="kd">var</span><span class="w"> </span><span class="nx">ctx</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">context</span><span class="p">.</span><span class="nf">Background</span><span class="p">()</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="kd">func</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">rdb</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">redis</span><span class="p">.</span><span class="nf">NewClient</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">redis</span><span class="p">.</span><span class="nx">Options</span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nx">Addr</span><span class="p">:</span><span class="w">     </span><span class="s">&#34;127.0.0.1:6379&#34;</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nx">Password</span><span class="p">:</span><span class="w"> </span><span class="s">&#34;123456&#34;</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nx">DB</span><span class="p">:</span><span class="w">       </span><span class="mi">0</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">})</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">   
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">_</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">rdb</span><span class="p">.</span><span class="nf">Ping</span><span class="p">(</span><span class="nx">ctx</span><span class="p">).</span><span class="nf">Result</span><span class="p">()</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nx">fmt</span><span class="p">.</span><span class="nf">Printf</span><span class="p">(</span><span class="s">&#34;连接redis出错，错误信息：%v&#34;</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="k">return</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="nx">i</span><span class="o">:=</span><span class="mi">1</span><span class="p">;</span><span class="nx">i</span><span class="o">&lt;=</span><span class="mi">10000</span><span class="p">;</span><span class="nx">i</span><span class="o">++</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nx">key</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">fmt</span><span class="p">.</span><span class="nf">Sprintf</span><span class="p">(</span><span class="s">&#34;key%d&#34;</span><span class="p">,</span><span class="w"> </span><span class="nx">i</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nx">value</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">fmt</span><span class="p">.</span><span class="nf">Sprintf</span><span class="p">(</span><span class="s">&#34;value%d&#34;</span><span class="p">,</span><span class="w"> </span><span class="nx">i</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nx">err</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">rdb</span><span class="p">.</span><span class="nf">Set</span><span class="p">(</span><span class="nx">ctx</span><span class="p">,</span><span class="w"> </span><span class="nx">key</span><span class="p">,</span><span class="w"> </span><span class="nx">value</span><span class="p">,</span><span class="mi">0</span><span class="p">).</span><span class="nf">Err</span><span class="p">()</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="nb">panic</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nx">keys</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">rdb</span><span class="p">.</span><span class="nf">Keys</span><span class="p">(</span><span class="nx">ctx</span><span class="p">,</span><span class="w"> </span><span class="nx">key</span><span class="p">).</span><span class="nf">Result</span><span class="p">()</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="nb">panic</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nx">fmt</span><span class="p">.</span><span class="nf">Println</span><span class="p">(</span><span class="nx">keys</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><p>安装golang环境</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">apt update <span class="o">&amp;&amp;</span> apt -y install golang
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>查看当前redis数据量</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">dbsize
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-10.png"
+	width="192"
+	height="27"
+	srcset="/p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-10_hu_28b7cb772787604a.png 480w, /p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-10_hu_38fa3171321378dd.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="711"
+		data-flex-basis="1706px"
+	
+></p>
+<p>初始化并定义模块名，即默认生成的程序名，并会生成go.mod文件</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">go mod init redis-go
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-11.png"
+	width="394"
+	height="87"
+	srcset="/p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-11_hu_4b147524d47d92b5.png 480w, /p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-11_hu_f215201862a06a80.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="452"
+		data-flex-basis="1086px"
+	
+></p>
+<p>查看go.mod文件</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">cat go.mod
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-12.png"
+	width="312"
+	height="88"
+	srcset="/p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-12_hu_35a3acc1d6e99651.png 480w, /p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-12_hu_a6d65e992c56bbc1.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="354"
+		data-flex-basis="850px"
+	
+></p>
+<p>设置镜像加速</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">go env -w <span class="nv">GOPROXY</span><span class="o">=</span>https://goproxy.cn,direct
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-13.png"
+	width="575"
+	height="46"
+	srcset="/p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-13_hu_ec47194df7a6fd46.png 480w, /p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-13_hu_ceef6497da2b93fa.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="1250"
+		data-flex-basis="3000px"
+	
+></p>
+<p>指定项目所依赖相关包及版本（生成go.sum文件）</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">go get github.com/redis/go-redis/v9
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-14.png"
+	width="680"
+	height="188"
+	srcset="/p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-14_hu_a7e57ae66906287a.png 480w, /p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-14_hu_81d790741313a1d1.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="361"
+		data-flex-basis="868px"
+	
+></p>
+<p>再次查看go.mod（上面命令会修改go.mod文件生成依赖信息）</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">cat go.mod
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-15.png"
+	width="458"
+	height="177"
+	srcset="/p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-15_hu_857b29d0a5de65b9.png 480w, /p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-15_hu_7225dd82b6430228.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="258"
+		data-flex-basis="621px"
+	
+></p>
+<p>查看go.sum</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">cat go.sum
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-16.png"
+	width="737"
+	height="133"
+	srcset="/p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-16_hu_c0cd8590e83fe53a.png 480w, /p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-16_hu_9f6f6dcac9f2eb47.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="554"
+		data-flex-basis="1329px"
+	
+></p>
+<ul>
+<li>下面可选择静态编译或者动态编译</li>
+</ul>
+<p>静态适合生产环境，动态适合开发环境</p>
+<p>静态编译</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="nv">CGO_ENABLED</span><span class="o">=</span><span class="m">0</span> go build -o myredis
+</span></span><span class="line"><span class="cl">ls
+</span></span><span class="line"><span class="cl">ldd myredis
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-19.png"
+	width="503"
+	height="195"
+	srcset="/p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-19_hu_d83dd7169476893.png 480w, /p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-19_hu_fa0c56689e25e1be.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="257"
+		data-flex-basis="619px"
+	
+></p>
+<p>运行</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">time<span class="o">(</span>./myredis<span class="o">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-20.png"
+	width="254"
+	height="614"
+	srcset="/p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-20_hu_578761a4105cf5ce.png 480w, /p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-20_hu_4050c157ec6c75ba.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="41"
+		data-flex-basis="99px"
+	
+></p>
+<p>运行时间4.38s</p>
+<p>动态编译</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 动态编译文件名为redis-go，如果不指定-o myredis，默认生成的名称为go mod init redis-go指定的名</span>
+</span></span><span class="line"><span class="cl">go build
+</span></span><span class="line"><span class="cl">ls
+</span></span><span class="line"><span class="cl">ldd redis-go
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-21.png"
+	width="597"
+	height="226"
+	srcset="/p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-21_hu_1acdc2cab627c566.png 480w, /p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-21_hu_ed60698b8fc4e9b6.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="264"
+		data-flex-basis="633px"
+	
+></p>
+<p>运行</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">time<span class="o">(</span>./redis-go<span class="o">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-22.png"
+	width="264"
+	height="614"
+	srcset="/p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-22_hu_d87a6b73303a1ab1.png 480w, /p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-22_hu_d6c1d429bccae84e.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="42"
+		data-flex-basis="103px"
+	
+></p>
+<p>运行时间4.937s</p>
+<h5 id="go编译问题">go编译问题
+</h5><ul>
+<li>问题</li>
+</ul>
+<p>编译时，go自动安装go1.24，但出现报错</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-gdscript3" data-lang="gdscript3"><span class="line"><span class="cl"><span class="n">go</span><span class="p">:</span> <span class="n">downloading</span> <span class="n">go1</span><span class="o">.</span><span class="mi">24</span> <span class="p">(</span><span class="n">linux</span><span class="o">/</span><span class="n">amd64</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">go</span><span class="p">:</span> <span class="n">download</span> <span class="n">go1</span><span class="o">.</span><span class="mi">24</span> <span class="k">for</span> <span class="n">linux</span><span class="o">/</span><span class="n">amd64</span><span class="p">:</span> <span class="n">toolchain</span> <span class="ow">not</span> <span class="n">available</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>go安装版本转换器(toolchain forwarder)，而不是真正的go二进制文件</p>
+<p>原因：你通过包管理器安装了 golang-go，但版本太低</p>
+<p>查看go版本</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 查看包管理器安装的版本</span>
+</span></span><span class="line"><span class="cl">rpm -qa <span class="p">|</span> grep golang   <span class="c1"># CentOS/RHEL</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># 或</span>
+</span></span><span class="line"><span class="cl">dpkg -l <span class="p">|</span> grep golang   <span class="c1"># Ubuntu/Debian</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-17.png"
+	width="1236"
+	height="162"
+	srcset="/p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-17_hu_15fa251d0cd6b918.png 480w, /p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-17_hu_4b6ede2c78df3e6a.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="762"
+		data-flex-basis="1831px"
+	
+></p>
+<p>可以看到当前go版本为1.22，但是正在安装1.24版本的</p>
+<ul>
+<li>解决</li>
+</ul>
+<p>删除现有的所有 Go 包</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># Ubuntu/Debian:</span>
+</span></span><span class="line"><span class="cl">sudo apt remove --purge golang-go
+</span></span><span class="line"><span class="cl">sudo apt autoremove
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># CentOS/RHEL:</span>
+</span></span><span class="line"><span class="cl">sudo yum remove golang
+</span></span><span class="line"><span class="cl"><span class="c1"># 或</span>
+</span></span><span class="line"><span class="cl">sudo dnf remove golang
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>删除旧的 Go 安装目录（如果存在）</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo rm -rf /usr/local/go
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>下载并安装官方 Go（使用国内镜像）</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">wget https://golang.google.cn/dl/go1.24.4.linux-amd64.tar.gz
+</span></span><span class="line"><span class="cl">sudo tar -C /usr/local -xzf go1.24.4.linux-amd64.tar.gz
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>配置 PATH（永久生效）</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="nb">echo</span> <span class="s1">&#39;export PATH=$PATH:/usr/local/go/bin&#39;</span> &gt;&gt; ~/.bashrc
+</span></span><span class="line"><span class="cl"><span class="nb">source</span> ~/.bashrc
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>验证</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">go version
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-18.png"
+	width="316"
+	height="54"
+	srcset="/p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-18_hu_ccb67ffd47a773ce.png 480w, /p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-18_hu_1bccd852a20373a0.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="585"
+		data-flex-basis="1404px"
+	
+></p>
+<p>修复后配置代理</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 配置代理</span>
+</span></span><span class="line"><span class="cl">go env -w <span class="nv">GOPROXY</span><span class="o">=</span>https://goproxy.cn,direct
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 禁用工具链自动下载（可选，如果不想自动升级）</span>
+</span></span><span class="line"><span class="cl">go env -w <span class="nv">GOTOOLCHAIN</span><span class="o">=</span><span class="nb">local</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 验证配置</span>
+</span></span><span class="line"><span class="cl">go env <span class="p">|</span> grep -E <span class="s2">&#34;GOPROXY|GOTOOLCHAIN&#34;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="图形工具">图形工具
+</h3><h4 id="redisinsight">RedisInsight
+</h4><blockquote>
+<p><a class="link" href="https://apps.microsoft.com/store/detail/redisinsight/XP8K1GHCB0F1R2"  target="_blank" rel="noopener"
+    >https://apps.microsoft.com/store/detail/redisinsight/XP8K1GHCB0F1R2</a></p>
+</blockquote>
+<h4 id="another-redis-desktop-manager">Another-Redis-Desktop-Manager
+</h4><p>注意：当前 Redis7.2.1 无法连接，Redis7.2.2以后版本可以</p>
+<blockquote>
+<p><a class="link" href="https://github.com/qishibo/AnotherRedisDesktopManager"  target="_blank" rel="noopener"
+    >https://github.com/qishibo/AnotherRedisDesktopManager</a></p>
+</blockquote>
+<h4 id="redisdesktopmanager">RedisDesktopManager
+</h4><p>注意: 当前 Redis-v7.2.1 无法连接，redis-v7.2.3以后版本可以支持连接</p>
+<p>开源免费版本 <a class="link" href="https://github.com/uglide/RedisDesktopManager/releases/tag/0.9.3"  target="_blank" rel="noopener"
+    >https://github.com/uglide/RedisDesktopManager/releases/tag/0.9.3</a></p>
+<p>付费版本 <a class="link" href="https://redis.io/"  target="_blank" rel="noopener"
+    >https://redis.io/</a></p>
+<p>使用</p>
+<p><img src="/p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-23.png"
+	width="1099"
+	height="830"
+	srcset="/p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-23_hu_86f10fce129d874c.png 480w, /p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-23_hu_ac4a66aad2fe3c5c.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="132"
+		data-flex-basis="317px"
+	
+></p>
+<p>连接</p>
+<p><img src="/p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-24.png"
+	width="600"
+	height="706"
+	srcset="/p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-24_hu_f1dfa739983e8982.png 480w, /p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-24_hu_370f7daf6d42aad9.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="84"
+		data-flex-basis="203px"
+	
+></p>
+<p>查看</p>
+<p><img src="/p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-25.png"
+	width="1100"
+	height="829"
+	srcset="/p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-25_hu_71b44b600596eea8.png 480w, /p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-25_hu_a2e7b4857c788511.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="132"
+		data-flex-basis="318px"
+	
+></p>
+<p>可以看到有20000个数据</p>
+<h2 id="redis多例实现">Redis多例实现
+</h2><p>查看redis目录</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">tree /apps/redis
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-26.png"
+	width="331"
+	height="312"
+	srcset="/p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-26_hu_67c614ab132115a7.png 480w, /p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-26_hu_559506281d3407fb.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="106"
+		data-flex-basis="254px"
+	
+></p>
+<p>进入redis/etc目录</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="nb">cd</span> /apps/redis/etc
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>想要多例启动，只需要一个程序启动多个不同端口的配置文件即可</p>
+<p>redis配置文件中需要改变的内容：端口号、dump.rdb文件</p>
+<p>复制redis.conf为redis6379.conf</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">cp redis.conf redis6379.conf
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>修改redis6379.conf的dump.rdb文件</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="o">[</span>root@redis-110 etc <span class="o">]</span><span class="c1"># vim redis6379.conf</span>
+</span></span><span class="line"><span class="cl">...
+</span></span><span class="line"><span class="cl">dbfilename dump6379.rdb
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>查看redis6379.conf</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">grep <span class="m">6379</span> redis6379.conf
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-27.png"
+	width="617"
+	height="161"
+	srcset="/p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-27_hu_ef2ed8ceef22e9b4.png 480w, /p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-27_hu_8ba5198d0d9b62ef.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="383"
+		data-flex-basis="919px"
+	
+></p>
+<p>修改6379为6380，需要加上<code>-n</code>，不然就会全部打印</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sed -n <span class="s1">&#39;s/6379/6380/p&#39;</span> redis6379.conf
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-30.png"
+	width="608"
+	height="162"
+	srcset="/p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-30_hu_70f84df7a84f91ab.png 480w, /p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-30_hu_1685cd6b6cff1052.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="375"
+		data-flex-basis="900px"
+	
+></p>
+<p>修改6379为6380，并查看修改后的内容</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sed <span class="s1">&#39;s/6379/6380/p&#39;</span> redis6379.conf <span class="p">|</span> grep <span class="m">6380</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-28.png"
+	width="609"
+	height="300"
+	srcset="/p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-28_hu_a1e6815c9dca6fe2.png 480w, /p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-28_hu_239fb37949c68d9b.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="203"
+		data-flex-basis="487px"
+	
+></p>
+<p>可以看到修改后的内容中，每个都为两行</p>
+<p>修改6379为6380并去掉p</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sed <span class="s1">&#39;s/6379/6380/&#39;</span> redis6379.conf <span class="p">|</span> grep <span class="m">6380</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-29.png"
+	width="610"
+	height="174"
+	srcset="/p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-29_hu_8d818ebf6bd0866e.png 480w, /p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-29_hu_5183c1b47de34341.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="350"
+		data-flex-basis="841px"
+	
+></p>
+<p>这时候结果只有一行</p>
+<p>修改6379为6380，并生成redis6380.conf</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sed <span class="s1">&#39;s/6379/6380/&#39;</span> redis6379.conf &gt; redis6380.conf
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-31.png"
+	width="592"
+	height="46"
+	srcset="/p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-31_hu_ea65337000d02161.png 480w, /p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-31_hu_d8c958ffc163c101.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="1286"
+		data-flex-basis="3088px"
+	
+></p>
+<p>修改6379为6381，并生成redis6381.conf</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sed <span class="s1">&#39;s/6379/6381/&#39;</span> redis6379.conf &gt; redis6381.conf
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-32.png"
+	width="598"
+	height="43"
+	srcset="/p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-32_hu_8c37ce9b91dc5df6.png 480w, /p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-32_hu_746af713108fb973.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="1390"
+		data-flex-basis="3337px"
+	
+></p>
+<p>查看服务文件</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">cat /lib/systemd/system/redis.service
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-33.png"
+	width="695"
+	height="281"
+	srcset="/p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-33_hu_7719ba577f5d69b.png 480w, /p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-33_hu_bd7c303a71eb267.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="247"
+		data-flex-basis="593px"
+	
+></p>
+<p>复制三套配置文件</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">cp /lib/systemd/system/redis.service /lib/systemd/system/redis6379.service
+</span></span><span class="line"><span class="cl">cp /lib/systemd/system/redis.service /lib/systemd/system/redis6380.service
+</span></span><span class="line"><span class="cl">cp /lib/systemd/system/redis.service /lib/systemd/system/redis6381.service
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-34.png"
+	width="789"
+	height="168"
+	srcset="/p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-34_hu_5dda3237fc5f0c8a.png 480w, /p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-34_hu_5a317226d35dd451.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="469"
+		data-flex-basis="1127px"
+	
+></p>
+<p>并按照下面的逻辑修改三个服务文件的配置文件</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="o">[</span>root@redis-110 etc <span class="o">]</span><span class="c1"># vim /lib/systemd/system/redis6379.service</span>
+</span></span><span class="line"><span class="cl">...
+</span></span><span class="line"><span class="cl"><span class="nv">ExecStart</span><span class="o">=</span>/apps/redis/bin/redis-server /apps/redis/etc/redis6379.conf --supervised systemd
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-35.png"
+	width="736"
+	height="251"
+	srcset="/p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-35_hu_9deaecf5784946c6.png 480w, /p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-35_hu_38101c6e399d1674.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="293"
+		data-flex-basis="703px"
+	
+></p>
+<p>查看所有文件</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">ll
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-36.png"
+	width="488"
+	height="149"
+	srcset="/p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-36_hu_1f295a481d37bce4.png 480w, /p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-36_hu_a46af07c263488d7.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="327"
+		data-flex-basis="786px"
+	
+></p>
+<p>可以看到复制出来的所有文件权限组和所有人都是root</p>
+<p>修改权限</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">chown -R redis:redis /apps/redis
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>禁用原先的redis服务</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">systemctl disable --now redis
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>加载配置文件</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">systemctl daemon-reload
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>启动三个服务，并查看状态</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">systemctl <span class="nb">enable</span> --now redis6379.service
+</span></span><span class="line"><span class="cl">systemctl <span class="nb">enable</span> --now redis6380.service
+</span></span><span class="line"><span class="cl">systemctl <span class="nb">enable</span> --now redis6381.service
+</span></span><span class="line"><span class="cl">systemctl status redis6379.service
+</span></span><span class="line"><span class="cl">systemctl status redis6380.service
+</span></span><span class="line"><span class="cl">systemctl status redis6381.service
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-37.png"
+	width="856"
+	height="295"
+	srcset="/p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-37_hu_513a556f3d033ed5.png 480w, /p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-37_hu_d88d3688e0b116da.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="290"
+		data-flex-basis="696px"
+	
+></p>
+<p>查看端口状态</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">ss -ntlp
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-38.png"
+	width="1369"
+	height="248"
+	srcset="/p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-38_hu_dbae78327ccc17e2.png 480w, /p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-38_hu_52e7ddc7d61b31b2.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="552"
+		data-flex-basis="1324px"
+	
+></p>
+<p>可以看到三个redis服务都开启了</p>
+<p>使用192.168.172.112服务器分别连接192.168.172.110的6379、6380、6381的端口</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">redis-cli -a <span class="m">123456</span> -h 192.168.172.110 -p <span class="m">6379</span>
+</span></span><span class="line"><span class="cl">redis-cli -a <span class="m">123456</span> -h 192.168.172.110 -p <span class="m">6380</span>
+</span></span><span class="line"><span class="cl">redis-cli -a <span class="m">123456</span> -h 192.168.172.110 -p <span class="m">6381</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-39.png"
+	width="793"
+	height="249"
+	srcset="/p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-39_hu_a6af9934f296a46d.png 480w, /p/%E9%A9%AC%E5%93%A5redis%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E7%A8%8B%E5%BA%8F%E8%AE%BF%E9%97%AE%E5%8F%8A%E5%A4%9A%E4%BE%8B%E5%AE%9E%E7%8E%B0/image-39_hu_8585636de1e71b03.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="318"
+		data-flex-basis="764px"
+	
+></p>
+
+</section>
+
+
+    <footer class="article-footer">
+    
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+<aside class="related-content--wrapper">
+    <h2 class="section-title">相关文章</h2>
+    <div class="related-content">
+        <div class="flex article-list--tile">
+            
+                
+<article class="">
+    <a href="/p/%E9%A9%AC%E5%93%A5redis%E5%AE%89%E8%A3%85/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[马哥][redis]安装</h2>
+        </div>
+    </a>
+</article>
+
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+            2025 - 
+        
+        2026 リンボの個人ブログ
+    </section>
+    
+    <section class="powerby">
+         <br />
+        
+    </section>
+</footer>
+
+
+    
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+    
+    <div class="pswp__bg"></div>
+
+    
+    <div class="pswp__scroll-wrap">
+
+        
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+
+        
+        <div class="pswp__ui pswp__ui--hidden">
+
+            <div class="pswp__top-bar">
+
+                
+
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+
+                <button class="pswp__button pswp__button--share" title="Share"></button>
+
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+
+                
+                
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                        <div class="pswp__preloader__cut">
+                            <div class="pswp__preloader__donut"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div>
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.js"integrity="sha256-ePwmChbbvXbsO02lbM3HoHbSHTHFAeChekF1xKJdleo="crossorigin="anonymous"
+                defer
+                >
+            </script><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe-ui-default.min.js"integrity="sha256-UKkzOn/w1mBxRmLLGrSeyB4e1xbrp4xylgAWb3M42pU="crossorigin="anonymous"
+                defer
+                >
+            </script><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/default-skin/default-skin.min.css"crossorigin="anonymous"
+            ><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.css"crossorigin="anonymous"
+            >
+
+            </main>
+        </div>
+        <script 
+                src="https://cdn.jsdelivr.net/npm/node-vibrant@3.1.6/dist/vibrant.min.js"integrity="sha256-awcR2jno4kI5X0zL8ex0vi2z&#43;KMkF24hUW8WePSA9HM="crossorigin="anonymous"
+                
+                >
+            </script><script type="text/javascript" src="/ts/main.1e9a3bafd846ced4c345d084b355fb8c7bae75701c338f8a1f8a82c780137826.js" defer></script>
+<script>
+    (function () {
+        const customFont = document.createElement('link');
+        customFont.href = "https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap";
+
+        customFont.type = "text/css";
+        customFont.rel = "stylesheet";
+
+        document.head.appendChild(customFont);
+    }());
+</script>
+
+    </body>
+</html>
