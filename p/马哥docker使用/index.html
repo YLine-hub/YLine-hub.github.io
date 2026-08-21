@@ -251,8 +251,10 @@
         <li><a href="#基于alpine基础镜像制作nginx源码编译镜像">基于Alpine基础镜像制作Nginx源码编译镜像</a>
           <ol>
             <li><a href="#制作alpine的自定义系统镜像">制作Alpine的自定义系统镜像</a></li>
+            <li><a href="#制作基于-alpine-自定义镜像的-nginx-镜像">制作基于 Alpine 自定义镜像的 Nginx 镜像</a></li>
           </ol>
         </li>
+        <li><a href="#基于-ubuntu-基础镜像制作-nginx-镜像">基于 Ubuntu 基础镜像制作 Nginx 镜像</a></li>
       </ol>
     </li>
   </ol>
@@ -1340,17 +1342,191 @@
 </span></span></code></pre></td></tr></table>
 </div>
 </div><ul>
-<li>下载alpine镜像</li>
+<li>下载alpine镜像，打新标签</li>
 </ul>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
 <pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
 </span></code></pre></td>
 <td class="lntd">
 <pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">docker pull alpine
+</span></span><span class="line"><span class="cl">docker tag alpine alpine:3.24
+</span></span><span class="line"><span class="cl">docker images
 </span></span></code></pre></td></tr></table>
 </div>
+</div><ul>
+<li>准备相关文件</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">http://mirrors.aliyun.com/alpine/v3.24/main
+</span></span><span class="line"><span class="cl">http://mirrors.aliyun.com/alpine/v3.24/community
+</span></span></code></pre></td></tr></table>
 </div>
+</div><ul>
+<li>Dockerfile</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:/data/dockerfile/system/alpine# cat Dockerfile
+</span></span><span class="line"><span class="cl">ARG <span class="nv">VERSION</span><span class="o">=</span>3.24
+</span></span><span class="line"><span class="cl">FROM alpine:<span class="nv">$VERSION</span>
+</span></span><span class="line"><span class="cl">LABEL <span class="nv">maintainer</span><span class="o">=</span><span class="s2">&#34;wangxiaochun &lt;root@wangxiaochun.com&gt;&#34;</span>
+</span></span><span class="line"><span class="cl">RUN sed -i <span class="s1">&#39;s/dl-cdn.alpinelinux.org/mirrors.ustc.edu.cn/&#39;</span> /etc/apk/repositories <span class="o">&amp;&amp;</span> apk update <span class="o">&amp;&amp;</span> apk  --no-cache add tzdata gcc make curl zip unzip net-tools pstree wget libgcc libc-dev libcurl libc-utils pcre-dev zlib-dev libnfs pcre pcre2 libevent libevent-dev iproute2 <span class="o">&amp;&amp;</span> ln -s /usr/share/zoneinfo/Asia/Shanghai /etc/localtime <span class="o">&amp;&amp;</span> <span class="nb">echo</span> <span class="s2">&#34;Asia/Shanghai&#34;</span> &gt; /etc/timezone
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>构建脚本</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:/data/dockerfile/system/alpine# cat build.sh
+</span></span><span class="line"><span class="cl"><span class="c1">#!/bin/bash</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">docker build -t alpine-base:3.24 .
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>构建镜像</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sh build.sh
+</span></span><span class="line"><span class="cl">docker images alp*
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="制作基于-alpine-自定义镜像的-nginx-镜像">制作基于 Alpine 自定义镜像的 Nginx 镜像
+</h4><ul>
+<li>准备相关文件</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">mkdir /data/dockerfile/web/nginx/1.31.4-alpine/
+</span></span><span class="line"><span class="cl"><span class="nb">cd</span> /data/dockerfile/web/nginx/1.31.4-alpine/
+</span></span><span class="line"><span class="cl">wget http://nginx.org/download/nginx-1.31.4.tar.gz
+</span></span><span class="line"><span class="cl">tar -xvf nginx-1.31.4.tar.gz
+</span></span><span class="line"><span class="cl">cp nginx-1.31.4/conf/nginx.conf .
+</span></span><span class="line"><span class="cl"><span class="nb">echo</span> Test Page based nginx-alpine &gt; index.html
+</span></span><span class="line"><span class="cl">cat nginx.conf
+</span></span><span class="line"><span class="cl">user nginx<span class="p">;</span>
+</span></span><span class="line"><span class="cl">worker_processes  1<span class="p">;</span>
+</span></span><span class="line"><span class="cl">daemon off<span class="p">;</span>     <span class="c1">#必须为前台运行</span>
+</span></span><span class="line"><span class="cl">...
+</span></span><span class="line"><span class="cl">location / <span class="o">{</span>
+</span></span><span class="line"><span class="cl">    root  /data/nginx/html<span class="p">;</span>
+</span></span><span class="line"><span class="cl">...
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>Dockerfile</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">vim Dockerfile
+</span></span><span class="line"><span class="cl">ARG <span class="nv">VERSION</span><span class="o">=</span>3.24
+</span></span><span class="line"><span class="cl">FROM alpine-base:<span class="nv">$VERSION</span>
+</span></span><span class="line"><span class="cl">ARG <span class="nv">NGINX_VERSION</span><span class="o">=</span>1.31.4
+</span></span><span class="line"><span class="cl">LABEL <span class="nv">maintainer</span><span class="o">=</span><span class="s2">&#34;wangxiaochun &lt;root@wangxiaochun.com&gt;&#34;</span>
+</span></span><span class="line"><span class="cl">RUN mkdir /usr/local/src /data/nginx -p
+</span></span><span class="line"><span class="cl">ADD nginx-<span class="si">${</span><span class="nv">NGINX_VERSION</span><span class="si">}</span>.tar.gz /usr/local/src 
+</span></span><span class="line"><span class="cl">ENV <span class="nv">NGINX_DIR</span><span class="o">=</span>/apps/nginx
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">RUN <span class="nb">cd</span> /usr/local/src/nginx-<span class="nv">$NGINX_VERSION</span> <span class="o">&amp;&amp;</span> ./configure --prefix<span class="o">=</span><span class="si">${</span><span class="nv">NGINX_DIR</span><span class="si">}</span> <span class="o">&amp;&amp;</span> make <span class="o">&amp;&amp;</span> make install <span class="o">&amp;&amp;</span> ln -s <span class="si">${</span><span class="nv">NGINX_DIR</span><span class="si">}</span>/sbin/nginx /usr/local/bin/ <span class="o">&amp;&amp;</span> addgroup -g <span class="m">888</span> -S nginx <span class="o">&amp;&amp;</span> adduser -s /sbin/nologin -S -D -u <span class="m">888</span> -G nginx nginx
+</span></span><span class="line"><span class="cl">COPY nginx.conf <span class="si">${</span><span class="nv">NGINX_DIR</span><span class="si">}</span>/conf/nginx.conf
+</span></span><span class="line"><span class="cl">ADD index.html /data/nginx/html/index.html
+</span></span><span class="line"><span class="cl">RUN chown -R nginx:nginx /data/nginx/ <span class="si">${</span><span class="nv">NGINX_DIR</span><span class="si">}</span>/
+</span></span><span class="line"><span class="cl">EXPOSE <span class="m">80</span> <span class="m">443</span>
+</span></span><span class="line"><span class="cl">CMD <span class="o">[</span><span class="s2">&#34;nginx&#34;</span><span class="o">]</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>构建脚本</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">vim build.sh
+</span></span><span class="line"><span class="cl"><span class="c1">#!/bin/bash</span>
+</span></span><span class="line"><span class="cl"><span class="c1">#********************************************************************</span>
+</span></span><span class="line"><span class="cl">docker build -t nginx-alpine:1.31.4 .
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>测试</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">docker run -d -p 80:80 nginx-alpine:1.31.4
+</span></span><span class="line"><span class="cl">curl 127.0.0.1
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="基于-ubuntu-基础镜像制作-nginx-镜像">基于 Ubuntu 基础镜像制作 Nginx 镜像
+</h3>
 </section>
 
 
