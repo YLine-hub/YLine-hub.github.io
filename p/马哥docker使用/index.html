@@ -1,0 +1,1490 @@
+<!DOCTYPE html>
+<html lang="en-us" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="Docker实现代理功能 先安装科学上网软件，并开启局域网连接\n配置代理\n1 2 3 4 5 6 7 8 9 10 11 # 创建服务目录 mkdir -p /etc/systemd/system/docker.service.d # 定义代理配置，代理端口一般是7890 cat &gt;&gt; /etc/systemd/system/docker.service.d/http-proxy.conf &lt;&lt;EOF [Service] Environment=&#34;HTTP_PROXY=http://${PROXY_SERVER_IP}:${PROXY_PORT}/&#34; Environment=&#34;HTTPS_PROXY=http://${PROXY_SERVER_IP}:${PROXY_PORT}/&#34; Environment=&#34;NO_PROXY=127.0.0.0/8,172.17.0.0/16,10.0.0.0/24,10.244.0.0/16,192.168.0.0/16,wang.org,cluster.local&#34; EOF # 重启docker，启动代理 systemctl daemon-reload &amp;&amp; systemctl restart docker 开启远程连接 docker服务端开启远程连接 1 2 3 4 5 6 7 8 9 10 11 12 # 在docker服务端主机开启远程网络连接功能 vim /usr/lib/systemd/system/docker.service [service] ... ExecStart=/usr/bin/dockerd -H unix:///var/run/docker.sock -H tcp://0.0.0.0:2375 ... # 重启服务 systemctl daemon-reload systemctl restart docker # 确认端口打开 ss -ntlp|grep dockerd 在另一台docker客户端主机远程连接服务器 1 docker -H &lt;docker服务器IP&gt;:2375 version 通过ssh协议远程连接 1 2 3 ssh-keygen ssh-copy-id 192.168.133.1010 docker -H ssh://root@192.168.133.100 version docker 镜像导出 导出所有镜像 到处镜像并压缩 1 docker save rockylinux:9.1-minimal | gzip - &gt; rockylinux-9.1-minimal.tar.gz 导出所有镜像至不同的文件中 1 docker images | awk &#39;NR!=1{print $1,$2}&#39; | while read repo tag ;do docker save $repo:$tag -o /opt/$repo-$tag.tar ;done 解决文件名问题\n">
+<title>[马哥][docker]使用</title>
+
+<link rel='canonical' href='https://YLine-hub.github.io/p/%E9%A9%AC%E5%93%A5docker%E4%BD%BF%E7%94%A8/'>
+
+<link rel="stylesheet" href="/scss/style.min.663803bebe609202d5b39d848f2d7c2dc8b598a2d879efa079fa88893d29c49c.css"><meta property='og:title' content="[马哥][docker]使用">
+<meta property='og:description' content="Docker实现代理功能 先安装科学上网软件，并开启局域网连接\n配置代理\n1 2 3 4 5 6 7 8 9 10 11 # 创建服务目录 mkdir -p /etc/systemd/system/docker.service.d # 定义代理配置，代理端口一般是7890 cat &gt;&gt; /etc/systemd/system/docker.service.d/http-proxy.conf &lt;&lt;EOF [Service] Environment=&#34;HTTP_PROXY=http://${PROXY_SERVER_IP}:${PROXY_PORT}/&#34; Environment=&#34;HTTPS_PROXY=http://${PROXY_SERVER_IP}:${PROXY_PORT}/&#34; Environment=&#34;NO_PROXY=127.0.0.0/8,172.17.0.0/16,10.0.0.0/24,10.244.0.0/16,192.168.0.0/16,wang.org,cluster.local&#34; EOF # 重启docker，启动代理 systemctl daemon-reload &amp;&amp; systemctl restart docker 开启远程连接 docker服务端开启远程连接 1 2 3 4 5 6 7 8 9 10 11 12 # 在docker服务端主机开启远程网络连接功能 vim /usr/lib/systemd/system/docker.service [service] ... ExecStart=/usr/bin/dockerd -H unix:///var/run/docker.sock -H tcp://0.0.0.0:2375 ... # 重启服务 systemctl daemon-reload systemctl restart docker # 确认端口打开 ss -ntlp|grep dockerd 在另一台docker客户端主机远程连接服务器 1 docker -H &lt;docker服务器IP&gt;:2375 version 通过ssh协议远程连接 1 2 3 ssh-keygen ssh-copy-id 192.168.133.1010 docker -H ssh://root@192.168.133.100 version docker 镜像导出 导出所有镜像 到处镜像并压缩 1 docker save rockylinux:9.1-minimal | gzip - &gt; rockylinux-9.1-minimal.tar.gz 导出所有镜像至不同的文件中 1 docker images | awk &#39;NR!=1{print $1,$2}&#39; | while read repo tag ;do docker save $repo:$tag -o /opt/$repo-$tag.tar ;done 解决文件名问题\n">
+<meta property='og:url' content='https://YLine-hub.github.io/p/%E9%A9%AC%E5%93%A5docker%E4%BD%BF%E7%94%A8/'>
+<meta property='og:site_name' content='リンボの個人ブログ'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:published_time' content='2026-08-04T13:39:27&#43;08:00'/><meta property='article:modified_time' content='2026-08-04T13:39:27&#43;08:00'/>
+<meta name="twitter:title" content="[马哥][docker]使用">
+<meta name="twitter:description" content="Docker实现代理功能 先安装科学上网软件，并开启局域网连接\n配置代理\n1 2 3 4 5 6 7 8 9 10 11 # 创建服务目录 mkdir -p /etc/systemd/system/docker.service.d # 定义代理配置，代理端口一般是7890 cat &gt;&gt; /etc/systemd/system/docker.service.d/http-proxy.conf &lt;&lt;EOF [Service] Environment=&#34;HTTP_PROXY=http://${PROXY_SERVER_IP}:${PROXY_PORT}/&#34; Environment=&#34;HTTPS_PROXY=http://${PROXY_SERVER_IP}:${PROXY_PORT}/&#34; Environment=&#34;NO_PROXY=127.0.0.0/8,172.17.0.0/16,10.0.0.0/24,10.244.0.0/16,192.168.0.0/16,wang.org,cluster.local&#34; EOF # 重启docker，启动代理 systemctl daemon-reload &amp;&amp; systemctl restart docker 开启远程连接 docker服务端开启远程连接 1 2 3 4 5 6 7 8 9 10 11 12 # 在docker服务端主机开启远程网络连接功能 vim /usr/lib/systemd/system/docker.service [service] ... ExecStart=/usr/bin/dockerd -H unix:///var/run/docker.sock -H tcp://0.0.0.0:2375 ... # 重启服务 systemctl daemon-reload systemctl restart docker # 确认端口打开 ss -ntlp|grep dockerd 在另一台docker客户端主机远程连接服务器 1 docker -H &lt;docker服务器IP&gt;:2375 version 通过ssh协议远程连接 1 2 3 ssh-keygen ssh-copy-id 192.168.133.1010 docker -H ssh://root@192.168.133.100 version docker 镜像导出 导出所有镜像 到处镜像并压缩 1 docker save rockylinux:9.1-minimal | gzip - &gt; rockylinux-9.1-minimal.tar.gz 导出所有镜像至不同的文件中 1 docker images | awk &#39;NR!=1{print $1,$2}&#39; | while read repo tag ;do docker save $repo:$tag -o /opt/$repo-$tag.tar ;done 解决文件名问题\n">
+    <link rel="shortcut icon" href="/favicon.ico" />
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        
+            
+            <figure class="site-avatar">
+                <a href="/">
+                
+                    
+                    
+                    
+                        
+                        <img src="/img/avatar_hu_de528bff5d5e9598.png" width="300"
+                            height="300" class="site-logo" loading="lazy" alt="Avatar">
+                    
+                
+                </a>
+                
+                    <span class="emoji">🏖️</span>
+                
+            </figure>
+            
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">リンボの個人ブログ</a></h1>
+            <h2 class="site-description">努力不一定能获得回报，但不努力一定不会有回报。</h2>
+        </div>
+    </header><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-home" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <polyline points="5 12 3 12 12 3 21 12 19 12" />
+  <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7" />
+  <path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6" />
+</svg>
+
+
+
+                
+                <span>主页</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/%E5%85%B3%E4%BA%8E/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/archives/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/search/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-search" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="10" cy="10" r="7" />
+  <line x1="21" y1="21" x2="15" y2="15" />
+</svg>
+
+
+
+                
+                <span>搜索</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav id="TableOfContents">
+  <ol>
+    <li><a href="#docker实现代理功能">Docker实现代理功能</a></li>
+    <li><a href="#开启远程连接">开启远程连接</a></li>
+    <li><a href="#docker">docker</a>
+      <ol>
+        <li><a href="#镜像导出">镜像导出</a>
+          <ol>
+            <li><a href="#导出所有镜像">导出所有镜像</a></li>
+          </ol>
+        </li>
+        <li><a href="#容器热迁移">容器热迁移</a>
+          <ol>
+            <li><a href="#环境准备">环境准备</a></li>
+            <li><a href="#ubuntu-24安装环境">ubuntu 24安装环境</a></li>
+            <li><a href="#开启criu功能">开启CRIU功能</a></li>
+            <li><a href="#启动运行一个需要热迁移的容器">启动运行一个需要热迁移的容器</a></li>
+            <li><a href="#备份">备份</a></li>
+            <li><a href="#还原">还原</a></li>
+          </ol>
+        </li>
+      </ol>
+    </li>
+    <li><a href="#docker-镜像制作">docker 镜像制作</a>
+      <ol>
+        <li><a href="#基于busybox制作httpd镜像">基于busybox制作httpd镜像</a></li>
+      </ol>
+    </li>
+    <li><a href="#dockerfile">Dockerfile</a>
+      <ol>
+        <li><a href="#dockerfile-镜像制作和使用流程">Dockerfile 镜像制作和使用流程</a>
+          <ol>
+            <li><a href="#entrypoint入口点">ENTRYPOINT:入口点</a></li>
+            <li><a href="#arg构建参数">ARG:构建参数</a></li>
+            <li><a href="#volume匿名卷">VOLUME:匿名卷</a></li>
+            <li><a href="#healthcheck健康检查">HEALTHCHECK:健康检查</a></li>
+            <li><a href="#docker-build">Docker build</a></li>
+          </ol>
+        </li>
+        <li><a href="#从镜像导出对应的-dockerfile">从镜像导出对应的 Dockerfile</a></li>
+      </ol>
+    </li>
+    <li><a href="#利用dockerfile自动构建镜像案例">利用DockerFile自动构建镜像案例</a>
+      <ol>
+        <li><a href="#基于alpine基础镜像制作nginx源码编译镜像">基于Alpine基础镜像制作Nginx源码编译镜像</a>
+          <ol>
+            <li><a href="#制作alpine的自定义系统镜像">制作Alpine的自定义系统镜像</a></li>
+          </ol>
+        </li>
+      </ol>
+    </li>
+  </ol>
+</nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            <a href="/categories/docker/" >
+                Docker
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/p/%E9%A9%AC%E5%93%A5docker%E4%BD%BF%E7%94%A8/">[马哥][docker]使用</a>
+        </h2>
+    
+        
+    </div>
+
+    
+    
+    
+    
+    <footer class="article-time">
+        
+            <div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                <time class="article-time--published">2026-08-04</time>
+            </div>
+        
+
+        
+    </footer>
+    
+
+    
+</div>
+
+</header>
+
+    <section class="article-content">
+    
+    
+    <h2 id="docker实现代理功能">Docker实现代理功能
+</h2><ol>
+<li>
+<p>先安装科学上网软件，并开启局域网连接</p>
+</li>
+<li>
+<p>配置代理</p>
+</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 创建服务目录</span>
+</span></span><span class="line"><span class="cl">mkdir -p /etc/systemd/system/docker.service.d
+</span></span><span class="line"><span class="cl"><span class="c1"># 定义代理配置，代理端口一般是7890</span>
+</span></span><span class="line"><span class="cl">cat &gt;&gt; /etc/systemd/system/docker.service.d/http-proxy.conf <span class="s">&lt;&lt;EOF
+</span></span></span><span class="line"><span class="cl"><span class="s">[Service]
+</span></span></span><span class="line"><span class="cl"><span class="s">Environment=&#34;HTTP_PROXY=http://${PROXY_SERVER_IP}:${PROXY_PORT}/&#34;
+</span></span></span><span class="line"><span class="cl"><span class="s">Environment=&#34;HTTPS_PROXY=http://${PROXY_SERVER_IP}:${PROXY_PORT}/&#34;
+</span></span></span><span class="line"><span class="cl"><span class="s">Environment=&#34;NO_PROXY=127.0.0.0/8,172.17.0.0/16,10.0.0.0/24,10.244.0.0/16,192.168.0.0/16,wang.org,cluster.local&#34;
+</span></span></span><span class="line"><span class="cl"><span class="s">EOF</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># 重启docker，启动代理</span>
+</span></span><span class="line"><span class="cl">systemctl daemon-reload <span class="o">&amp;&amp;</span> systemctl restart docker
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="开启远程连接">开启远程连接
+</h2><ul>
+<li>docker服务端开启远程连接</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 在docker服务端主机开启远程网络连接功能</span>
+</span></span><span class="line"><span class="cl">vim /usr/lib/systemd/system/docker.service
+</span></span><span class="line"><span class="cl"><span class="o">[</span>service<span class="o">]</span>
+</span></span><span class="line"><span class="cl">...
+</span></span><span class="line"><span class="cl"><span class="nv">ExecStart</span><span class="o">=</span>/usr/bin/dockerd -H unix:///var/run/docker.sock -H tcp://0.0.0.0:2375
+</span></span><span class="line"><span class="cl">...
+</span></span><span class="line"><span class="cl"><span class="c1"># 重启服务</span>
+</span></span><span class="line"><span class="cl">systemctl daemon-reload
+</span></span><span class="line"><span class="cl">systemctl restart docker
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 确认端口打开</span>
+</span></span><span class="line"><span class="cl">ss -ntlp<span class="p">|</span>grep dockerd
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>在另一台docker客户端主机远程连接服务器</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">docker -H &lt;docker服务器IP&gt;:2375 version
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>通过ssh协议远程连接</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">ssh-keygen
+</span></span><span class="line"><span class="cl">ssh-copy-id 192.168.133.1010
+</span></span><span class="line"><span class="cl">docker -H ssh://root@192.168.133.100 version
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="docker">docker
+</h2><h3 id="镜像导出">镜像导出
+</h3><h4 id="导出所有镜像">导出所有镜像
+</h4><ol>
+<li>到处镜像并压缩</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">docker save rockylinux:9.1-minimal <span class="p">|</span> gzip - &gt; rockylinux-9.1-minimal.tar.gz
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="2">
+<li>导出所有镜像至不同的文件中</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">docker images <span class="p">|</span> awk <span class="s1">&#39;NR!=1{print $1,$2}&#39;</span> <span class="p">|</span> <span class="k">while</span> <span class="nb">read</span> repo tag <span class="p">;</span><span class="k">do</span> docker save <span class="nv">$repo</span>:<span class="nv">$tag</span> -o /opt/<span class="nv">$repo</span>-<span class="nv">$tag</span>.tar <span class="p">;</span><span class="k">done</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>解决文件名问题</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">docker images <span class="p">|</span> awk <span class="s1">&#39;NR!=1{print $1,$2}&#39;</span> <span class="p">|</span> <span class="k">while</span> <span class="nb">read</span> repo tag <span class="p">;</span><span class="k">do</span>
+</span></span><span class="line"><span class="cl">    <span class="c1"># 将 / 替换为 _，避免目录错误</span>
+</span></span><span class="line"><span class="cl">    <span class="nv">safe_repo</span><span class="o">=</span><span class="k">$(</span><span class="nb">echo</span> <span class="s2">&#34;</span><span class="nv">$repo</span><span class="s2">&#34;</span> <span class="p">|</span> sed <span class="s1">&#39;s|/|_|g&#39;</span><span class="k">)</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="nv">safe_tag</span><span class="o">=</span><span class="k">$(</span><span class="nb">echo</span> <span class="s2">&#34;</span><span class="nv">$tag</span><span class="s2">&#34;</span> <span class="p">|</span> sed <span class="s1">&#39;s|/|_|g&#39;</span><span class="k">)</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="nb">echo</span> <span class="s2">&#34;export </span><span class="nv">$repo</span><span class="s2">:</span><span class="nv">$tag</span><span class="s2">&#34;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    docker save <span class="s2">&#34;</span><span class="nv">$repo</span><span class="s2">:</span><span class="nv">$tag</span><span class="s2">&#34;</span> -o <span class="s2">&#34;/opt/</span><span class="si">${</span><span class="nv">safe_repo</span><span class="si">}</span><span class="s2">-</span><span class="si">${</span><span class="nv">safe_tag</span><span class="si">}</span><span class="s2">.tar&#34;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="k">done</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="3">
+<li>导出所有镜像到一个文件中</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">docker image save <span class="sb">`</span>docker image ls --format <span class="s2">&#34;{{.Repository}}:{{.Tag}}&#34;</span><span class="sb">`</span> -o all.tar
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="容器热迁移">容器热迁移
+</h3><h4 id="环境准备">环境准备
+</h4><ul>
+<li>安装 criu</li>
+<li>安装 docker</li>
+<li>配置 docker 支持 CRIU</li>
+</ul>
+<h4 id="ubuntu-24安装环境">ubuntu 24安装环境
+</h4><ul>
+<li>安装环境</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">add-apt-repository ppa:criu/ppa -y <span class="o">&amp;&amp;</span> apt update <span class="o">&amp;&amp;</span> apt -y install criu docker.io
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>检测criu</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">criu check
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>查看版本</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">criu -V
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="开启criu功能">开启CRIU功能
+</h4><ul>
+<li>默认没有开启checkpoint的实验性功能</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">docker checkpoint
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>启动CRIU功能</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span><span class="lnt">9
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">cat &gt; /etc/docker/daemon.json <span class="s">&lt;&lt;EOF
+</span></span></span><span class="line"><span class="cl"><span class="s">{
+</span></span></span><span class="line"><span class="cl"><span class="s">    &#34;registry-mirrors&#34;: [
+</span></span></span><span class="line"><span class="cl"><span class="s">        &#34;https://docker.1ms.run&#34;,
+</span></span></span><span class="line"><span class="cl"><span class="s">        &#34;https://docker.xuanyuan.me&#34;
+</span></span></span><span class="line"><span class="cl"><span class="s">    ],
+</span></span></span><span class="line"><span class="cl"><span class="s">    &#34;experimental&#34;: true
+</span></span></span><span class="line"><span class="cl"><span class="s">}
+</span></span></span><span class="line"><span class="cl"><span class="s">EOF</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>重启docker</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">systemctl restart docker
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>测试CRIU是否开启</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">docker checkpoint
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="启动运行一个需要热迁移的容器">启动运行一个需要热迁移的容器
+</h4><ul>
+<li>启动容器</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">docker run --restart always --name cr -d registry.cn-beijing.aliyuncs.com/wangxiaochun/busybox:1.32.0 /bin/sh -c <span class="s1">&#39;i=0;while true; do echo $i `date +%F_%T`; i=$(expr $i + 1); sleep 1; done&#39;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>查看日志</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">docker logs -f cr
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="备份">备份
+</h4><ul>
+<li>创建checkpoint快照</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">docker checkpoint create --checkpoint-dir /srv/ cr checkpoint1
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>创建checkpoint后，容器会自动退出</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">docker ps -l
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>查看生成的checkpoint</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">ls /srv
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>查看里面的文件</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">ls /srv/checkpoint1
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>查看文件大小</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">du -sh /srv/checkpoint1
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>查看checkpoint</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">docker checkpoint ls cr
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>必须指定路径才能看到</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">docker checkpoint ls cr --checkpoint-dir /srv/
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="还原">还原
+</h4><ul>
+<li>创建相同的容器</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 准备好第二台机器</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># 用相同的命令创建和前面主机同样的容器，注意：只创建不运行</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># 注意：如果没有 --network=host 的话，就会报错：Error response from daemon: bind-mount /proc/0/ns/net -&gt; /var/run/docker/netns/bd837776e3d4: no such file or directory</span>
+</span></span><span class="line"><span class="cl">docker create --restart always --network<span class="o">=</span>host --name cr registry.cn-beijing.aliyuncs.com/wangxiaochun/busybox:1.32.0 /bin/sh -c <span class="s1">&#39;i=0; while true;do echo $i `date +%F_%T`; i=$(expr $i + 1); sleep 1;done&#39;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>检查容器</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">docker ps -l
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>当前没有checkpoint</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">docker checkpoint ls cr
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>查看容器ID</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">docker inspect --format <span class="s2">&#34;{{.ID}}&#34;</span> cr
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>查看当前容器目录为空</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">ls /var/lib/docker/containers/e765a315dfd4b11b2ce9affd4cf80263054a3de2b4baaac1492ffa5c378a5a84/checkpoints/
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>将第一台主机的checkpoint文件复制到需要恢复的目标主机相应的目录下</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="nb">cd</span> /var/lib/docker/containers/e765a315dfd4b11b2ce9affd4cf80263054a3de2b4baaac1492ffa5c378a5a84/checkpoints/
+</span></span><span class="line"><span class="cl">rsync -av 192.168.133.102:/srv/ .
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>目标主机上确认文件复制完成</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">ls /var/lib/docker/containers/e765a315dfd4b11b2ce9affd4cf80263054a3de2b4baaac1492ffa5c378a5a84/checkpoints/
+</span></span><span class="line"><span class="cl">checkpoint1
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>查看checkpoint出现</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">docker checkpoint ls cr
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>恢复容器</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">docker start --checkpoint checkpoint1 cr
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>出现报错</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-gdscript3" data-lang="gdscript3"><span class="line"><span class="cl"><span class="n">docker</span> <span class="n">start</span> <span class="o">--</span><span class="n">checkpoint</span> <span class="n">checkpoint1</span> <span class="n">cr</span>
+</span></span><span class="line"><span class="cl"><span class="n">Error</span> <span class="n">response</span> <span class="n">from</span> <span class="n">daemon</span><span class="p">:</span> <span class="n">bind</span><span class="o">-</span><span class="n">mount</span> <span class="o">/</span><span class="n">proc</span><span class="o">/</span><span class="mi">0</span><span class="o">/</span><span class="n">ns</span><span class="o">/</span><span class="n">net</span> <span class="o">-&gt;</span> <span class="o">/</span><span class="k">var</span><span class="o">/</span><span class="n">run</span><span class="o">/</span><span class="n">docker</span><span class="o">/</span><span class="n">netns</span><span class="o">/</span><span class="n">bd837776e3d4</span><span class="p">:</span> <span class="n">no</span> <span class="n">such</span> <span class="n">file</span> <span class="ow">or</span> <span class="n">directory</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>观察容器日志说明容器是接着上前面的继续执行</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">docker logs -f cr
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="docker-镜像制作">docker 镜像制作
+</h2><h3 id="基于busybox制作httpd镜像">基于busybox制作httpd镜像
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"></code></pre></td></tr></table>
+</div>
+</div><h2 id="dockerfile">Dockerfile
+</h2><h3 id="dockerfile-镜像制作和使用流程">Dockerfile 镜像制作和使用流程
+</h3><ul>
+<li>按照业务类型或系统类型等方式划分创建目录环境</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">mkdir /data/dockerfile/<span class="o">{</span>web/<span class="o">{</span>nginx,apache,tomcat,jdk<span class="o">}</span>,system/<span class="o">{</span>centos,ubuntu,alpine,debian<span class="o">}}</span> -p
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="entrypoint入口点">ENTRYPOINT:入口点
+</h4><ol>
+<li>范例</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="nb">echo</span> <span class="s1">&#39;Nginx Website in Dockerfile&#39;</span> &gt; index.html
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>Dockerfile</code></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span><span class="lnt">9
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">FROM nginx:1.16-alpine
+</span></span><span class="line"><span class="cl">LABEL <span class="nv">maintainer</span><span class="o">=</span><span class="s2">&#34;wangxiaochun &lt;root@wangxiaochun.com&gt;&#34;</span>
+</span></span><span class="line"><span class="cl">ENV <span class="nv">DOC_ROOT</span><span class="o">=</span><span class="s1">&#39;/data/website&#39;</span>
+</span></span><span class="line"><span class="cl">ADD index.html <span class="si">${</span><span class="nv">DOC_ROOT</span><span class="si">}</span>
+</span></span><span class="line"><span class="cl">ADD entrypoint.sh /bin/
+</span></span><span class="line"><span class="cl">EXPOSE 80/tcp <span class="m">8080</span>
+</span></span><span class="line"><span class="cl">ENTRYPOINT <span class="o">[</span><span class="s2">&#34;/bin/entrypoint.sh&#34;</span><span class="o">]</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">CMD <span class="o">[</span><span class="s2">&#34;/usr/sbin/nginx&#34;</span>,<span class="s2">&#34;-g&#34;</span>,<span class="s2">&#34;daemon off;&#34;</span><span class="o">]</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>entrypoint.sh</code></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="cp">#!/bin/sh
+</span></span></span><span class="line"><span class="cl">cat &gt; /etc/nginx/conf.d/www.conf <span class="s">&lt;&lt;EOF
+</span></span></span><span class="line"><span class="cl"><span class="s">server {
+</span></span></span><span class="line"><span class="cl"><span class="s">    server_name ${HOSTNAME:-&#34;www.wangxiaochun.com&#34;};
+</span></span></span><span class="line"><span class="cl"><span class="s">    listen ${IP:-0.0.0.0}:${PORT:-80};
+</span></span></span><span class="line"><span class="cl"><span class="s">    root    ${DOC_ROOT:-/usr/share/nginx/html}
+</span></span></span><span class="line"><span class="cl"><span class="s">}
+</span></span></span><span class="line"><span class="cl"><span class="s">EOF</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># &#34;$@&#34; 此方式容器启动后运行sh进程，nginx成为sh子进程</span>
+</span></span><span class="line"><span class="cl"><span class="nb">exec</span> <span class="s2">&#34;</span><span class="nv">$@</span><span class="s2">&#34;</span>   <span class="c1"># 容器启动后没有sh，只有nginx的进程，此方式更加优化</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>执行</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">chmod +x entrypoint.sh
+</span></span><span class="line"><span class="cl">docker build -t nginx:v1.0 .
+</span></span><span class="line"><span class="cl">docker run --name n1 --rm -P -e <span class="s2">&#34;PORT=8080&#34;</span> -e <span class="s2">&#34;HOSTNAME=www.wang.org&#34;</span> nginx:v1.0
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="2">
+<li>范例：利用脚本实现指定环境变量动态生成配置文件内容</li>
+</ol>
+<p><code>Dockerfile</code></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">FROM nginx-alpine:1.24.0-v4.0
+</span></span><span class="line"><span class="cl">LABEL <span class="nv">maintainer</span><span class="o">=</span><span class="s2">&#34;wangxiaochun &lt;root@wangxiaochun.com&gt;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">RUN mkdir -p /data/website
+</span></span><span class="line"><span class="cl">COPY entrypoint.sh /
+</span></span><span class="line"><span class="cl">CMD <span class="o">[</span><span class="s2">&#34;nginx&#34;</span>,<span class="s2">&#34;-g&#34;</span>,<span class="s2">&#34;daemon off;&#34;</span><span class="o">]</span>
+</span></span><span class="line"><span class="cl">ENTRYPOINT <span class="o">[</span><span class="s2">&#34;/entrypoint.sh&#34;</span><span class="o">]</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>entrypoint.sh</code></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="cp">#!/bin/sh
+</span></span></span><span class="line"><span class="cl">cat &gt; /etc/nginx/conf/conf.d/www.conf <span class="s">&lt;&lt;EOF
+</span></span></span><span class="line"><span class="cl"><span class="s">server {
+</span></span></span><span class="line"><span class="cl"><span class="s">    server_name ${HOST:-&#34;www.wangxiaochun.com&#34;};
+</span></span></span><span class="line"><span class="cl"><span class="s">    listen ${IP:-0.0.0.0}:${PORT:-80};
+</span></span></span><span class="line"><span class="cl"><span class="s">    root ${DOC_ROOT:-/apps/nginx/html};
+</span></span></span><span class="line"><span class="cl"><span class="s">}
+</span></span></span><span class="line"><span class="cl"><span class="s">EOF</span>
+</span></span><span class="line"><span class="cl"><span class="nb">echo</span> <span class="si">${</span><span class="nv">HOST</span><span class="k">:-</span><span class="s2">&#34;www.wangxiaochun.com&#34;</span><span class="si">}</span> &gt; <span class="si">${</span><span class="nv">DOC_ROOT</span><span class="k">:-</span><span class="p">/etc/nginx/html</span><span class="si">}</span>/index.html
+</span></span><span class="line"><span class="cl"><span class="c1"># nginx -g &#34;daemon off;&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="nb">exec</span> <span class="s2">&#34;</span><span class="nv">$@</span><span class="s2">&#34;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="arg构建参数">ARG:构建参数
+</h4><ol>
+<li>范例:指定构建变量</li>
+</ol>
+<p><code>Dockerfile</code></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">FROM openjdk:8-jdk-alpine
+</span></span><span class="line"><span class="cl">ARG JAR_FILE
+</span></span><span class="line"><span class="cl">COPY <span class="si">${</span><span class="nv">JAR_FILE</span><span class="si">}</span> app.jar
+</span></span><span class="line"><span class="cl">EXPOSE <span class="m">8000</span>
+</span></span><span class="line"><span class="cl">ENTRYPOINT <span class="o">[</span><span class="s2">&#34;java&#34;</span>,<span class="s2">&#34;-jar&#34;</span>,<span class="s2">&#34;/app.jar&#34;</span><span class="o">]</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>执行</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">docker build --build-arg <span class="nv">JAR_FILE</span><span class="o">=</span>myapp1.jar -t myapp1:v1.0 .
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="2">
+<li>范例</li>
+</ol>
+<p><code>Dockerfile</code></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">FROM busybox
+</span></span><span class="line"><span class="cl">ARG <span class="nv">author</span><span class="o">=</span><span class="s2">&#34;wang &lt;root@wangxiaochun.com&gt;&#34;</span>
+</span></span><span class="line"><span class="cl">LABEL <span class="nv">maintainer</span><span class="o">=</span><span class="s2">&#34;</span><span class="si">${</span><span class="nv">author</span><span class="si">}</span><span class="s2">&#34;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>执行</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">docker build --build-arg <span class="nv">author</span><span class="o">=</span><span class="s2">&#34;29308620@qq.com&#34;</span> -t busybox:v1.0 .
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="volume匿名卷">VOLUME:匿名卷
+</h4><ol>
+<li>范例</li>
+</ol>
+<p><code>Dockerfile</code></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">FROM alpine:3.11
+</span></span><span class="line"><span class="cl">LABEL <span class="nv">maintainer</span><span class="o">=</span><span class="s2">&#34;wangxiaochun &lt;root@wangxiaochun.com&gt;&#34;</span>
+</span></span><span class="line"><span class="cl">COPY repositories /etc/apk/repositories
+</span></span><span class="line"><span class="cl">VOLUME <span class="o">[</span><span class="s2">&#34;/testdata&#34;</span>,<span class="s2">&#34;/testdata2&#34;</span><span class="o">]</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>执行</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">docker run -it --rm a sh
+</span></span><span class="line"><span class="cl">/ <span class="c1"># df</span>
+</span></span><span class="line"><span class="cl">Filesystem           1K-blocks      Used Available Use% Mounted on
+</span></span><span class="line"><span class="cl">overlay               <span class="m">10218772</span>   <span class="m">8220988</span>   <span class="m">1457112</span>  85% /
+</span></span><span class="line"><span class="cl">tmpfs                    <span class="m">65536</span>         <span class="m">0</span>     <span class="m">65536</span>   0% /dev
+</span></span><span class="line"><span class="cl">shm                      <span class="m">65536</span>         <span class="m">0</span>     <span class="m">65536</span>   0% /dev/shm
+</span></span><span class="line"><span class="cl">/dev/mapper/ubuntu--vg-ubuntu--lv
+</span></span><span class="line"><span class="cl">                      <span class="m">10218772</span>   <span class="m">8220988</span>   <span class="m">1457112</span>  85% /testdata2
+</span></span><span class="line"><span class="cl">/dev/mapper/ubuntu--vg-ubuntu--lv
+</span></span><span class="line"><span class="cl">                      <span class="m">10218772</span>   <span class="m">8220988</span>   <span class="m">1457112</span>  85% /testdata
+</span></span><span class="line"><span class="cl">/dev/mapper/ubuntu--vg-ubuntu--lv
+</span></span><span class="line"><span class="cl">                      <span class="m">10218772</span>   <span class="m">8220988</span>   <span class="m">1457112</span>  85% /etc/resolv.conf
+</span></span><span class="line"><span class="cl">/dev/mapper/ubuntu--vg-ubuntu--lv
+</span></span><span class="line"><span class="cl">                      <span class="m">10218772</span>   <span class="m">8220988</span>   <span class="m">1457112</span>  85% /etc/hostname
+</span></span><span class="line"><span class="cl">/dev/mapper/ubuntu--vg-ubuntu--lv
+</span></span><span class="line"><span class="cl">                      <span class="m">10218772</span>   <span class="m">8220988</span>   <span class="m">1457112</span>  85% /etc/hosts
+</span></span><span class="line"><span class="cl">tmpfs                   <span class="m">982988</span>         <span class="m">0</span>    <span class="m">982988</span>   0% /proc/asound
+</span></span><span class="line"><span class="cl">tmpfs                   <span class="m">982988</span>         <span class="m">0</span>    <span class="m">982988</span>   0% /proc/acpi
+</span></span><span class="line"><span class="cl">tmpfs                    <span class="m">65536</span>         <span class="m">0</span>     <span class="m">65536</span>   0% /proc/interrupts
+</span></span><span class="line"><span class="cl">tmpfs                    <span class="m">65536</span>         <span class="m">0</span>     <span class="m">65536</span>   0% /proc/kcore
+</span></span><span class="line"><span class="cl">tmpfs                    <span class="m">65536</span>         <span class="m">0</span>     <span class="m">65536</span>   0% /proc/keys
+</span></span><span class="line"><span class="cl">tmpfs                    <span class="m">65536</span>         <span class="m">0</span>     <span class="m">65536</span>   0% /proc/latency_stats
+</span></span><span class="line"><span class="cl">tmpfs                    <span class="m">65536</span>         <span class="m">0</span>     <span class="m">65536</span>   0% /proc/timer_list
+</span></span><span class="line"><span class="cl">tmpfs                   <span class="m">982988</span>         <span class="m">0</span>    <span class="m">982988</span>   0% /proc/scsi
+</span></span><span class="line"><span class="cl">tmpfs                   <span class="m">982988</span>         <span class="m">0</span>    <span class="m">982988</span>   0% /sys/firmware
+</span></span><span class="line"><span class="cl">/ <span class="c1"># cp /etc/issue /testdata/f1.txt</span>
+</span></span><span class="line"><span class="cl">/ <span class="c1"># cp /etc/issue /testdata2/f2.txt</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>查看保存的文件</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# tree /var/lib/docker/volumes/
+</span></span><span class="line"><span class="cl">/var/lib/docker/volumes/
+</span></span><span class="line"><span class="cl">├── 01bb44f17de57c53f6cf335c9f210f5c46bf60e33777c99f68796f27bb5161ff
+</span></span><span class="line"><span class="cl">│   └── _data
+</span></span><span class="line"><span class="cl">│       ├── 50x.html
+</span></span><span class="line"><span class="cl">│       └── index.html
+</span></span><span class="line"><span class="cl">├── 165997e2e9c79cdfee1e877aebcbed84e41a3dea29676f4a3921e3b94faaa06d
+</span></span><span class="line"><span class="cl">│   └── _data
+</span></span><span class="line"><span class="cl">│       ├── 50x.html
+</span></span><span class="line"><span class="cl">│       └── index.html
+</span></span><span class="line"><span class="cl">├── 20e90deb73a96b841415e5710496c6ff4280baba3e57660de912791863c608a5
+</span></span><span class="line"><span class="cl">│   └── _data
+</span></span><span class="line"><span class="cl">│       ├── 50x.html
+</span></span><span class="line"><span class="cl">│       └── index.html
+</span></span><span class="line"><span class="cl">├── 3c0ab1eb5160746b19c2299949c72c1532a780cd2e2e83449ce28b0a9d551b39
+</span></span><span class="line"><span class="cl">│   └── _data
+</span></span><span class="line"><span class="cl">│       └── f2.txt
+</span></span><span class="line"><span class="cl">├── backingFsBlockDev
+</span></span><span class="line"><span class="cl">├── cd06c87a96af3d7531c5d8193174df124e2bd4009bc5142cb8979853f6393cfc
+</span></span><span class="line"><span class="cl">│   └── _data
+</span></span><span class="line"><span class="cl">│       └── f1.txt
+</span></span><span class="line"><span class="cl">└── metadata.db
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="2">
+<li>范例</li>
+</ol>
+<p><code>index.html</code></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="nb">echo</span> Website in Dockerfile &gt; index.html
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>Dockerfile</code></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">FROM busybox
+</span></span><span class="line"><span class="cl">LAEBL <span class="nv">maintainer</span><span class="o">=</span><span class="s2">&#34;wangxiaochun &lt;root@wangxiaochun.com&gt;&#34;</span>
+</span></span><span class="line"><span class="cl">COPY index.html /data/website
+</span></span><span class="line"><span class="cl">EXPOSE <span class="m">80</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>build.sh</code></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="cp">#!/bin/bash
+</span></span></span><span class="line"><span class="cl"><span class="nv">TAG</span><span class="o">=</span><span class="nv">$1</span>
+</span></span><span class="line"><span class="cl">docker build -t test:<span class="nv">$TAG</span> .
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="healthcheck健康检查">HEALTHCHECK:健康检查
+</h4><ol>
+<li>范例</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">FROM nginx
+</span></span><span class="line"><span class="cl">RUN apt-get update <span class="o">&amp;&amp;</span> apt-get install -y curl <span class="o">&amp;&amp;</span> rm -rf /var/lib/apt/lists/*
+</span></span><span class="line"><span class="cl">HEALTHCHECK --interval<span class="o">=</span>5s --timeout<span class="o">=</span>3s CMD curl -fs http://localhost/
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="docker-build">Docker build
+</h4><ol>
+<li>范例：利用Dockerfile构建基于CentOS的nginx镜像</li>
+</ol>
+<p><code>Dockerfile</code></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">FROM centos:centos8.2.2004
+</span></span><span class="line"><span class="cl">LABEL <span class="nv">maintainer</span><span class="o">=</span><span class="s2">&#34;wangxiaochun &lt;root@wangxiaochun.com&gt;&#34;</span>
+</span></span><span class="line"><span class="cl">RUN rm -rf /etc/yum.repos.d/* <span class="o">&amp;&amp;</span> curl -o /etc/yum.repos.d/CentOS-Base.repo https://mirrors.aliyun.com/repo/Centos-vault-8.5.2111.repo
+</span></span><span class="line"><span class="cl">RUN dnf install -y nginx <span class="o">&amp;&amp;</span> <span class="nb">echo</span> Nginx Website in Docker &gt; /usr/share/nginx/html/index.html
+</span></span><span class="line"><span class="cl">EXPOSE <span class="m">80</span>
+</span></span><span class="line"><span class="cl">CMD <span class="o">[</span><span class="s2">&#34;nginx&#34;</span>,<span class="s2">&#34;-g&#34;</span>,<span class="s2">&#34;daemon off;&#34;</span><span class="o">]</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="2">
+<li>范例：刷新镜像缓存重新构建新镜像</li>
+</ol>
+<p><code>Dockerfile</code></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">FROM centos:centos8.2.2004
+</span></span><span class="line"><span class="cl">LABEL <span class="nv">maintainer</span><span class="o">=</span><span class="s2">&#34;wangxiaochun &lt;root@wangxiaochun.com&gt;&#34;</span>
+</span></span><span class="line"><span class="cl">RUN rm -rf /etc/yum.repos.d/*
+</span></span><span class="line"><span class="cl">RUn curl -o /etc/yum.repos.d/CentOS-Base.repo https://mirrors.aliyun.com/repo/Centos-vault-8.5.2111.repo 
+</span></span><span class="line"><span class="cl">RUN dnf install -y nginx
+</span></span><span class="line"><span class="cl">RUN <span class="nb">echo</span> Nginx Website in Docker &gt; /usr/share/nginx/html/index.html
+</span></span><span class="line"><span class="cl"><span class="c1"># 修改下面行，从下面行开始不再使用缓存</span>
+</span></span><span class="line"><span class="cl">ENV REFRESH_DATA 2020-01-01
+</span></span><span class="line"><span class="cl">EXPOSE <span class="m">80</span>
+</span></span><span class="line"><span class="cl">CMD <span class="o">[</span><span class="s2">&#34;nginx&#34;</span>,<span class="s2">&#34;-g&#34;</span>,<span class="s2">&#34;daemon off;&#34;</span><span class="o">]</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>构建镜像</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">docker build -t nginx_centos8.2:v1.14.1 .
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>全部不利用缓存重新构建镜像</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">docker build --no-cache -t nginx_centos8.2:v1.14.1 .
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="从镜像导出对应的-dockerfile">从镜像导出对应的 Dockerfile
+</h3><ol>
+<li>范例：Docker 安装 whaler</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="nb">alias</span> <span class="nv">whaler</span><span class="o">=</span><span class="s2">&#34;docker run -t --rm -v /var/run/docker.sock:/var/run/docker.sock:ro pegleg/whaler&#34;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>测试</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">whaler alpine:3.15
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="利用dockerfile自动构建镜像案例">利用DockerFile自动构建镜像案例
+</h2><h3 id="基于alpine基础镜像制作nginx源码编译镜像">基于Alpine基础镜像制作Nginx源码编译镜像
+</h3><h4 id="制作alpine的自定义系统镜像">制作Alpine的自定义系统镜像
+</h4><ul>
+<li>按照业务类型或系统类型等方式划分创建目录环境，方便后期镜像比较多的时候进行分类</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">mkdir /data/dockerfile/<span class="o">{</span>web/<span class="o">{</span>nginx,apache,tomcat,jdk<span class="o">}</span>,system/<span class="o">{</span>centos,ubuntu,alpine,debian<span class="o">}}</span> -p
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>列出树状目录</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">tree /data/dockerfile/
+</span></span><span class="line"><span class="cl">/data/dockerfile/
+</span></span><span class="line"><span class="cl">├── system
+</span></span><span class="line"><span class="cl">│   ├── alpine
+</span></span><span class="line"><span class="cl">│   ├── centos
+</span></span><span class="line"><span class="cl">│   ├── debian
+</span></span><span class="line"><span class="cl">│   └── ubuntu
+</span></span><span class="line"><span class="cl">└── web
+</span></span><span class="line"><span class="cl">   ├── apache
+</span></span><span class="line"><span class="cl">   ├── jdk
+</span></span><span class="line"><span class="cl">   ├── nginx
+</span></span><span class="line"><span class="cl">   └── tomcat
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>下载alpine镜像</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">docker pull alpine
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>1</p>
+
+</section>
+
+
+    <footer class="article-footer">
+    
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+     
+    
+        
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+            2025 - 
+        
+        2026 リンボの個人ブログ
+    </section>
+    
+    <section class="powerby">
+         <br />
+        
+    </section>
+</footer>
+
+
+    
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+    
+    <div class="pswp__bg"></div>
+
+    
+    <div class="pswp__scroll-wrap">
+
+        
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+
+        
+        <div class="pswp__ui pswp__ui--hidden">
+
+            <div class="pswp__top-bar">
+
+                
+
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+
+                <button class="pswp__button pswp__button--share" title="Share"></button>
+
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+
+                
+                
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                        <div class="pswp__preloader__cut">
+                            <div class="pswp__preloader__donut"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div>
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.js"integrity="sha256-ePwmChbbvXbsO02lbM3HoHbSHTHFAeChekF1xKJdleo="crossorigin="anonymous"
+                defer
+                >
+            </script><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe-ui-default.min.js"integrity="sha256-UKkzOn/w1mBxRmLLGrSeyB4e1xbrp4xylgAWb3M42pU="crossorigin="anonymous"
+                defer
+                >
+            </script><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/default-skin/default-skin.min.css"crossorigin="anonymous"
+            ><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.css"crossorigin="anonymous"
+            >
+
+            </main>
+        </div>
+        <script 
+                src="https://cdn.jsdelivr.net/npm/node-vibrant@3.1.6/dist/vibrant.min.js"integrity="sha256-awcR2jno4kI5X0zL8ex0vi2z&#43;KMkF24hUW8WePSA9HM="crossorigin="anonymous"
+                
+                >
+            </script><script type="text/javascript" src="/ts/main.1e9a3bafd846ced4c345d084b355fb8c7bae75701c338f8a1f8a82c780137826.js" defer></script>
+<script>
+    (function () {
+        const customFont = document.createElement('link');
+        customFont.href = "https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap";
+
+        customFont.type = "text/css";
+        customFont.rel = "stylesheet";
+
+        document.head.appendChild(customFont);
+    }());
+</script>
+
+    </body>
+</html>
