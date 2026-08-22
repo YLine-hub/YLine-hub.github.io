@@ -255,6 +255,21 @@
           </ol>
         </li>
         <li><a href="#基于-ubuntu-基础镜像制作-nginx-镜像">基于 Ubuntu 基础镜像制作 Nginx 镜像</a></li>
+        <li><a href="#基于-alpine的微服务-apollo-配置中心">基于 Alpine的微服务 Apollo 配置中心</a></li>
+        <li><a href="#基于-alpine-制作-oracle-jdk-8-镜像">基于 Alpine 制作 Oracle-JDK-8 镜像</a></li>
+        <li><a href="#基于openjdk的微服务的java应用镜像">基于Openjdk的微服务的JAVA应用镜像</a></li>
+      </ol>
+    </li>
+    <li><a href="#多阶段构建">多阶段构建</a>
+      <ol>
+        <li><a href="#范例多阶段构建实现golang应用">范例：多阶段构建实现Golang应用</a>
+          <ol>
+            <li><a href="#运行简单golang程序">运行简单golang程序</a></li>
+            <li><a href="#传统方式构建golang应用">传统方式构建Golang应用</a></li>
+            <li><a href="#多阶段构建golang应用">多阶段构建Golang应用</a></li>
+            <li><a href="#多阶段构建实现基于alpine的nginx的编译安装">多阶段构建实现基于Alpine的Nginx的编译安装</a></li>
+          </ol>
+        </li>
       </ol>
     </li>
   </ol>
@@ -1363,9 +1378,13 @@
 <table class="lntable"><tr><td class="lntd">
 <pre tabindex="0" class="chroma"><code><span class="lnt">1
 </span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
 </span></code></pre></td>
 <td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">http://mirrors.aliyun.com/alpine/v3.24/main
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="nb">cd</span> /data/dockerfile/system/alpine
+</span></span><span class="line"><span class="cl">cat repositories
+</span></span><span class="line"><span class="cl">http://mirrors.aliyun.com/alpine/v3.24/main
 </span></span><span class="line"><span class="cl">http://mirrors.aliyun.com/alpine/v3.24/community
 </span></span></code></pre></td></tr></table>
 </div>
@@ -1513,6 +1532,17 @@
 </span></span></code></pre></td></tr></table>
 </div>
 </div><ul>
+<li>构建镜像</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sh build.sh
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
 <li>测试</li>
 </ul>
 <div class="highlight"><div class="chroma">
@@ -1526,7 +1556,856 @@
 </span></span></code></pre></td></tr></table>
 </div>
 </div><h3 id="基于-ubuntu-基础镜像制作-nginx-镜像">基于 Ubuntu 基础镜像制作 Nginx 镜像
-</h3>
+</h3><ul>
+<li>拉取镜像</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:/# docker pull ubuntu:24.04
+</span></span><span class="line"><span class="cl">24.04: Pulling from library/ubuntu
+</span></span><span class="line"><span class="cl">0926a8eb0e60: Verifying Checksum 
+</span></span><span class="line"><span class="cl">Get <span class="s2">&#34;https://registry-1.docker.io/v2/&#34;</span>: context deadline exceeded
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 由于网络问题无法拉取镜像，这里从国内站拉取镜像，并修改tag为ubuntu:24.04</span>
+</span></span><span class="line"><span class="cl">root@lin-server:/# docker pull swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/ubuntu:24.04
+</span></span><span class="line"><span class="cl">24.04: Pulling from ddn-k8s/docker.io/ubuntu
+</span></span><span class="line"><span class="cl">2b3981cac065: Pull <span class="nb">complete</span> 
+</span></span><span class="line"><span class="cl">Digest: sha256:19bc204df71f4086020b609089ebf49b332c2e373ec31e3512644b8ad9615001
+</span></span><span class="line"><span class="cl">Status: Downloaded newer image <span class="k">for</span> swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/ubuntu:24.04
+</span></span><span class="line"><span class="cl">swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/ubuntu:24.04
+</span></span><span class="line"><span class="cl">root@lin-server:/# docker tag swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/ubuntu:24.04 ubuntu:24.04
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>准备文件</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">mkdir /data/dockerfile/web/nginx/1.26.2-ubuntu -p
+</span></span><span class="line"><span class="cl"><span class="nb">cd</span> /data/dockerfile/web/nginx/1.26.2-ubuntu
+</span></span><span class="line"><span class="cl">sudo wget https://nginx.org/download/nginx-1.26.2.tar.gz
+</span></span><span class="line"><span class="cl">tar xf nginx-1.26.2.tar.gz
+</span></span><span class="line"><span class="cl">cp nginx-1.26.2/conf/nginx.conf .
+</span></span><span class="line"><span class="cl"><span class="nb">echo</span> Test Page based nginx-ubuntu2404 &gt; index.html
+</span></span><span class="line"><span class="cl">vim nginx.conf
+</span></span><span class="line"><span class="cl">user nginx<span class="p">;</span>
+</span></span><span class="line"><span class="cl">worker_processes  1<span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">http <span class="o">{</span>
+</span></span><span class="line"><span class="cl">    ...
+</span></span><span class="line"><span class="cl">    <span class="c1"># 开启日志格式</span>
+</span></span><span class="line"><span class="cl">    log_format  main  <span class="s1">&#39;$remote_addr - $remote_user [$time_local] &#34;$request&#34; &#39;</span>
+</span></span><span class="line"><span class="cl">                      <span class="s1">&#39;$status $body_bytes_sent &#34;$http_referer&#34; &#39;</span>
+</span></span><span class="line"><span class="cl">                      <span class="s1">&#39;&#34;$http_user_agent&#34; &#34;$http_x_forwarded_for&#34;&#39;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    access_log logs/access.log main<span class="p">;</span>  <span class="c1"># 需要开启</span>
+</span></span><span class="line"><span class="cl">    ...
+</span></span><span class="line"><span class="cl">    location / <span class="o">{</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># 设置 root 目录</span>
+</span></span><span class="line"><span class="cl">        root  /apps/nginx/html<span class="p">;</span>
+</span></span><span class="line"><span class="cl">    ...
+</span></span><span class="line"><span class="cl">    error_log logs/error.log warn<span class="p">;</span>    <span class="c1"># 需要开启</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>Dockerfile</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">ARG <span class="nv">VERSION</span><span class="o">=</span>24.04
+</span></span><span class="line"><span class="cl"><span class="c1"># ARG NGINX_VERSION=1.26.2 注意：如果在这里定义NGINX_VERSION参数的话，FROM后面调用NGINX_VERSION的值为空</span>
+</span></span><span class="line"><span class="cl">FROM ubuntu:<span class="si">${</span><span class="nv">VERSION</span><span class="si">}</span>
+</span></span><span class="line"><span class="cl">LABEL <span class="nv">maintainer</span><span class="o">=</span><span class="s2">&#34;yline &lt;root@yline.com&gt;&#34;</span>
+</span></span><span class="line"><span class="cl">ARG <span class="nv">NGINX_VERSION</span><span class="o">=</span>1.26.2
+</span></span><span class="line"><span class="cl">ADD nginx-<span class="si">${</span><span class="nv">NGINX_VERSION</span><span class="si">}</span>.tar.gz /usr/local/src
+</span></span><span class="line"><span class="cl">ENV <span class="nv">NGINX_DIR</span><span class="o">=</span>/apps/nginx
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 设置时区（避免交互式提示）</span>
+</span></span><span class="line"><span class="cl">RUN ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 安装依赖，安装依赖后，通过 rm -rf /var/lib/apt/lists/* 清理缓存，以减小镜像体积</span>
+</span></span><span class="line"><span class="cl">RUN apt-get update <span class="o">&amp;&amp;</span> apt-get upgrade -y <span class="o">&amp;&amp;</span> apt-get install -y gcc libpcre3-dev zlib1g zlib1g-dev openssl libssl-dev make <span class="o">&amp;&amp;</span> rm -rf /var/lib/apt/lists/*      
+</span></span><span class="line"><span class="cl">RUN <span class="nb">cd</span> /usr/local/src/nginx-<span class="si">${</span><span class="nv">NGINX_VERSION</span><span class="si">}</span> <span class="o">&amp;&amp;</span> ./configure --prefix<span class="o">=</span><span class="si">${</span><span class="nv">NGINX_DIR</span><span class="si">}</span> --user<span class="o">=</span>nginx --group<span class="o">=</span>nginx --with-http_ssl_module  <span class="o">&amp;&amp;</span> make <span class="o">&amp;&amp;</span> make install <span class="o">&amp;&amp;</span> ln -s <span class="si">${</span><span class="nv">NGINX_DIR</span><span class="si">}</span>/sbin/nginx /usr/local/bin/nginx <span class="o">&amp;&amp;</span> rm -rf /usr/local/src/nginx-<span class="si">${</span><span class="nv">NGINX_VERSION</span><span class="si">}</span>
+</span></span><span class="line"><span class="cl">ADD nginx.conf <span class="si">${</span><span class="nv">NGINX_DIR</span><span class="si">}</span>/conf/nginx.conf
+</span></span><span class="line"><span class="cl">ADD index.html <span class="si">${</span><span class="nv">NGINX_DIR</span><span class="si">}</span>/html/index.html
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">RUN groupadd -r nginx <span class="o">||</span> <span class="nb">true</span> <span class="o">&amp;&amp;</span> <span class="se">\
+</span></span></span><span class="line"><span class="cl">    useradd -r -g nginx -s /sbin/nologin -M nginx <span class="o">||</span> <span class="nb">true</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 设置日志软链接</span>
+</span></span><span class="line"><span class="cl">RUN ln -sf /dev/stdout <span class="si">${</span><span class="nv">NGINX_DIR</span><span class="si">}</span>/logs/access.log <span class="o">&amp;&amp;</span> <span class="se">\
+</span></span></span><span class="line"><span class="cl">    ln -sf /dev/stderr <span class="si">${</span><span class="nv">NGINX_DIR</span><span class="si">}</span>/logs/error.log <span class="o">&amp;&amp;</span> <span class="se">\
+</span></span></span><span class="line"><span class="cl">    chown -R nginx:nginx <span class="si">${</span><span class="nv">NGINX_DIR</span><span class="si">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">EXPOSE <span class="m">80</span> <span class="m">443</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># &#34;daemon off;&#34; 前台运行</span>
+</span></span><span class="line"><span class="cl">CMD <span class="o">[</span><span class="s2">&#34;nginx&#34;</span>,<span class="s2">&#34;-g&#34;</span>,<span class="s2">&#34;daemon off;&#34;</span><span class="o">]</span>    
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>构建镜像</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">vim build.sh
+</span></span><span class="line"><span class="cl"><span class="c1">#!/bin/bash</span>
+</span></span><span class="line"><span class="cl">docker build -t nginx-ubuntu2404:1.26.2 .
+</span></span><span class="line"><span class="cl">sh build.sh
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>运行容器</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">docker run -d -p 80:80 nginx-ubuntu2404:1.26.2
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="基于-alpine的微服务-apollo-配置中心">基于 Alpine的微服务 Apollo 配置中心
+</h3><ul>
+<li>部署脚本地址</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">https://github.com/apolloconfig/apollo/tree/1.5.1/scripts/apollo-on-kubernetes/apollo-config-server
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>Apollo configservice 下载</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">https://github.com/apolloconfig/apollo/releases
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>获取镜像</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">docker pull swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/openjdk:8-jre-alpine
+</span></span><span class="line"><span class="cl">docker tag swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/openjdk:8-jre-alpine openjdk:8-jre-alpine
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>查看镜像版本（运行完后自动删除）</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">docker run --rm openjdk:8-jre-alpine cat /etc/alpine-release
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>构建镜像</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 构建</span>
+</span></span><span class="line"><span class="cl">docker build -t apollo-config-server:v1.0.0 .
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 如果构建成功，运行容器</span>
+</span></span><span class="line"><span class="cl">docker run -d -p 8080:8080 --name apollo-config -v <span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span>/logs:/opt/logs -v <span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span>/tmp:/tmp apollo-config-server:v1.0.0
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 查看日志</span>
+</span></span><span class="line"><span class="cl">docker logs -f apollo-config
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 启动失败，看日志是未连接数据库</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="基于-alpine-制作-oracle-jdk-8-镜像">基于 Alpine 制作 Oracle-JDK-8 镜像
+</h3><ul>
+<li>部署脚本地址</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1">#https://github.com/anapsix/docker-alpine-java/blob/master/generate_dockerfiles.sh</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="基于openjdk的微服务的java应用镜像">基于Openjdk的微服务的JAVA应用镜像
+</h3><ul>
+<li>部署脚本地址</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">https://gitee.com/lbtooth/RuoYi-Cloud/blob/master/docker/ruoyi/gateway/dockerfile
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="多阶段构建">多阶段构建
+</h2><ul>
+<li>多阶段构建相关指令</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl"># 第一次构建
+</span></span><span class="line"><span class="cl">FROM &lt;image&gt; [AS &lt;name&gt;]
+</span></span><span class="line"><span class="cl">构建过程生成结果文件
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"># 第二次构建
+</span></span><span class="line"><span class="cl">FROM &lt;image&gt;
+</span></span><span class="line"><span class="cl">COPY --from=&lt;name&gt;] 前一次构建的路径src 前二次构建的路径dest
+</span></span><span class="line"><span class="cl">COPY --from=0 前一次构建的路径src 前二次构建的路径dest
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="范例多阶段构建实现golang应用">范例：多阶段构建实现Golang应用
+</h3><h4 id="运行简单golang程序">运行简单golang程序
+</h4><ul>
+<li>简单 golang 程序</li>
+</ul>
+<p><code>hello.go</code></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kn">package</span><span class="w"> </span><span class="nx">main</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="kn">import</span><span class="w"> </span><span class="p">(</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="s">&#34;fmt&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="s">&#34;time&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="kd">func</span><span class="w"> </span><span class="nf">main</span><span class="p">(){</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nx">fmt</span><span class="p">.</span><span class="nf">Println</span><span class="p">(</span><span class="s">&#34;hello, world!&#34;</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nx">time</span><span class="p">.</span><span class="nf">Sleep</span><span class="p">(</span><span class="nx">time</span><span class="p">.</span><span class="nx">Second</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>安装golang</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">apt update <span class="o">&amp;&amp;</span> apt -y install golang
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>编译</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">go build hello.go
+</span></span><span class="line"><span class="cl">ls
+</span></span><span class="line"><span class="cl">hello hello.go
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>查看文件</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">file hello
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>查看程序依赖库</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">ldd hello
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>运行</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">./hello
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="传统方式构建golang应用">传统方式构建Golang应用
+</h4><ul>
+<li>Dockerfile</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 方法一：</span>
+</span></span><span class="line"><span class="cl">FROM ubuntu:24.04
+</span></span><span class="line"><span class="cl">COPY hello.go /opt/
+</span></span><span class="line"><span class="cl">WORKDIR /opt
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">RUN apt update <span class="o">&amp;&amp;</span> apt -y install golang <span class="o">&amp;&amp;</span> go build hello.go
+</span></span><span class="line"><span class="cl">CMD <span class="o">[</span><span class="s2">&#34;/opt/hello&#34;</span><span class="o">]</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 方法二：</span>
+</span></span><span class="line"><span class="cl">FROM golang:1.18-alpine
+</span></span><span class="line"><span class="cl">COPY hello.go /opt
+</span></span><span class="line"><span class="cl">WORKDIR /opt
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">RUN go build hello.go
+</span></span><span class="line"><span class="cl">CMD <span class="o">[</span><span class="s2">&#34;/opt/hello&#34;</span><span class="o">]</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>构建镜像</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">docker build -t go-hello:v1.0 .
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>运行容器</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">docker run --rm -it go-hello:v1.0
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="多阶段构建golang应用">多阶段构建Golang应用
+</h4><ul>
+<li>hello.go</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kn">package</span><span class="w"> </span><span class="nx">main</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="kn">import</span><span class="w"> </span><span class="p">(</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="s">&#34;fmt&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="s">&#34;time&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="kd">func</span><span class="w"> </span><span class="nf">main</span><span class="p">(){</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nx">fmt</span><span class="p">.</span><span class="nf">Println</span><span class="p">(</span><span class="s">&#34;hello, world!&#34;</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nx">time</span><span class="p">.</span><span class="nf">Sleep</span><span class="p">(</span><span class="nx">time</span><span class="p">.</span><span class="nx">Second</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>build.sh</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="cp">#!/bin/bash
+</span></span></span><span class="line"><span class="cl"><span class="nv">TAG</span><span class="o">=</span><span class="nv">$1</span>
+</span></span><span class="line"><span class="cl">docker build -t go-hello:<span class="nv">$1</span> . 
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>第一次构建<code>Dockerfile</code></li>
+</ul>
+<ol>
+<li>Dockerfile</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">FROM golang:1.18-alpine
+</span></span><span class="line"><span class="cl">COPY hello.go /opt
+</span></span><span class="line"><span class="cl">WORKDIR /opt
+</span></span><span class="line"><span class="cl">RUN go build hello.go 
+</span></span><span class="line"><span class="cl">CMD <span class="s2">&#34;./hello&#34;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="2">
+<li>构建镜像</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">bash build.sh v1.0
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="3">
+<li>运行</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">docker run --rm --name hello go-hello:v1.0
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>第二次优化</li>
+</ul>
+<ol>
+<li>Dockerfile</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">cp Dockerfile Dockerfile-v1.0
+</span></span><span class="line"><span class="cl">vim Dockerfile
+</span></span><span class="line"><span class="cl">FROM golang:1.18-alpine as builder
+</span></span><span class="line"><span class="cl">COPY hello.go /opt
+</span></span><span class="line"><span class="cl">WORKDIR /opt
+</span></span><span class="line"><span class="cl"><span class="c1"># 编译hello.go</span>
+</span></span><span class="line"><span class="cl">RUN go build hello.go 
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">FROM alpine:3.15.0
+</span></span><span class="line"><span class="cl">COPY --from<span class="o">=</span>builder /opt/hello /hello
+</span></span><span class="line"><span class="cl">CMD <span class="o">[</span><span class="s2">&#34;/hello&#34;</span><span class="o">]</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="2">
+<li>构建镜像</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">bash build.sh v2.0
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="3">
+<li>运行</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">docker run --name hello2 go-hello:v2.0
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>第三次优化</li>
+</ul>
+<ol>
+<li>Dockerfile</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">cp Dockerfile Dockerfile-v2.0
+</span></span><span class="line"><span class="cl">vim Dockerfile
+</span></span><span class="line"><span class="cl">FROM golang:1.18-alpine as builder
+</span></span><span class="line"><span class="cl">COPY hello.go /opt
+</span></span><span class="line"><span class="cl">WORKDIR /opt
+</span></span><span class="line"><span class="cl">RUN go build hello.go 
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">FROM scratch
+</span></span><span class="line"><span class="cl">COPY --from<span class="o">=</span>builder /opt/hello /hello
+</span></span><span class="line"><span class="cl">CMD <span class="o">[</span><span class="s2">&#34;/hello&#34;</span><span class="o">]</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="2">
+<li>构建镜像</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">bash build.sh v3.0
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="3">
+<li>运行</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">docker run --rm --name hello2 go-hello:v3.0
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>查看三次优化的镜像</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:/data/dockerfile/system/ubuntu/go-hello# docker images
+</span></span><span class="line"><span class="cl">REPOSITORY                                                   TAG            IMAGE ID       CREATED          SIZE
+</span></span><span class="line"><span class="cl">go-hello                                                     v3.0           06257663c0e0   <span class="m">24</span> seconds ago   1.76MB
+</span></span><span class="line"><span class="cl">go-hello                                                     v2.0           41a6c74fec6f   <span class="m">11</span> minutes ago   7.35MB
+</span></span><span class="line"><span class="cl">go-hello                                                     v1.0           eafb3362552f   <span class="m">50</span> minutes ago   331MB
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="多阶段构建实现基于alpine的nginx的编译安装">多阶段构建实现基于Alpine的Nginx的编译安装
+</h4><ul>
+<li>下载nginx</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo wget https://nginx.org/download/nginx-1.26.2.tar.gz
+</span></span><span class="line"><span class="cl">tar xf nginx-1.26.2.tar.gz
+</span></span><span class="line"><span class="cl">cp nginx-1.26.2/conf/nginx.conf .
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>Dockerfile</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># define alpine version</span>
+</span></span><span class="line"><span class="cl">ARG <span class="nv">VERSION</span><span class="o">=</span>3.18.0
+</span></span><span class="line"><span class="cl">FROM alpine:<span class="nv">$VERSION</span>
+</span></span><span class="line"><span class="cl">LABEL <span class="nv">maintainer</span><span class="o">=</span><span class="s2">&#34;yline &lt;root@yline.com&gt;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># define nginx version</span>
+</span></span><span class="line"><span class="cl">ENV <span class="nv">NGINX_VERSION</span><span class="o">=</span>1.26.2
+</span></span><span class="line"><span class="cl"><span class="c1"># define nginx dir</span>
+</span></span><span class="line"><span class="cl">ENV <span class="nv">NGINX_DIR</span><span class="o">=</span>/apps/nginx
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">ADD nginx-<span class="nv">$NGINX_VERSION</span>.tar.gz /usr/local/src
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 切换国内源</span>
+</span></span><span class="line"><span class="cl">RUN sed -i <span class="s1">&#39;s/dl-cdn.alpinelinux.org/mirrors.ustc.edu.cn/&#39;</span> /etc/apk/repositories <span class="o">&amp;&amp;</span> <span class="se">\
+</span></span></span><span class="line"><span class="cl">    <span class="c1"># 安装依赖</span>
+</span></span><span class="line"><span class="cl">    apk update <span class="o">&amp;&amp;</span> apk --no-cache add gcc make libgcc libc-dev libcurl libc-utils pcre-dev zlib-dev libnfs pcre pcre2 net-tools curl pstree wget libevent libevent-dev iproute2 openssl-dev <span class="o">&amp;&amp;</span> <span class="se">\
+</span></span></span><span class="line"><span class="cl">    <span class="c1"># 进入nginx目录</span>
+</span></span><span class="line"><span class="cl">    <span class="nb">cd</span> /usr/local/src/nginx-<span class="nv">$NGINX_VERSION</span> <span class="o">&amp;&amp;</span> <span class="se">\
+</span></span></span><span class="line"><span class="cl">    <span class="c1"># 编译</span>
+</span></span><span class="line"><span class="cl">    ./configure --prefix<span class="o">=</span><span class="si">${</span><span class="nv">NGINX_DIR</span><span class="si">}</span> --user<span class="o">=</span>nginx --group<span class="o">=</span>nginx --with-http_ssl_module --with-http_v2_module --with-http_realip_module --with-http_stub_status_module --with-http_gzip_static_module --with-pcre --with-stream --with-stream_ssl_module --with-stream_realip_module <span class="o">&amp;&amp;</span> <span class="se">\
+</span></span></span><span class="line"><span class="cl">    <span class="c1"># 安装</span>
+</span></span><span class="line"><span class="cl">    make <span class="o">&amp;&amp;</span> make install <span class="o">&amp;&amp;</span> <span class="se">\
+</span></span></span><span class="line"><span class="cl">    <span class="c1"># 删除</span>
+</span></span><span class="line"><span class="cl">    rm -rf /usr/local/src/nginx-<span class="nv">$NGINX_VERSION</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 复制配置文件</span>
+</span></span><span class="line"><span class="cl">COPY nginx.conf <span class="si">${</span><span class="nv">NGINX_DIR</span><span class="si">}</span>/conf/nginx.conf
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">FROM alpine:<span class="nv">$VERSION</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># define nginx dir</span>
+</span></span><span class="line"><span class="cl">ENV <span class="nv">NGINX_DIR</span><span class="o">=</span>/apps/nginx
+</span></span><span class="line"><span class="cl"><span class="c1"># 复制上个镜像中的/apps/nginx目录到这个镜像中</span>
+</span></span><span class="line"><span class="cl">COPY --from<span class="o">=</span><span class="m">0</span> <span class="si">${</span><span class="nv">NGINX_DIR</span><span class="si">}</span>/ <span class="si">${</span><span class="nv">NGINX_DIR</span><span class="si">}</span>/
+</span></span><span class="line"><span class="cl"><span class="c1"># 配置国内源</span>
+</span></span><span class="line"><span class="cl">RUN sed -i <span class="s1">&#39;s/dl-cdn.alpinelinux.org/mirrors.ustc.edu.cn/&#39;</span> /etc/apk/repositories <span class="se">\
+</span></span></span><span class="line"><span class="cl">    <span class="c1"># 安装依赖</span>
+</span></span><span class="line"><span class="cl">    <span class="o">&amp;&amp;</span> apk update <span class="o">&amp;&amp;</span> apk --no-cache add tzdata curl pcre pcre2 <span class="se">\
+</span></span></span><span class="line"><span class="cl">    <span class="c1"># 设置时区</span>
+</span></span><span class="line"><span class="cl">    <span class="o">&amp;&amp;</span> ln -s /usr/share/zoneinfo/Asia/Shanghai /etc/localtime <span class="se">\
+</span></span></span><span class="line"><span class="cl">    <span class="c1"># 创建nginx软链接</span>
+</span></span><span class="line"><span class="cl">    <span class="o">&amp;&amp;</span> ln -sf <span class="si">${</span><span class="nv">NGINX_DIR</span><span class="si">}</span>/sbin/nginx /usr/sbin/nginx <span class="se">\
+</span></span></span><span class="line"><span class="cl">    <span class="o">&amp;&amp;</span> addgroup -S nginx <span class="se">\
+</span></span></span><span class="line"><span class="cl">    <span class="o">&amp;&amp;</span> adduser -S -G nginx nginx <span class="se">\
+</span></span></span><span class="line"><span class="cl">    <span class="o">&amp;&amp;</span> chown -R nginx:nginx <span class="si">${</span><span class="nv">NGINX_DIR</span><span class="si">}</span> <span class="se">\
+</span></span></span><span class="line"><span class="cl">    <span class="o">&amp;&amp;</span> ln -sf /dev/stdout <span class="si">${</span><span class="nv">NGINX_DIR</span><span class="si">}</span>/logs/access.log <span class="se">\
+</span></span></span><span class="line"><span class="cl">    <span class="o">&amp;&amp;</span> ln -sf /dev/stderr <span class="si">${</span><span class="nv">NGINX_DIR</span><span class="si">}</span>/logs/error.log
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">EXPOSE <span class="m">80</span> <span class="m">443</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">CMD <span class="o">[</span><span class="s2">&#34;nginx&#34;</span>,<span class="s2">&#34;-g&#34;</span>,<span class="s2">&#34;daemon off;&#34;</span><span class="o">]</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>构建镜像</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">vim build.sh 
+</span></span><span class="line"><span class="cl"><span class="c1">#!/bin/bash</span>
+</span></span><span class="line"><span class="cl"><span class="nv">TAG</span><span class="o">=</span><span class="nv">$1</span>
+</span></span><span class="line"><span class="cl">docker build -t alpine-nginx:<span class="nv">$1</span> . 
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">sh build.sh v1.0
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>运行</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">docker run -d -p 80:80 alpine-nginx:v1.0
+</span></span></code></pre></td></tr></table>
+</div>
+</div>
 </section>
 
 
