@@ -272,6 +272,16 @@
         </li>
       </ol>
     </li>
+    <li><a href="#容器持久化">容器持久化</a>
+      <ol>
+        <li><a href="#容器数据持久化保存方式">容器数据持久化保存方式</a></li>
+        <li><a href="#数据卷data-volume">数据卷(data volume)</a>
+          <ol>
+            <li><a href="#使用方法">使用方法</a></li>
+          </ol>
+        </li>
+      </ol>
+    </li>
   </ol>
 </nav>
         </div>
@@ -2403,6 +2413,293 @@
 </span></code></pre></td>
 <td class="lntd">
 <pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">docker run -d -p 80:80 alpine-nginx:v1.0
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="容器持久化">容器持久化
+</h2><h3 id="容器数据持久化保存方式">容器数据持久化保存方式
+</h3><ul>
+<li>绑定挂载（Bind Mount）</li>
+<li>卷（Volume）：推荐</li>
+<li>tmpfs 挂载 ：临时挂载，只存在容器宿主机内存中。</li>
+</ul>
+<p><strong>范例：tmpfs 挂载</strong></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span><span class="lnt">51
+</span><span class="lnt">52
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 运行容器</span>
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker run -d --tmpfs /data --name <span class="nb">test</span> registry.cn-beijing.aliyuncs.com/wangxiaochun/pod-test:v0.1
+</span></span><span class="line"><span class="cl"><span class="c1"># 进入容器</span>
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker <span class="nb">exec</span> -it <span class="nb">test</span> sh 
+</span></span><span class="line"><span class="cl"><span class="c1"># 查看文件系统</span>
+</span></span><span class="line"><span class="cl"><span class="o">[</span>root@686e98cba5b2 /<span class="o">]</span><span class="c1"># df /data</span>
+</span></span><span class="line"><span class="cl">Filesystem           1K-blocks      Used Available Use% Mounted on
+</span></span><span class="line"><span class="cl">tmpfs                  <span class="m">1980428</span>         <span class="m">0</span>   <span class="m">1980428</span>   0% /data
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 宿主机内存空间</span>
+</span></span><span class="line"><span class="cl">root@lin-server:~# free -h
+</span></span><span class="line"><span class="cl">               total        used        free      shared  buff/cache   available
+</span></span><span class="line"><span class="cl">Mem:           3.8Gi       561Mi       2.9Gi       1.7Mi       575Mi       3.2Gi
+</span></span><span class="line"><span class="cl">Swap:          3.8Gi          0B       3.8Gi
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 写入500M文件</span>
+</span></span><span class="line"><span class="cl"><span class="o">[</span>root@686e98cba5b2 /<span class="o">]</span><span class="c1"># dd if=/dev/zero of=/data/test.img bs=1M count=500 conv=sync</span>
+</span></span><span class="line"><span class="cl">500+0 records in
+</span></span><span class="line"><span class="cl">500+0 records out
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 查看文件</span>
+</span></span><span class="line"><span class="cl"><span class="o">[</span>root@686e98cba5b2 /<span class="o">]</span><span class="c1"># ls -lh /data/test.img</span>
+</span></span><span class="line"><span class="cl">-rw-r--r--    <span class="m">1</span> root     root      500.0M Aug <span class="m">25</span> 03:54 /data/test.img
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 容器使用了500M</span>
+</span></span><span class="line"><span class="cl"><span class="o">[</span>root@686e98cba5b2 /<span class="o">]</span><span class="c1"># df /data</span>
+</span></span><span class="line"><span class="cl">Filesystem           1K-blocks      Used Available Use% Mounted on
+</span></span><span class="line"><span class="cl">tmpfs                  <span class="m">1980428</span>    <span class="m">512000</span>   <span class="m">1468428</span>  26% /data
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 宿主机消耗了500M内存</span>
+</span></span><span class="line"><span class="cl">root@lin-server:~# free -h
+</span></span><span class="line"><span class="cl">               total        used        free      shared  buff/cache   available
+</span></span><span class="line"><span class="cl">Mem:           3.8Gi       1.0Gi       2.4Gi       501Mi       1.1Gi       2.8Gi
+</span></span><span class="line"><span class="cl">Swap:          3.8Gi          0B       3.8Gi
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 退出并停止容器</span>
+</span></span><span class="line"><span class="cl"><span class="o">[</span>root@686e98cba5b2 /<span class="o">]</span><span class="c1"># exit</span>
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker stop <span class="nb">test</span>
+</span></span><span class="line"><span class="cl"><span class="nb">test</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 宿主机释放前面占用的500M</span>
+</span></span><span class="line"><span class="cl">root@lin-server:~# free -h
+</span></span><span class="line"><span class="cl">               total        used        free      shared  buff/cache   available
+</span></span><span class="line"><span class="cl">Mem:           3.8Gi       506Mi       2.9Gi       1.6Mi       575Mi       3.3Gi
+</span></span><span class="line"><span class="cl">Swap:          3.8Gi          0B       3.8Gi
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 启动容器</span>
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker start <span class="nb">test</span>
+</span></span><span class="line"><span class="cl"><span class="nb">test</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># 查看文件已经不存在</span>
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker <span class="nb">exec</span> -it <span class="nb">test</span> ls /data
+</span></span><span class="line"><span class="cl">root@lin-server:~# 
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="数据卷data-volume">数据卷(data volume)
+</h3><h4 id="使用方法">使用方法
+</h4><ol>
+<li>绑定挂载</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># format</span>
+</span></span><span class="line"><span class="cl">-v &lt;宿主机绝对路径的目录（文件）或者相对路径的文件&gt;:&lt;容器目录或文件&gt;<span class="o">[</span>:ro<span class="o">]</span>   <span class="c1">#将宿主机目录挂载容器目录，两个目录都可自动创建</span>
+</span></span><span class="line"><span class="cl"><span class="c1">#注意：如果初始容器中有旧数据，将被宿主机目录覆盖</span>
+</span></span><span class="line"><span class="cl"><span class="c1">#注意:如果挂载文件,必须指定文件的相对（以.开头的相对路径）或绝对路径,否则会将目录名或文件名当成命名卷</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="2">
+<li>匿名卷</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1">#匿名卷,只指定容器内路径,没有指定宿主机路径信息,宿主机自动生成/var/lib/docker/volumes/&lt;卷ID&gt;/_data目录,并挂载至容器指定路径</span>
+</span></span><span class="line"><span class="cl"><span class="c1">#注意：如果初始容器中有旧数据，将被复制到宿主机数据卷目录-v &lt;容器内路径&gt;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">#示例:</span>
+</span></span><span class="line"><span class="cl">docker run --name nginx -v /etc/nginx nginx
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="3">
+<li>命名卷</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1">#命名卷将固定的存放在/var/lib/docker/volumes/&lt;卷名&gt;/_data</span>
+</span></span><span class="line"><span class="cl"><span class="c1">#注意：如果初始容器中有旧数据，将被复制到宿主机数据卷目录-v &lt;卷名&gt;:&lt;容器目录路径&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="c1">#可以通过以下命令事先创建,如可没有事先创建卷名,docker run时也会自动创建卷</span>
+</span></span><span class="line"><span class="cl">docker volume create &lt;卷名&gt;
+</span></span><span class="line"><span class="cl"><span class="c1">#示例:</span>
+</span></span><span class="line"><span class="cl">docker volume create vol1  <span class="c1">#也可以事先不创建</span>
+</span></span><span class="line"><span class="cl">docker run -d  -p 80:80 --name nginx01 -v vol1:/usr/share/nginx/html nginx
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>查看数据卷的挂载关系</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">docker inspect --format<span class="o">=</span><span class="s2">&#34;{{.Mounts}}&#34;</span> &lt;容器ID&gt;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>范例：创建命名卷并删除</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# docker volume create mysql-vol
+</span></span><span class="line"><span class="cl">mysql-vol
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker volume ls
+</span></span><span class="line"><span class="cl">DRIVER    VOLUME NAME
+</span></span><span class="line"><span class="cl"><span class="nb">local</span>     mysql-vol
+</span></span><span class="line"><span class="cl">root@lin-server:~# tree /var/lib/docker/volumes/
+</span></span><span class="line"><span class="cl">/var/lib/docker/volumes/
+</span></span><span class="line"><span class="cl">├── backingFsBlockDev
+</span></span><span class="line"><span class="cl">├── metadata.db
+</span></span><span class="line"><span class="cl">└── mysql-vol
+</span></span><span class="line"><span class="cl">    └── _data
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="m">3</span> directories, <span class="m">2</span> files
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker volume rm mysql-vol
+</span></span><span class="line"><span class="cl">mysql-vol
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker volume ls
+</span></span><span class="line"><span class="cl">DRIVER    VOLUME NAME
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>范例：删除所有数据卷</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# docker volume create mysql-vol
+</span></span><span class="line"><span class="cl">mysql-vol
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker volume ls -q
+</span></span><span class="line"><span class="cl">mysql-vol
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker volume rm <span class="sb">`</span>docker volume ls -q<span class="sb">`</span>
+</span></span><span class="line"><span class="cl">mysql-vol
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker volume ls
+</span></span><span class="line"><span class="cl">DRIVER    VOLUME NAME
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>范例：删除不再使用的数据卷（匿名卷）</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# docker run -d --name test-nginx -v /data nginx
+</span></span><span class="line"><span class="cl">ed546d4974eef6a648265e00e45a3baf975cba832a0b5f4040e3962db7cff782
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker volume ls
+</span></span><span class="line"><span class="cl">DRIVER    VOLUME NAME
+</span></span><span class="line"><span class="cl"><span class="nb">local</span>     fea1347a7b6e49f97def665cd36b5aa88db588580a859b76b3ffa645c0fbbd67
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker rm -f test-nginx
+</span></span><span class="line"><span class="cl">test-nginx
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker volume prune -f
+</span></span><span class="line"><span class="cl">Deleted Volumes:
+</span></span><span class="line"><span class="cl">fea1347a7b6e49f97def665cd36b5aa88db588580a859b76b3ffa645c0fbbd67
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">Total reclaimed space: 0B
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker volume ls
+</span></span><span class="line"><span class="cl">DRIVER    VOLUME NAME
 </span></span></code></pre></td></tr></table>
 </div>
 </div>
