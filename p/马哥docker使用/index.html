@@ -278,6 +278,8 @@
         <li><a href="#数据卷data-volume">数据卷(data volume)</a>
           <ol>
             <li><a href="#使用方法">使用方法</a></li>
+            <li><a href="#实战案例目录数据卷">实战案例：目录数据卷</a></li>
+            <li><a href="#实战案例mysql使用的数据卷">实战案例：MySQL使用的数据卷</a></li>
           </ol>
         </li>
       </ol>
@@ -2700,6 +2702,728 @@
 </span></span><span class="line"><span class="cl">Total reclaimed space: 0B
 </span></span><span class="line"><span class="cl">root@lin-server:~# docker volume ls
 </span></span><span class="line"><span class="cl">DRIVER    VOLUME NAME
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="实战案例目录数据卷">实战案例：目录数据卷
+</h4><h5 id="在宿主机创建容器所使用的目录">在宿主机创建容器所使用的目录
+</h5><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">mkdir /data/testdir
+</span></span><span class="line"><span class="cl"><span class="nb">echo</span> Test page ho host &gt; /data/testdir/index.html
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h5 id="查看容器相关目录路径">查看容器相关目录路径
+</h5><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# docker images <span class="s2">&#34;*nginx*&#34;</span>
+</span></span><span class="line"><span class="cl">REPOSITORY     TAG       IMAGE ID       CREATED              SIZE
+</span></span><span class="line"><span class="cl">nginx-alpine   1.31.4    a842a040fb0a   About a minute ago   289MB
+</span></span><span class="line"><span class="cl">nginx          latest    38becec41bfa   <span class="m">2</span> days ago           162MB
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker run -it --rm nginx-alpine:1.31.4 sh
+</span></span><span class="line"><span class="cl">/ <span class="c1"># cat /apps/nginx/conf/nginx.conf</span>
+</span></span><span class="line"><span class="cl">...
+</span></span><span class="line"><span class="cl">    server
+</span></span><span class="line"><span class="cl">...
+</span></span><span class="line"><span class="cl">        location / <span class="o">{</span>
+</span></span><span class="line"><span class="cl">            root   /data/nginx/html<span class="p">;</span>
+</span></span><span class="line"><span class="cl">            index  index.html index.htm<span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="o">}</span>
+</span></span><span class="line"><span class="cl">...
+</span></span><span class="line"><span class="cl">/ <span class="c1"># cat /data/nginx/html/index.html</span>
+</span></span><span class="line"><span class="cl">Test Page based nginx-alpine
+</span></span><span class="line"><span class="cl">/ <span class="c1"># exit</span>
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker ps -a
+</span></span><span class="line"><span class="cl">CONTAINER ID     IMAGE        COMMAND         CREATED          STATUS           PORTS 
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h5 id="引用宿主机的数据卷启动容器">引用宿主机的数据卷启动容器
+</h5><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# docker run -d -v /data/testdir:/data/nginx/html/ -p 8001:80 nginx-alpine:1.31.4
+</span></span><span class="line"><span class="cl">716969df0487112c1cd38aec658f06e1fdfc2db4a2690f324ccf4b7a6cd08ba4
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker run -d -v /data/testdir:/data/nginx/html/ -p 8002:80 nginx-alpine:1.31.4
+</span></span><span class="line"><span class="cl">553f2804b84273282e6c714e669c9127e6a20682e2e15a4e6c46adedc152c4df
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker ps
+</span></span><span class="line"><span class="cl">CONTAINER ID   IMAGE                                            COMMAND            CREATED          STATUS          PORTS                                                                                      NAMES
+</span></span><span class="line"><span class="cl">553f2804b842   nginx-alpine:1.31.4                              <span class="s2">&#34;nginx&#34;</span>            <span class="m">11</span> seconds ago   Up <span class="m">10</span> seconds   443/tcp, 0.0.0.0:8002-&gt;80/tcp, <span class="o">[</span>::<span class="o">]</span>:8002-&gt;80/tcp                                           relaxed_chatterjee
+</span></span><span class="line"><span class="cl">716969df0487   nginx-alpine:1.31.4                              <span class="s2">&#34;nginx&#34;</span>            <span class="m">19</span> seconds ago   Up <span class="m">18</span> seconds   443/tcp, 0.0.0.0:8001-&gt;80/tcp, <span class="o">[</span>::<span class="o">]</span>:8001-&gt;80/tcp                                           awesome_taussig
+</span></span><span class="line"><span class="cl">root@lin-server:~# curl 127.0.0.1:8001
+</span></span><span class="line"><span class="cl">Test page on host
+</span></span><span class="line"><span class="cl">root@lin-server:~# curl 127.0.0.1:8002
+</span></span><span class="line"><span class="cl">Test page on host
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h5 id="进入到容器内测试写入数据">进入到容器内测试写入数据
+</h5><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 进入第一个nginx容器修改数据</span>
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker <span class="nb">exec</span> -it 553f2804b842 sh
+</span></span><span class="line"><span class="cl">/ <span class="c1"># df</span>
+</span></span><span class="line"><span class="cl">Filesystem           1K-blocks      Used Available Use% Mounted on
+</span></span><span class="line"><span class="cl">overlay               <span class="m">24590672</span>   <span class="m">8218136</span>  <span class="m">15098068</span>  35% /
+</span></span><span class="line"><span class="cl">tmpfs                    <span class="m">65536</span>         <span class="m">0</span>     <span class="m">65536</span>   0% /dev
+</span></span><span class="line"><span class="cl">shm                      <span class="m">65536</span>         <span class="m">0</span>     <span class="m">65536</span>   0% /dev/shm
+</span></span><span class="line"><span class="cl">/dev/mapper/ubuntu--vg-ubuntu--lv
+</span></span><span class="line"><span class="cl">                      <span class="m">24590672</span>   <span class="m">8218136</span>  <span class="m">15098068</span>  35% /etc/resolv.conf
+</span></span><span class="line"><span class="cl">/dev/mapper/ubuntu--vg-ubuntu--lv
+</span></span><span class="line"><span class="cl">                      <span class="m">24590672</span>   <span class="m">8218136</span>  <span class="m">15098068</span>  35% /etc/hostname
+</span></span><span class="line"><span class="cl">/dev/mapper/ubuntu--vg-ubuntu--lv
+</span></span><span class="line"><span class="cl">                      <span class="m">24590672</span>   <span class="m">8218136</span>  <span class="m">15098068</span>  35% /etc/hosts
+</span></span><span class="line"><span class="cl">/dev/mapper/ubuntu--vg-ubuntu--lv
+</span></span><span class="line"><span class="cl">                      <span class="m">24590672</span>   <span class="m">8218136</span>  <span class="m">15098068</span>  35% /data/nginx/html
+</span></span><span class="line"><span class="cl">tmpfs                  <span class="m">1980432</span>         <span class="m">0</span>   <span class="m">1980432</span>   0% /proc/asound
+</span></span><span class="line"><span class="cl">tmpfs                  <span class="m">1980432</span>         <span class="m">0</span>   <span class="m">1980432</span>   0% /proc/acpi
+</span></span><span class="line"><span class="cl">tmpfs                    <span class="m">65536</span>         <span class="m">0</span>     <span class="m">65536</span>   0% /proc/interrupts
+</span></span><span class="line"><span class="cl">tmpfs                    <span class="m">65536</span>         <span class="m">0</span>     <span class="m">65536</span>   0% /proc/kcore
+</span></span><span class="line"><span class="cl">tmpfs                    <span class="m">65536</span>         <span class="m">0</span>     <span class="m">65536</span>   0% /proc/keys
+</span></span><span class="line"><span class="cl">tmpfs                    <span class="m">65536</span>         <span class="m">0</span>     <span class="m">65536</span>   0% /proc/latency_stats
+</span></span><span class="line"><span class="cl">tmpfs                    <span class="m">65536</span>         <span class="m">0</span>     <span class="m">65536</span>   0% /proc/timer_list
+</span></span><span class="line"><span class="cl">tmpfs                  <span class="m">1980432</span>         <span class="m">0</span>   <span class="m">1980432</span>   0% /proc/scsi
+</span></span><span class="line"><span class="cl">tmpfs                  <span class="m">1980432</span>         <span class="m">0</span>   <span class="m">1980432</span>   0% /sys/firmware
+</span></span><span class="line"><span class="cl">/ <span class="c1"># cat /data/nginx/html/index.html</span>
+</span></span><span class="line"><span class="cl">Test page on host
+</span></span><span class="line"><span class="cl">/ <span class="c1"># echo Test page v2 on host &gt; /data/nginx/html/index.html</span>
+</span></span><span class="line"><span class="cl">/ <span class="c1"># exit</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># 进入另一个容器看到数据变化</span>
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker <span class="nb">exec</span> -it 716969df0487 sh
+</span></span><span class="line"><span class="cl">/ <span class="c1"># cat /data/nginx/html/index.html</span>
+</span></span><span class="line"><span class="cl">Test page v2 on host
+</span></span><span class="line"><span class="cl">/ <span class="c1"># exit</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># 访问应用</span>
+</span></span><span class="line"><span class="cl">root@lin-server:~# curl 127.0.0.1:8001
+</span></span><span class="line"><span class="cl">Test page v2 on host
+</span></span><span class="line"><span class="cl">root@lin-server:~# curl 127.0.0.1:8002
+</span></span><span class="line"><span class="cl">Test page v2 on host
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h5 id="在宿主机修改数据">在宿主机修改数据
+</h5><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# <span class="nb">echo</span> Test page v3 on host &gt; /data/testdir/index.html
+</span></span><span class="line"><span class="cl">root@lin-server:~# cat /data/testdir/index.html
+</span></span><span class="line"><span class="cl">Test page v3 on host
+</span></span><span class="line"><span class="cl">root@lin-server:~# curl 127.0.0.1:8001
+</span></span><span class="line"><span class="cl">Test page v3 on host
+</span></span><span class="line"><span class="cl">root@lin-server:~# curl 127.0.0.1:8002
+</span></span><span class="line"><span class="cl">Test page v3 on host
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker <span class="nb">exec</span> -it 553f2804b842 cat /data/nginx/html/index.html
+</span></span><span class="line"><span class="cl">Test page v3 on host
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker <span class="nb">exec</span> -it 716969df0487 cat /data/nginx/html/index.html
+</span></span><span class="line"><span class="cl">Test page v3 on host
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h5 id="只读方法挂载数据卷">只读方法挂载数据卷
+</h5><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# docker run -d -v /data/testdir:/data/nginx/html/:ro -p 8004:80 nginx-alpine:1.31.4
+</span></span><span class="line"><span class="cl">e4a905b172f08ebb77c7d2245f7fa4959768581ce27addd90593328b7431ccb2
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker ps -a
+</span></span><span class="line"><span class="cl">CONTAINER ID   IMAGE                                                         COMMAND                  CREATED          STATUS                      PORTS                                                                                      NAMES
+</span></span><span class="line"><span class="cl">e4a905b172f0   nginx-alpine:1.31.4                                           <span class="s2">&#34;nginx&#34;</span>                  <span class="m">3</span> seconds ago    Up <span class="m">2</span> seconds                443/tcp, 0.0.0.0:8004-&gt;80/tcp, <span class="o">[</span>::<span class="o">]</span>:8004-&gt;80/tcp                                           lucid_wescoff
+</span></span><span class="line"><span class="cl">553f2804b842   nginx-alpine:1.31.4                                           <span class="s2">&#34;nginx&#34;</span>                  <span class="m">13</span> minutes ago   Up <span class="m">13</span> minutes               443/tcp, 0.0.0.0:8002-&gt;80/tcp, <span class="o">[</span>::<span class="o">]</span>:8002-&gt;80/tcp                                           relaxed_chatterjee
+</span></span><span class="line"><span class="cl">716969df0487   nginx-alpine:1.31.4                                           <span class="s2">&#34;nginx&#34;</span>                  <span class="m">14</span> minutes ago   Up <span class="m">14</span> minutes               443/tcp, 0.0.0.0:8001-&gt;80/tcp, <span class="o">[</span>::<span class="o">]</span>:8001-&gt;80/tcp                                           awesome_taussig
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker <span class="nb">exec</span> -it e4a905b172f0 sh
+</span></span><span class="line"><span class="cl">/ <span class="c1"># cat /data/nginx/html/index.html</span>
+</span></span><span class="line"><span class="cl">Test page v3 on host
+</span></span><span class="line"><span class="cl">/ <span class="c1"># echo Test page v4 on host &gt; /data/nginx/html/index.html</span>
+</span></span><span class="line"><span class="cl">sh: can<span class="err">&#39;</span>t create /data/nginx/html/index.html: Read-only file system
+</span></span><span class="line"><span class="cl">/ <span class="c1"># cat /data/nginx/html/index.html</span>
+</span></span><span class="line"><span class="cl">Test page v3 on host
+</span></span><span class="line"><span class="cl">/ <span class="c1"># exit</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h5 id="删除容器">删除容器
+</h5><p>删除容器后，宿主机的数据卷还存在，可继续给新的容器使用</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# docker ps -a
+</span></span><span class="line"><span class="cl">CONTAINER ID   IMAGE                                                         COMMAND                  CREATED          STATUS                      PORTS                                                                                      NAMES
+</span></span><span class="line"><span class="cl">e4a905b172f0   nginx-alpine:1.31.4                                           <span class="s2">&#34;nginx&#34;</span>                  <span class="m">5</span> minutes ago    Up <span class="m">5</span> minutes                443/tcp, 0.0.0.0:8004-&gt;80/tcp, <span class="o">[</span>::<span class="o">]</span>:8004-&gt;80/tcp                                           lucid_wescoff
+</span></span><span class="line"><span class="cl">553f2804b842   nginx-alpine:1.31.4                                           <span class="s2">&#34;nginx&#34;</span>                  <span class="m">19</span> minutes ago   Up <span class="m">19</span> minutes               443/tcp, 0.0.0.0:8002-&gt;80/tcp, <span class="o">[</span>::<span class="o">]</span>:8002-&gt;80/tcp                                           relaxed_chatterjee
+</span></span><span class="line"><span class="cl">716969df0487   nginx-alpine:1.31.4                                           <span class="s2">&#34;nginx&#34;</span>                  <span class="m">19</span> minutes ago   Up <span class="m">19</span> minutes               443/tcp, 0.0.0.0:8001-&gt;80/tcp, <span class="o">[</span>::<span class="o">]</span>:8001-&gt;80/tcp                                           awesome_taussig
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker rm -f <span class="sb">`</span>docker ps -aq<span class="sb">`</span>
+</span></span><span class="line"><span class="cl">e4a905b172f0
+</span></span><span class="line"><span class="cl">553f2804b842
+</span></span><span class="line"><span class="cl">716969df0487
+</span></span><span class="line"><span class="cl">root@lin-server:~# cat /data/testdir/index.html
+</span></span><span class="line"><span class="cl">Test page v3 on host
+</span></span><span class="line"><span class="cl"><span class="c1">#新建的容器还可以继续使用原有的数据卷</span>
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker run -d -v /data/testdir:/data/nginx/html/ -p 8003:80 nginx-alpine:1.31.4
+</span></span><span class="line"><span class="cl">6681278002c0642c7e35a1ee28136dfe9b8865fb4810004b735bda9c4276e654
+</span></span><span class="line"><span class="cl">root@lin-server:~# curl 127.0.0.1:8003
+</span></span><span class="line"><span class="cl">Test page v3 on host
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="实战案例mysql使用的数据卷">实战案例：MySQL使用的数据卷
+</h4><h5 id="测试mysql容器未使用数据卷">测试mysql容器未使用数据卷
+</h5><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">  1
+</span><span class="lnt">  2
+</span><span class="lnt">  3
+</span><span class="lnt">  4
+</span><span class="lnt">  5
+</span><span class="lnt">  6
+</span><span class="lnt">  7
+</span><span class="lnt">  8
+</span><span class="lnt">  9
+</span><span class="lnt"> 10
+</span><span class="lnt"> 11
+</span><span class="lnt"> 12
+</span><span class="lnt"> 13
+</span><span class="lnt"> 14
+</span><span class="lnt"> 15
+</span><span class="lnt"> 16
+</span><span class="lnt"> 17
+</span><span class="lnt"> 18
+</span><span class="lnt"> 19
+</span><span class="lnt"> 20
+</span><span class="lnt"> 21
+</span><span class="lnt"> 22
+</span><span class="lnt"> 23
+</span><span class="lnt"> 24
+</span><span class="lnt"> 25
+</span><span class="lnt"> 26
+</span><span class="lnt"> 27
+</span><span class="lnt"> 28
+</span><span class="lnt"> 29
+</span><span class="lnt"> 30
+</span><span class="lnt"> 31
+</span><span class="lnt"> 32
+</span><span class="lnt"> 33
+</span><span class="lnt"> 34
+</span><span class="lnt"> 35
+</span><span class="lnt"> 36
+</span><span class="lnt"> 37
+</span><span class="lnt"> 38
+</span><span class="lnt"> 39
+</span><span class="lnt"> 40
+</span><span class="lnt"> 41
+</span><span class="lnt"> 42
+</span><span class="lnt"> 43
+</span><span class="lnt"> 44
+</span><span class="lnt"> 45
+</span><span class="lnt"> 46
+</span><span class="lnt"> 47
+</span><span class="lnt"> 48
+</span><span class="lnt"> 49
+</span><span class="lnt"> 50
+</span><span class="lnt"> 51
+</span><span class="lnt"> 52
+</span><span class="lnt"> 53
+</span><span class="lnt"> 54
+</span><span class="lnt"> 55
+</span><span class="lnt"> 56
+</span><span class="lnt"> 57
+</span><span class="lnt"> 58
+</span><span class="lnt"> 59
+</span><span class="lnt"> 60
+</span><span class="lnt"> 61
+</span><span class="lnt"> 62
+</span><span class="lnt"> 63
+</span><span class="lnt"> 64
+</span><span class="lnt"> 65
+</span><span class="lnt"> 66
+</span><span class="lnt"> 67
+</span><span class="lnt"> 68
+</span><span class="lnt"> 69
+</span><span class="lnt"> 70
+</span><span class="lnt"> 71
+</span><span class="lnt"> 72
+</span><span class="lnt"> 73
+</span><span class="lnt"> 74
+</span><span class="lnt"> 75
+</span><span class="lnt"> 76
+</span><span class="lnt"> 77
+</span><span class="lnt"> 78
+</span><span class="lnt"> 79
+</span><span class="lnt"> 80
+</span><span class="lnt"> 81
+</span><span class="lnt"> 82
+</span><span class="lnt"> 83
+</span><span class="lnt"> 84
+</span><span class="lnt"> 85
+</span><span class="lnt"> 86
+</span><span class="lnt"> 87
+</span><span class="lnt"> 88
+</span><span class="lnt"> 89
+</span><span class="lnt"> 90
+</span><span class="lnt"> 91
+</span><span class="lnt"> 92
+</span><span class="lnt"> 93
+</span><span class="lnt"> 94
+</span><span class="lnt"> 95
+</span><span class="lnt"> 96
+</span><span class="lnt"> 97
+</span><span class="lnt"> 98
+</span><span class="lnt"> 99
+</span><span class="lnt">100
+</span><span class="lnt">101
+</span><span class="lnt">102
+</span><span class="lnt">103
+</span><span class="lnt">104
+</span><span class="lnt">105
+</span><span class="lnt">106
+</span><span class="lnt">107
+</span><span class="lnt">108
+</span><span class="lnt">109
+</span><span class="lnt">110
+</span><span class="lnt">111
+</span><span class="lnt">112
+</span><span class="lnt">113
+</span><span class="lnt">114
+</span><span class="lnt">115
+</span><span class="lnt">116
+</span><span class="lnt">117
+</span><span class="lnt">118
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 宿主机安装mysql客户端</span>
+</span></span><span class="line"><span class="cl">root@lin-server:~# apt update <span class="o">&amp;&amp;</span> apt install mysql-client
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker pull registry.cn-beijing.aliyuncs.com/wangxiaochun/mysql:8.0.29-oracle
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker pull swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/mysql:5.7.30
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker tag registry.cn-beijing.aliyuncs.com/wangxiaochun/mysql:8.0.29-oracle mysql:8.0.29-oracle
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker tag swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/mysql:5.7.30 mysql:5.7.30
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker images <span class="s2">&#34;mysql*&#34;</span>
+</span></span><span class="line"><span class="cl">REPOSITORY   TAG             IMAGE ID       CREATED       SIZE
+</span></span><span class="line"><span class="cl">mysql        8.0.29-oracle   33037edcac9b   <span class="m">4</span> years ago   444MB
+</span></span><span class="line"><span class="cl">mysql        5.7.30          9cfcce23593a   <span class="m">6</span> years ago   448MB
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker run -d -p 3306:3306 -e <span class="nv">MYSQL_ROOT_PASSWORD</span><span class="o">=</span><span class="m">123456</span> mysql:5.7.30
+</span></span><span class="line"><span class="cl">4c58ff3af2abcba97eb9bb32f02e5db550440e89fb3e3fd77bf0203ab4d8464c
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker ps
+</span></span><span class="line"><span class="cl">CONTAINER ID   IMAGE          COMMAND                  CREATED          STATUS          PORTS                                                    NAMES
+</span></span><span class="line"><span class="cl">4c58ff3af2ab   mysql:5.7.30   <span class="s2">&#34;docker-entrypoint.s…&#34;</span>   <span class="m">12</span> seconds ago   Up <span class="m">12</span> seconds   0.0.0.0:3306-&gt;3306/tcp, <span class="o">[</span>::<span class="o">]</span>:3306-&gt;3306/tcp, 33060/tcp   vigilant_darwin
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker <span class="nb">exec</span> -it 4c58ff3af2ab bash
+</span></span><span class="line"><span class="cl">root@4c58ff3af2ab:/# cat /etc/issue
+</span></span><span class="line"><span class="cl">Debian GNU/Linux <span class="m">10</span> <span class="se">\n</span> <span class="se">\l</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">root@4c58ff3af2ab:/# cat /etc/mysql/my.cnf
+</span></span><span class="line"><span class="cl">...
+</span></span><span class="line"><span class="cl">!includedir /etc/mysql/conf.d/
+</span></span><span class="line"><span class="cl">!includedir /etc/mysql/mysql.conf.d/
+</span></span><span class="line"><span class="cl">root@4c58ff3af2ab:/# cat /etc/mysql/mysql.conf.d/mysqld.cnf 
+</span></span><span class="line"><span class="cl">...
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="o">[</span>mysqld<span class="o">]</span>
+</span></span><span class="line"><span class="cl">pid-file        <span class="o">=</span> /var/run/mysqld/mysqld.pid
+</span></span><span class="line"><span class="cl"><span class="nv">socket</span>          <span class="o">=</span> /var/run/mysqld/mysqld.sock
+</span></span><span class="line"><span class="cl"><span class="nv">datadir</span>         <span class="o">=</span> /var/lib/mysql                <span class="c1"># 数据存放路径</span>
+</span></span><span class="line"><span class="cl">root@4c58ff3af2ab:/# pstree -p
+</span></span><span class="line"><span class="cl">mysqld<span class="o">(</span>1<span class="o">)</span>-+-<span class="o">{</span>mysqld<span class="o">}(</span>127<span class="o">)</span>
+</span></span><span class="line"><span class="cl">          <span class="p">|</span>-<span class="o">{</span>mysqld<span class="o">}(</span>128<span class="o">)</span>
+</span></span><span class="line"><span class="cl">          <span class="p">|</span>-<span class="o">{</span>mysqld<span class="o">}(</span>129<span class="o">)</span>
+</span></span><span class="line"><span class="cl">          <span class="p">|</span>-<span class="o">{</span>mysqld<span class="o">}(</span>130<span class="o">)</span>
+</span></span><span class="line"><span class="cl">          <span class="p">|</span>-<span class="o">{</span>mysqld<span class="o">}(</span>131<span class="o">)</span>
+</span></span><span class="line"><span class="cl">          <span class="p">|</span>-<span class="o">{</span>mysqld<span class="o">}(</span>132<span class="o">)</span>
+</span></span><span class="line"><span class="cl">          <span class="p">|</span>-<span class="o">{</span>mysqld<span class="o">}(</span>133<span class="o">)</span>
+</span></span><span class="line"><span class="cl">          ....
+</span></span><span class="line"><span class="cl">          <span class="p">|</span>-<span class="o">{</span>mysqld<span class="o">}(</span>151<span class="o">)</span>
+</span></span><span class="line"><span class="cl">          <span class="p">|</span>-<span class="o">{</span>mysqld<span class="o">}(</span>152<span class="o">)</span>
+</span></span><span class="line"><span class="cl">          <span class="sb">`</span>-<span class="o">{</span>mysqld<span class="o">}(</span>153<span class="o">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">root@lin-server:~# mysql -uroot -p123456 -h127.0.0.1
+</span></span><span class="line"><span class="cl">mysql: <span class="o">[</span>Warning<span class="o">]</span> Using a password on the <span class="nb">command</span> line interface can be insecure.
+</span></span><span class="line"><span class="cl">Welcome to the MySQL monitor.  Commands end with <span class="p">;</span> or <span class="se">\g</span>.
+</span></span><span class="line"><span class="cl">Your MySQL connection id is <span class="m">2</span>
+</span></span><span class="line"><span class="cl">Server version: 5.7.30 MySQL Community Server <span class="o">(</span>GPL<span class="o">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">Copyright <span class="o">(</span>c<span class="o">)</span> 2000, 2026, Oracle and/or its affiliates.
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">Oracle is a registered trademark of Oracle Corporation and/or its
+</span></span><span class="line"><span class="cl">affiliates. Other names may be trademarks of their respective
+</span></span><span class="line"><span class="cl">owners.
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">Type <span class="s1">&#39;help;&#39;</span> or <span class="s1">&#39;\h&#39;</span> <span class="k">for</span> help. Type <span class="s1">&#39;\c&#39;</span> to clear the current input statement.
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">mysql&gt; show databases<span class="p">;</span>
+</span></span><span class="line"><span class="cl">+--------------------+
+</span></span><span class="line"><span class="cl"><span class="p">|</span> Database           <span class="p">|</span>
+</span></span><span class="line"><span class="cl">+--------------------+
+</span></span><span class="line"><span class="cl"><span class="p">|</span> information_schema <span class="p">|</span>
+</span></span><span class="line"><span class="cl"><span class="p">|</span> mysql              <span class="p">|</span>
+</span></span><span class="line"><span class="cl"><span class="p">|</span> performance_schema <span class="p">|</span>
+</span></span><span class="line"><span class="cl"><span class="p">|</span> sys                <span class="p">|</span>
+</span></span><span class="line"><span class="cl">+--------------------+
+</span></span><span class="line"><span class="cl"><span class="m">4</span> rows in <span class="nb">set</span> <span class="o">(</span>0.00 sec<span class="o">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">mysql&gt; create database dockerdb<span class="p">;</span>
+</span></span><span class="line"><span class="cl">Query OK, <span class="m">1</span> row affected <span class="o">(</span>0.00 sec<span class="o">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">mysql&gt; show databases<span class="p">;</span>
+</span></span><span class="line"><span class="cl">+--------------------+
+</span></span><span class="line"><span class="cl"><span class="p">|</span> Database           <span class="p">|</span>
+</span></span><span class="line"><span class="cl">+--------------------+
+</span></span><span class="line"><span class="cl"><span class="p">|</span> information_schema <span class="p">|</span>
+</span></span><span class="line"><span class="cl"><span class="p">|</span> dockerdb           <span class="p">|</span>
+</span></span><span class="line"><span class="cl"><span class="p">|</span> mysql              <span class="p">|</span>
+</span></span><span class="line"><span class="cl"><span class="p">|</span> performance_schema <span class="p">|</span>
+</span></span><span class="line"><span class="cl"><span class="p">|</span> sys                <span class="p">|</span>
+</span></span><span class="line"><span class="cl">+--------------------+
+</span></span><span class="line"><span class="cl"><span class="m">5</span> rows in <span class="nb">set</span> <span class="o">(</span>0.00 sec<span class="o">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">mysql&gt; <span class="nb">exit</span>
+</span></span><span class="line"><span class="cl">Bye
+</span></span><span class="line"><span class="cl"><span class="c1">#删除容器后，再创建新的容器，数据库信息丢失</span>
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker rm -f 4c58ff3af2ab
+</span></span><span class="line"><span class="cl">4c58ff3af2ab
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker run -d --name mysql -p 3306:3306 -e <span class="nv">MYSQL_ROOT_PASSWORD</span><span class="o">=</span><span class="m">123456</span> mysql:5.7.30
+</span></span><span class="line"><span class="cl">071150e4b00dca6c143ba22d7aeb0b00dca08ddf5781871145b1e82376e331df
+</span></span><span class="line"><span class="cl">root@lin-server:~# mysql -uroot -p123456 -h127.0.0.1
+</span></span><span class="line"><span class="cl">mysql: <span class="o">[</span>Warning<span class="o">]</span> Using a password on the <span class="nb">command</span> line interface can be insecure.
+</span></span><span class="line"><span class="cl">Welcome to the MySQL monitor.  Commands end with <span class="p">;</span> or <span class="se">\g</span>.
+</span></span><span class="line"><span class="cl">Your MySQL connection id is <span class="m">2</span>
+</span></span><span class="line"><span class="cl">Server version: 5.7.30 MySQL Community Server <span class="o">(</span>GPL<span class="o">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">Copyright <span class="o">(</span>c<span class="o">)</span> 2000, 2026, Oracle and/or its affiliates.
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">Oracle is a registered trademark of Oracle Corporation and/or its
+</span></span><span class="line"><span class="cl">affiliates. Other names may be trademarks of their respective
+</span></span><span class="line"><span class="cl">owners.
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">Type <span class="s1">&#39;help;&#39;</span> or <span class="s1">&#39;\h&#39;</span> <span class="k">for</span> help. Type <span class="s1">&#39;\c&#39;</span> to clear the current input statement.
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">mysql&gt; show databases<span class="p">;</span>
+</span></span><span class="line"><span class="cl">+--------------------+
+</span></span><span class="line"><span class="cl"><span class="p">|</span> Database           <span class="p">|</span>
+</span></span><span class="line"><span class="cl">+--------------------+
+</span></span><span class="line"><span class="cl"><span class="p">|</span> information_schema <span class="p">|</span>
+</span></span><span class="line"><span class="cl"><span class="p">|</span> mysql              <span class="p">|</span>
+</span></span><span class="line"><span class="cl"><span class="p">|</span> performance_schema <span class="p">|</span>
+</span></span><span class="line"><span class="cl"><span class="p">|</span> sys                <span class="p">|</span>
+</span></span><span class="line"><span class="cl">+--------------------+
+</span></span><span class="line"><span class="cl"><span class="m">4</span> rows in <span class="nb">set</span> <span class="o">(</span>0.00 sec<span class="o">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">mysql&gt; <span class="nb">exit</span>
+</span></span><span class="line"><span class="cl">Bye
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h5 id="测试mysql容器使用数据卷">测试mysql容器使用数据卷
+</h5><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span><span class="lnt">51
+</span><span class="lnt">52
+</span><span class="lnt">53
+</span><span class="lnt">54
+</span><span class="lnt">55
+</span><span class="lnt">56
+</span><span class="lnt">57
+</span><span class="lnt">58
+</span><span class="lnt">59
+</span><span class="lnt">60
+</span><span class="lnt">61
+</span><span class="lnt">62
+</span><span class="lnt">63
+</span><span class="lnt">64
+</span><span class="lnt">65
+</span><span class="lnt">66
+</span><span class="lnt">67
+</span><span class="lnt">68
+</span><span class="lnt">69
+</span><span class="lnt">70
+</span><span class="lnt">71
+</span><span class="lnt">72
+</span><span class="lnt">73
+</span><span class="lnt">74
+</span><span class="lnt">75
+</span><span class="lnt">76
+</span><span class="lnt">77
+</span><span class="lnt">78
+</span><span class="lnt">79
+</span><span class="lnt">80
+</span><span class="lnt">81
+</span><span class="lnt">82
+</span><span class="lnt">83
+</span><span class="lnt">84
+</span><span class="lnt">85
+</span><span class="lnt">86
+</span><span class="lnt">87
+</span><span class="lnt">88
+</span><span class="lnt">89
+</span><span class="lnt">90
+</span><span class="lnt">91
+</span><span class="lnt">92
+</span><span class="lnt">93
+</span><span class="lnt">94
+</span><span class="lnt">95
+</span><span class="lnt">96
+</span><span class="lnt">97
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# mkdir /data/mysql
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker run -d --name mysql -p 3306:3306 -v /data/mysql/:/var/lib/mysql -e <span class="nv">MYSQL_ROOT_PASSWORD</span><span class="o">=</span><span class="m">123456</span> mysql:5.7.30
+</span></span><span class="line"><span class="cl">f3afc16c0d401259987f916607dace1c2e6b560f99807b799348f7f8904e7858
+</span></span><span class="line"><span class="cl">root@lin-server:~# mysql -uroot -p123456 -h127.0.0.1
+</span></span><span class="line"><span class="cl">mysql: <span class="o">[</span>Warning<span class="o">]</span> Using a password on the <span class="nb">command</span> line interface can be insecure.
+</span></span><span class="line"><span class="cl">Welcome to the MySQL monitor.  Commands end with <span class="p">;</span> or <span class="se">\g</span>.
+</span></span><span class="line"><span class="cl">Your MySQL connection id is <span class="m">2</span>
+</span></span><span class="line"><span class="cl">Server version: 5.7.30 MySQL Community Server <span class="o">(</span>GPL<span class="o">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">Copyright <span class="o">(</span>c<span class="o">)</span> 2000, 2026, Oracle and/or its affiliates.
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">Oracle is a registered trademark of Oracle Corporation and/or its
+</span></span><span class="line"><span class="cl">affiliates. Other names may be trademarks of their respective
+</span></span><span class="line"><span class="cl">owners.
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">Type <span class="s1">&#39;help;&#39;</span> or <span class="s1">&#39;\h&#39;</span> <span class="k">for</span> help. Type <span class="s1">&#39;\c&#39;</span> to clear the current input statement.
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">mysql&gt; create database dockerdb<span class="p">;</span>
+</span></span><span class="line"><span class="cl">Query OK, <span class="m">1</span> row affected <span class="o">(</span>0.01 sec<span class="o">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">mysql&gt; show databases<span class="p">;</span>
+</span></span><span class="line"><span class="cl">+--------------------+
+</span></span><span class="line"><span class="cl"><span class="p">|</span> Database           <span class="p">|</span>
+</span></span><span class="line"><span class="cl">+--------------------+
+</span></span><span class="line"><span class="cl"><span class="p">|</span> information_schema <span class="p">|</span>
+</span></span><span class="line"><span class="cl"><span class="p">|</span> dockerdb           <span class="p">|</span>
+</span></span><span class="line"><span class="cl"><span class="p">|</span> mysql              <span class="p">|</span>
+</span></span><span class="line"><span class="cl"><span class="p">|</span> performance_schema <span class="p">|</span>
+</span></span><span class="line"><span class="cl"><span class="p">|</span> sys                <span class="p">|</span>
+</span></span><span class="line"><span class="cl">+--------------------+
+</span></span><span class="line"><span class="cl"><span class="m">5</span> rows in <span class="nb">set</span> <span class="o">(</span>0.00 sec<span class="o">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">mysql&gt; <span class="nb">exit</span>
+</span></span><span class="line"><span class="cl">Bye
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">#删除容器，数据存放在挂载数据卷中，不会删除</span>
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker rm -fv mysql
+</span></span><span class="line"><span class="cl">mysql
+</span></span><span class="line"><span class="cl">root@lin-server:~# ls /data/mysql/
+</span></span><span class="line"><span class="cl">auto.cnf    client-cert.pem  ib_buffer_pool  ib_logfile1  performance_schema  server-cert.pem
+</span></span><span class="line"><span class="cl">ca-key.pem  client-key.pem   ibdata1         ibtmp1       private_key.pem     server-key.pem
+</span></span><span class="line"><span class="cl">ca.pem      dockerdb         ib_logfile0     mysql        public_key.pem      sys
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker run -d --name mysql -p 3306:3306 -v /data/mysql/:/var/lib/mysql -e <span class="nv">MYSQL_ROOT_PASSWORD</span><span class="o">=</span><span class="m">123456</span> mysql:5.7.30
+</span></span><span class="line"><span class="cl">b3cfa6be2d80ac878349a25f25c31c22ca71ff5d611f1a738488e9f8288adae2
+</span></span><span class="line"><span class="cl">root@lin-server:~# mysql -uroot -p123456 -h127.0.0.1
+</span></span><span class="line"><span class="cl">mysql: <span class="o">[</span>Warning<span class="o">]</span> Using a password on the <span class="nb">command</span> line interface can be insecure.
+</span></span><span class="line"><span class="cl">Welcome to the MySQL monitor.  Commands end with <span class="p">;</span> or <span class="se">\g</span>.
+</span></span><span class="line"><span class="cl">Your MySQL connection id is <span class="m">2</span>
+</span></span><span class="line"><span class="cl">Server version: 5.7.30 MySQL Community Server <span class="o">(</span>GPL<span class="o">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">Copyright <span class="o">(</span>c<span class="o">)</span> 2000, 2026, Oracle and/or its affiliates.
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">Oracle is a registered trademark of Oracle Corporation and/or its
+</span></span><span class="line"><span class="cl">affiliates. Other names may be trademarks of their respective
+</span></span><span class="line"><span class="cl">owners.
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">Type <span class="s1">&#39;help;&#39;</span> or <span class="s1">&#39;\h&#39;</span> <span class="k">for</span> help. Type <span class="s1">&#39;\c&#39;</span> to clear the current input statement.
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">mysql&gt; show databases<span class="p">;</span>
+</span></span><span class="line"><span class="cl">+--------------------+
+</span></span><span class="line"><span class="cl"><span class="p">|</span> Database           <span class="p">|</span>
+</span></span><span class="line"><span class="cl">+--------------------+
+</span></span><span class="line"><span class="cl"><span class="p">|</span> information_schema <span class="p">|</span>
+</span></span><span class="line"><span class="cl"><span class="p">|</span> dockerdb           <span class="p">|</span>
+</span></span><span class="line"><span class="cl"><span class="p">|</span> mysql              <span class="p">|</span>
+</span></span><span class="line"><span class="cl"><span class="p">|</span> performance_schema <span class="p">|</span>
+</span></span><span class="line"><span class="cl"><span class="p">|</span> sys                <span class="p">|</span>
+</span></span><span class="line"><span class="cl">+--------------------+
+</span></span><span class="line"><span class="cl"><span class="m">5</span> rows in <span class="nb">set</span> <span class="o">(</span>0.00 sec<span class="o">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">mysql&gt; <span class="nb">exit</span>
+</span></span><span class="line"><span class="cl">Bye
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 指定多个数据卷，创建MySQL</span>
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker run --name mysql-test1 -v /data/mysql:/var/lib/mysql -e <span class="nv">MYSQL_ROOT_PASSWORD</span><span class="o">=</span><span class="m">123456</span> -e <span class="nv">MYSQL_DATABASE</span><span class="o">=</span>wordpress -e <span class="nv">MYSQL_USER</span><span class="o">=</span>wpuser -e <span class="nv">MYSQL_PASSWORD</span><span class="o">=</span><span class="m">123456</span> -d -p 3306:3306 mysql:5.7.30
+</span></span><span class="line"><span class="cl">f24b121036cad6d2079b433c27e97648f6de188e4e6e5b15fae0a964ae779a3f
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 创建mysl目录</span>
+</span></span><span class="line"><span class="cl">root@lin-server:~# mkdir mysql
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 创建mysql-test.conf文件</span>
+</span></span><span class="line"><span class="cl">root@lin-server:~# cat &gt; mysql/mysql-test.cnf <span class="s">&lt;&lt; EOF
+</span></span></span><span class="line"><span class="cl"><span class="s">[mysqld]
+</span></span></span><span class="line"><span class="cl"><span class="s">server-id=100
+</span></span></span><span class="line"><span class="cl"><span class="s">log-bin=mysql-bin
+</span></span></span><span class="line"><span class="cl"><span class="s">EOF</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 创建 env.list 文件</span>
+</span></span><span class="line"><span class="cl">root@lin-server:~# cat &gt; env.list <span class="s">&lt;&lt; EOF
+</span></span></span><span class="line"><span class="cl"><span class="s">MYSQL_ROOT_PASSWORD=123456
+</span></span></span><span class="line"><span class="cl"><span class="s">MYSQL_DATABASE=wordpress
+</span></span></span><span class="line"><span class="cl"><span class="s">MYSQL_USER=wpuser
+</span></span></span><span class="line"><span class="cl"><span class="s">MYSQL_PASSWORD=wppass
+</span></span></span><span class="line"><span class="cl"><span class="s">EOF</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker run --name mysql-test2 -v /root/mysql/:/etc/mysql/conf.d -v /data/mysql2:/var/lib/mysql --env-file<span class="o">=</span>env.list -d -p 3307:3306 mysql:5.7.30
+</span></span><span class="line"><span class="cl">0447806faf623665171b754320c60058bf2c97e7b25c84fa15ae91bb69a61222
 </span></span></code></pre></td></tr></table>
 </div>
 </div>
