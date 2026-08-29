@@ -280,6 +280,7 @@
             <li><a href="#使用方法">使用方法</a></li>
             <li><a href="#实战案例目录数据卷">实战案例：目录数据卷</a></li>
             <li><a href="#实战案例mysql使用的数据卷">实战案例：MySQL使用的数据卷</a></li>
+            <li><a href="#实战案例文件数据卷">实战案例：文件数据卷</a></li>
           </ol>
         </li>
       </ol>
@@ -3424,6 +3425,206 @@
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">root@lin-server:~# docker run --name mysql-test2 -v /root/mysql/:/etc/mysql/conf.d -v /data/mysql2:/var/lib/mysql --env-file<span class="o">=</span>env.list -d -p 3307:3306 mysql:5.7.30
 </span></span><span class="line"><span class="cl">0447806faf623665171b754320c60058bf2c97e7b25c84fa15ae91bb69a61222
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="实战案例文件数据卷">实战案例：文件数据卷
+</h4><h5 id="准备相关文件">准备相关文件
+</h5><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">mkdir /data/<span class="o">{</span>bin,testapp,logs<span class="o">}</span>
+</span></span><span class="line"><span class="cl"><span class="nb">echo</span> testapp v1 &gt; /data/testapp/index.html
+</span></span><span class="line"><span class="cl">cat /data/testapp/index.html
+</span></span><span class="line"><span class="cl">mkdir -p /data/dockerfile/web/tomcat/tomcat-base-8.5.50
+</span></span><span class="line"><span class="cl"><span class="nb">cd</span> /data/dockerfile/web/tomcat/tomcat-base-8.5.50
+</span></span><span class="line"><span class="cl">wget https://mirrors.huaweicloud.com/apache/tomcat/tomcat-8/v8.5.50/bin/apache-tomcat-8.5.50.tar.gz
+</span></span><span class="line"><span class="cl">tar -xvf apache-tomcat-8.5.50.tar.gz
+</span></span><span class="line"><span class="cl">cp /data/dockerfile/web/tomcat/tomcat-base-8.5.50/apache-tomcat-8.5.50/bin/catalina.sh /data/bin/
+</span></span><span class="line"><span class="cl">vim /data/bin/catalina.sh
+</span></span><span class="line"><span class="cl"><span class="c1">#加下面tomcat的优化参数行</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># -----------------------------------------------------------------------------</span>
+</span></span><span class="line"><span class="cl"><span class="nv">JAVA_OPTS</span><span class="o">=</span><span class="s2">&#34;</span><span class="nv">$JAVA_OPTS</span><span class="s2"> -server -Xms4g -Xmx4g -Xss512k -Xmn1g -XX:CMSInitiatingOccupancyFraction=65 -XX:+UseFastAccessorMethods -XX:+AggressiveOpts -XX:+UseBiasedLocking -XX:+DisableExplicitGC -XX:MaxTenuringThreshold=10 -XX:NewSize=2048M -XX:MaxNewSize=2048M -XX:NewRatio=2 -XX:PermSize=128m -XX:MaxPermSize=512m -XX:CMSFullGCsBeforeCompaction=5 -XX:+ExplicitGCInvokesConcurrent -XX:+UseConcMarkSweepGC -XX:+UseParNewGC -XX:+CMSParallelRemarkEnabled -XX:+UseCMSCompactAtFullCollection -XX:LargePageSizeInBytes=128m -XX:+UseFastAccessorMethods&#34;</span>
+</span></span><span class="line"><span class="cl">chown 2019:2019 /data/bin/catalina.sh
+</span></span><span class="line"><span class="cl">ll /data/bin/catalina.sh
+</span></span><span class="line"><span class="cl">chown 2019:2019 /data/logs/
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h5 id="引用文件数据卷启动容器">引用文件数据卷启动容器
+</h5><p>同时挂载可读可写方式的目录数据卷和只读方式的文件数据卷，实现三个数据卷的挂载，数据，日志和启动脚本</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# docker run -itd -v /data/bin/catalina.sh:/apps/tomcat/bin/catalina.sh:ro -v /data/testapp:/data/tomcat/webapps/testapp -v /data/logs:/apps/tomcat/logs -p 8080:8080 tomcat-web:app1 /start.sh
+</span></span><span class="line"><span class="cl">a7c6929d2b3d0bc74c11fe4b714a3698700941113a100dee2c2e09b493245e3d
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h5 id="验证容器可以访问">验证容器可以访问
+</h5><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# curl 127.0.0.1:8080/testapp/
+</span></span><span class="line"><span class="cl">testapp v1
+</span></span><span class="line"><span class="cl">root@lin-server:~# ls -l /data/logs/
+</span></span><span class="line"><span class="cl">total <span class="m">20</span>
+</span></span><span class="line"><span class="cl">-rw-r----- <span class="m">1</span> root root <span class="m">9555</span> Aug <span class="m">29</span> 05:33 catalina.2026-08-29.log
+</span></span><span class="line"><span class="cl">-rw-r----- <span class="m">1</span> root root    <span class="m">0</span> Aug <span class="m">29</span> 05:32 catalina.out
+</span></span><span class="line"><span class="cl">-rw-r----- <span class="m">1</span> root root    <span class="m">0</span> Aug <span class="m">29</span> 05:33 host-manager.2026-08-29.log
+</span></span><span class="line"><span class="cl">-rw-r----- <span class="m">1</span> root root  <span class="m">459</span> Aug <span class="m">29</span> 05:33 localhost.2026-08-29.log
+</span></span><span class="line"><span class="cl">-rw-r----- <span class="m">1</span> root root   <span class="m">76</span> Aug <span class="m">29</span> 05:33 localhost_access_log.2026-08-29.txt
+</span></span><span class="line"><span class="cl">-rw-r----- <span class="m">1</span> root root    <span class="m">0</span> Aug <span class="m">29</span> 05:33 manager.2026-08-29.log
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h5 id="直接修改宿主机的数据">直接修改宿主机的数据
+</h5><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span><span class="lnt">9
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 宿主机修改目录数据卷</span>
+</span></span><span class="line"><span class="cl">root@lin-server:~# <span class="nb">echo</span> testapp v2 &gt; /data/testapp/index.html
+</span></span><span class="line"><span class="cl">root@lin-server:~# curl 127.0.0.1:8080/testapp/
+</span></span><span class="line"><span class="cl">testapp v2
+</span></span><span class="line"><span class="cl">root@lin-server:~# ll /data/bin/catalina.sh
+</span></span><span class="line"><span class="cl">-rwxr-x--- <span class="m">1</span> <span class="m">2019</span> <span class="m">2019</span> <span class="m">24336</span> Aug <span class="m">29</span> 01:37 /data/bin/catalina.sh*
+</span></span><span class="line"><span class="cl">root@lin-server:~# <span class="nb">echo</span> &gt;&gt; /data/bin/catalina.sh
+</span></span><span class="line"><span class="cl">root@lin-server:~# ll /data/bin/catalina.sh
+</span></span><span class="line"><span class="cl">-rwxr-x--- <span class="m">1</span> <span class="m">2019</span> <span class="m">2019</span> <span class="m">24337</span> Aug <span class="m">29</span> 05:34 /data/bin/catalina.sh*
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h5 id="进入容器修改数据">进入容器修改数据
+</h5><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# docker <span class="nb">exec</span> -it a7c6929d2b3d bash
+</span></span><span class="line"><span class="cl">root@a7c6929d2b3d:/# netstat -ntl
+</span></span><span class="line"><span class="cl">Active Internet connections <span class="o">(</span>only servers<span class="o">)</span>
+</span></span><span class="line"><span class="cl">Proto Recv-Q Send-Q Local Address           Foreign Address         State      
+</span></span><span class="line"><span class="cl">tcp6       <span class="m">0</span>      <span class="m">0</span> 127.0.0.1:8005          :::*                    LISTEN     
+</span></span><span class="line"><span class="cl">tcp6       <span class="m">0</span>      <span class="m">0</span> :::8080                 :::*                    LISTEN     
+</span></span><span class="line"><span class="cl">tcp6       <span class="m">0</span>      <span class="m">0</span> :::8009                 :::*                    LISTEN   
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">#文件数据卷上的文件为只读</span>
+</span></span><span class="line"><span class="cl">root@a7c6929d2b3d:/# <span class="nb">echo</span> &gt;&gt; /apps/tomcat/bin/catalina.sh
+</span></span><span class="line"><span class="cl">bash: /apps/tomcat/bin/catalina.sh: Read-only file system
+</span></span><span class="line"><span class="cl">root@a7c6929d2b3d:/# cat /data/tomcat/webapps/testapp/index.html
+</span></span><span class="line"><span class="cl">testapp v2
+</span></span><span class="line"><span class="cl">root@a7c6929d2b3d:/# <span class="nb">echo</span> testapp v3 &gt; /data/tomcat/webapps/testapp/index.html
+</span></span><span class="line"><span class="cl">root@a7c6929d2b3d:/# cat /data/tomcat/webapps/testapp/index.html
+</span></span><span class="line"><span class="cl">testapp v3
+</span></span><span class="line"><span class="cl">root@a7c6929d2b3d:/# curl 127.0.0.1:8080/testapp/
+</span></span><span class="line"><span class="cl">testapp v3
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h5 id="查看容器中挂载和进程信息">查看容器中挂载和进程信息
+</h5><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@a7c6929d2b3d:/# mount
+</span></span><span class="line"><span class="cl">...
+</span></span><span class="line"><span class="cl">/dev/mapper/ubuntu--vg-ubuntu--lv on /apps/tomcat/bin/catalina.sh <span class="nb">type</span> ext4 <span class="o">(</span>ro,relatime<span class="o">)</span>
+</span></span><span class="line"><span class="cl">/dev/mapper/ubuntu--vg-ubuntu--lv on /data/tomcat/webapps/testapp <span class="nb">type</span> ext4 <span class="o">(</span>rw,relatime<span class="o">)</span>
+</span></span><span class="line"><span class="cl">...
+</span></span><span class="line"><span class="cl">root@a7c6929d2b3d:/# df
+</span></span><span class="line"><span class="cl">Filesystem                        1K-blocks     Used Available Use% Mounted on
+</span></span><span class="line"><span class="cl">overlay                            <span class="m">24590672</span> <span class="m">13080952</span>  <span class="m">10235252</span>  57% /
+</span></span><span class="line"><span class="cl">tmpfs                                 <span class="m">65536</span>        <span class="m">0</span>     <span class="m">65536</span>   0% /dev
+</span></span><span class="line"><span class="cl">shm                                   <span class="m">65536</span>        <span class="m">0</span>     <span class="m">65536</span>   0% /dev/shm
+</span></span><span class="line"><span class="cl">/dev/mapper/ubuntu--vg-ubuntu--lv  <span class="m">24590672</span> <span class="m">13080952</span>  <span class="m">10235252</span>  57% /etc/hosts
+</span></span><span class="line"><span class="cl">tmpfs                               <span class="m">1980436</span>        <span class="m">0</span>   <span class="m">1980436</span>   0% /proc/asound
+</span></span><span class="line"><span class="cl">tmpfs                               <span class="m">1980436</span>        <span class="m">0</span>   <span class="m">1980436</span>   0% /proc/acpi
+</span></span><span class="line"><span class="cl">tmpfs                               <span class="m">1980436</span>        <span class="m">0</span>   <span class="m">1980436</span>   0% /proc/scsi
+</span></span><span class="line"><span class="cl">tmpfs                               <span class="m">1980436</span>        <span class="m">0</span>   <span class="m">1980436</span>   0% /sys/firmware
+</span></span><span class="line"><span class="cl">root@a7c6929d2b3d:/# ps aux 
+</span></span><span class="line"><span class="cl">USER         PID %CPU %MEM    VSZ   RSS TTY      STAT START   TIME COMMAND
+</span></span><span class="line"><span class="cl">root           <span class="m">1</span>  0.0  0.0   <span class="m">4364</span>  <span class="m">3320</span> pts/0    Ss+  05:33   0:00 /bin/bash /start.sh
+</span></span><span class="line"><span class="cl">root           <span class="m">7</span>  0.4  4.4 <span class="m">6632528</span> <span class="m">175676</span> pts/0  Sl+  05:33   0:01 /usr/bin/java -Djava.util.logging.config.file<span class="o">=</span>/apps/tomcat/conf/loggin
+</span></span><span class="line"><span class="cl">root          <span class="m">63</span>  0.0  0.0   <span class="m">4628</span>  <span class="m">3652</span> pts/1    Ss   05:34   0:00 bash
+</span></span><span class="line"><span class="cl">root         <span class="m">107</span>  0.0  0.0   <span class="m">7084</span>  <span class="m">2952</span> pts/1    R+   05:40   0:00 ps aux
+</span></span><span class="line"><span class="cl">root@a7c6929d2b3d:/# ps aux <span class="p">|</span> grep java
+</span></span><span class="line"><span class="cl">root           <span class="m">7</span>  0.3  4.4 <span class="m">6632528</span> <span class="m">175796</span> pts/0  Sl+  05:33   0:01 /usr/bin/java -Djava.util.logging.config.file<span class="o">=</span>/apps/tomcat/conf/logging.properties -Djava.util.logging.manager<span class="o">=</span>org.apache.juli.ClassLoaderLogManager -server -Xms4g -Xmx4g -Xss512k -Xmn1g -XX:CMSInitiatingOccupancyFraction<span class="o">=</span><span class="m">65</span> -XX:+UseFastAccessorMethods -XX:+AggressiveOpts -XX:+UseBiasedLocking -XX:+DisableExplicitGC -XX:MaxTenuringThreshold<span class="o">=</span><span class="m">10</span> -XX:NewSize<span class="o">=</span>2048M -XX:MaxNewSize<span class="o">=</span>2048M -XX:NewRatio<span class="o">=</span><span class="m">2</span> -XX:PermSize<span class="o">=</span>128m -XX:MaxPermSize<span class="o">=</span>512m -XX:CMSFullGCsBeforeCompaction<span class="o">=</span><span class="m">5</span> -XX:+ExplicitGCInvokesConcurrent -XX:+UseConcMarkSweepGC -XX:+UseParNewGC -XX:+CMSParallelRemarkEnabled -XX:+UseCMSCompactAtFullCollection -XX:LargePageSizeInBytes<span class="o">=</span>128m -XX:+UseFastAccessorMethods -Djdk.tls.ephemeralDHKeySize<span class="o">=</span><span class="m">2048</span> -Djava.protocol.handler.pkgs<span class="o">=</span>org.apache.catalina.webresources -Dorg.apache.catalina.security.SecurityListener.UMASK<span class="o">=</span><span class="m">0027</span> -Dignore.endorsed.dirs<span class="o">=</span> -classpath /apps/tomcat/bin/bootstrap.jar:/apps/tomcat/bin/tomcat-juli.jar -Dcatalina.base<span class="o">=</span>/apps/tomcat -Dcatalina.home<span class="o">=</span>/apps/tomcat -Djava.io.tmpdir<span class="o">=</span>/apps/tomcat/temp org.apache.catalina.startup.Bootstrap start
+</span></span><span class="line"><span class="cl">root         <span class="m">110</span>  0.0  0.0   <span class="m">3472</span>  <span class="m">1864</span> pts/1    S+   05:40   0:00 grep --color<span class="o">=</span>auto java
 </span></span></code></pre></td></tr></table>
 </div>
 </div>

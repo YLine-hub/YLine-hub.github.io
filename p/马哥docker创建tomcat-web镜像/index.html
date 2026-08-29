@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html lang="en-us" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="Create a Tomcat web image using an Ubuntu 22 container in docker Apache-tomcat-8.5.50.tar.gz download link Apache-tomcat-8.5.50.tar.gz Complete operation process Start an Ubuntu 22.04 container 1 docker run -it --name tomcat-builder ubuntu:22.04 /bin/bash Update the system and install necessary tools 1 2 3 4 5 6 7 8 # Update the package list apt update # Install tools such as wget, curl, and vim apt install -y wget curl vim openjdk-8-jdk net-tools # Verify that JDK is installed java -version Download and install Tomcat 8 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 # Create the Tomcat installation directory mkdir -p /apps/tomcat cd /apps/tomcat # Create the web direcotry mkdir -p /data/tomcat/webapps/testapp # Create the index html echo testapp v1 &gt; /data/tomcat/webapps/testapp/index.html # Download Tomcat 8 wget https://mirrors.huaweicloud.com/apache/tomcat/tomcat-8/v8.5.50/bin/apache-tomcat-8.5.50.tar.gz # Extract tar -zxvf apache-tomcat-8.5.50.tar.gz # Move it to /apps/tomcat mv apache-tomcat-8.5.50/* /apps/tomcat # Delete the archive file and the extracted empty direcotries rm -rf apache-tomcat-8.5.50 apache-tomcat-8.5.50.tar.gz Configure Tomcat environment variables 1 2 3 4 5 6 7 8 9 10 11 12 # Edit the profile file vim /etc/profile # Add the following content to the end of the file: export CATALINA_HOME=/apps/tomcat export PATH=$PATH:$CATALINA_HOME/bin # Apply the environment variables (Source the profile file) source /etc/profile # Verify echo $CATALINA_HOME Create the Tomcat user and set the appropriate permissions 1 2 3 4 5 6 7 8 # Create the Tomcat user (Optionally, enhance the security) useradd -s /bin/bash tomcat # Change the owner of the Tomcat direcotry to tomcat chown -R tomcat:tomcat /apps/tomcat # Add execute permission to the script chmod +x /apps/tomcat/bin/*.sh Modify the Tomcat configuration file Add a new page mapping to the Tomcat configuration file 1 2 3 4 5 6 7 8 9 10 11 12 13 14 # Edit the server.xml vim /apps/tomcat/conf/server.xml &lt;Host name=&#34;localhost&#34; appBase=&#34;webapps&#34; unpackWARs=&#34;true&#34; autoDeploy=&#34;true&#34;&gt; &lt;!-- Map /testapp to the /data/tomcat/webapps/testapp directory --&gt; &lt;Context path=&#34;/testapp&#34; docBase=&#34;/data/tomcat/webapps/testapp&#34; reloadable=&#34;false&#34; /&gt; ...... &lt;Valve className=&#34;org.apache.catalina.valves.AccessLogValve&#34; directory=&#34;logs&#34; prefix=&#34;localhost_access_log&#34; suffix=&#34;.txt&#34; pattern=&#34;%h %l %u %t &amp;quot;%r&amp;quot; %s %b&#34; /&gt; &lt;/Host&gt; Optimize memory parameters 1 2 3 4 5 # Edit the catalina.sh vim /apps/tomcat/bin/catalina.sh ... JAVA_OPTS=&#34;$JAVA_OPTS -server -Xms4g -Xmx4g -Xss512k -Xmn1g -XX:CMSInitiatingOccupancyFraction=65 -XX:+UseFastAccessorMethods -XX:+AggressiveOpts -XX:+UseBiasedLocking -XX:+DisableExplicitGC -XX:MaxTenuringThreshold=10 -XX:NewSize=2048M -XX:MaxNewSize=2048M -XX:NewRatio=2 -XX:PermSize=128m -XX:MaxPermSize=512m -XX:CMSFullGCsBeforeCompaction=5 -XX:+ExplicitGCInvokesConcurrent -XX:+UseConcMarkSweepGC -XX:+UseParNewGC -XX:+CMSParallelRemarkEnabled -XX:+UseCMSCompactAtFullCollection -XX:LargePageSizeInBytes=128m -XX:+UseFastAccessorMethods&#34; # OS specific support. $var _must_ be set to either true or false. Create a startup script 1 2 3 4 5 6 7 vim /start.sh #!/bin/bash # start Tomcat /apps/tomcat/bin/catalina.sh run # Add execute permission chmod +x /start.sh Test if Tomcat is runnning properly 1 2 3 4 5 # start Tomcat /apps/tomcat/bin/startup.sh # View the logs tail -f /apps/tomcat/logs/catalina.out Exit the container and package it into an image 1 2 # Exit the container without stopping it # Pass Ctrl + P + Q method 1 : Package using docker commit (recommended for testing) 1 2 3 4 5 6 7 8 # Check the container status docker ps # Package the container into an image docker commit tomcat-builder tomcat-web:app1 # Check the images docker images method 2 : Use docker export/import (cleaner, does not preserve history). 1 2 3 4 5 # Export the container docker export tomcat-builder &gt; tomcat-web.tar # Import it as an image docker import tomcat-web.tar tomcat-web:app1 Run a container to test the image 1 2 3 4 5 6 7 8 9 # Stop and remove the original container (optional). docker stop tomcat-builder docker rm tomcat-builder # Start a new container to test the image docker run -d --name tomcat-test -p 8080:8080 tomcat-web:app1 /start.sh # Check the logs docker logs -f tomcat-test ">
+<title>[马哥][Docker]创建tomcat-Web镜像</title>
+
+<link rel='canonical' href='https://YLine-hub.github.io/p/%E9%A9%AC%E5%93%A5docker%E5%88%9B%E5%BB%BAtomcat-web%E9%95%9C%E5%83%8F/'>
+
+<link rel="stylesheet" href="/scss/style.min.663803bebe609202d5b39d848f2d7c2dc8b598a2d879efa079fa88893d29c49c.css"><meta property='og:title' content="[马哥][Docker]创建tomcat-Web镜像">
+<meta property='og:description' content="Create a Tomcat web image using an Ubuntu 22 container in docker Apache-tomcat-8.5.50.tar.gz download link Apache-tomcat-8.5.50.tar.gz Complete operation process Start an Ubuntu 22.04 container 1 docker run -it --name tomcat-builder ubuntu:22.04 /bin/bash Update the system and install necessary tools 1 2 3 4 5 6 7 8 # Update the package list apt update # Install tools such as wget, curl, and vim apt install -y wget curl vim openjdk-8-jdk net-tools # Verify that JDK is installed java -version Download and install Tomcat 8 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 # Create the Tomcat installation directory mkdir -p /apps/tomcat cd /apps/tomcat # Create the web direcotry mkdir -p /data/tomcat/webapps/testapp # Create the index html echo testapp v1 &gt; /data/tomcat/webapps/testapp/index.html # Download Tomcat 8 wget https://mirrors.huaweicloud.com/apache/tomcat/tomcat-8/v8.5.50/bin/apache-tomcat-8.5.50.tar.gz # Extract tar -zxvf apache-tomcat-8.5.50.tar.gz # Move it to /apps/tomcat mv apache-tomcat-8.5.50/* /apps/tomcat # Delete the archive file and the extracted empty direcotries rm -rf apache-tomcat-8.5.50 apache-tomcat-8.5.50.tar.gz Configure Tomcat environment variables 1 2 3 4 5 6 7 8 9 10 11 12 # Edit the profile file vim /etc/profile # Add the following content to the end of the file: export CATALINA_HOME=/apps/tomcat export PATH=$PATH:$CATALINA_HOME/bin # Apply the environment variables (Source the profile file) source /etc/profile # Verify echo $CATALINA_HOME Create the Tomcat user and set the appropriate permissions 1 2 3 4 5 6 7 8 # Create the Tomcat user (Optionally, enhance the security) useradd -s /bin/bash tomcat # Change the owner of the Tomcat direcotry to tomcat chown -R tomcat:tomcat /apps/tomcat # Add execute permission to the script chmod +x /apps/tomcat/bin/*.sh Modify the Tomcat configuration file Add a new page mapping to the Tomcat configuration file 1 2 3 4 5 6 7 8 9 10 11 12 13 14 # Edit the server.xml vim /apps/tomcat/conf/server.xml &lt;Host name=&#34;localhost&#34; appBase=&#34;webapps&#34; unpackWARs=&#34;true&#34; autoDeploy=&#34;true&#34;&gt; &lt;!-- Map /testapp to the /data/tomcat/webapps/testapp directory --&gt; &lt;Context path=&#34;/testapp&#34; docBase=&#34;/data/tomcat/webapps/testapp&#34; reloadable=&#34;false&#34; /&gt; ...... &lt;Valve className=&#34;org.apache.catalina.valves.AccessLogValve&#34; directory=&#34;logs&#34; prefix=&#34;localhost_access_log&#34; suffix=&#34;.txt&#34; pattern=&#34;%h %l %u %t &amp;quot;%r&amp;quot; %s %b&#34; /&gt; &lt;/Host&gt; Optimize memory parameters 1 2 3 4 5 # Edit the catalina.sh vim /apps/tomcat/bin/catalina.sh ... JAVA_OPTS=&#34;$JAVA_OPTS -server -Xms4g -Xmx4g -Xss512k -Xmn1g -XX:CMSInitiatingOccupancyFraction=65 -XX:+UseFastAccessorMethods -XX:+AggressiveOpts -XX:+UseBiasedLocking -XX:+DisableExplicitGC -XX:MaxTenuringThreshold=10 -XX:NewSize=2048M -XX:MaxNewSize=2048M -XX:NewRatio=2 -XX:PermSize=128m -XX:MaxPermSize=512m -XX:CMSFullGCsBeforeCompaction=5 -XX:+ExplicitGCInvokesConcurrent -XX:+UseConcMarkSweepGC -XX:+UseParNewGC -XX:+CMSParallelRemarkEnabled -XX:+UseCMSCompactAtFullCollection -XX:LargePageSizeInBytes=128m -XX:+UseFastAccessorMethods&#34; # OS specific support. $var _must_ be set to either true or false. Create a startup script 1 2 3 4 5 6 7 vim /start.sh #!/bin/bash # start Tomcat /apps/tomcat/bin/catalina.sh run # Add execute permission chmod +x /start.sh Test if Tomcat is runnning properly 1 2 3 4 5 # start Tomcat /apps/tomcat/bin/startup.sh # View the logs tail -f /apps/tomcat/logs/catalina.out Exit the container and package it into an image 1 2 # Exit the container without stopping it # Pass Ctrl + P + Q method 1 : Package using docker commit (recommended for testing) 1 2 3 4 5 6 7 8 # Check the container status docker ps # Package the container into an image docker commit tomcat-builder tomcat-web:app1 # Check the images docker images method 2 : Use docker export/import (cleaner, does not preserve history). 1 2 3 4 5 # Export the container docker export tomcat-builder &gt; tomcat-web.tar # Import it as an image docker import tomcat-web.tar tomcat-web:app1 Run a container to test the image 1 2 3 4 5 6 7 8 9 # Stop and remove the original container (optional). docker stop tomcat-builder docker rm tomcat-builder # Start a new container to test the image docker run -d --name tomcat-test -p 8080:8080 tomcat-web:app1 /start.sh # Check the logs docker logs -f tomcat-test ">
+<meta property='og:url' content='https://YLine-hub.github.io/p/%E9%A9%AC%E5%93%A5docker%E5%88%9B%E5%BB%BAtomcat-web%E9%95%9C%E5%83%8F/'>
+<meta property='og:site_name' content='リンボの個人ブログ'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:published_time' content='2026-08-29T10:47:25&#43;08:00'/><meta property='article:modified_time' content='2026-08-29T10:47:25&#43;08:00'/>
+<meta name="twitter:title" content="[马哥][Docker]创建tomcat-Web镜像">
+<meta name="twitter:description" content="Create a Tomcat web image using an Ubuntu 22 container in docker Apache-tomcat-8.5.50.tar.gz download link Apache-tomcat-8.5.50.tar.gz Complete operation process Start an Ubuntu 22.04 container 1 docker run -it --name tomcat-builder ubuntu:22.04 /bin/bash Update the system and install necessary tools 1 2 3 4 5 6 7 8 # Update the package list apt update # Install tools such as wget, curl, and vim apt install -y wget curl vim openjdk-8-jdk net-tools # Verify that JDK is installed java -version Download and install Tomcat 8 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 # Create the Tomcat installation directory mkdir -p /apps/tomcat cd /apps/tomcat # Create the web direcotry mkdir -p /data/tomcat/webapps/testapp # Create the index html echo testapp v1 &gt; /data/tomcat/webapps/testapp/index.html # Download Tomcat 8 wget https://mirrors.huaweicloud.com/apache/tomcat/tomcat-8/v8.5.50/bin/apache-tomcat-8.5.50.tar.gz # Extract tar -zxvf apache-tomcat-8.5.50.tar.gz # Move it to /apps/tomcat mv apache-tomcat-8.5.50/* /apps/tomcat # Delete the archive file and the extracted empty direcotries rm -rf apache-tomcat-8.5.50 apache-tomcat-8.5.50.tar.gz Configure Tomcat environment variables 1 2 3 4 5 6 7 8 9 10 11 12 # Edit the profile file vim /etc/profile # Add the following content to the end of the file: export CATALINA_HOME=/apps/tomcat export PATH=$PATH:$CATALINA_HOME/bin # Apply the environment variables (Source the profile file) source /etc/profile # Verify echo $CATALINA_HOME Create the Tomcat user and set the appropriate permissions 1 2 3 4 5 6 7 8 # Create the Tomcat user (Optionally, enhance the security) useradd -s /bin/bash tomcat # Change the owner of the Tomcat direcotry to tomcat chown -R tomcat:tomcat /apps/tomcat # Add execute permission to the script chmod +x /apps/tomcat/bin/*.sh Modify the Tomcat configuration file Add a new page mapping to the Tomcat configuration file 1 2 3 4 5 6 7 8 9 10 11 12 13 14 # Edit the server.xml vim /apps/tomcat/conf/server.xml &lt;Host name=&#34;localhost&#34; appBase=&#34;webapps&#34; unpackWARs=&#34;true&#34; autoDeploy=&#34;true&#34;&gt; &lt;!-- Map /testapp to the /data/tomcat/webapps/testapp directory --&gt; &lt;Context path=&#34;/testapp&#34; docBase=&#34;/data/tomcat/webapps/testapp&#34; reloadable=&#34;false&#34; /&gt; ...... &lt;Valve className=&#34;org.apache.catalina.valves.AccessLogValve&#34; directory=&#34;logs&#34; prefix=&#34;localhost_access_log&#34; suffix=&#34;.txt&#34; pattern=&#34;%h %l %u %t &amp;quot;%r&amp;quot; %s %b&#34; /&gt; &lt;/Host&gt; Optimize memory parameters 1 2 3 4 5 # Edit the catalina.sh vim /apps/tomcat/bin/catalina.sh ... JAVA_OPTS=&#34;$JAVA_OPTS -server -Xms4g -Xmx4g -Xss512k -Xmn1g -XX:CMSInitiatingOccupancyFraction=65 -XX:+UseFastAccessorMethods -XX:+AggressiveOpts -XX:+UseBiasedLocking -XX:+DisableExplicitGC -XX:MaxTenuringThreshold=10 -XX:NewSize=2048M -XX:MaxNewSize=2048M -XX:NewRatio=2 -XX:PermSize=128m -XX:MaxPermSize=512m -XX:CMSFullGCsBeforeCompaction=5 -XX:+ExplicitGCInvokesConcurrent -XX:+UseConcMarkSweepGC -XX:+UseParNewGC -XX:+CMSParallelRemarkEnabled -XX:+UseCMSCompactAtFullCollection -XX:LargePageSizeInBytes=128m -XX:+UseFastAccessorMethods&#34; # OS specific support. $var _must_ be set to either true or false. Create a startup script 1 2 3 4 5 6 7 vim /start.sh #!/bin/bash # start Tomcat /apps/tomcat/bin/catalina.sh run # Add execute permission chmod +x /start.sh Test if Tomcat is runnning properly 1 2 3 4 5 # start Tomcat /apps/tomcat/bin/startup.sh # View the logs tail -f /apps/tomcat/logs/catalina.out Exit the container and package it into an image 1 2 # Exit the container without stopping it # Pass Ctrl + P + Q method 1 : Package using docker commit (recommended for testing) 1 2 3 4 5 6 7 8 # Check the container status docker ps # Package the container into an image docker commit tomcat-builder tomcat-web:app1 # Check the images docker images method 2 : Use docker export/import (cleaner, does not preserve history). 1 2 3 4 5 # Export the container docker export tomcat-builder &gt; tomcat-web.tar # Import it as an image docker import tomcat-web.tar tomcat-web:app1 Run a container to test the image 1 2 3 4 5 6 7 8 9 # Stop and remove the original container (optional). docker stop tomcat-builder docker rm tomcat-builder # Start a new container to test the image docker run -d --name tomcat-test -p 8080:8080 tomcat-web:app1 /start.sh # Check the logs docker logs -f tomcat-test ">
+    <link rel="shortcut icon" href="/favicon.ico" />
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        
+            
+            <figure class="site-avatar">
+                <a href="/">
+                
+                    
+                    
+                    
+                        
+                        <img src="/img/avatar_hu_de528bff5d5e9598.png" width="300"
+                            height="300" class="site-logo" loading="lazy" alt="Avatar">
+                    
+                
+                </a>
+                
+                    <span class="emoji">🏖️</span>
+                
+            </figure>
+            
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">リンボの個人ブログ</a></h1>
+            <h2 class="site-description">努力不一定能获得回报，但不努力一定不会有回报。</h2>
+        </div>
+    </header><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-home" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <polyline points="5 12 3 12 12 3 21 12 19 12" />
+  <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7" />
+  <path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6" />
+</svg>
+
+
+
+                
+                <span>主页</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/%E5%85%B3%E4%BA%8E/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/archives/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/search/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-search" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="10" cy="10" r="7" />
+  <line x1="21" y1="21" x2="15" y2="15" />
+</svg>
+
+
+
+                
+                <span>搜索</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav id="TableOfContents">
+  <ol>
+    <li><a href="#create-a-tomcat-web-image-using-an-ubuntu-22-container-in-docker">Create a Tomcat web image using an Ubuntu 22 container in docker</a>
+      <ol>
+        <li><a href="#apache-tomcat-8550targz-download-link">Apache-tomcat-8.5.50.tar.gz download link</a></li>
+        <li><a href="#complete-operation-process">Complete operation process</a>
+          <ol>
+            <li><a href="#start-an-ubuntu-2204-container">Start an Ubuntu 22.04 container</a></li>
+            <li><a href="#update-the-system-and-install-necessary-tools">Update the system and install necessary tools</a></li>
+            <li><a href="#download-and-install-tomcat-8">Download and install Tomcat 8</a></li>
+            <li><a href="#configure-tomcat-environment-variables">Configure Tomcat environment variables</a></li>
+            <li><a href="#create-the-tomcat-user-and-set-the-appropriate-permissions">Create the Tomcat user and set the appropriate permissions</a></li>
+            <li><a href="#modify-the-tomcat-configuration-file">Modify the Tomcat configuration file</a></li>
+            <li><a href="#create-a-startup-script">Create a startup script</a></li>
+            <li><a href="#test-if-tomcat-is-runnning-properly">Test if Tomcat is runnning properly</a></li>
+            <li><a href="#exit-the-container-and-package-it-into-an-image">Exit the container and package it into an image</a></li>
+            <li><a href="#run-a-container-to-test-the-image">Run a container to test the image</a></li>
+          </ol>
+        </li>
+      </ol>
+    </li>
+  </ol>
+</nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            <a href="/categories/docker/" >
+                Docker
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/p/%E9%A9%AC%E5%93%A5docker%E5%88%9B%E5%BB%BAtomcat-web%E9%95%9C%E5%83%8F/">[马哥][Docker]创建tomcat-Web镜像</a>
+        </h2>
+    
+        
+    </div>
+
+    
+    
+    
+    
+    <footer class="article-time">
+        
+            <div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                <time class="article-time--published">2026-08-29</time>
+            </div>
+        
+
+        
+    </footer>
+    
+
+    
+</div>
+
+</header>
+
+    <section class="article-content">
+    
+    
+    <h2 id="create-a-tomcat-web-image-using-an-ubuntu-22-container-in-docker">Create a Tomcat web image using an Ubuntu 22 container in docker
+</h2><h3 id="apache-tomcat-8550targz-download-link">Apache-tomcat-8.5.50.tar.gz download link
+</h3><ul>
+<li><a class="link" href="https://mirrors.huaweicloud.com/apache/tomcat/tomcat-8/v8.5.50/bin/apache-tomcat-8.5.50.tar.gz"  target="_blank" rel="noopener"
+    >Apache-tomcat-8.5.50.tar.gz</a></li>
+</ul>
+<h3 id="complete-operation-process">Complete operation process
+</h3><h4 id="start-an-ubuntu-2204-container">Start an Ubuntu 22.04 container
+</h4><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">docker run -it --name tomcat-builder ubuntu:22.04 /bin/bash
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="update-the-system-and-install-necessary-tools">Update the system and install necessary tools
+</h4><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># Update the package list</span>
+</span></span><span class="line"><span class="cl">apt update
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Install tools such as wget, curl, and vim</span>
+</span></span><span class="line"><span class="cl">apt install -y wget curl vim openjdk-8-jdk net-tools
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Verify that JDK is installed</span>
+</span></span><span class="line"><span class="cl">java -version
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="download-and-install-tomcat-8">Download and install Tomcat 8
+</h4><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># Create the Tomcat installation directory</span>
+</span></span><span class="line"><span class="cl">mkdir -p /apps/tomcat
+</span></span><span class="line"><span class="cl"><span class="nb">cd</span> /apps/tomcat
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Create the web direcotry</span>
+</span></span><span class="line"><span class="cl">mkdir -p /data/tomcat/webapps/testapp
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Create the index html</span>
+</span></span><span class="line"><span class="cl"><span class="nb">echo</span> testapp v1 &gt; /data/tomcat/webapps/testapp/index.html
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Download Tomcat 8</span>
+</span></span><span class="line"><span class="cl">wget https://mirrors.huaweicloud.com/apache/tomcat/tomcat-8/v8.5.50/bin/apache-tomcat-8.5.50.tar.gz
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Extract</span>
+</span></span><span class="line"><span class="cl">tar -zxvf apache-tomcat-8.5.50.tar.gz
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Move it to /apps/tomcat</span>
+</span></span><span class="line"><span class="cl">mv apache-tomcat-8.5.50/* /apps/tomcat
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Delete the archive file and the extracted empty direcotries</span>
+</span></span><span class="line"><span class="cl">rm -rf apache-tomcat-8.5.50 apache-tomcat-8.5.50.tar.gz
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="configure-tomcat-environment-variables">Configure Tomcat environment variables
+</h4><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># Edit the profile file</span>
+</span></span><span class="line"><span class="cl">vim /etc/profile
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Add the following content to the end of the file:</span>
+</span></span><span class="line"><span class="cl"><span class="nb">export</span> <span class="nv">CATALINA_HOME</span><span class="o">=</span>/apps/tomcat
+</span></span><span class="line"><span class="cl"><span class="nb">export</span> <span class="nv">PATH</span><span class="o">=</span><span class="nv">$PATH</span>:<span class="nv">$CATALINA_HOME</span>/bin
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Apply the environment variables (Source the profile file)</span>
+</span></span><span class="line"><span class="cl"><span class="nb">source</span> /etc/profile
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Verify</span>
+</span></span><span class="line"><span class="cl"><span class="nb">echo</span> <span class="nv">$CATALINA_HOME</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="create-the-tomcat-user-and-set-the-appropriate-permissions">Create the Tomcat user and set the appropriate permissions
+</h4><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># Create the Tomcat user (Optionally, enhance the security)</span>
+</span></span><span class="line"><span class="cl">useradd -s /bin/bash tomcat
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Change the owner of the Tomcat direcotry to tomcat</span>
+</span></span><span class="line"><span class="cl">chown -R tomcat:tomcat /apps/tomcat
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Add execute permission to the script</span>
+</span></span><span class="line"><span class="cl">chmod +x /apps/tomcat/bin/*.sh
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="modify-the-tomcat-configuration-file">Modify the Tomcat configuration file
+</h4><ul>
+<li>Add a new page mapping to the Tomcat configuration file</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># Edit the server.xml</span>
+</span></span><span class="line"><span class="cl">vim /apps/tomcat/conf/server.xml
+</span></span><span class="line"><span class="cl">&lt;Host <span class="nv">name</span><span class="o">=</span><span class="s2">&#34;localhost&#34;</span>  <span class="nv">appBase</span><span class="o">=</span><span class="s2">&#34;webapps&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="nv">unpackWARs</span><span class="o">=</span><span class="s2">&#34;true&#34;</span> <span class="nv">autoDeploy</span><span class="o">=</span><span class="s2">&#34;true&#34;</span>&gt;
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    &lt;!-- Map /testapp to the /data/tomcat/webapps/testapp directory --&gt;
+</span></span><span class="line"><span class="cl">    &lt;Context <span class="nv">path</span><span class="o">=</span><span class="s2">&#34;/testapp&#34;</span> <span class="nv">docBase</span><span class="o">=</span><span class="s2">&#34;/data/tomcat/webapps/testapp&#34;</span> <span class="nv">reloadable</span><span class="o">=</span><span class="s2">&#34;false&#34;</span> /&gt;
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    ......
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    &lt;Valve <span class="nv">className</span><span class="o">=</span><span class="s2">&#34;org.apache.catalina.valves.AccessLogValve&#34;</span> <span class="nv">directory</span><span class="o">=</span><span class="s2">&#34;logs&#34;</span>
+</span></span><span class="line"><span class="cl">            <span class="nv">prefix</span><span class="o">=</span><span class="s2">&#34;localhost_access_log&#34;</span> <span class="nv">suffix</span><span class="o">=</span><span class="s2">&#34;.txt&#34;</span>
+</span></span><span class="line"><span class="cl">            <span class="nv">pattern</span><span class="o">=</span><span class="s2">&#34;%h %l %u %t &amp;quot;%r&amp;quot; %s %b&#34;</span> /&gt;
+</span></span><span class="line"><span class="cl">&lt;/Host&gt;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>Optimize memory parameters</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># Edit the catalina.sh</span>
+</span></span><span class="line"><span class="cl">vim /apps/tomcat/bin/catalina.sh
+</span></span><span class="line"><span class="cl">...
+</span></span><span class="line"><span class="cl"><span class="nv">JAVA_OPTS</span><span class="o">=</span><span class="s2">&#34;</span><span class="nv">$JAVA_OPTS</span><span class="s2"> -server -Xms4g -Xmx4g -Xss512k -Xmn1g -XX:CMSInitiatingOccupancyFraction=65 -XX:+UseFastAccessorMethods -XX:+AggressiveOpts -XX:+UseBiasedLocking -XX:+DisableExplicitGC -XX:MaxTenuringThreshold=10 -XX:NewSize=2048M -XX:MaxNewSize=2048M -XX:NewRatio=2 -XX:PermSize=128m -XX:MaxPermSize=512m -XX:CMSFullGCsBeforeCompaction=5 -XX:+ExplicitGCInvokesConcurrent -XX:+UseConcMarkSweepGC -XX:+UseParNewGC -XX:+CMSParallelRemarkEnabled -XX:+UseCMSCompactAtFullCollection -XX:LargePageSizeInBytes=128m -XX:+UseFastAccessorMethods&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># OS specific support.  $var _must_ be set to either true or false.</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="create-a-startup-script">Create a startup script
+</h4><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">vim /start.sh
+</span></span><span class="line"><span class="cl"><span class="c1">#!/bin/bash</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># start Tomcat</span>
+</span></span><span class="line"><span class="cl">/apps/tomcat/bin/catalina.sh run
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Add execute permission</span>
+</span></span><span class="line"><span class="cl">chmod +x /start.sh
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="test-if-tomcat-is-runnning-properly">Test if Tomcat is runnning properly
+</h4><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># start Tomcat</span>
+</span></span><span class="line"><span class="cl">/apps/tomcat/bin/startup.sh
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># View the logs</span>
+</span></span><span class="line"><span class="cl">tail -f /apps/tomcat/logs/catalina.out
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="exit-the-container-and-package-it-into-an-image">Exit the container and package it into an image
+</h4><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># Exit the container without stopping it</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># Pass Ctrl + P + Q</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol>
+<li>method 1 : Package using docker commit (recommended for testing)</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># Check the container status</span>
+</span></span><span class="line"><span class="cl">docker ps
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Package the container into an image</span>
+</span></span><span class="line"><span class="cl">docker commit tomcat-builder tomcat-web:app1
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Check the images</span>
+</span></span><span class="line"><span class="cl">docker images
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="2">
+<li>method 2 : Use docker export/import (cleaner, does not preserve history).</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># Export the container</span>
+</span></span><span class="line"><span class="cl">docker <span class="nb">export</span> tomcat-builder &gt; tomcat-web.tar
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Import it as an image</span>
+</span></span><span class="line"><span class="cl">docker import tomcat-web.tar tomcat-web:app1
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="run-a-container-to-test-the-image">Run a container to test the image
+</h4><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span><span class="lnt">9
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># Stop and remove the original container (optional).</span>
+</span></span><span class="line"><span class="cl">docker stop tomcat-builder
+</span></span><span class="line"><span class="cl">docker rm tomcat-builder
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Start a new container to test the image</span>
+</span></span><span class="line"><span class="cl">docker run -d --name tomcat-test -p 8080:8080 tomcat-web:app1 /start.sh
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Check the logs</span>
+</span></span><span class="line"><span class="cl">docker logs -f tomcat-test
+</span></span></code></pre></td></tr></table>
+</div>
+</div>
+</section>
+
+
+    <footer class="article-footer">
+    
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+<aside class="related-content--wrapper">
+    <h2 class="section-title">相关文章</h2>
+    <div class="related-content">
+        <div class="flex article-list--tile">
+            
+                
+<article class="">
+    <a href="/p/docker%E5%AE%89%E8%A3%85/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Docker]安装</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-cig%E6%9C%AA%E5%AE%8C%E6%88%90/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Docker]高级篇-CIG（未完成）</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-portainer/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Docker]高级篇-Portainer</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-compose%E5%AE%B9%E5%99%A8%E7%BC%96%E6%8E%92/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Docker]高级篇-Docker compose容器编排</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Docker]高级篇-Docker Network</h2>
+        </div>
+    </a>
+</article>
+
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+            2025 - 
+        
+        2026 リンボの個人ブログ
+    </section>
+    
+    <section class="powerby">
+         <br />
+        
+    </section>
+</footer>
+
+
+    
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+    
+    <div class="pswp__bg"></div>
+
+    
+    <div class="pswp__scroll-wrap">
+
+        
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+
+        
+        <div class="pswp__ui pswp__ui--hidden">
+
+            <div class="pswp__top-bar">
+
+                
+
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+
+                <button class="pswp__button pswp__button--share" title="Share"></button>
+
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+
+                
+                
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                        <div class="pswp__preloader__cut">
+                            <div class="pswp__preloader__donut"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div>
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.js"integrity="sha256-ePwmChbbvXbsO02lbM3HoHbSHTHFAeChekF1xKJdleo="crossorigin="anonymous"
+                defer
+                >
+            </script><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe-ui-default.min.js"integrity="sha256-UKkzOn/w1mBxRmLLGrSeyB4e1xbrp4xylgAWb3M42pU="crossorigin="anonymous"
+                defer
+                >
+            </script><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/default-skin/default-skin.min.css"crossorigin="anonymous"
+            ><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.css"crossorigin="anonymous"
+            >
+
+            </main>
+        </div>
+        <script 
+                src="https://cdn.jsdelivr.net/npm/node-vibrant@3.1.6/dist/vibrant.min.js"integrity="sha256-awcR2jno4kI5X0zL8ex0vi2z&#43;KMkF24hUW8WePSA9HM="crossorigin="anonymous"
+                
+                >
+            </script><script type="text/javascript" src="/ts/main.1e9a3bafd846ced4c345d084b355fb8c7bae75701c338f8a1f8a82c780137826.js" defer></script>
+<script>
+    (function () {
+        const customFont = document.createElement('link');
+        customFont.href = "https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap";
+
+        customFont.type = "text/css";
+        customFont.rel = "stylesheet";
+
+        document.head.appendChild(customFont);
+    }());
+</script>
+
+    </body>
+</html>
