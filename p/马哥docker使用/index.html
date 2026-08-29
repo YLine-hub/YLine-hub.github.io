@@ -281,6 +281,25 @@
             <li><a href="#实战案例目录数据卷">实战案例：目录数据卷</a></li>
             <li><a href="#实战案例mysql使用的数据卷">实战案例：MySQL使用的数据卷</a></li>
             <li><a href="#实战案例文件数据卷">实战案例：文件数据卷</a></li>
+            <li><a href="#实战案例匿名数据卷">实战案例：匿名数据卷</a></li>
+            <li><a href="#实战案例命名数据卷">实战案例：命名数据卷</a></li>
+            <li><a href="#实战案例实现wordpress持久化">实战案例：实现wordpress持久化</a></li>
+          </ol>
+        </li>
+      </ol>
+    </li>
+    <li><a href="#数据卷容器">数据卷容器</a>
+      <ol>
+        <li><a href="#实战案例数据卷容器">实战案例：数据卷容器</a>
+          <ol>
+            <li><a href="#创建一个数据卷容器-server">创建一个数据卷容器 Server</a></li>
+            <li><a href="#启动多个数据卷容器-client">启动多个数据卷容器 Client</a></li>
+            <li><a href="#验证访问">验证访问</a></li>
+            <li><a href="#进入容器测试读写">进入容器测试读写</a></li>
+            <li><a href="#在宿主机直接修改">在宿主机直接修改</a></li>
+            <li><a href="#关闭卷容器server测试能否启动新容器">关闭卷容器Server测试能否启动新容器</a></li>
+            <li><a href="#删除源卷容器server访问client和创建新的client容器">删除源卷容器Server，访问client和创建新的client容器</a></li>
+            <li><a href="#重新创建容器卷-server">重新创建容器卷 Server</a></li>
           </ol>
         </li>
       </ol>
@@ -3625,6 +3644,783 @@
 </span></span><span class="line"><span class="cl">root@a7c6929d2b3d:/# ps aux <span class="p">|</span> grep java
 </span></span><span class="line"><span class="cl">root           <span class="m">7</span>  0.3  4.4 <span class="m">6632528</span> <span class="m">175796</span> pts/0  Sl+  05:33   0:01 /usr/bin/java -Djava.util.logging.config.file<span class="o">=</span>/apps/tomcat/conf/logging.properties -Djava.util.logging.manager<span class="o">=</span>org.apache.juli.ClassLoaderLogManager -server -Xms4g -Xmx4g -Xss512k -Xmn1g -XX:CMSInitiatingOccupancyFraction<span class="o">=</span><span class="m">65</span> -XX:+UseFastAccessorMethods -XX:+AggressiveOpts -XX:+UseBiasedLocking -XX:+DisableExplicitGC -XX:MaxTenuringThreshold<span class="o">=</span><span class="m">10</span> -XX:NewSize<span class="o">=</span>2048M -XX:MaxNewSize<span class="o">=</span>2048M -XX:NewRatio<span class="o">=</span><span class="m">2</span> -XX:PermSize<span class="o">=</span>128m -XX:MaxPermSize<span class="o">=</span>512m -XX:CMSFullGCsBeforeCompaction<span class="o">=</span><span class="m">5</span> -XX:+ExplicitGCInvokesConcurrent -XX:+UseConcMarkSweepGC -XX:+UseParNewGC -XX:+CMSParallelRemarkEnabled -XX:+UseCMSCompactAtFullCollection -XX:LargePageSizeInBytes<span class="o">=</span>128m -XX:+UseFastAccessorMethods -Djdk.tls.ephemeralDHKeySize<span class="o">=</span><span class="m">2048</span> -Djava.protocol.handler.pkgs<span class="o">=</span>org.apache.catalina.webresources -Dorg.apache.catalina.security.SecurityListener.UMASK<span class="o">=</span><span class="m">0027</span> -Dignore.endorsed.dirs<span class="o">=</span> -classpath /apps/tomcat/bin/bootstrap.jar:/apps/tomcat/bin/tomcat-juli.jar -Dcatalina.base<span class="o">=</span>/apps/tomcat -Dcatalina.home<span class="o">=</span>/apps/tomcat -Djava.io.tmpdir<span class="o">=</span>/apps/tomcat/temp org.apache.catalina.startup.Bootstrap start
 </span></span><span class="line"><span class="cl">root         <span class="m">110</span>  0.0  0.0   <span class="m">3472</span>  <span class="m">1864</span> pts/1    S+   05:40   0:00 grep --color<span class="o">=</span>auto java
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="实战案例匿名数据卷">实战案例：匿名数据卷
+</h4><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span><span class="lnt">51
+</span><span class="lnt">52
+</span><span class="lnt">53
+</span><span class="lnt">54
+</span><span class="lnt">55
+</span><span class="lnt">56
+</span><span class="lnt">57
+</span><span class="lnt">58
+</span><span class="lnt">59
+</span><span class="lnt">60
+</span><span class="lnt">61
+</span><span class="lnt">62
+</span><span class="lnt">63
+</span><span class="lnt">64
+</span><span class="lnt">65
+</span><span class="lnt">66
+</span><span class="lnt">67
+</span><span class="lnt">68
+</span><span class="lnt">69
+</span><span class="lnt">70
+</span><span class="lnt">71
+</span><span class="lnt">72
+</span><span class="lnt">73
+</span><span class="lnt">74
+</span><span class="lnt">75
+</span><span class="lnt">76
+</span><span class="lnt">77
+</span><span class="lnt">78
+</span><span class="lnt">79
+</span><span class="lnt">80
+</span><span class="lnt">81
+</span><span class="lnt">82
+</span><span class="lnt">83
+</span><span class="lnt">84
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# docker volume ls
+</span></span><span class="line"><span class="cl">DRIVER    VOLUME NAME
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker ps -a
+</span></span><span class="line"><span class="cl">CONTAINER ID   IMAGE     COMMAND   CREATED   STATUS    PORTS     NAMES
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Create a container using an anonymous volume</span>
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker run -d -p 80:80 --name nginx01 -v /usr/share/nginx/html nginx
+</span></span><span class="line"><span class="cl">7bf0e7f83d5b381651046a15a4b13214d5710d4c0ee2c58151f36b0e219e68c9
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">root@lin-server:~# curl 127.0.0.1
+</span></span><span class="line"><span class="cl">&lt;!DOCTYPE html&gt;
+</span></span><span class="line"><span class="cl">&lt;html&gt;
+</span></span><span class="line"><span class="cl">&lt;head&gt;
+</span></span><span class="line"><span class="cl">&lt;title&gt;Welcome to nginx!&lt;/title&gt;
+</span></span><span class="line"><span class="cl">&lt;style&gt;
+</span></span><span class="line"><span class="cl">html <span class="o">{</span> color-scheme: light dark<span class="p">;</span> <span class="o">}</span>
+</span></span><span class="line"><span class="cl">body <span class="o">{</span> width: 35em<span class="p">;</span> margin: <span class="m">0</span> auto<span class="p">;</span>
+</span></span><span class="line"><span class="cl">font-family: Tahoma, Verdana, Arial, sans-serif<span class="p">;</span> <span class="o">}</span>
+</span></span><span class="line"><span class="cl">&lt;/style&gt;
+</span></span><span class="line"><span class="cl">&lt;/head&gt;
+</span></span><span class="line"><span class="cl">&lt;body&gt;
+</span></span><span class="line"><span class="cl">&lt;h1&gt;Welcome to nginx!&lt;/h1&gt;
+</span></span><span class="line"><span class="cl">&lt;p&gt;If you see this page, nginx is successfully installed and working.
+</span></span><span class="line"><span class="cl">Further configuration is required <span class="k">for</span> the web server, reverse proxy, 
+</span></span><span class="line"><span class="cl">API gateway, load balancer, content cache, or other features.&lt;/p&gt;
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">&lt;p&gt;For online documentation and support please refer to
+</span></span><span class="line"><span class="cl">&lt;a <span class="nv">href</span><span class="o">=</span><span class="s2">&#34;https://nginx.org/&#34;</span>&gt;nginx.org&lt;/a&gt;.&lt;br/&gt;
+</span></span><span class="line"><span class="cl">To engage with the community please visit
+</span></span><span class="line"><span class="cl">&lt;a <span class="nv">href</span><span class="o">=</span><span class="s2">&#34;https://community.nginx.org/&#34;</span>&gt;community.nginx.org&lt;/a&gt;.&lt;br/&gt;
+</span></span><span class="line"><span class="cl">For enterprise grade support, professional services, additional 
+</span></span><span class="line"><span class="cl">security features and capabilities please refer to
+</span></span><span class="line"><span class="cl">&lt;a <span class="nv">href</span><span class="o">=</span><span class="s2">&#34;https://f5.com/nginx&#34;</span>&gt;f5.com/nginx&lt;/a&gt;.&lt;/p&gt;
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">&lt;p&gt;&lt;em&gt;Thank you <span class="k">for</span> using nginx.&lt;/em&gt;&lt;/p&gt;
+</span></span><span class="line"><span class="cl">&lt;/body&gt;
+</span></span><span class="line"><span class="cl">&lt;/html&gt;
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># View the automatically generated anonymous volume</span>
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker volume ls
+</span></span><span class="line"><span class="cl">DRIVER    VOLUME NAME
+</span></span><span class="line"><span class="cl"><span class="nb">local</span>     8072fe9acb114a517a926687ec6057f2219513803877154182b805560e1cc71e
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># View the defails of the anonymous volume</span>
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker volume inspect 8072fe9acb114a517a926687ec6057f2219513803877154182b805560e1cc71e
+</span></span><span class="line"><span class="cl"><span class="o">[</span>
+</span></span><span class="line"><span class="cl">    <span class="o">{</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;CreatedAt&#34;</span>: <span class="s2">&#34;2026-08-29T06:08:26Z&#34;</span>,
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;Driver&#34;</span>: <span class="s2">&#34;local&#34;</span>,
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;Labels&#34;</span>: <span class="o">{</span>
+</span></span><span class="line"><span class="cl">            <span class="s2">&#34;com.docker.volume.anonymous&#34;</span>: <span class="s2">&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">        <span class="o">}</span>,
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;Mountpoint&#34;</span>: <span class="s2">&#34;/var/lib/docker/volumes/8072fe9acb114a517a926687ec6057f2219513803877154182b805560e1cc71e/_data&#34;</span>,
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;Name&#34;</span>: <span class="s2">&#34;8072fe9acb114a517a926687ec6057f2219513803877154182b805560e1cc71e&#34;</span>,
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;Options&#34;</span>: null,
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;Scope&#34;</span>: <span class="s2">&#34;local&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="o">}</span>
+</span></span><span class="line"><span class="cl"><span class="o">]</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker inspect --format<span class="o">=</span><span class="s2">&#34;{{.Mounts}}&#34;</span> nginx01
+</span></span><span class="line"><span class="cl"><span class="o">[{</span>volume 8072fe9acb114a517a926687ec6057f2219513803877154182b805560e1cc71e /var/lib/docker/volumes/8072fe9acb114a517a926687ec6057f2219513803877154182b805560e1cc71e/_data /usr/share/nginx/html <span class="nb">local</span>  <span class="nb">true</span> <span class="o">}]</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># View the files in the anonymous volume</span>
+</span></span><span class="line"><span class="cl">root@lin-server:~# ls /var/lib/docker/volumes/8072fe9acb114a517a926687ec6057f2219513803877154182b805560e1cc71e/_data
+</span></span><span class="line"><span class="cl">50x.html  index.html
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Modify the files in the anonymous volume on the host</span>
+</span></span><span class="line"><span class="cl">root@lin-server:~# <span class="nb">echo</span> Anonymous Volume &gt; /var/lib/docker/volumes/8072fe9acb114a517a926687ec6057f2219513803877154182b805560e1cc71e/_data/index.html
+</span></span><span class="line"><span class="cl">root@lin-server:~# curl 127.0.0.1
+</span></span><span class="line"><span class="cl">Anonymous Volume
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Deleting the container does not delete the anonymous volume</span>
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker rm -f nginx01
+</span></span><span class="line"><span class="cl">nginx01
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker volume ls
+</span></span><span class="line"><span class="cl">DRIVER    VOLUME NAME
+</span></span><span class="line"><span class="cl"><span class="nb">local</span>     8072fe9acb114a517a926687ec6057f2219513803877154182b805560e1cc71e
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">root@lin-server:~# cat /var/lib/docker/volumes/8072fe9acb114a517a926687ec6057f2219513803877154182b805560e1cc71e/_data/index.html
+</span></span><span class="line"><span class="cl">Anonymous Volume
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker volume rm 8072fe9acb114a517a926687ec6057f2219513803877154182b805560e1cc71e
+</span></span><span class="line"><span class="cl">8072fe9acb114a517a926687ec6057f2219513803877154182b805560e1cc71e
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker volume ls
+</span></span><span class="line"><span class="cl">DRIVER    VOLUME NAME
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="实战案例命名数据卷">实战案例：命名数据卷
+</h4><h5 id="创建命名数据卷">创建命名数据卷
+</h5><p>Create a named volume</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# docker volume create vol1
+</span></span><span class="line"><span class="cl">vol1
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker volume ls
+</span></span><span class="line"><span class="cl">DRIVER    VOLUME NAME
+</span></span><span class="line"><span class="cl"><span class="nb">local</span>     vol1
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker inspect vol1
+</span></span><span class="line"><span class="cl"><span class="o">[</span>
+</span></span><span class="line"><span class="cl">    <span class="o">{</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;CreatedAt&#34;</span>: <span class="s2">&#34;2026-08-29T07:55:38Z&#34;</span>,
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;Driver&#34;</span>: <span class="s2">&#34;local&#34;</span>,
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;Labels&#34;</span>: null,
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;Mountpoint&#34;</span>: <span class="s2">&#34;/var/lib/docker/volumes/vol1/_data&#34;</span>,
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;Name&#34;</span>: <span class="s2">&#34;vol1&#34;</span>,
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;Options&#34;</span>: null,
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;Scope&#34;</span>: <span class="s2">&#34;local&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="o">}</span>
+</span></span><span class="line"><span class="cl"><span class="o">]</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h5 id="使用命名数据卷创建容器">使用命名数据卷创建容器
+</h5><p>Create a container using a named volume</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span><span class="lnt">51
+</span><span class="lnt">52
+</span><span class="lnt">53
+</span><span class="lnt">54
+</span><span class="lnt">55
+</span><span class="lnt">56
+</span><span class="lnt">57
+</span><span class="lnt">58
+</span><span class="lnt">59
+</span><span class="lnt">60
+</span><span class="lnt">61
+</span><span class="lnt">62
+</span><span class="lnt">63
+</span><span class="lnt">64
+</span><span class="lnt">65
+</span><span class="lnt">66
+</span><span class="lnt">67
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# docker run -d -p 8001:80 --name nginx01 -v vol1:/usr/share/nginx/html nginx
+</span></span><span class="line"><span class="cl">9042023f1472ab049cfa7f61b70e5b2cf29e6b5c5cc5449bed9d43da5663b2be
+</span></span><span class="line"><span class="cl">root@lin-server:~# curl 127.0.0.1:8001
+</span></span><span class="line"><span class="cl">&lt;!DOCTYPE html&gt;
+</span></span><span class="line"><span class="cl">&lt;html&gt;
+</span></span><span class="line"><span class="cl">&lt;head&gt;
+</span></span><span class="line"><span class="cl">&lt;title&gt;Welcome to nginx!&lt;/title&gt;
+</span></span><span class="line"><span class="cl">&lt;style&gt;
+</span></span><span class="line"><span class="cl">html <span class="o">{</span> color-scheme: light dark<span class="p">;</span> <span class="o">}</span>
+</span></span><span class="line"><span class="cl">body <span class="o">{</span> width: 35em<span class="p">;</span> margin: <span class="m">0</span> auto<span class="p">;</span>
+</span></span><span class="line"><span class="cl">font-family: Tahoma, Verdana, Arial, sans-serif<span class="p">;</span> <span class="o">}</span>
+</span></span><span class="line"><span class="cl">&lt;/style&gt;
+</span></span><span class="line"><span class="cl">&lt;/head&gt;
+</span></span><span class="line"><span class="cl">&lt;body&gt;
+</span></span><span class="line"><span class="cl">&lt;h1&gt;Welcome to nginx!&lt;/h1&gt;
+</span></span><span class="line"><span class="cl">&lt;p&gt;If you see this page, nginx is successfully installed and working.
+</span></span><span class="line"><span class="cl">Further configuration is required <span class="k">for</span> the web server, reverse proxy, 
+</span></span><span class="line"><span class="cl">API gateway, load balancer, content cache, or other features.&lt;/p&gt;
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">&lt;p&gt;For online documentation and support please refer to
+</span></span><span class="line"><span class="cl">&lt;a <span class="nv">href</span><span class="o">=</span><span class="s2">&#34;https://nginx.org/&#34;</span>&gt;nginx.org&lt;/a&gt;.&lt;br/&gt;
+</span></span><span class="line"><span class="cl">To engage with the community please visit
+</span></span><span class="line"><span class="cl">&lt;a <span class="nv">href</span><span class="o">=</span><span class="s2">&#34;https://community.nginx.org/&#34;</span>&gt;community.nginx.org&lt;/a&gt;.&lt;br/&gt;
+</span></span><span class="line"><span class="cl">For enterprise grade support, professional services, additional 
+</span></span><span class="line"><span class="cl">security features and capabilities please refer to
+</span></span><span class="line"><span class="cl">&lt;a <span class="nv">href</span><span class="o">=</span><span class="s2">&#34;https://f5.com/nginx&#34;</span>&gt;f5.com/nginx&lt;/a&gt;.&lt;/p&gt;
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">&lt;p&gt;&lt;em&gt;Thank you <span class="k">for</span> using nginx.&lt;/em&gt;&lt;/p&gt;
+</span></span><span class="line"><span class="cl">&lt;/body&gt;
+</span></span><span class="line"><span class="cl">&lt;/html&gt;
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># List the named volumes</span>
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker volume ls
+</span></span><span class="line"><span class="cl">DRIVER    VOLUME NAME
+</span></span><span class="line"><span class="cl"><span class="nb">local</span>     vol1
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># View the details of the named volume</span>
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker volume inspect vol1
+</span></span><span class="line"><span class="cl"><span class="o">[</span>
+</span></span><span class="line"><span class="cl">    <span class="o">{</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;CreatedAt&#34;</span>: <span class="s2">&#34;2026-08-29T07:55:38Z&#34;</span>,
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;Driver&#34;</span>: <span class="s2">&#34;local&#34;</span>,
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;Labels&#34;</span>: null,
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;Mountpoint&#34;</span>: <span class="s2">&#34;/var/lib/docker/volumes/vol1/_data&#34;</span>,
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;Name&#34;</span>: <span class="s2">&#34;vol1&#34;</span>,
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;Options&#34;</span>: null,
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;Scope&#34;</span>: <span class="s2">&#34;local&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="o">}</span>
+</span></span><span class="line"><span class="cl"><span class="o">]</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker inspect --format<span class="o">=</span><span class="s2">&#34;{{.Mounts}}&#34;</span> nginx01
+</span></span><span class="line"><span class="cl"><span class="o">[{</span>volume vol1 /var/lib/docker/volumes/vol1/_data /usr/share/nginx/html <span class="nb">local</span> z <span class="nb">true</span> <span class="o">}]</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># View the files in the named volume</span>
+</span></span><span class="line"><span class="cl">root@lin-server:~# ls /var/lib/docker/volumes/vol1/_data
+</span></span><span class="line"><span class="cl">50x.html  index.html
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Modify the files in the named volume on the host</span>
+</span></span><span class="line"><span class="cl">root@lin-server:~# <span class="nb">echo</span> nginx vol1 website &gt; /var/lib/docker/volumes/vol1/_data/index.html
+</span></span><span class="line"><span class="cl">root@lin-server:~# curl 127.0.0.1:8001
+</span></span><span class="line"><span class="cl">nginx vol1 website
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Use the existing named volume to create a new container. It can share data with the original container through the same named volume</span>
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker run -d -p 8002:80 --name nginx02 -v vol1:/usr/share/nginx/html nginx
+</span></span><span class="line"><span class="cl">f268bde329e5752707fabe76e5d5750c1dfadbf4c5ce718f029b6229ed66fe9e
+</span></span><span class="line"><span class="cl">root@lin-server:~# curl 127.0.0.1:8002
+</span></span><span class="line"><span class="cl">nginx vol1 website
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h5 id="创建容器时自动创建命名数据卷">创建容器时自动创建命名数据卷
+</h5><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# docker volume ls
+</span></span><span class="line"><span class="cl">DRIVER    VOLUME NAME
+</span></span><span class="line"><span class="cl"><span class="nb">local</span>     vol1
+</span></span><span class="line"><span class="cl"><span class="c1"># Create a container that automatically creates a named volume</span>
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker run -d -p 8003:80 --name nginx03 -v vol2:/usr/share/nginx/html nginx
+</span></span><span class="line"><span class="cl">934c168795245db6f675b4b55d217e845dfe9afaf1a8a944ec82bb63d0bb9a50
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker volume ls 
+</span></span><span class="line"><span class="cl">DRIVER    VOLUME NAME
+</span></span><span class="line"><span class="cl"><span class="nb">local</span>     vol1
+</span></span><span class="line"><span class="cl"><span class="nb">local</span>     vol2
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h5 id="删除数据卷">删除数据卷
+</h5><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># Make sure no container is using it before deleting </span>
+</span></span><span class="line"><span class="cl"><span class="c1"># Remove all containers </span>
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker rm -f <span class="sb">`</span>docker ps -qa<span class="sb">`</span>
+</span></span><span class="line"><span class="cl">934c16879524
+</span></span><span class="line"><span class="cl">f268bde329e5
+</span></span><span class="line"><span class="cl">9042023f1472
+</span></span><span class="line"><span class="cl"><span class="c1"># Delete the specified named volume</span>
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker volume rm vol1
+</span></span><span class="line"><span class="cl">vol1
+</span></span><span class="line"><span class="cl"><span class="c1"># Clean up all unused anonymous volumes</span>
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker volume prune -f
+</span></span><span class="line"><span class="cl">Total reclaimed space: 0B
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker volume ls
+</span></span><span class="line"><span class="cl">DRIVER    VOLUME NAME
+</span></span><span class="line"><span class="cl"><span class="nb">local</span>     vol2
+</span></span><span class="line"><span class="cl"><span class="c1"># Remove all unused volumes, including named ones.</span>
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker volume prune -a -f
+</span></span><span class="line"><span class="cl">Deleted Volumes:
+</span></span><span class="line"><span class="cl">vol2
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">Total reclaimed space: 1.393kB
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker volume ls
+</span></span><span class="line"><span class="cl">DRIVER    VOLUME NAME
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="实战案例实现wordpress持久化">实战案例：实现wordpress持久化
+</h4><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# docker run -p 3306:3306 -e <span class="nv">MYSQL_ROOT_PASSWORD</span><span class="o">=</span><span class="m">123456</span> -e <span class="nv">MYSQL_DATABASE</span><span class="o">=</span>wordpress -e <span class="nv">MYSQL_USER</span><span class="o">=</span>wordpress -e <span class="nv">MYSQL_PASSWORD</span><span class="o">=</span><span class="m">123456</span> --name mysql -d -v /data/mysql:/var/lib/mysql --restart<span class="o">=</span>always registry.cn-beijing.aliyuncs.com/wangxiaochun/mysql:8.0.29-oracle
+</span></span><span class="line"><span class="cl">d13ea7253539d449bec6beabda37884bddb6ed0afd6018359671d5b58b3cd903
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker run -d -p 80:80 --name wordpress -v /data/wordpress:/var/www/html --restart<span class="o">=</span>always registry.cn-beijing.aliyuncs.com/wangxiaochun/wordpress:php8.2-apache
+</span></span><span class="line"><span class="cl">fdc5c8a6b1e8882f386c0f4ae96e754da3f337d15782b8a001e2faa7a6202620
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Test the connection to MySQL</span>
+</span></span><span class="line"><span class="cl">root@lin-server:~# mysql -h 192.168.128.100 -u wordpress -p123456 -e <span class="s2">&#34;SHOW DATABASES;&#34;</span>
+</span></span><span class="line"><span class="cl">mysql: <span class="o">[</span>Warning<span class="o">]</span> Using a password on the <span class="nb">command</span> line interface can be insecure.
+</span></span><span class="line"><span class="cl">+--------------------+
+</span></span><span class="line"><span class="cl"><span class="p">|</span> Database           <span class="p">|</span>
+</span></span><span class="line"><span class="cl">+--------------------+
+</span></span><span class="line"><span class="cl"><span class="p">|</span> information_schema <span class="p">|</span>
+</span></span><span class="line"><span class="cl"><span class="p">|</span> wordpress          <span class="p">|</span>
+</span></span><span class="line"><span class="cl">+--------------------+
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>访问地址：http://ip/  ip为服务器地址</li>
+</ul>
+<p><img src="/p/%E9%A9%AC%E5%93%A5docker%E4%BD%BF%E7%94%A8/image.png"
+	width="1334"
+	height="950"
+	srcset="/p/%E9%A9%AC%E5%93%A5docker%E4%BD%BF%E7%94%A8/image_hu_661333595a39d5b0.png 480w, /p/%E9%A9%AC%E5%93%A5docker%E4%BD%BF%E7%94%A8/image_hu_3ec6a0e06c6b854.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="140"
+		data-flex-basis="337px"
+	
+></p>
+<p><img src="/p/%E9%A9%AC%E5%93%A5docker%E4%BD%BF%E7%94%A8/image-1.png"
+	width="1334"
+	height="951"
+	srcset="/p/%E9%A9%AC%E5%93%A5docker%E4%BD%BF%E7%94%A8/image-1_hu_cbb9323f97413ffe.png 480w, /p/%E9%A9%AC%E5%93%A5docker%E4%BD%BF%E7%94%A8/image-1_hu_dde47dad7a1cda08.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="140"
+		data-flex-basis="336px"
+	
+></p>
+<p><font color="red">注意：数据库服务器的地址要输入宿主机的IP，不能是127.0.0.1或localhost</font></p>
+<h2 id="数据卷容器">数据卷容器
+</h2><h3 id="实战案例数据卷容器">实战案例：数据卷容器
+</h3><h4 id="创建一个数据卷容器-server">创建一个数据卷容器 Server
+</h4><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# docker run -d --name volume-server -v /data/bin/catalina.sh:/apps/tomcat/bin/catalina.sh:ro -v /data/testapp:/data/tomcat/webapps/testapp tomcat-web:app1 /start.sh
+</span></span><span class="line"><span class="cl">ad0ab9a6d43db1400550fb5573359b375d2e66a536f7bd24e0c3dc606dfb8095
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker ps 
+</span></span><span class="line"><span class="cl">CONTAINER ID   IMAGE             COMMAND       CREATED         STATUS         PORTS     NAMES
+</span></span><span class="line"><span class="cl">ad0ab9a6d43d   tomcat-web:app1   <span class="s2">&#34;/start.sh&#34;</span>   <span class="m">6</span> seconds ago   Up <span class="m">6</span> seconds             volume-server
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="启动多个数据卷容器-client">启动多个数据卷容器 Client
+</h4><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# docker run -d --name client1 --volumes-from volume-server -p 8081:8080 tomcat-web:app1 /start.sh
+</span></span><span class="line"><span class="cl">f7292bc9c121bd4774d45ede0a13d794ff52c36bc7ab028332051cbffb636c33
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker run -d --name client2 --volumes-from volume-server -p 8082:8080 tomcat-web:app1 /start.sh
+</span></span><span class="line"><span class="cl">e1862d71f9b7abdc1b6ea50b360e4683ab7789e052f56ac89a6feeaede15afc3
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker ps
+</span></span><span class="line"><span class="cl">CONTAINER ID   IMAGE             COMMAND       CREATED          STATUS          PORTS                                         NAMES
+</span></span><span class="line"><span class="cl">e1862d71f9b7   tomcat-web:app1   <span class="s2">&#34;/start.sh&#34;</span>   <span class="m">23</span> seconds ago   Up <span class="m">23</span> seconds   0.0.0.0:8082-&gt;8080/tcp, <span class="o">[</span>::<span class="o">]</span>:8082-&gt;8080/tcp   client2
+</span></span><span class="line"><span class="cl">f7292bc9c121   tomcat-web:app1   <span class="s2">&#34;/start.sh&#34;</span>   <span class="m">29</span> seconds ago   Up <span class="m">28</span> seconds   0.0.0.0:8081-&gt;8080/tcp, <span class="o">[</span>::<span class="o">]</span>:8081-&gt;8080/tcp   client1
+</span></span><span class="line"><span class="cl">ad0ab9a6d43d   tomcat-web:app1   <span class="s2">&#34;/start.sh&#34;</span>   <span class="m">47</span> seconds ago   Up <span class="m">46</span> seconds                                                 volume-server
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="验证访问">验证访问
+</h4><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# curl 127.0.0.1:8081/testapp/
+</span></span><span class="line"><span class="cl">testapp v3
+</span></span><span class="line"><span class="cl">root@lin-server:~# curl 127.0.0.1:8082/testapp/
+</span></span><span class="line"><span class="cl">testapp v3
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="进入容器测试读写">进入容器测试读写
+</h4><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# docker <span class="nb">exec</span> -it volume-server bash
+</span></span><span class="line"><span class="cl">root@ad0ab9a6d43d:/# cat /data/tomcat/webapps/testapp/index.html 
+</span></span><span class="line"><span class="cl">testapp v3
+</span></span><span class="line"><span class="cl">root@ad0ab9a6d43d:/# <span class="nb">echo</span> testapp v4 &gt; /data/tomcat/webapps/testapp/index.html 
+</span></span><span class="line"><span class="cl"><span class="c1"># Exit the container </span>
+</span></span><span class="line"><span class="cl">root@ad0ab9a6d43d:/# <span class="nb">read</span> escape sequence
+</span></span><span class="line"><span class="cl">root@lin-server:~# curl 127.0.0.1:8081/testapp/
+</span></span><span class="line"><span class="cl">testapp v4
+</span></span><span class="line"><span class="cl">root@lin-server:~# curl 127.0.0.1:8082/testapp/
+</span></span><span class="line"><span class="cl">testapp v4
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker <span class="nb">exec</span> -it client1 bash
+</span></span><span class="line"><span class="cl">root@f7292bc9c121:/# cat /data/tomcat/webapps/testapp/index.html
+</span></span><span class="line"><span class="cl">testapp v4
+</span></span><span class="line"><span class="cl">root@f7292bc9c121:/# <span class="nb">echo</span> testapp v5 &gt; /data/tomcat/webapps/testapp/index.html
+</span></span><span class="line"><span class="cl">root@f7292bc9c121:/# cat /data/tomcat/webapps/testapp/index.html
+</span></span><span class="line"><span class="cl">testapp v5
+</span></span><span class="line"><span class="cl"><span class="c1"># Exit the container</span>
+</span></span><span class="line"><span class="cl">root@f7292bc9c121:/# <span class="nb">read</span> escape sequence
+</span></span><span class="line"><span class="cl">root@lin-server:~# curl 127.0.0.1:8081/testapp/
+</span></span><span class="line"><span class="cl">testapp v5
+</span></span><span class="line"><span class="cl">root@lin-server:~# curl 127.0.0.1:8082/testapp/
+</span></span><span class="line"><span class="cl">testapp v5
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="在宿主机直接修改">在宿主机直接修改
+</h4><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# cat /data/testapp/index.html
+</span></span><span class="line"><span class="cl">testapp v5
+</span></span><span class="line"><span class="cl">root@lin-server:~# <span class="nb">echo</span> testapp v6 &gt; /data/testapp/index.html
+</span></span><span class="line"><span class="cl">root@lin-server:~# cat /data/testapp/index.html
+</span></span><span class="line"><span class="cl">testapp v6
+</span></span><span class="line"><span class="cl">root@lin-server:~# curl 127.0.0.1:8081/testapp/
+</span></span><span class="line"><span class="cl">testapp v6
+</span></span><span class="line"><span class="cl">root@lin-server:~# curl 127.0.0.1:8082/testapp/
+</span></span><span class="line"><span class="cl">testapp v6
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker <span class="nb">exec</span> -it volume-server bash
+</span></span><span class="line"><span class="cl">root@ad0ab9a6d43d:/# cat /data/tomcat/webapps/testapp/index.html
+</span></span><span class="line"><span class="cl">testapp v6
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="关闭卷容器server测试能否启动新容器">关闭卷容器Server测试能否启动新容器
+</h4><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# docker stop volume-server
+</span></span><span class="line"><span class="cl">volume-server
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker ps
+</span></span><span class="line"><span class="cl">CONTAINER ID   IMAGE             COMMAND       CREATED         STATUS         PORTS                                         NAMES
+</span></span><span class="line"><span class="cl">e1862d71f9b7   tomcat-web:app1   <span class="s2">&#34;/start.sh&#34;</span>   <span class="m">5</span> minutes ago   Up <span class="m">5</span> minutes   0.0.0.0:8082-&gt;8080/tcp, <span class="o">[</span>::<span class="o">]</span>:8082-&gt;8080/tcp   client2
+</span></span><span class="line"><span class="cl">f7292bc9c121   tomcat-web:app1   <span class="s2">&#34;/start.sh&#34;</span>   <span class="m">5</span> minutes ago   Up <span class="m">5</span> minutes   0.0.0.0:8081-&gt;8080/tcp, <span class="o">[</span>::<span class="o">]</span>:8081-&gt;8080/tcp   client1
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker run -d --name client3 --volumes-from volume-server -p 8083:8080 tomcat-web:app1 /start.sh
+</span></span><span class="line"><span class="cl">6d8c83ea7f72be1dd1afc570528dd4078b1323ebd6a5c8020527dd1e606cd140
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker ps -a
+</span></span><span class="line"><span class="cl">CONTAINER ID   IMAGE             COMMAND       CREATED          STATUS                        PORTS                                         NAMES
+</span></span><span class="line"><span class="cl">6d8c83ea7f72   tomcat-web:app1   <span class="s2">&#34;/start.sh&#34;</span>   <span class="m">10</span> seconds ago   Up <span class="m">10</span> seconds                 0.0.0.0:8083-&gt;8080/tcp, <span class="o">[</span>::<span class="o">]</span>:8083-&gt;8080/tcp   client3
+</span></span><span class="line"><span class="cl">e1862d71f9b7   tomcat-web:app1   <span class="s2">&#34;/start.sh&#34;</span>   <span class="m">5</span> minutes ago    Up <span class="m">5</span> minutes                  0.0.0.0:8082-&gt;8080/tcp, <span class="o">[</span>::<span class="o">]</span>:8082-&gt;8080/tcp   client2
+</span></span><span class="line"><span class="cl">f7292bc9c121   tomcat-web:app1   <span class="s2">&#34;/start.sh&#34;</span>   <span class="m">5</span> minutes ago    Up <span class="m">5</span> minutes                  0.0.0.0:8081-&gt;8080/tcp, <span class="o">[</span>::<span class="o">]</span>:8081-&gt;8080/tcp   client1
+</span></span><span class="line"><span class="cl">ad0ab9a6d43d   tomcat-web:app1   <span class="s2">&#34;/start.sh&#34;</span>   <span class="m">6</span> minutes ago    Exited <span class="o">(</span>137<span class="o">)</span> <span class="m">24</span> seconds ago                                                 volume-server
+</span></span><span class="line"><span class="cl">root@lin-server:~# curl 127.0.0.1:8081/testapp/
+</span></span><span class="line"><span class="cl">testapp v6
+</span></span><span class="line"><span class="cl">root@lin-server:~# curl 127.0.0.1:8082/testapp/
+</span></span><span class="line"><span class="cl">testapp v6
+</span></span><span class="line"><span class="cl">root@lin-server:~# curl 127.0.0.1:8083/testapp/
+</span></span><span class="line"><span class="cl">testapp v6
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="删除源卷容器server访问client和创建新的client容器">删除源卷容器Server，访问client和创建新的client容器
+</h4><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# docker rm -fv volume-server
+</span></span><span class="line"><span class="cl">volume-server
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker ps -a
+</span></span><span class="line"><span class="cl">CONTAINER ID   IMAGE             COMMAND       CREATED              STATUS              PORTS                                         NAMES
+</span></span><span class="line"><span class="cl">6d8c83ea7f72   tomcat-web:app1   <span class="s2">&#34;/start.sh&#34;</span>   About a minute ago   Up About a minute   0.0.0.0:8083-&gt;8080/tcp, <span class="o">[</span>::<span class="o">]</span>:8083-&gt;8080/tcp   client3
+</span></span><span class="line"><span class="cl">e1862d71f9b7   tomcat-web:app1   <span class="s2">&#34;/start.sh&#34;</span>   <span class="m">7</span> minutes ago        Up <span class="m">7</span> minutes        0.0.0.0:8082-&gt;8080/tcp, <span class="o">[</span>::<span class="o">]</span>:8082-&gt;8080/tcp   client2
+</span></span><span class="line"><span class="cl">f7292bc9c121   tomcat-web:app1   <span class="s2">&#34;/start.sh&#34;</span>   <span class="m">7</span> minutes ago        Up <span class="m">7</span> minutes        0.0.0.0:8081-&gt;8080/tcp, <span class="o">[</span>::<span class="o">]</span>:8081-&gt;8080/tcp   client1
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker run -d --name client4 --volumes-from volume-server -p 8084:8080 tomcat-web:app1 /start.sh
+</span></span><span class="line"><span class="cl">docker: Error response from daemon: No such container: volume-server
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">Run <span class="s1">&#39;docker run --help&#39;</span> <span class="k">for</span> more information
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">root@lin-server:~# curl 127.0.0.1:8081/testapp/
+</span></span><span class="line"><span class="cl">testapp v6
+</span></span><span class="line"><span class="cl">root@lin-server:~# curl 127.0.0.1:8082/testapp/
+</span></span><span class="line"><span class="cl">testapp v6
+</span></span><span class="line"><span class="cl">root@lin-server:~# curl 127.0.0.1:8083/testapp/
+</span></span><span class="line"><span class="cl">testapp v6
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="重新创建容器卷-server">重新创建容器卷 Server
+</h4><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# docker run -d --name volume-server -v /data/bin/catalina.sh:/apps/tomcat/bin/catalina.sh:ro -v /data/testapp:/data/tomcat/webapps/testapp tomcat-web:app1 /start.sh
+</span></span><span class="line"><span class="cl">7b547e6022ce680ed0289b789172b420815b837131e65f2f9414a3162b6264aa
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker run -d --name client4 --volumes-from volume-server -p 8084:8080 tomcat-web:app1 /start.sh
+</span></span><span class="line"><span class="cl">8d58bcbb8ffcec8b29230b9b9c849f3be062acac77515133ea4f37f41eed889c
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">root@lin-server:~# curl 127.0.0.1:8081/testapp/
+</span></span><span class="line"><span class="cl">testapp v6
+</span></span><span class="line"><span class="cl">root@lin-server:~# curl 127.0.0.1:8082/testapp/
+</span></span><span class="line"><span class="cl">testapp v6
+</span></span><span class="line"><span class="cl">root@lin-server:~# curl 127.0.0.1:8083/testapp/
+</span></span><span class="line"><span class="cl">testapp v6
+</span></span><span class="line"><span class="cl">root@lin-server:~# curl 127.0.0.1:8084/testapp/
+</span></span><span class="line"><span class="cl">testapp v6
 </span></span></code></pre></td></tr></table>
 </div>
 </div>
