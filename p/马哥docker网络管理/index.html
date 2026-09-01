@@ -222,6 +222,7 @@
           </ol>
         </li>
         <li><a href="#modify-the-default-network-setttings-of-the-docker0-bridge">Modify the default network setttings of the docker0 bridge</a></li>
+        <li><a href="#modify-the-default-network-settings-to-use-a-custom-bridge">Modify the default network settings to use a custom bridge</a></li>
       </ol>
     </li>
   </ol>
@@ -1286,6 +1287,90 @@
 </div>
 </div><h3 id="modify-the-default-network-setttings-of-the-docker0-bridge">Modify the default network setttings of the docker0 bridge
 </h3><p>Example: Change the IP address of docker0 to a specified IP</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># Method 1</span>
+</span></span><span class="line"><span class="cl">root@lin-server:~# vim /etc/docker/daemon.json
+</span></span><span class="line"><span class="cl">root@lin-server:~# cat /etc/docker/daemon.json
+</span></span><span class="line"><span class="cl"><span class="o">{</span>
+</span></span><span class="line"><span class="cl">   <span class="s2">&#34;bip&#34;</span>:<span class="s2">&#34;192.168.100.1/24&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="o">}</span>
+</span></span><span class="line"><span class="cl">root@lin-server:~# systemctl daemon-reload
+</span></span><span class="line"><span class="cl">root@lin-server:~# systemctl restart docker.service
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Method 2</span>
+</span></span><span class="line"><span class="cl">root@lin-server:~# vim /lib/systemd/system/docker.service
+</span></span><span class="line"><span class="cl">...
+</span></span><span class="line"><span class="cl"><span class="nv">ExecStart</span><span class="o">=</span>/usr/bin/dockerd -H unix:///var/run/docker.sock --containerd<span class="o">=</span>/run/containerd/containerd.sock --bip<span class="o">=</span>192.168.100.1/24
+</span></span><span class="line"><span class="cl">...
+</span></span><span class="line"><span class="cl">root@lin-server:~# systemctl daemon-reload
+</span></span><span class="line"><span class="cl">root@lin-server:~# systemctl restart docker.service
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Note: Do not mix the two methods, otherwise Docker will fail to start</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Verify the result</span>
+</span></span><span class="line"><span class="cl">root@lin-server:~# ip a
+</span></span><span class="line"><span class="cl">1: lo: &lt;LOOPBACK,UP,LOWER_UP&gt; mtu <span class="m">65536</span> qdisc noqueue state UNKNOWN group default qlen <span class="m">1000</span>
+</span></span><span class="line"><span class="cl">    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+</span></span><span class="line"><span class="cl">    inet 127.0.0.1/8 scope host lo
+</span></span><span class="line"><span class="cl">       valid_lft forever preferred_lft forever
+</span></span><span class="line"><span class="cl">    inet6 ::1/128 scope host noprefixroute 
+</span></span><span class="line"><span class="cl">       valid_lft forever preferred_lft forever
+</span></span><span class="line"><span class="cl">2: ens33: &lt;BROADCAST,MULTICAST,UP,LOWER_UP&gt; mtu <span class="m">1500</span> qdisc fq_codel state UP group default qlen <span class="m">1000</span>
+</span></span><span class="line"><span class="cl">    link/ether 00:0c:29:22:56:57 brd ff:ff:ff:ff:ff:ff
+</span></span><span class="line"><span class="cl">    altname enp2s1
+</span></span><span class="line"><span class="cl">    inet 192.168.128.100/24 brd 192.168.128.255 scope global ens33
+</span></span><span class="line"><span class="cl">       valid_lft forever preferred_lft forever
+</span></span><span class="line"><span class="cl">    inet6 fe80::20c:29ff:fe22:5657/64 scope link 
+</span></span><span class="line"><span class="cl">       valid_lft forever preferred_lft forever
+</span></span><span class="line"><span class="cl">3: docker0: &lt;NO-CARRIER,BROADCAST,MULTICAST,UP&gt; mtu <span class="m">1500</span> qdisc noqueue state DOWN group default 
+</span></span><span class="line"><span class="cl">    link/ether c6:3f:f3:9a:25:d0 brd ff:ff:ff:ff:ff:ff
+</span></span><span class="line"><span class="cl">    inet 192.168.100.1/24 brd 192.168.100.255 scope global docker0
+</span></span><span class="line"><span class="cl">       valid_lft forever preferred_lft forever
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="modify-the-default-network-settings-to-use-a-custom-bridge">Modify the default network settings to use a custom bridge
+</h3><p>Example: Replace the default docker0 bridge with a custom bridge</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
 <pre tabindex="0" class="chroma"><code></code></pre></td>
