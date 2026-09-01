@@ -212,6 +212,7 @@
         <li><a href="#使用yum源安装">使用yum源安装</a></li>
         <li><a href="#离线安装">离线安装</a>
           <ol>
+            <li><a href="#安装container">安装container</a></li>
             <li><a href="#安装docker">安装docker</a></li>
             <li><a href="#安装docker-compose">安装docker-compose</a></li>
           </ol>
@@ -352,8 +353,92 @@
     >docker</a></li>
 <li><a class="link" href="https://github.com/docker/compose/releases"  target="_blank" rel="noopener"
     >docker-compose</a></li>
+<li><a class="link" href="https://github.com/containerd/containerd/releases"  target="_blank" rel="noopener"
+    >container</a></li>
 </ul>
-<h4 id="安装docker">安装docker
+<h4 id="安装container">安装container
+</h4><ol>
+<li>安装containerd服务</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">wget https://github.com/containerd/containerd/releases/download/v2.3.4/containerd-2.3.4-linux-amd64.tar.gz
+</span></span><span class="line"><span class="cl">tar -xzf containerd-2.3.4-linux-amd64.tar.gz
+</span></span><span class="line"><span class="cl">mv bin/* /usr/bin
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="2">
+<li>创建containerd服务</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">vim /usr/lib/systemd/system/containerd.service
+</span></span><span class="line"><span class="cl"><span class="o">[</span>Unit<span class="o">]</span>
+</span></span><span class="line"><span class="cl"><span class="nv">Description</span><span class="o">=</span>containerd container runtime
+</span></span><span class="line"><span class="cl"><span class="nv">Documentation</span><span class="o">=</span>https://containerd.io
+</span></span><span class="line"><span class="cl"><span class="nv">After</span><span class="o">=</span>network.target local-fs.target
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="o">[</span>Service<span class="o">]</span>
+</span></span><span class="line"><span class="cl"><span class="nv">ExecStartPre</span><span class="o">=</span>-/sbin/modprobe overlay
+</span></span><span class="line"><span class="cl"><span class="nv">ExecStart</span><span class="o">=</span>/usr/bin/containerd
+</span></span><span class="line"><span class="cl"><span class="nv">Type</span><span class="o">=</span>notify
+</span></span><span class="line"><span class="cl"><span class="nv">Delegate</span><span class="o">=</span>yes
+</span></span><span class="line"><span class="cl"><span class="nv">KillMode</span><span class="o">=</span>process
+</span></span><span class="line"><span class="cl"><span class="nv">Restart</span><span class="o">=</span>always
+</span></span><span class="line"><span class="cl"><span class="nv">RestartSec</span><span class="o">=</span><span class="m">5</span>
+</span></span><span class="line"><span class="cl"><span class="nv">LimitNPROC</span><span class="o">=</span>infinity
+</span></span><span class="line"><span class="cl"><span class="nv">LimitCORE</span><span class="o">=</span>infinity
+</span></span><span class="line"><span class="cl"><span class="nv">LimitNOFILE</span><span class="o">=</span><span class="m">1048576</span>
+</span></span><span class="line"><span class="cl"><span class="nv">TasksMax</span><span class="o">=</span>infinity
+</span></span><span class="line"><span class="cl"><span class="nv">OOMScoreAdjust</span><span class="o">=</span>-999
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="o">[</span>Install<span class="o">]</span>
+</span></span><span class="line"><span class="cl"><span class="nv">WantedBy</span><span class="o">=</span>multi-user.target
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="3">
+<li>启动并设置开机自启</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">systemctl daemon-reload
+</span></span><span class="line"><span class="cl">systemctl <span class="nb">enable</span> --now containerd.service
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="安装docker">安装docker
 </h4><p>解压</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
@@ -412,7 +497,7 @@
 </span></span><span class="line"><span class="cl"><span class="nv">Wants</span><span class="o">=</span>network-online.target
 </span></span><span class="line"><span class="cl"><span class="o">[</span>Service<span class="o">]</span>
 </span></span><span class="line"><span class="cl"><span class="nv">Type</span><span class="o">=</span>notify
-</span></span><span class="line"><span class="cl"><span class="nv">ExecStart</span><span class="o">=</span>/usr/bin/dockerd
+</span></span><span class="line"><span class="cl"><span class="nv">ExecStart</span><span class="o">=</span>/usr/bin/dockerd -H unix:///var/run/docker.sock --containerd<span class="o">=</span>/run/containerd/containerd.sock
 </span></span><span class="line"><span class="cl"><span class="nv">ExecReload</span><span class="o">=</span>/bin/kill -s HUP <span class="nv">$MAINPID</span>
 </span></span><span class="line"><span class="cl"><span class="nv">LimitNOFILE</span><span class="o">=</span>infinity
 </span></span><span class="line"><span class="cl"><span class="nv">LimitNPROC</span><span class="o">=</span>infinity
