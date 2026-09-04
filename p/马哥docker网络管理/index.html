@@ -250,6 +250,8 @@
           </ol>
         </li>
         <li><a href="#host-mode">Host mode</a></li>
+        <li><a href="#none-mode">None mode</a></li>
+        <li><a href="#container-mode">Container mode</a></li>
       </ol>
     </li>
   </ol>
@@ -2055,7 +2057,28 @@
 </span></span></code></pre></td></tr></table>
 </div>
 </div><h3 id="bridge-network-mode">Bridge network mode
-</h3><h4 id="default-settings-of-the-bridge-network-mode">Default settings of the bridge network mode
+</h3><p>Bridge network mode features:</p>
+<ul>
+<li>
+<p>Network resource isolation: Containers on different hosts cannot communicate directly; each uses its own independent network.</p>
+</li>
+<li>
+<p>No manual configuration required: Containers automatically get an IP from the 172.17.0.0/16 subnet by default (configurable).</p>
+</li>
+<li>
+<p>External network access: Uses the host&rsquo;s physical NIC to connect to the external network via SNAT.</p>
+</li>
+<li>
+<p>External hosts cannot directly access containers: Can be configured via DNAT to accept external access.</p>
+</li>
+<li>
+<p>Relatively low performance: NAT introduces additional network overhead.</p>
+</li>
+<li>
+<p>Port management is cumbersome: Each container requires manually assigned unique ports, leading to port conflicts.</p>
+</li>
+</ul>
+<h4 id="default-settings-of-the-bridge-network-mode">Default settings of the bridge network mode
 </h4><p>Example: Inspect the bridge network (View the bridge network details)</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
@@ -3128,7 +3151,34 @@
 </span></span></code></pre></td></tr></table>
 </div>
 </div><h3 id="host-mode">Host mode
-</h3><p>Example</p>
+</h3><p>Host network mode features:</p>
+<ul>
+<li>
+<p>Specified using the &ndash;network host parameter.</p>
+</li>
+<li>
+<p>Shares the host&rsquo;s network stack.</p>
+</li>
+<li>
+<p>No network isolation between containers.</p>
+</li>
+<li>
+<p>No network performance overhead.</p>
+</li>
+<li>
+<p>Network troubleshooting is relatively simple.</p>
+</li>
+<li>
+<p>Port conflicts are likely to occur.</p>
+</li>
+<li>
+<p>Network resources cannot be tracked separately per container.</p>
+</li>
+<li>
+<p>Port mapping is not supported.</p>
+</li>
+</ul>
+<p>Example</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
 <pre tabindex="0" class="chroma"><code><span class="lnt"> 1
@@ -3183,6 +3233,44 @@
 </span><span class="lnt">50
 </span><span class="lnt">51
 </span><span class="lnt">52
+</span><span class="lnt">53
+</span><span class="lnt">54
+</span><span class="lnt">55
+</span><span class="lnt">56
+</span><span class="lnt">57
+</span><span class="lnt">58
+</span><span class="lnt">59
+</span><span class="lnt">60
+</span><span class="lnt">61
+</span><span class="lnt">62
+</span><span class="lnt">63
+</span><span class="lnt">64
+</span><span class="lnt">65
+</span><span class="lnt">66
+</span><span class="lnt">67
+</span><span class="lnt">68
+</span><span class="lnt">69
+</span><span class="lnt">70
+</span><span class="lnt">71
+</span><span class="lnt">72
+</span><span class="lnt">73
+</span><span class="lnt">74
+</span><span class="lnt">75
+</span><span class="lnt">76
+</span><span class="lnt">77
+</span><span class="lnt">78
+</span><span class="lnt">79
+</span><span class="lnt">80
+</span><span class="lnt">81
+</span><span class="lnt">82
+</span><span class="lnt">83
+</span><span class="lnt">84
+</span><span class="lnt">85
+</span><span class="lnt">86
+</span><span class="lnt">87
+</span><span class="lnt">88
+</span><span class="lnt">89
+</span><span class="lnt">90
 </span></code></pre></td>
 <td class="lntd">
 <pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># View the network settings on the host</span>
@@ -3221,25 +3309,313 @@
 </span></span><span class="line"><span class="cl"><span class="c1"># Check if port 80/tcp is open on the host before creating the container</span>
 </span></span><span class="line"><span class="cl">root@lin-server:~# ss -ntl<span class="p">|</span>grep :80
 </span></span><span class="line"><span class="cl"><span class="c1"># Create a container with host network mode</span>
-</span></span><span class="line"><span class="cl">docker run -d --network host --name web1 nginx-centos7-base:1.6.1
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker run -d --network host --name web1 centos7-nginx:1.6.1
+</span></span><span class="line"><span class="cl">a4940bf180d352f0276d08216e2b65190d208a32793bddce88261f2b3a040265
 </span></span><span class="line"><span class="cl"><span class="c1"># Port 80/tcp on the host is open after creating the container</span>
-</span></span><span class="line"><span class="cl">ss -ntlp<span class="p">|</span>grep :80
+</span></span><span class="line"><span class="cl">root@lin-server:~# ss -ntlp<span class="p">|</span>grep :80
+</span></span><span class="line"><span class="cl">LISTEN <span class="m">0</span>      <span class="m">511</span>          0.0.0.0:80         0.0.0.0:*    users:<span class="o">((</span><span class="s2">&#34;nginx&#34;</span>,pid<span class="o">=</span>2048,fd<span class="o">=</span>6<span class="o">)</span>,<span class="o">(</span><span class="s2">&#34;nginx&#34;</span>,pid<span class="o">=</span>2036,fd<span class="o">=</span>6<span class="o">))</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="c1"># Enter the container</span>
-</span></span><span class="line"><span class="cl">docker <span class="nb">exec</span> -it web1 bash
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker <span class="nb">exec</span> -it web1 bash
 </span></span><span class="line"><span class="cl"><span class="c1"># After entering the container, the host&#39;s hostname still appears in the command prompt</span>
-</span></span><span class="line"><span class="cl">hostname
-</span></span><span class="line"><span class="cl">ifconfig
-</span></span><span class="line"><span class="cl">route -n
+</span></span><span class="line"><span class="cl"><span class="o">[</span>root@lin-server /<span class="o">]</span><span class="c1"># hostname</span>
+</span></span><span class="line"><span class="cl">lin-server
+</span></span><span class="line"><span class="cl"><span class="o">[</span>root@lin-server /<span class="o">]</span><span class="c1"># yum install -y net-tools</span>
+</span></span><span class="line"><span class="cl"><span class="o">[</span>root@lin-server /<span class="o">]</span><span class="c1"># ifconfig</span>
+</span></span><span class="line"><span class="cl">docker0: <span class="nv">flags</span><span class="o">=</span>4099&lt;UP,BROADCAST,MULTICAST&gt;  mtu <span class="m">1500</span>
+</span></span><span class="line"><span class="cl">        inet 172.17.0.1  netmask 255.255.0.0  broadcast 172.17.255.255
+</span></span><span class="line"><span class="cl">        ether 9a:e9:e4:9c:4e:87  txqueuelen <span class="m">0</span>  <span class="o">(</span>Ethernet<span class="o">)</span>
+</span></span><span class="line"><span class="cl">        RX packets <span class="m">0</span>  bytes <span class="m">0</span> <span class="o">(</span>0.0 B<span class="o">)</span>
+</span></span><span class="line"><span class="cl">        RX errors <span class="m">0</span>  dropped <span class="m">0</span>  overruns <span class="m">0</span>  frame <span class="m">0</span>
+</span></span><span class="line"><span class="cl">        TX packets <span class="m">0</span>  bytes <span class="m">0</span> <span class="o">(</span>0.0 B<span class="o">)</span>
+</span></span><span class="line"><span class="cl">        TX errors <span class="m">0</span>  dropped <span class="m">0</span> overruns <span class="m">0</span>  carrier <span class="m">0</span>  collisions <span class="m">0</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">ens33: <span class="nv">flags</span><span class="o">=</span>4163&lt;UP,BROADCAST,RUNNING,MULTICAST&gt;  mtu <span class="m">1500</span>
+</span></span><span class="line"><span class="cl">        inet 192.168.128.100  netmask 255.255.255.0  broadcast 192.168.128.255
+</span></span><span class="line"><span class="cl">        inet6 fe80::20c:29ff:fe22:5657  prefixlen <span class="m">64</span>  scopeid 0x20&lt;link&gt;
+</span></span><span class="line"><span class="cl">        ether 00:0c:29:22:56:57  txqueuelen <span class="m">1000</span>  <span class="o">(</span>Ethernet<span class="o">)</span>
+</span></span><span class="line"><span class="cl">        RX packets <span class="m">331052</span>  bytes <span class="m">484544669</span> <span class="o">(</span>462.0 MiB<span class="o">)</span>
+</span></span><span class="line"><span class="cl">        RX errors <span class="m">0</span>  dropped <span class="m">0</span>  overruns <span class="m">0</span>  frame <span class="m">0</span>
+</span></span><span class="line"><span class="cl">        TX packets <span class="m">17988</span>  bytes <span class="m">1588685</span> <span class="o">(</span>1.5 MiB<span class="o">)</span>
+</span></span><span class="line"><span class="cl">        TX errors <span class="m">0</span>  dropped <span class="m">0</span> overruns <span class="m">0</span>  carrier <span class="m">0</span>  collisions <span class="m">0</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">lo: <span class="nv">flags</span><span class="o">=</span>73&lt;UP,LOOPBACK,RUNNING&gt;  mtu <span class="m">65536</span>
+</span></span><span class="line"><span class="cl">        inet 127.0.0.1  netmask 255.0.0.0
+</span></span><span class="line"><span class="cl">        inet6 ::1  prefixlen <span class="m">128</span>  scopeid 0x10&lt;host&gt;
+</span></span><span class="line"><span class="cl">        loop  txqueuelen <span class="m">1000</span>  <span class="o">(</span>Local Loopback<span class="o">)</span>
+</span></span><span class="line"><span class="cl">        RX packets <span class="m">196</span>  bytes <span class="m">22064</span> <span class="o">(</span>21.5 KiB<span class="o">)</span>
+</span></span><span class="line"><span class="cl">        RX errors <span class="m">0</span>  dropped <span class="m">0</span>  overruns <span class="m">0</span>  frame <span class="m">0</span>
+</span></span><span class="line"><span class="cl">        TX packets <span class="m">196</span>  bytes <span class="m">22064</span> <span class="o">(</span>21.5 KiB<span class="o">)</span>
+</span></span><span class="line"><span class="cl">        TX errors <span class="m">0</span>  dropped <span class="m">0</span> overruns <span class="m">0</span>  carrier <span class="m">0</span>  collisions <span class="m">0</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="o">[</span>root@lin-server /<span class="o">]</span><span class="c1"># route -n</span>
+</span></span><span class="line"><span class="cl">Kernel IP routing table
+</span></span><span class="line"><span class="cl">Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
+</span></span><span class="line"><span class="cl">0.0.0.0         192.168.128.2   0.0.0.0         UG    <span class="m">0</span>      <span class="m">0</span>        <span class="m">0</span> ens33
+</span></span><span class="line"><span class="cl">172.17.0.0      0.0.0.0         255.255.0.0     U     <span class="m">0</span>      <span class="m">0</span>        <span class="m">0</span> docker0
+</span></span><span class="line"><span class="cl">192.168.128.0   0.0.0.0         255.255.255.0   U     <span class="m">0</span>      <span class="m">0</span>        <span class="m">0</span> ens3
 </span></span><span class="line"><span class="cl"><span class="c1"># Access a remote host from the container</span>
-</span></span><span class="line"><span class="cl">curl 10.0.0.7
+</span></span><span class="line"><span class="cl"><span class="o">[</span>root@lin-server /<span class="o">]</span><span class="c1"># curl 192.168.128.110</span>
+</span></span><span class="line"><span class="cl">Nginx Test Page in Docker
 </span></span><span class="line"><span class="cl"><span class="c1"># View the access logs of the remote host</span>
-</span></span><span class="line"><span class="cl">tail -n1 /var/log/httpd/access_log
+</span></span><span class="line"><span class="cl"><span class="o">[</span>root@9df58b938a21 /<span class="o">]</span><span class="c1"># tail -n1 /apps/nginx/logs/access.log</span>
+</span></span><span class="line"><span class="cl">192.168.128.100 - - <span class="o">[</span>04/Sep/2026:02:18:56 +0000<span class="o">]</span> <span class="s2">&#34;GET / HTTP/1.1&#34;</span> <span class="m">200</span> <span class="m">26</span> <span class="s2">&#34;-&#34;</span> <span class="s2">&#34;curl/7.29.0&#34;</span>
 </span></span><span class="line"><span class="cl"><span class="c1"># The remote host can access the container&#39;s web service</span>
-</span></span><span class="line"><span class="cl">curl 10.0.0.100/app/
+</span></span><span class="line"><span class="cl"><span class="o">[</span>root@9df58b938a21 /<span class="o">]</span><span class="c1"># curl 192.168.128.100</span>
+</span></span><span class="line"><span class="cl">Nginx Test Page in Docker
 </span></span></code></pre></td></tr></table>
 </div>
+</div><p>Example: Port mapping cannot be achieved in host network mode</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# ss -ntl<span class="p">|</span>grep :81
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker run -d --network host --name web2 -p 81:80 centos7-nginx:1.6.1
+</span></span><span class="line"><span class="cl">WARNING: Published ports are discarded when using host network mode
+</span></span><span class="line"><span class="cl">8aa8e3ac202ffb2898fb4e2276d4b83d1504c92c06196f7e775116deb2d5ddee
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker ps -a
+</span></span><span class="line"><span class="cl">CONTAINER ID   IMAGE                 COMMAND              CREATED          STATUS                     PORTS     NAMES
+</span></span><span class="line"><span class="cl">8aa8e3ac202f   centos7-nginx:1.6.1   <span class="s2">&#34;/bin/sh -c nginx&#34;</span>   <span class="m">5</span> seconds ago    Exited <span class="o">(</span>1<span class="o">)</span> <span class="m">2</span> seconds ago             web2
+</span></span><span class="line"><span class="cl">a4940bf180d3   centos7-nginx:1.6.1   <span class="s2">&#34;/bin/sh -c nginx&#34;</span>   <span class="m">49</span> minutes ago   Up <span class="m">49</span> minutes                        web1
+</span></span></code></pre></td></tr></table>
 </div>
+</div><p>Example: Compare port mapping between the previous container in host mode and the bridge mode</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# docker port web1
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker port web2
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker run -d --network bridge -p 8001:80 --name web3 centos7-nginx:1.6.1
+</span></span><span class="line"><span class="cl">b63e34f5a7df5e9a9d6c356ccfadd63148e10d067a41b4f61678feed3c33be46
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker port web3
+</span></span><span class="line"><span class="cl">80/tcp -&gt; 0.0.0.0:8001
+</span></span><span class="line"><span class="cl">80/tcp -&gt; <span class="o">[</span>::<span class="o">]</span>:8001
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>Example: WordPress fails to access MySQL via &ndash;link when running in host network mode</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# docker run -d --name mysql -e <span class="nv">MYSQL_ROOT_PASSWORD</span><span class="o">=</span><span class="m">123456</span> -e <span class="nv">MYSQL_DATABASE</span><span class="o">=</span>wordpress -e <span class="nv">MYSQL_USER</span><span class="o">=</span>wordpress -e <span class="nv">MYSQL_PASSWORD</span><span class="o">=</span><span class="m">123456</span> registry.cn-beijing.aliyuncs.com/wangxiaochun/mysql:8.0.29-oracle
+</span></span><span class="line"><span class="cl">b68d74917cacf9a0f3c90b3e206b58f44857fdebddd05a6e3da4ca8c77b8e600
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker run -d --net host --link mysql --name wordpress --restart<span class="o">=</span>always registry.cn-beijing.aliyuncs.com/wangxiaochun/wordpress:php8.2-apache
+</span></span><span class="line"><span class="cl">docker: Error response from daemon: conflicting options: host <span class="nb">type</span> networking can<span class="s1">&#39;t be used with links. This would result in undefined behavior
+</span></span></span><span class="line"><span class="cl"><span class="s1">
+</span></span></span><span class="line"><span class="cl"><span class="s1">Run &#39;</span>docker run --help<span class="err">&#39;</span> <span class="k">for</span> more information
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>Example: wordpress</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# docker run --network host -e <span class="nv">MYSQL_ROOT_PASSWORD</span><span class="o">=</span><span class="m">123456</span> -e <span class="nv">MYSQL_DATABASE</span><span class="o">=</span>wordpress -e <span class="nv">MYSQL_USER</span><span class="o">=</span>wordpress -e <span class="nv">MYSQL_PASSWORD</span><span class="o">=</span><span class="m">123456</span> --name mysql -d --restart<span class="o">=</span>always registry.cn-beijing.aliyuncs.com/wangxiaochun/mysql:8.0.29-oracle
+</span></span><span class="line"><span class="cl">6443b4ce8b1a7646c3b4fab3fd0e68183a6f8fb533544ecd483c41013bf13fb5
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker run -d --network host --name wordpress --restart<span class="o">=</span>always registry.cn-beijing.aliyuncs.com/wangxiaochun/wordpress:php8.2-apache
+</span></span><span class="line"><span class="cl">756197c58f07ebf8c2caadcc68d774ba11413870fc6950273ecfe72e3f6bdd8f
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">#注意：数据库服务器的地址为127.0.0.1或宿主机的IP,但不支持localhost</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/%E9%A9%AC%E5%93%A5docker%E7%BD%91%E7%BB%9C%E7%AE%A1%E7%90%86/image.png"
+	width="1497"
+	height="950"
+	srcset="/p/%E9%A9%AC%E5%93%A5docker%E7%BD%91%E7%BB%9C%E7%AE%A1%E7%90%86/image_hu_8c5768cf571c5f1.png 480w, /p/%E9%A9%AC%E5%93%A5docker%E7%BD%91%E7%BB%9C%E7%AE%A1%E7%90%86/image_hu_a532294e569aff0c.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="157"
+		data-flex-basis="378px"
+	
+></p>
+<h3 id="none-mode">None mode
+</h3><p>None mode features:</p>
+<ul>
+<li>
+<p>Specified using the &ndash;network none parameter.</p>
+</li>
+<li>
+<p>Has no network functionality by default and cannot communicate externally.</p>
+</li>
+<li>
+<p>Port mapping is not available.</p>
+</li>
+<li>
+<p>Suitable for testing environments.</p>
+</li>
+</ul>
+<p>Example: Start the none mode container</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# docker run -d --network none -p 8001:80 --name web1-none centos7-nginx:1.6.1.v2
+</span></span><span class="line"><span class="cl">f614edb931c83a648faa5154f1264aef5db0d2ad3a0c541960098ac296b46867
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker ps
+</span></span><span class="line"><span class="cl">CONTAINER ID   IMAGE                    COMMAND              CREATED         STATUS         PORTS     NAMES
+</span></span><span class="line"><span class="cl">f614edb931c8   centos7-nginx:1.6.1.v2   <span class="s2">&#34;/bin/sh -c nginx&#34;</span>   <span class="m">4</span> seconds ago   Up <span class="m">3</span> seconds             web1-none
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker port web1-none
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker <span class="nb">exec</span> -it web1-none bash
+</span></span><span class="line"><span class="cl"><span class="o">[</span>root@f614edb931c8 /<span class="o">]</span><span class="c1"># ifconfig -a</span>
+</span></span><span class="line"><span class="cl">lo: <span class="nv">flags</span><span class="o">=</span>73&lt;UP,LOOPBACK,RUNNING&gt;  mtu <span class="m">65536</span>
+</span></span><span class="line"><span class="cl">        inet 127.0.0.1  netmask 255.0.0.0
+</span></span><span class="line"><span class="cl">        inet6 ::1  prefixlen <span class="m">128</span>  scopeid 0x10&lt;host&gt;
+</span></span><span class="line"><span class="cl">        loop  txqueuelen <span class="m">1000</span>  <span class="o">(</span>Local Loopback<span class="o">)</span>
+</span></span><span class="line"><span class="cl">        RX packets <span class="m">0</span>  bytes <span class="m">0</span> <span class="o">(</span>0.0 B<span class="o">)</span>
+</span></span><span class="line"><span class="cl">        RX errors <span class="m">0</span>  dropped <span class="m">0</span>  overruns <span class="m">0</span>  frame <span class="m">0</span>
+</span></span><span class="line"><span class="cl">        TX packets <span class="m">0</span>  bytes <span class="m">0</span> <span class="o">(</span>0.0 B<span class="o">)</span>
+</span></span><span class="line"><span class="cl">        TX errors <span class="m">0</span>  dropped <span class="m">0</span> overruns <span class="m">0</span>  carrier <span class="m">0</span>  collisions <span class="m">0</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="o">[</span>root@f614edb931c8 /<span class="o">]</span><span class="c1"># route -n</span>
+</span></span><span class="line"><span class="cl">Kernel IP routing table
+</span></span><span class="line"><span class="cl">Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
+</span></span><span class="line"><span class="cl"><span class="o">[</span>root@f614edb931c8 /<span class="o">]</span><span class="c1"># netstat -ntl</span>
+</span></span><span class="line"><span class="cl">Active Internet connections <span class="o">(</span>only servers<span class="o">)</span>
+</span></span><span class="line"><span class="cl">Proto Recv-Q Send-Q Local Address           Foreign Address         State      
+</span></span><span class="line"><span class="cl">tcp        <span class="m">0</span>      <span class="m">0</span> 0.0.0.0:80              0.0.0.0:*               LISTEN     
+</span></span><span class="line"><span class="cl"><span class="o">[</span>root@f614edb931c8 /<span class="o">]</span><span class="c1"># ping www.baidu.com</span>
+</span></span><span class="line"><span class="cl">ping: www.baidu.com: Name or service not known
+</span></span><span class="line"><span class="cl"><span class="o">[</span>root@f614edb931c8 /<span class="o">]</span><span class="c1"># ping 172.17.0.1</span>
+</span></span><span class="line"><span class="cl">connect: Network is unreachable
+</span></span><span class="line"><span class="cl"><span class="o">[</span>root@f614edb931c8 /<span class="o">]</span><span class="c1"># </span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="container-mode">Container mode
+</h3><p>Container network mode features:</p>
+<ul>
+<li>
+<p>Specified using the &ndash;network container:name_or_ID parameter.</p>
+</li>
+<li>
+<p>Isolated from the host&rsquo;s network namespace.</p>
+</li>
+<li>
+<p>Containers share the same network namespace and directly use each other&rsquo;s network.</p>
+</li>
+<li>
+<p>The first container&rsquo;s network may be bridge, none, or host; the second container depends on the first and shares its network.</p>
+</li>
+<li>
+<p>If the first container stops, the second container cannot be created.</p>
+</li>
+<li>
+<p>The second container can access the first via 127.0.0.1.</p>
+</li>
+<li>
+<p>Suitable for frequent network communication between containers.</p>
+</li>
+<li>
+<p>Port mapping is not supported by default and is rarely used.</p>
+</li>
+</ul>
+<p>Example: Implement WordPress using container mode</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># Method 1</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># MySQL exposes its port in advance for WordPress</span>
+</span></span><span class="line"><span class="cl">docker run -d -p 80:80 --name wordpress -v /data/wordpress:/var/www/html --restart<span class="o">=</span>always registry.cn-beijing.aliyuncs.com/wangxiaochun/wordpress:php8.2-apache
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">docker run --network container:wordpress -e <span class="nv">MYSQL_ROOT_PASSWORD</span><span class="o">=</span><span class="m">123456</span> -e <span class="nv">MYSQL_DATABASE</span><span class="o">=</span>wordpress -e <span class="nv">MYSQL_USER</span><span class="o">=</span>wordpress -e <span class="nv">MYSQL_PASSWORD</span><span class="o">=</span><span class="m">123456</span> --name mysql -d -v /data/mysql:/var/lib/mysql --restart<span class="o">=</span>always registry.cn-beijing.aliyuncs.com/wangxiaochun/mysql:8.0.29-oracle
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Method 2</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># MySQL exposes its port in advance for WordPress</span>
+</span></span><span class="line"><span class="cl">docker run -d -p 80:80 -e <span class="nv">MYSQL_ROOT_PASSWORD</span><span class="o">=</span><span class="m">123456</span> -e <span class="nv">MYSQL_DATABASE</span><span class="o">=</span>wordpress -e <span class="nv">MYSQL_USER</span><span class="o">=</span>wordpress -e <span class="nv">MYSQL_PASSWORD</span><span class="o">=</span><span class="m">123456</span> --name mysql --restart<span class="o">=</span>always registry.cn-beijing.aliyuncs.com/wangxiaochun/mysql:8.0.29-oracle
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">docker run -d --network container:mysql --name wordpress --restart<span class="o">=</span>always registry.cn-beijing.aliyuncs.com/wangxiaochun/wordpress:php8.2-apache
+</span></span><span class="line"><span class="cl"><span class="c1">#注意：数据库主机地址为127.0.0.1或wordpress容器的IP，不支持localhost</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/%E9%A9%AC%E5%93%A5docker%E7%BD%91%E7%BB%9C%E7%AE%A1%E7%90%86/image-1.png"
+	width="1384"
+	height="888"
+	srcset="/p/%E9%A9%AC%E5%93%A5docker%E7%BD%91%E7%BB%9C%E7%AE%A1%E7%90%86/image-1_hu_438f8da573500b4.png 480w, /p/%E9%A9%AC%E5%93%A5docker%E7%BD%91%E7%BB%9C%E7%AE%A1%E7%90%86/image-1_hu_585fcc2947ae2aef.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="155"
+		data-flex-basis="374px"
+	
+></p>
+
 </section>
 
 

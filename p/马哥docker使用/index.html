@@ -257,6 +257,28 @@
             <li><a href="#访问测试镜像">访问测试镜像</a></li>
           </ol>
         </li>
+        <li><a href="#实战案例基于centos基础镜像手动制作编译版本-nginx-镜像">实战案例：基于CentOS基础镜像手动制作编译版本 nginx 镜像</a>
+          <ol>
+            <li><a href="#下载镜像并初始化">下载镜像并初始化</a></li>
+            <li><a href="#编译安装nginx">编译安装nginx</a></li>
+            <li><a href="#关闭-nginx-后台运行">关闭 nginx 后台运行</a></li>
+            <li><a href="#准备相关数据自定义web界面">准备相关数据自定义web界面</a></li>
+            <li><a href="#提交为镜像-2">提交为镜像</a></li>
+            <li><a href="#从自己的镜像启动容器">从自己的镜像启动容器</a></li>
+            <li><a href="#访问测试">访问测试</a></li>
+            <li><a href="#查看nginx访问日志和进程">查看Nginx访问日志和进程</a></li>
+          </ol>
+        </li>
+        <li><a href="#基于-centos7-nginx161-镜像增加网络工具">基于 centos7-nginx:1.6.1 镜像，增加网络工具</a>
+          <ol>
+            <li><a href="#启动镜像并安装网络工具">启动镜像，并安装网络工具</a></li>
+            <li><a href="#测试">测试</a></li>
+            <li><a href="#提交为新镜像">提交为新镜像</a></li>
+            <li><a href="#启动新镜像">启动新镜像</a></li>
+            <li><a href="#访问测试-1">访问测试</a></li>
+          </ol>
+        </li>
+        <li><a href="#范例-基于-alpine-定制新的镜像练习">范例： 基于 alpine 定制新的镜像（练习）</a></li>
       </ol>
     </li>
     <li><a href="#dockerfile">Dockerfile</a>
@@ -1636,6 +1658,478 @@
 <td class="lntd">
 <pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# curl 127.0.0.1:8080
 </span></span><span class="line"><span class="cl">Nginx Page in Docker
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="实战案例基于centos基础镜像手动制作编译版本-nginx-镜像">实战案例：基于CentOS基础镜像手动制作编译版本 nginx 镜像
+</h3><h4 id="下载镜像并初始化">下载镜像并初始化
+</h4><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# docker pull centos:centos7.7.19
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker images
+</span></span><span class="line"><span class="cl">REPOSITORY                                                  TAG              IMAGE ID       CREATED        SIZE
+</span></span><span class="line"><span class="cl">centos                                                      centos7.7.1908   08d05d1d5859   <span class="m">6</span> years ago    204MB
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker run -it centos:centos7.7.1908 /bin/bash
+</span></span><span class="line"><span class="cl"><span class="o">[</span>root@345b2f591014 /<span class="o">]</span><span class="c1"># </span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 生成yum源配置</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># 更改yum源</span>
+</span></span><span class="line"><span class="cl"><span class="o">[</span>root@18d127338f0a /<span class="o">]</span><span class="c1"># rm -rf /etc/yum.repos.d/*</span>
+</span></span><span class="line"><span class="cl"><span class="o">[</span>root@18d127338f0a /<span class="o">]</span><span class="c1"># curl -o /etc/yum.repos.d/Centos-7.repo http://mirrors.aliyun.com/repo/Centos-7.repo</span>
+</span></span><span class="line"><span class="cl"><span class="o">[</span>root@18d127338f0a /<span class="o">]</span><span class="c1"># curl -o /etc/yum.repos.d/epel-7.repo http://mirrors.aliyun.com/repo/epel-7.repo</span>
+</span></span><span class="line"><span class="cl"><span class="o">[</span>root@18d127338f0a /<span class="o">]</span><span class="c1"># yum clean all</span>
+</span></span><span class="line"><span class="cl"><span class="o">[</span>root@18d127338f0a /<span class="o">]</span><span class="c1"># yum makecache</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># 验证</span>
+</span></span><span class="line"><span class="cl"><span class="o">[</span>root@18d127338f0a /<span class="o">]</span><span class="c1"># yum repolist</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="编译安装nginx">编译安装nginx
+</h4><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="o">[</span>root@345b2f591014 /<span class="o">]</span><span class="c1"># useradd -r -s /sbin/nologin nginx</span>
+</span></span><span class="line"><span class="cl"><span class="o">[</span>root@345b2f591014 /<span class="o">]</span><span class="c1"># yum -y install gcc gcc-c++ automake pcre pcre-devel zlib zlib-devel openssl openssl-devel wget -y</span>
+</span></span><span class="line"><span class="cl"><span class="o">[</span>root@345b2f591014 /<span class="o">]</span><span class="c1"># cd /usr/local/src</span>
+</span></span><span class="line"><span class="cl"><span class="o">[</span>root@345b2f591014 src<span class="o">]</span><span class="c1"># wget http://nginx.org/download/nginx-1.16.1.tar.gz</span>
+</span></span><span class="line"><span class="cl"><span class="o">[</span>root@345b2f591014 src<span class="o">]</span><span class="c1"># tar xf nginx-1.16.1.tar.gz</span>
+</span></span><span class="line"><span class="cl"><span class="o">[</span>root@345b2f591014 src<span class="o">]</span><span class="c1"># cd nginx-1.16.1</span>
+</span></span><span class="line"><span class="cl"><span class="o">[</span>root@345b2f591014 nginx-1.16.1<span class="o">]</span><span class="c1"># ./configure --prefix=/apps/nginx</span>
+</span></span><span class="line"><span class="cl"><span class="o">[</span>root@345b2f591014 nginx-1.16.1<span class="o">]</span><span class="c1"># make &amp;&amp; make install</span>
+</span></span><span class="line"><span class="cl"><span class="o">[</span>root@345b2f591014 nginx-1.16.1<span class="o">]</span><span class="c1"># rm -rf nginx*</span>
+</span></span><span class="line"><span class="cl"><span class="o">[</span>root@345b2f591014 nginx-1.16.1<span class="o">]</span><span class="c1"># rm -rf /var/cache/yum/*</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="关闭-nginx-后台运行">关闭 nginx 后台运行
+</h4><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="o">[</span>root@345b2f591014 nginx-1.16.1<span class="o">]</span><span class="c1"># cd /apps/nginx/</span>
+</span></span><span class="line"><span class="cl"><span class="o">[</span>root@345b2f591014 nginx<span class="o">]</span><span class="c1"># ls </span>
+</span></span><span class="line"><span class="cl">conf  html  logs  sbin
+</span></span><span class="line"><span class="cl"><span class="o">[</span>root@345b2f591014 nginx<span class="o">]</span><span class="c1"># vi conf/nginx.conf</span>
+</span></span><span class="line"><span class="cl"><span class="c1">#user  nobody;</span>
+</span></span><span class="line"><span class="cl">worker_processes  1<span class="p">;</span>
+</span></span><span class="line"><span class="cl">daemon off<span class="p">;</span>  <span class="c1">#关闭后台运行</span>
+</span></span><span class="line"><span class="cl"><span class="o">[</span>root@345b2f591014 nginx<span class="o">]</span><span class="c1"># ln -s /apps/nginx/sbin/nginx /usr/sbin/</span>
+</span></span><span class="line"><span class="cl"><span class="o">[</span>root@345b2f591014 nginx<span class="o">]</span><span class="c1"># ll /usr/sbin/nginx</span>
+</span></span><span class="line"><span class="cl">lrwxrwxrwx <span class="m">1</span> root root <span class="m">22</span> Sep  <span class="m">4</span> 01:56 /usr/sbin/nginx -&gt; /apps/nginx/sbin/nginx
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="准备相关数据自定义web界面">准备相关数据自定义web界面
+</h4><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="o">[</span>root@345b2f591014 nginx<span class="o">]</span><span class="c1"># echo &#34;Nginx Test Page in Docker&#34; &gt; /apps/nginx/html/index.html</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="提交为镜像-2">提交为镜像
+</h4><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1">#不要退出容器，在另一个终端窗口执行以下命令</span>
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker images
+</span></span><span class="line"><span class="cl">REPOSITORY                                                  TAG              IMAGE ID       CREATED        SIZE
+</span></span><span class="line"><span class="cl">centos                                                      centos7.7.1908   08d05d1d5859   <span class="m">6</span> years ago    204MB
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker ps
+</span></span><span class="line"><span class="cl">CONTAINER ID   IMAGE                                            COMMAND            CREATED          STATUS          PORTS                                                                                      NAMES
+</span></span><span class="line"><span class="cl">345b2f591014   centos:centos7.7.1908                            <span class="s2">&#34;/bin/bash&#34;</span>        <span class="m">11</span> minutes ago   Up <span class="m">55</span> seconds                                                                                              exciting_franklin
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker commit -m <span class="s2">&#34;nginx1.6.1&#34;</span> -c <span class="s2">&#34;CMD nginx&#34;</span> 345b2f591014 centos7-nginx:1.6.1
+</span></span><span class="line"><span class="cl">sha256:a5be1347ddbd4e2a36b64e0a4123125c89b64d85da7214b7fe726699b0f0465f
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker images
+</span></span><span class="line"><span class="cl">REPOSITORY                                                  TAG              IMAGE ID       CREATED         SIZE
+</span></span><span class="line"><span class="cl">centos7-nginx                                               1.6.1            a5be1347ddbd   <span class="m">6</span> seconds ago   402MB
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="从自己的镜像启动容器">从自己的镜像启动容器
+</h4><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# docker run -d -p 80:80 centos7-nginx:1.6.1 nginx
+</span></span><span class="line"><span class="cl">9df58b938a215a5be835470b80a4be17b4d82e9b81683df83c19b04f61ac577b
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker ps
+</span></span><span class="line"><span class="cl">CONTAINER ID   IMAGE                                            COMMAND            CREATED          STATUS              PORTS                                                                                      NAMES
+</span></span><span class="line"><span class="cl">9df58b938a21   centos7-nginx:1.6.1                              <span class="s2">&#34;nginx&#34;</span>            <span class="m">3</span> seconds ago    Up <span class="m">3</span> seconds        0.0.0.0:80-&gt;80/tcp, <span class="o">[</span>::<span class="o">]</span>:80-&gt;80/tcp                                                        competent_meninsky
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="访问测试">访问测试
+</h4><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# curl 127.0.0.1
+</span></span><span class="line"><span class="cl">Nginx Test Page in Docker
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="查看nginx访问日志和进程">查看Nginx访问日志和进程
+</h4><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span><span class="lnt">9
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# docker <span class="nb">exec</span> -it 9df58b938a21 bash
+</span></span><span class="line"><span class="cl"><span class="o">[</span>root@9df58b938a21 /<span class="o">]</span><span class="c1"># cat /apps/nginx/logs/access.log</span>
+</span></span><span class="line"><span class="cl">172.17.0.1 - - <span class="o">[</span>04/Sep/2026:02:00:12 +0000<span class="o">]</span> <span class="s2">&#34;GET / HTTP/1.1&#34;</span> <span class="m">200</span> <span class="m">26</span> <span class="s2">&#34;-&#34;</span> <span class="s2">&#34;curl/8.5.0&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="o">[</span>root@9df58b938a21 /<span class="o">]</span><span class="c1"># ps aux</span>
+</span></span><span class="line"><span class="cl">USER         PID %CPU %MEM    VSZ   RSS TTY      STAT START   TIME COMMAND
+</span></span><span class="line"><span class="cl">root           <span class="m">1</span>  0.0  0.0  <span class="m">20572</span>  <span class="m">2756</span> ?        Ss   01:59   0:00 nginx: master process nginx
+</span></span><span class="line"><span class="cl">nobody         <span class="m">7</span>  0.0  0.0  <span class="m">21020</span>  <span class="m">2924</span> ?        S    01:59   0:00 nginx: worker process
+</span></span><span class="line"><span class="cl">root           <span class="m">8</span>  0.0  0.0  <span class="m">11844</span>  <span class="m">3064</span> pts/0    Ss   02:00   0:00 bash
+</span></span><span class="line"><span class="cl">root          <span class="m">23</span>  0.0  0.0  <span class="m">51772</span>  <span class="m">3512</span> pts/0    R+   02:01   0:00 ps aux
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="基于-centos7-nginx161-镜像增加网络工具">基于 centos7-nginx:1.6.1 镜像，增加网络工具
+</h3><h4 id="启动镜像并安装网络工具">启动镜像，并安装网络工具
+</h4><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# docker run -it centos7-nginx:1.6.1 /bin/bash
+</span></span><span class="line"><span class="cl"><span class="o">[</span>root@842586d90f81 /<span class="o">]</span><span class="c1"># yum install -y net-tools</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="测试">测试
+</h4><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="o">[</span>root@842586d90f81 /<span class="o">]</span><span class="c1"># ifconfig -a</span>
+</span></span><span class="line"><span class="cl">eth0: <span class="nv">flags</span><span class="o">=</span>4163&lt;UP,BROADCAST,RUNNING,MULTICAST&gt;  mtu <span class="m">1500</span>
+</span></span><span class="line"><span class="cl">        inet 172.17.0.2  netmask 255.255.0.0  broadcast 172.17.255.255
+</span></span><span class="line"><span class="cl">        ether 7e:0f:f6:b4:ab:1b  txqueuelen <span class="m">0</span>  <span class="o">(</span>Ethernet<span class="o">)</span>
+</span></span><span class="line"><span class="cl">        RX packets <span class="m">11976</span>  bytes <span class="m">47109996</span> <span class="o">(</span>44.9 MiB<span class="o">)</span>
+</span></span><span class="line"><span class="cl">        RX errors <span class="m">0</span>  dropped <span class="m">0</span>  overruns <span class="m">0</span>  frame <span class="m">0</span>
+</span></span><span class="line"><span class="cl">        TX packets <span class="m">7356</span>  bytes <span class="m">400690</span> <span class="o">(</span>391.2 KiB<span class="o">)</span>
+</span></span><span class="line"><span class="cl">        TX errors <span class="m">0</span>  dropped <span class="m">0</span> overruns <span class="m">0</span>  carrier <span class="m">0</span>  collisions <span class="m">0</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">lo: <span class="nv">flags</span><span class="o">=</span>73&lt;UP,LOOPBACK,RUNNING&gt;  mtu <span class="m">65536</span>
+</span></span><span class="line"><span class="cl">        inet 127.0.0.1  netmask 255.0.0.0
+</span></span><span class="line"><span class="cl">        inet6 ::1  prefixlen <span class="m">128</span>  scopeid 0x10&lt;host&gt;
+</span></span><span class="line"><span class="cl">        loop  txqueuelen <span class="m">1000</span>  <span class="o">(</span>Local Loopback<span class="o">)</span>
+</span></span><span class="line"><span class="cl">        RX packets <span class="m">0</span>  bytes <span class="m">0</span> <span class="o">(</span>0.0 B<span class="o">)</span>
+</span></span><span class="line"><span class="cl">        RX errors <span class="m">0</span>  dropped <span class="m">0</span>  overruns <span class="m">0</span>  frame <span class="m">0</span>
+</span></span><span class="line"><span class="cl">        TX packets <span class="m">0</span>  bytes <span class="m">0</span> <span class="o">(</span>0.0 B<span class="o">)</span>
+</span></span><span class="line"><span class="cl">        TX errors <span class="m">0</span>  dropped <span class="m">0</span> overruns <span class="m">0</span>  carrier <span class="m">0</span>  collisions <span class="m">0</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="o">[</span>root@842586d90f81 /<span class="o">]</span><span class="c1"># route -n</span>
+</span></span><span class="line"><span class="cl">Kernel IP routing table
+</span></span><span class="line"><span class="cl">Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
+</span></span><span class="line"><span class="cl">0.0.0.0         172.17.0.1      0.0.0.0         UG    <span class="m">0</span>      <span class="m">0</span>        <span class="m">0</span> eth0
+</span></span><span class="line"><span class="cl">172.17.0.0      0.0.0.0         255.255.0.0     U     <span class="m">0</span>      <span class="m">0</span>        <span class="m">0</span> eth0
+</span></span><span class="line"><span class="cl"><span class="o">[</span>root@842586d90f81 /<span class="o">]</span><span class="c1"># netstat -ntl</span>
+</span></span><span class="line"><span class="cl">Active Internet connections <span class="o">(</span>only servers<span class="o">)</span>
+</span></span><span class="line"><span class="cl">Proto Recv-Q Send-Q Local Address           Foreign Address         State      
+</span></span><span class="line"><span class="cl"><span class="o">[</span>root@842586d90f81 /<span class="o">]</span><span class="c1"># ping www.baidu.com</span>
+</span></span><span class="line"><span class="cl">PING www.wshifen.com <span class="o">(</span>103.235.46.102<span class="o">)</span> 56<span class="o">(</span>84<span class="o">)</span> bytes of data.
+</span></span><span class="line"><span class="cl"><span class="m">64</span> bytes from 103.235.46.102 <span class="o">(</span>103.235.46.102<span class="o">)</span>: <span class="nv">icmp_seq</span><span class="o">=</span><span class="m">1</span> <span class="nv">ttl</span><span class="o">=</span><span class="m">127</span> <span class="nv">time</span><span class="o">=</span>45.4 ms
+</span></span><span class="line"><span class="cl"><span class="m">64</span> bytes from 103.235.46.102 <span class="o">(</span>103.235.46.102<span class="o">)</span>: <span class="nv">icmp_seq</span><span class="o">=</span><span class="m">2</span> <span class="nv">ttl</span><span class="o">=</span><span class="m">127</span> <span class="nv">time</span><span class="o">=</span>45.4 ms
+</span></span><span class="line"><span class="cl">^C
+</span></span><span class="line"><span class="cl">--- www.wshifen.com ping statistics ---
+</span></span><span class="line"><span class="cl"><span class="m">2</span> packets transmitted, <span class="m">2</span> received, 0% packet loss, <span class="nb">time</span> 1001ms
+</span></span><span class="line"><span class="cl">rtt min/avg/max/mdev <span class="o">=</span> 45.464/45.478/45.492/0.014 ms
+</span></span><span class="line"><span class="cl"><span class="o">[</span>root@842586d90f81 /<span class="o">]</span><span class="c1"># ping 172.17.0.1</span>
+</span></span><span class="line"><span class="cl">PING 172.17.0.1 <span class="o">(</span>172.17.0.1<span class="o">)</span> 56<span class="o">(</span>84<span class="o">)</span> bytes of data.
+</span></span><span class="line"><span class="cl"><span class="m">64</span> bytes from 172.17.0.1: <span class="nv">icmp_seq</span><span class="o">=</span><span class="m">1</span> <span class="nv">ttl</span><span class="o">=</span><span class="m">64</span> <span class="nv">time</span><span class="o">=</span>0.091 ms
+</span></span><span class="line"><span class="cl"><span class="m">64</span> bytes from 172.17.0.1: <span class="nv">icmp_seq</span><span class="o">=</span><span class="m">2</span> <span class="nv">ttl</span><span class="o">=</span><span class="m">64</span> <span class="nv">time</span><span class="o">=</span>0.047 ms
+</span></span><span class="line"><span class="cl">^C
+</span></span><span class="line"><span class="cl">--- 172.17.0.1 ping statistics ---
+</span></span><span class="line"><span class="cl"><span class="m">2</span> packets transmitted, <span class="m">2</span> received, 0% packet loss, <span class="nb">time</span> 1031ms
+</span></span><span class="line"><span class="cl">rtt min/avg/max/mdev <span class="o">=</span> 0.047/0.069/0.091/0.022 ms
+</span></span><span class="line"><span class="cl"><span class="o">[</span>root@842586d90f81 /<span class="o">]</span><span class="c1"># exit</span>
+</span></span><span class="line"><span class="cl"><span class="nb">exit</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="提交为新镜像">提交为新镜像
+</h4><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span><span class="lnt">9
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# docker ps -a
+</span></span><span class="line"><span class="cl">CONTAINER ID   IMAGE                 COMMAND       CREATED         STATUS                     PORTS     NAMES
+</span></span><span class="line"><span class="cl">842586d90f81   centos7-nginx:1.6.1   <span class="s2">&#34;/bin/bash&#34;</span>   <span class="m">6</span> minutes ago   Exited <span class="o">(</span>0<span class="o">)</span> <span class="m">4</span> seconds ago             affectionate_buck
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker commit -m <span class="s2">&#34;nginx1.6.1.v2&#34;</span> -c <span class="s2">&#34;CMD nginx&#34;</span> 842586d90f81 centos7-nginx:1.6.1.v2
+</span></span><span class="line"><span class="cl">sha256:9dc2a5bb9348af1573b545217e44ec9244c4c1e0c20445279402998e9ed62a7d
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker images
+</span></span><span class="line"><span class="cl">REPOSITORY                                                  TAG                 IMAGE ID       CREATED         SIZE
+</span></span><span class="line"><span class="cl">centos7-nginx                                               1.6.1.v2            9dc2a5bb9348   <span class="m">6</span> seconds ago   703MB
+</span></span><span class="line"><span class="cl">centos7-nginx                                               1.6.1               a5be1347ddbd   <span class="m">8</span> hours ago     402MB
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="启动新镜像">启动新镜像
+</h4><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~docker run -d -p 80:80 centos7-nginx:1.6.1.v2 nginxnx
+</span></span><span class="line"><span class="cl">29a7b3c7d68b75170821a127b0bd384c44a702af6563b9dacceb8ef37756482d
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker ps
+</span></span><span class="line"><span class="cl">CONTAINER ID   IMAGE                    COMMAND   CREATED          STATUS          PORTS                                 NAMES
+</span></span><span class="line"><span class="cl">29a7b3c7d68b   centos7-nginx:1.6.1.v2   <span class="s2">&#34;nginx&#34;</span>   <span class="m">29</span> seconds ago   Up <span class="m">29</span> seconds   0.0.0.0:80-&gt;80/tcp, <span class="o">[</span>::<span class="o">]</span>:80-&gt;80/tcp   nervous_carson
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="访问测试-1">访问测试
+</h4><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# curl 127.0.0.1
+</span></span><span class="line"><span class="cl">Nginx Test Page in Docker
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker <span class="nb">exec</span> -it 29a7b3c7d68b bash
+</span></span><span class="line"><span class="cl"><span class="o">[</span>root@29a7b3c7d68b /<span class="o">]</span><span class="c1"># ifconfig -a</span>
+</span></span><span class="line"><span class="cl">eth0: <span class="nv">flags</span><span class="o">=</span>4163&lt;UP,BROADCAST,RUNNING,MULTICAST&gt;  mtu <span class="m">1500</span>
+</span></span><span class="line"><span class="cl">        inet 172.17.0.2  netmask 255.255.0.0  broadcast 172.17.255.255
+</span></span><span class="line"><span class="cl">        ether 42:1e:60:11:39:89  txqueuelen <span class="m">0</span>  <span class="o">(</span>Ethernet<span class="o">)</span>
+</span></span><span class="line"><span class="cl">        RX packets <span class="m">21</span>  bytes <span class="m">1642</span> <span class="o">(</span>1.6 KiB<span class="o">)</span>
+</span></span><span class="line"><span class="cl">        RX errors <span class="m">0</span>  dropped <span class="m">0</span>  overruns <span class="m">0</span>  frame <span class="m">0</span>
+</span></span><span class="line"><span class="cl">        TX packets <span class="m">10</span>  bytes <span class="m">810</span> <span class="o">(</span>810.0 B<span class="o">)</span>
+</span></span><span class="line"><span class="cl">        TX errors <span class="m">0</span>  dropped <span class="m">0</span> overruns <span class="m">0</span>  carrier <span class="m">0</span>  collisions <span class="m">0</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">lo: <span class="nv">flags</span><span class="o">=</span>73&lt;UP,LOOPBACK,RUNNING&gt;  mtu <span class="m">65536</span>
+</span></span><span class="line"><span class="cl">        inet 127.0.0.1  netmask 255.0.0.0
+</span></span><span class="line"><span class="cl">        inet6 ::1  prefixlen <span class="m">128</span>  scopeid 0x10&lt;host&gt;
+</span></span><span class="line"><span class="cl">        loop  txqueuelen <span class="m">1000</span>  <span class="o">(</span>Local Loopback<span class="o">)</span>
+</span></span><span class="line"><span class="cl">        RX packets <span class="m">0</span>  bytes <span class="m">0</span> <span class="o">(</span>0.0 B<span class="o">)</span>
+</span></span><span class="line"><span class="cl">        RX errors <span class="m">0</span>  dropped <span class="m">0</span>  overruns <span class="m">0</span>  frame <span class="m">0</span>
+</span></span><span class="line"><span class="cl">        TX packets <span class="m">0</span>  bytes <span class="m">0</span> <span class="o">(</span>0.0 B<span class="o">)</span>
+</span></span><span class="line"><span class="cl">        TX errors <span class="m">0</span>  dropped <span class="m">0</span> overruns <span class="m">0</span>  carrier <span class="m">0</span>  collisions <span class="m">0</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="范例-基于-alpine-定制新的镜像练习">范例： 基于 alpine 定制新的镜像（练习）
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# docker run -it --name test01 registry.cn-beijing.aliyuncs.com/wangxiaochun/alpine:3.20.0 sh
+</span></span><span class="line"><span class="cl">Unable to find image <span class="s1">&#39;registry.cn-beijing.aliyuncs.com/wangxiaochun/alpine:3.20.0&#39;</span> locally
+</span></span><span class="line"><span class="cl">3.20.0: Pulling from wangxiaochun/alpine
+</span></span><span class="line"><span class="cl">d25f557d7f31: Pull <span class="nb">complete</span> 
+</span></span><span class="line"><span class="cl">Digest: sha256:216266c86fc4dcef5619930bd394245824c2af52fd21ba7c6fa0e618657d4c3b
+</span></span><span class="line"><span class="cl">Status: Downloaded newer image <span class="k">for</span> registry.cn-beijing.aliyuncs.com/wangxiaochun/alpine:3.20.0
+</span></span><span class="line"><span class="cl"><span class="c1"># 缺少工具</span>
+</span></span><span class="line"><span class="cl">/ <span class="c1"># curl</span>
+</span></span><span class="line"><span class="cl">sh: curl: not found
+</span></span><span class="line"><span class="cl"><span class="c1">#时区不是当地地区</span>
+</span></span><span class="line"><span class="cl">/ <span class="c1"># date</span>
+</span></span><span class="line"><span class="cl">Fri Sep  <span class="m">4</span> 02:03:40 UTC <span class="m">2026</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">#优化配置</span>
+</span></span><span class="line"><span class="cl">/ <span class="c1"># cat /etc/apk/repositories </span>
+</span></span><span class="line"><span class="cl">https://dl-cdn.alpinelinux.org/alpine/v3.20/main
+</span></span><span class="line"><span class="cl">https://dl-cdn.alpinelinux.org/alpine/v3.20/community
+</span></span><span class="line"><span class="cl">/ <span class="c1"># sed -i &#39;s@dl-cdn.alpinelinux.org@mirrors.tuna.tsinghua.edu.cn@&#39; /etc/apk/repositories</span>
+</span></span><span class="line"><span class="cl">/ <span class="c1"># apk update &amp;&amp; apk --no-cache add tzdata curl &amp;&amp; ln -s /usr/share/zoneinfo/Asia/Shanghai /etc/localtime &amp;&amp; echo &#34;Asia/Shanghai&#34; &gt; /etc/timezone</span>
+</span></span><span class="line"><span class="cl">/ <span class="c1"># date</span>
+</span></span><span class="line"><span class="cl">Fri Sep  <span class="m">4</span> 10:04:24 CST <span class="m">2026</span>
+</span></span><span class="line"><span class="cl">/ <span class="c1"># exit</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">#手动制作镜像</span>
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker commit test01 alpine:3.20.0-<span class="sb">`</span>date +%F<span class="sb">`</span>
+</span></span><span class="line"><span class="cl">sha256:b51058c8fa5087afcc3942be20d329056546f33d1601fc098a45140a1a0adec3
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker images
+</span></span><span class="line"><span class="cl">REPOSITORY                                                  TAG                 IMAGE ID       CREATED         SIZE
+</span></span><span class="line"><span class="cl">alpine                                                      3.20.0-2026-09-04   b51058c8fa50   <span class="m">7</span> seconds ago   16MB
+</span></span><span class="line"><span class="cl">registry.cn-beijing.aliyuncs.com/wangxiaochun/alpine        3.20.0              1d34ffeaf190   <span class="m">2</span> years ago     7.79MB
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">#基于新镜像启动容器</span>
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker run -it --name test02 alpine:3.20.0-2026-09-04 sh
+</span></span><span class="line"><span class="cl">/ <span class="c1"># curl --version</span>
+</span></span><span class="line"><span class="cl">curl 8.14.1 <span class="o">(</span>x86_64-alpine-linux-musl<span class="o">)</span> libcurl/8.14.1 OpenSSL/3.3.0 zlib/1.3.1 brotli/1.1.0 zstd/1.5.6 c-ares/1.33.1 libidn2/2.3.7 libpsl/0.21.5 nghttp2/1.62.1
+</span></span><span class="line"><span class="cl">Release-Date: 2025-06-04
+</span></span><span class="line"><span class="cl">Protocols: dict file ftp ftps gopher gophers http https imap imaps ipfs ipns mqtt pop3 pop3s rtsp smb smbs smtp smtps telnet tftp ws wss
+</span></span><span class="line"><span class="cl">Features: alt-svc AsynchDNS brotli HSTS HTTP2 HTTPS-proxy IDN IPv6 Largefile libz NTLM PSL SSL threadsafe TLS-SRP UnixSockets zstd
+</span></span><span class="line"><span class="cl">/ <span class="c1"># date</span>
+</span></span><span class="line"><span class="cl">Fri Sep  <span class="m">4</span> 10:05:39 CST <span class="m">2026</span>
 </span></span></code></pre></td></tr></table>
 </div>
 </div><h2 id="dockerfile">Dockerfile
