@@ -252,6 +252,15 @@
         <li><a href="#host-mode">Host mode</a></li>
         <li><a href="#none-mode">None mode</a></li>
         <li><a href="#container-mode">Container mode</a></li>
+        <li><a href="#custom-network-mode">Custom network mode</a>
+          <ol>
+            <li><a href="#implement-a-custom-network">Implement a custom network</a></li>
+            <li><a href="#hands-on-example-custom-network">Hands-on Example: Custom Network</a></li>
+            <li><a href="#hands-on-example-communication-between-containers-on-a-custom-network">Hands-on Example: Communication between containers on a custom network</a></li>
+            <li><a href="#hands-on-example-deploy-wordpress-on-a-custom-network">Hands-on Example: Deploy WordPress on a Custom Network</a></li>
+            <li><a href="#hands-on-example-create-a-redis-cluster-on-a-custom-network">Hands-on Example: Create a Redis Cluster on a Custom Network</a></li>
+          </ol>
+        </li>
       </ol>
     </li>
   </ol>
@@ -3615,7 +3624,786 @@
 		data-flex-basis="374px"
 	
 ></p>
-
+<p>docker.1ms.run/wangxiaochun/nginx:1.24.0-alpine-3.18.0</p>
+<h3 id="custom-network-mode">Custom network mode
+</h3><h4 id="implement-a-custom-network">Implement a custom network
+</h4><p>Create a custom network</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># man docker network create</span>
+</span></span><span class="line"><span class="cl">docker network create -d &lt;mode&gt; --subnet &lt;CIDR&gt; --gateway &lt;gateway&gt; &lt;Custom network name&gt;
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Note:The mode does not support host or none;the default is bridge.</span>
+</span></span><span class="line"><span class="cl">-d &lt;mode&gt; <span class="c1"># Optional.Defaults to bridge.Supports drivers such as bridge,overlay,and macvlan.</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>Inspect the custom network</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">docker network inspect &lt;Custom network name or network ID&gt;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>Use a custom network</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">docker run --network &lt;Custom network name&gt; &lt;image name&gt;
+</span></span><span class="line"><span class="cl">docker run --net &lt;Custom network name&gt; --ip &lt;specify a static IP&gt; &lt;image name
+</span></span><span class="line"><span class="cl"><span class="c1"># Note: Static IP is only suppoted on custom networks</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Specify a container alias on a custom network</span>
+</span></span><span class="line"><span class="cl">docker run --network &lt;Custom network name&gt; --network-alias list &lt;image name&gt;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>Remove the custom network</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">docker network rm &lt;Custrom network name or network ID&gt;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>Example: The three built-in networks cannot be removed</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# docker network create test-net
+</span></span><span class="line"><span class="cl">5b792d6aab4a664654840f7e34945229379f346ae94e4ca81e0890e78ecf3e99
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker network rm test-net
+</span></span><span class="line"><span class="cl">test-net
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker network rm none
+</span></span><span class="line"><span class="cl">Error response from daemon: none is a pre-defined network and cannot be removed
+</span></span><span class="line"><span class="cl"><span class="nb">exit</span> status <span class="m">1</span>
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker network rm bridge
+</span></span><span class="line"><span class="cl">Error response from daemon: bridge is a pre-defined network and cannot be removed
+</span></span><span class="line"><span class="cl"><span class="nb">exit</span> status <span class="m">1</span>
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker network rm host
+</span></span><span class="line"><span class="cl">Error response from daemon: host is a pre-defined network and cannot be removed
+</span></span><span class="line"><span class="cl"><span class="nb">exit</span> status <span class="m">1</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="hands-on-example-custom-network">Hands-on Example: Custom Network
+</h4><h5 id="create-a-custom-network">Create a custom network
+</h5><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span><span class="lnt">51
+</span><span class="lnt">52
+</span><span class="lnt">53
+</span><span class="lnt">54
+</span><span class="lnt">55
+</span><span class="lnt">56
+</span><span class="lnt">57
+</span><span class="lnt">58
+</span><span class="lnt">59
+</span><span class="lnt">60
+</span><span class="lnt">61
+</span><span class="lnt">62
+</span><span class="lnt">63
+</span><span class="lnt">64
+</span><span class="lnt">65
+</span><span class="lnt">66
+</span><span class="lnt">67
+</span><span class="lnt">68
+</span><span class="lnt">69
+</span><span class="lnt">70
+</span><span class="lnt">71
+</span><span class="lnt">72
+</span><span class="lnt">73
+</span><span class="lnt">74
+</span><span class="lnt">75
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# docker network create -d bridge --subnet 172.27.0.0/16 --gateway 172.27.0.1 test-net
+</span></span><span class="line"><span class="cl">ad2c8001508e5755158108d78aec69b20345f4fa43fb8539a7da5897f2a8e009
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker network ls
+</span></span><span class="line"><span class="cl">NETWORK ID     NAME       DRIVER    SCOPE
+</span></span><span class="line"><span class="cl">88d25655cd62   bridge     bridge    <span class="nb">local</span>
+</span></span><span class="line"><span class="cl">6310a27d13ea   host       host      <span class="nb">local</span>
+</span></span><span class="line"><span class="cl">9b8c6e9b4e1b   none       null      <span class="nb">local</span>
+</span></span><span class="line"><span class="cl">ad2c8001508e   test-net   bridge    <span class="nb">local</span>
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker inspect test-net
+</span></span><span class="line"><span class="cl"><span class="o">[</span>
+</span></span><span class="line"><span class="cl">    <span class="o">{</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;Name&#34;</span>: <span class="s2">&#34;test-net&#34;</span>,
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;Id&#34;</span>: <span class="s2">&#34;ad2c8001508e5755158108d78aec69b20345f4fa43fb8539a7da5897f2a8e009&#34;</span>,
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;Created&#34;</span>: <span class="s2">&#34;2026-09-05T07:22:18.255511514Z&#34;</span>,
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;Scope&#34;</span>: <span class="s2">&#34;local&#34;</span>,
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;Driver&#34;</span>: <span class="s2">&#34;bridge&#34;</span>,
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;EnableIPv4&#34;</span>: true,
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;EnableIPv6&#34;</span>: false,
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;IPAM&#34;</span>: <span class="o">{</span>
+</span></span><span class="line"><span class="cl">            <span class="s2">&#34;Driver&#34;</span>: <span class="s2">&#34;default&#34;</span>,
+</span></span><span class="line"><span class="cl">            <span class="s2">&#34;Options&#34;</span>: <span class="o">{}</span>,
+</span></span><span class="line"><span class="cl">            <span class="s2">&#34;Config&#34;</span>: <span class="o">[</span>
+</span></span><span class="line"><span class="cl">                <span class="o">{</span>
+</span></span><span class="line"><span class="cl">                    <span class="s2">&#34;Subnet&#34;</span>: <span class="s2">&#34;172.27.0.0/16&#34;</span>,
+</span></span><span class="line"><span class="cl">                    <span class="s2">&#34;Gateway&#34;</span>: <span class="s2">&#34;172.27.0.1&#34;</span>
+</span></span><span class="line"><span class="cl">                <span class="o">}</span>
+</span></span><span class="line"><span class="cl">            <span class="o">]</span>
+</span></span><span class="line"><span class="cl">        <span class="o">}</span>,
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;Internal&#34;</span>: false,
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;Attachable&#34;</span>: false,
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;Ingress&#34;</span>: false,
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;ConfigFrom&#34;</span>: <span class="o">{</span>
+</span></span><span class="line"><span class="cl">            <span class="s2">&#34;Network&#34;</span>: <span class="s2">&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">        <span class="o">}</span>,
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;ConfigOnly&#34;</span>: false,
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;Containers&#34;</span>: <span class="o">{}</span>,
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;Options&#34;</span>: <span class="o">{}</span>,
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;Labels&#34;</span>: <span class="o">{}</span>
+</span></span><span class="line"><span class="cl">    <span class="o">}</span>
+</span></span><span class="line"><span class="cl"><span class="o">]</span>
+</span></span><span class="line"><span class="cl">root@lin-server:~# ip a
+</span></span><span class="line"><span class="cl">1: lo: &lt;LOOPBACK,UP,LOWER_UP&gt; mtu <span class="m">65536</span> qdisc noqueue state UNKNOWN group default qlen <span class="m">1000</span>
+</span></span><span class="line"><span class="cl">    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+</span></span><span class="line"><span class="cl">    inet 127.0.0.1/8 scope host lo
+</span></span><span class="line"><span class="cl">       valid_lft forever preferred_lft forever
+</span></span><span class="line"><span class="cl">    inet6 ::1/128 scope host noprefixroute 
+</span></span><span class="line"><span class="cl">       valid_lft forever preferred_lft forever
+</span></span><span class="line"><span class="cl">2: ens33: &lt;BROADCAST,MULTICAST,UP,LOWER_UP&gt; mtu <span class="m">1500</span> qdisc fq_codel state UP group default qlen <span class="m">1000</span>
+</span></span><span class="line"><span class="cl">    link/ether 00:0c:29:22:56:57 brd ff:ff:ff:ff:ff:ff
+</span></span><span class="line"><span class="cl">    altname enp2s1
+</span></span><span class="line"><span class="cl">    inet 192.168.128.100/24 brd 192.168.128.255 scope global ens33
+</span></span><span class="line"><span class="cl">       valid_lft forever preferred_lft forever
+</span></span><span class="line"><span class="cl">    inet6 fe80::20c:29ff:fe22:5657/64 scope link 
+</span></span><span class="line"><span class="cl">       valid_lft forever preferred_lft forever
+</span></span><span class="line"><span class="cl">3: docker0: &lt;NO-CARRIER,BROADCAST,MULTICAST,UP&gt; mtu <span class="m">1500</span> qdisc noqueue state DOWN group default 
+</span></span><span class="line"><span class="cl">    link/ether 6e:c4:ef:b8:b9:ed brd ff:ff:ff:ff:ff:ff
+</span></span><span class="line"><span class="cl">    inet 172.17.0.1/16 brd 172.17.255.255 scope global docker0
+</span></span><span class="line"><span class="cl">       valid_lft forever preferred_lft forever
+</span></span><span class="line"><span class="cl"><span class="c1"># A new virtual network interface has been added</span>
+</span></span><span class="line"><span class="cl">5: br-ad2c8001508e: &lt;NO-CARRIER,BROADCAST,MULTICAST,UP&gt; mtu <span class="m">1500</span> qdisc noqueue state DOWN group default 
+</span></span><span class="line"><span class="cl">    link/ether b6:10:7e:eb:b9:7d brd ff:ff:ff:ff:ff:ff
+</span></span><span class="line"><span class="cl">    inet 172.27.0.1/16 brd 172.27.255.255 scope global br-ad2c8001508e
+</span></span><span class="line"><span class="cl">       valid_lft forever preferred_lft forever
+</span></span><span class="line"><span class="cl"><span class="c1"># A new network bridge has been added</span>
+</span></span><span class="line"><span class="cl">root@lin-server:~# brctl show
+</span></span><span class="line"><span class="cl">bridge name     bridge id               STP enabled     interfaces
+</span></span><span class="line"><span class="cl">br-ad2c8001508e         8000.b6107eebb97d       no
+</span></span><span class="line"><span class="cl">docker0         8000.6ec4efb8b9ed       no
+</span></span><span class="line"><span class="cl">root@lin-server:~# route -n
+</span></span><span class="line"><span class="cl">Kernel IP routing table
+</span></span><span class="line"><span class="cl">Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
+</span></span><span class="line"><span class="cl">0.0.0.0         192.168.128.2   0.0.0.0         UG    <span class="m">0</span>      <span class="m">0</span>        <span class="m">0</span> ens33
+</span></span><span class="line"><span class="cl">172.17.0.0      0.0.0.0         255.255.0.0     U     <span class="m">0</span>      <span class="m">0</span>        <span class="m">0</span> docker0
+</span></span><span class="line"><span class="cl">172.27.0.0      0.0.0.0         255.255.0.0     U     <span class="m">0</span>      <span class="m">0</span>        <span class="m">0</span> br-ad2c8001508e
+</span></span><span class="line"><span class="cl">192.168.128.0   0.0.0.0         255.255.255.0   U     <span class="m">0</span>      <span class="m">0</span>        <span class="m">0</span> ens33
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h5 id="create-a-container-with-a-custom-network">Create a container with a custom network
+</h5><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span><span class="lnt">51
+</span><span class="lnt">52
+</span><span class="lnt">53
+</span><span class="lnt">54
+</span><span class="lnt">55
+</span><span class="lnt">56
+</span><span class="lnt">57
+</span><span class="lnt">58
+</span><span class="lnt">59
+</span><span class="lnt">60
+</span><span class="lnt">61
+</span><span class="lnt">62
+</span><span class="lnt">63
+</span><span class="lnt">64
+</span><span class="lnt">65
+</span><span class="lnt">66
+</span><span class="lnt">67
+</span><span class="lnt">68
+</span><span class="lnt">69
+</span><span class="lnt">70
+</span><span class="lnt">71
+</span><span class="lnt">72
+</span><span class="lnt">73
+</span><span class="lnt">74
+</span><span class="lnt">75
+</span><span class="lnt">76
+</span><span class="lnt">77
+</span><span class="lnt">78
+</span><span class="lnt">79
+</span><span class="lnt">80
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# docker run -it --rm --network test-net alpine sh
+</span></span><span class="line"><span class="cl">/ <span class="c1"># ip a</span>
+</span></span><span class="line"><span class="cl">1: lo: &lt;LOOPBACK,UP,LOWER_UP&gt; mtu <span class="m">65536</span> qdisc noqueue state UNKNOWN qlen <span class="m">1000</span>
+</span></span><span class="line"><span class="cl">    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+</span></span><span class="line"><span class="cl">    inet 127.0.0.1/8 scope host lo
+</span></span><span class="line"><span class="cl">       valid_lft forever preferred_lft forever
+</span></span><span class="line"><span class="cl">    inet6 ::1/128 scope host 
+</span></span><span class="line"><span class="cl">       valid_lft forever preferred_lft forever
+</span></span><span class="line"><span class="cl">2: eth0@if6: &lt;BROADCAST,MULTICAST,UP,LOWER_UP,M-DOWN&gt; mtu <span class="m">1500</span> qdisc noqueue state UP 
+</span></span><span class="line"><span class="cl">    link/ether 52:d8:71:78:ad:7a brd ff:ff:ff:ff:ff:ff
+</span></span><span class="line"><span class="cl">    inet 172.27.0.2/16 brd 172.27.255.255 scope global eth0
+</span></span><span class="line"><span class="cl">       valid_lft forever preferred_lft forever
+</span></span><span class="line"><span class="cl">/ <span class="c1"># route -n</span>
+</span></span><span class="line"><span class="cl">Kernel IP routing table
+</span></span><span class="line"><span class="cl">Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
+</span></span><span class="line"><span class="cl">0.0.0.0         172.27.0.1      0.0.0.0         UG    <span class="m">0</span>      <span class="m">0</span>        <span class="m">0</span> eth0
+</span></span><span class="line"><span class="cl">172.27.0.0      0.0.0.0         255.255.0.0     U     <span class="m">0</span>      <span class="m">0</span>        <span class="m">0</span> eth0
+</span></span><span class="line"><span class="cl">/ <span class="c1"># cat /etc/resolv.conf</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># Generated by Docker Engine.</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># This file can be edited; Docker Engine will not make further changes once it</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># has been modified.</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">nameserver 127.0.0.11
+</span></span><span class="line"><span class="cl">search .
+</span></span><span class="line"><span class="cl">options edns0 trust-ad ndots:0
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Based on host file: &#39;/etc/resolv.conf&#39; (internal resolver)</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># ExtServers: [host(127.0.0.53)]</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># Overrides: []</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># Option ndots from: internal</span>
+</span></span><span class="line"><span class="cl">/ <span class="c1"># ping -c1 www.baidu.com</span>
+</span></span><span class="line"><span class="cl">PING www.baidu.com <span class="o">(</span>223.109.82.16<span class="o">)</span>: <span class="m">56</span> data bytes
+</span></span><span class="line"><span class="cl"><span class="m">64</span> bytes from 223.109.82.16: <span class="nv">seq</span><span class="o">=</span><span class="m">0</span> <span class="nv">ttl</span><span class="o">=</span><span class="m">127</span> <span class="nv">time</span><span class="o">=</span>28.763 ms
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">--- www.baidu.com ping statistics ---
+</span></span><span class="line"><span class="cl"><span class="m">1</span> packets transmitted, <span class="m">1</span> packets received, 0% packet loss
+</span></span><span class="line"><span class="cl">round-trip min/avg/max <span class="o">=</span> 28.763/28.763/28.763 ms
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Open a new terminal to inspect the network</span>
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker inspect test-net
+</span></span><span class="line"><span class="cl"><span class="o">[</span>
+</span></span><span class="line"><span class="cl">    <span class="o">{</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;Name&#34;</span>: <span class="s2">&#34;test-net&#34;</span>,
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;Id&#34;</span>: <span class="s2">&#34;ad2c8001508e5755158108d78aec69b20345f4fa43fb8539a7da5897f2a8e009&#34;</span>,
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;Created&#34;</span>: <span class="s2">&#34;2026-09-05T07:22:18.255511514Z&#34;</span>,
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;Scope&#34;</span>: <span class="s2">&#34;local&#34;</span>,
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;Driver&#34;</span>: <span class="s2">&#34;bridge&#34;</span>,
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;EnableIPv4&#34;</span>: true,
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;EnableIPv6&#34;</span>: false,
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;IPAM&#34;</span>: <span class="o">{</span>
+</span></span><span class="line"><span class="cl">            <span class="s2">&#34;Driver&#34;</span>: <span class="s2">&#34;default&#34;</span>,
+</span></span><span class="line"><span class="cl">            <span class="s2">&#34;Options&#34;</span>: <span class="o">{}</span>,
+</span></span><span class="line"><span class="cl">            <span class="s2">&#34;Config&#34;</span>: <span class="o">[</span>
+</span></span><span class="line"><span class="cl">                <span class="o">{</span>
+</span></span><span class="line"><span class="cl">                    <span class="s2">&#34;Subnet&#34;</span>: <span class="s2">&#34;172.27.0.0/16&#34;</span>,
+</span></span><span class="line"><span class="cl">                    <span class="s2">&#34;Gateway&#34;</span>: <span class="s2">&#34;172.27.0.1&#34;</span>
+</span></span><span class="line"><span class="cl">                <span class="o">}</span>
+</span></span><span class="line"><span class="cl">            <span class="o">]</span>
+</span></span><span class="line"><span class="cl">        <span class="o">}</span>,
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;Internal&#34;</span>: false,
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;Attachable&#34;</span>: false,
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;Ingress&#34;</span>: false,
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;ConfigFrom&#34;</span>: <span class="o">{</span>
+</span></span><span class="line"><span class="cl">            <span class="s2">&#34;Network&#34;</span>: <span class="s2">&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">        <span class="o">}</span>,
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;ConfigOnly&#34;</span>: false,
+</span></span><span class="line"><span class="cl">        <span class="c1"># The network information of the container</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;Containers&#34;</span>: <span class="o">{</span>
+</span></span><span class="line"><span class="cl">            <span class="s2">&#34;d1c63871ad5c8d2129d687b1adf4aa350fcee852eaaa2865cb055fa5a7b57bea&#34;</span>: <span class="o">{</span>
+</span></span><span class="line"><span class="cl">                <span class="s2">&#34;Name&#34;</span>: <span class="s2">&#34;gracious_ardinghelli&#34;</span>,
+</span></span><span class="line"><span class="cl">                <span class="s2">&#34;EndpointID&#34;</span>: <span class="s2">&#34;853137eca9ee68d46e08065813f61079c1204b8ffb9dbb7385d25d233b3b5f6c&#34;</span>,
+</span></span><span class="line"><span class="cl">                <span class="s2">&#34;MacAddress&#34;</span>: <span class="s2">&#34;52:d8:71:78:ad:7a&#34;</span>,
+</span></span><span class="line"><span class="cl">                <span class="s2">&#34;IPv4Address&#34;</span>: <span class="s2">&#34;172.27.0.2/16&#34;</span>,
+</span></span><span class="line"><span class="cl">                <span class="s2">&#34;IPv6Address&#34;</span>: <span class="s2">&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">            <span class="o">}</span>
+</span></span><span class="line"><span class="cl">        <span class="o">}</span>,
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;Options&#34;</span>: <span class="o">{}</span>,
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;Labels&#34;</span>: <span class="o">{}</span>
+</span></span><span class="line"><span class="cl">    <span class="o">}</span>
+</span></span><span class="line"><span class="cl"><span class="o">]</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="hands-on-example-communication-between-containers-on-a-custom-network">Hands-on Example: Communication between containers on a custom network
+</h4><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span><span class="lnt">51
+</span><span class="lnt">52
+</span><span class="lnt">53
+</span><span class="lnt">54
+</span><span class="lnt">55
+</span><span class="lnt">56
+</span><span class="lnt">57
+</span><span class="lnt">58
+</span><span class="lnt">59
+</span><span class="lnt">60
+</span><span class="lnt">61
+</span><span class="lnt">62
+</span><span class="lnt">63
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# docker network ls
+</span></span><span class="line"><span class="cl">NETWORK ID     NAME       DRIVER    SCOPE
+</span></span><span class="line"><span class="cl">88d25655cd62   bridge     bridge    <span class="nb">local</span>
+</span></span><span class="line"><span class="cl">6310a27d13ea   host       host      <span class="nb">local</span>
+</span></span><span class="line"><span class="cl">9b8c6e9b4e1b   none       null      <span class="nb">local</span>
+</span></span><span class="line"><span class="cl">ad2c8001508e   test-net   bridge    <span class="nb">local</span>
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker run -it --rm --network test-net --name test1 alpine sh
+</span></span><span class="line"><span class="cl">/ <span class="c1"># ip a</span>
+</span></span><span class="line"><span class="cl">1: lo: &lt;LOOPBACK,UP,LOWER_UP&gt; mtu <span class="m">65536</span> qdisc noqueue state UNKNOWN qlen <span class="m">1000</span>
+</span></span><span class="line"><span class="cl">    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+</span></span><span class="line"><span class="cl">    inet 127.0.0.1/8 scope host lo
+</span></span><span class="line"><span class="cl">       valid_lft forever preferred_lft forever
+</span></span><span class="line"><span class="cl">    inet6 ::1/128 scope host 
+</span></span><span class="line"><span class="cl">       valid_lft forever preferred_lft forever
+</span></span><span class="line"><span class="cl">2: eth0@if12: &lt;BROADCAST,MULTICAST,UP,LOWER_UP,M-DOWN&gt; mtu <span class="m">1500</span> qdisc noqueue state UP 
+</span></span><span class="line"><span class="cl">    link/ether b2:9b:bc:78:e6:46 brd ff:ff:ff:ff:ff:ff
+</span></span><span class="line"><span class="cl">    inet 172.27.0.2/16 brd 172.27.255.255 scope global eth0
+</span></span><span class="line"><span class="cl">       valid_lft forever preferred_lft forever
+</span></span><span class="line"><span class="cl">/ <span class="c1"># cat /etc/hosts</span>
+</span></span><span class="line"><span class="cl">127.0.0.1       localhost
+</span></span><span class="line"><span class="cl">::1     localhost ip6-localhost ip6-loopback
+</span></span><span class="line"><span class="cl">fe00::  ip6-localnet
+</span></span><span class="line"><span class="cl">ff00::  ip6-mcastprefix
+</span></span><span class="line"><span class="cl">ff02::1 ip6-allnodes
+</span></span><span class="line"><span class="cl">ff02::2 ip6-allrouters
+</span></span><span class="line"><span class="cl">172.27.0.2      cbeeb88e8bcd
+</span></span><span class="line"><span class="cl"><span class="c1"># Wait util container test2 is created in the later steps, then you can access it again.</span>
+</span></span><span class="line"><span class="cl">/ <span class="c1"># ping -c1 test2</span>
+</span></span><span class="line"><span class="cl">PING test2 <span class="o">(</span>172.27.0.3<span class="o">)</span>: <span class="m">56</span> data bytes
+</span></span><span class="line"><span class="cl"><span class="m">64</span> bytes from 172.27.0.3: <span class="nv">seq</span><span class="o">=</span><span class="m">0</span> <span class="nv">ttl</span><span class="o">=</span><span class="m">64</span> <span class="nv">time</span><span class="o">=</span>0.067 ms
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">--- test2 ping statistics ---
+</span></span><span class="line"><span class="cl"><span class="m">1</span> packets transmitted, <span class="m">1</span> packets received, 0% packet loss
+</span></span><span class="line"><span class="cl">round-trip min/avg/max <span class="o">=</span> 0.067/0.067/0.067 ms
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker run -it --rm --network test-net --name test2 alpine
+</span></span><span class="line"><span class="cl">/ <span class="c1"># ip a</span>
+</span></span><span class="line"><span class="cl">1: lo: &lt;LOOPBACK,UP,LOWER_UP&gt; mtu <span class="m">65536</span> qdisc noqueue state UNKNOWN qlen <span class="m">1000</span>
+</span></span><span class="line"><span class="cl">    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+</span></span><span class="line"><span class="cl">    inet 127.0.0.1/8 scope host lo
+</span></span><span class="line"><span class="cl">       valid_lft forever preferred_lft forever
+</span></span><span class="line"><span class="cl">    inet6 ::1/128 scope host 
+</span></span><span class="line"><span class="cl">       valid_lft forever preferred_lft forever
+</span></span><span class="line"><span class="cl">2: eth0@if13: &lt;BROADCAST,MULTICAST,UP,LOWER_UP,M-DOWN&gt; mtu <span class="m">1500</span> qdisc noqueue state UP 
+</span></span><span class="line"><span class="cl">    link/ether fa:8f:4c:f3:cd:59 brd ff:ff:ff:ff:ff:ff
+</span></span><span class="line"><span class="cl">    inet 172.27.0.3/16 brd 172.27.255.255 scope global eth0
+</span></span><span class="line"><span class="cl">       valid_lft forever preferred_lft forever
+</span></span><span class="line"><span class="cl">/ <span class="c1"># cat /etc/hosts</span>
+</span></span><span class="line"><span class="cl">127.0.0.1       localhost
+</span></span><span class="line"><span class="cl">::1     localhost ip6-localhost ip6-loopback
+</span></span><span class="line"><span class="cl">fe00::  ip6-localnet
+</span></span><span class="line"><span class="cl">ff00::  ip6-mcastprefix
+</span></span><span class="line"><span class="cl">ff02::1 ip6-allnodes
+</span></span><span class="line"><span class="cl">ff02::2 ip6-allrouters
+</span></span><span class="line"><span class="cl">172.27.0.3      64a540f88157
+</span></span><span class="line"><span class="cl">/ <span class="c1"># ping -c1 test1</span>
+</span></span><span class="line"><span class="cl">PING test1 <span class="o">(</span>172.27.0.2<span class="o">)</span>: <span class="m">56</span> data bytes
+</span></span><span class="line"><span class="cl"><span class="m">64</span> bytes from 172.27.0.2: <span class="nv">seq</span><span class="o">=</span><span class="m">0</span> <span class="nv">ttl</span><span class="o">=</span><span class="m">64</span> <span class="nv">time</span><span class="o">=</span>0.060 ms
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">--- test1 ping statistics ---
+</span></span><span class="line"><span class="cl"><span class="m">1</span> packets transmitted, <span class="m">1</span> packets received, 0% packet loss
+</span></span><span class="line"><span class="cl">round-trip min/avg/max <span class="o">=</span> 0.060/0.060/0.060 ms
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>Conclusion: Containers on a custom network can communicate directly using container names</strong></p>
+<h4 id="hands-on-example-deploy-wordpress-on-a-custom-network">Hands-on Example: Deploy WordPress on a Custom Network
+</h4><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# docker network create -d bridge --subnet 172.37.0.0/16 --gateway 172.37.0.100 wordpress-net
+</span></span><span class="line"><span class="cl">0a42f040abb94728e7fe03902c95e6dc9d19292cd7b58798cbc24c6550534e5d
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker run -d -p 80:80 --network wordpress-net --name wordpress --restart<span class="o">=</span>always registry.cn-beijing.aliyuncs.com/wangxiaochun/wordpress:php8.2-apache
+</span></span><span class="line"><span class="cl">15fc1101b763ea979bf2cd46b38a63ccb34bc0032271e20664d25b9d1c244d0c
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker run --network wordpress-net -e <span class="nv">MYSQL_ROOT_PASSWORD</span><span class="o">=</span><span class="m">123456</span> -e <span class="nv">MYSQL_DATABASE</span><span class="o">=</span>wordpress -e <span class="nv">MYSQL_USER</span><span class="o">=</span>wordpress -e <span class="nv">MYSQL_PASSWORD</span><span class="o">=</span><span class="m">123456</span> --name mysql -d --restart<span class="o">=</span>always registry.cn-beijing.aliyuncs.com/wangxiaochun/mysql:8.0.29-oracle
+</span></span><span class="line"><span class="cl">ec3e01c01e482675287a509a1b732b2ab2dba2b305b6b292a6791291a9578cd7
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/%E9%A9%AC%E5%93%A5docker%E7%BD%91%E7%BB%9C%E7%AE%A1%E7%90%86/image-2.png"
+	width="1461"
+	height="872"
+	srcset="/p/%E9%A9%AC%E5%93%A5docker%E7%BD%91%E7%BB%9C%E7%AE%A1%E7%90%86/image-2_hu_36e1cc46b4997a52.png 480w, /p/%E9%A9%AC%E5%93%A5docker%E7%BD%91%E7%BB%9C%E7%AE%A1%E7%90%86/image-2_hu_798092af47cb2114.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="167"
+		data-flex-basis="402px"
+	
+></p>
+<p>Example</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# docker network create -d bridge --subnet 172.27.0.0/16 --gateway 172.27.0.1 bridge2
+</span></span><span class="line"><span class="cl">d6f9c619643a046a74ab1a6c66f8c8cc3f708b5fb2e628ede8e7718cafd5d5d8
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker run -d -p 8080:80 --network bridge2 --name wordpress2 -v /data/wordpress2:/var/www/html --restart<span class="o">=</span>always registry.cn-beijing.aliyuncs.com/wangxiaochun/wordpress:php8.2-apache
+</span></span><span class="line"><span class="cl">c9c92814f5b6c65a7fbdae1daf7cb7c8256cd9ee666a4025730141da2c7059ae
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker run --network bridge2 -e <span class="nv">MYSQL_ROOT_PASSWORD</span><span class="o">=</span><span class="m">123456</span> -e <span class="nv">MYSQL_DATABASE</span><span class="o">=</span>wordpress -e <span class="nv">MYSQL_USER</span><span class="o">=</span>wordpress -e <span class="nv">MYSQL_PASSWORD</span><span class="o">=</span><span class="m">123456</span> --name mysql2 -d -v /data/mysql2:/var/lib/mysql --restart<span class="o">=</span>always mysql:8.0.29-oracle
+</span></span><span class="line"><span class="cl">a3a7d37112f94681f6342427688634160f50c73089447f6563b1b3d30bad3fc5
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># When WordPress connects to the database, the database host is the container name mysql2</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/%E9%A9%AC%E5%93%A5docker%E7%BD%91%E7%BB%9C%E7%AE%A1%E7%90%86/image-3.png"
+	width="1230"
+	height="867"
+	srcset="/p/%E9%A9%AC%E5%93%A5docker%E7%BD%91%E7%BB%9C%E7%AE%A1%E7%90%86/image-3_hu_c5c76770f3497c7b.png 480w, /p/%E9%A9%AC%E5%93%A5docker%E7%BD%91%E7%BB%9C%E7%AE%A1%E7%90%86/image-3_hu_29c1f6678489cfdd.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="141"
+		data-flex-basis="340px"
+	
+></p>
+<h4 id="hands-on-example-create-a-redis-cluster-on-a-custom-network">Hands-on Example: Create a Redis Cluster on a Custom Network
+</h4><h5 id="create-a-custom-network-1">Create a custom network
+</h5><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">docker network create net-redis --subnet 172.18.0.0/16
+</span></span><span class="line"><span class="cl">docker inspect net-redis
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h5 id="create-six-redis-container-configurations">Create six Redis container configurations
+</h5><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span><span class="lnt">51
+</span><span class="lnt">52
+</span><span class="lnt">53
+</span><span class="lnt">54
+</span><span class="lnt">55
+</span><span class="lnt">56
+</span><span class="lnt">57
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># Create six Redis container configurations using a script</span>
+</span></span><span class="line"><span class="cl">root@lin-server:~# vim CreateRedisConfigurations.sh
+</span></span><span class="line"><span class="cl"><span class="c1">#!/bin/bash</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">for</span> port in <span class="o">{</span>1..6<span class="o">}</span><span class="p">;</span><span class="k">do</span>
+</span></span><span class="line"><span class="cl">   mkdir -p /data/redis/node-<span class="si">${</span><span class="nv">port</span><span class="si">}</span>/conf
+</span></span><span class="line"><span class="cl">   cat &gt;&gt; /data/redis/node-<span class="si">${</span><span class="nv">port</span><span class="si">}</span>/conf/redis.conf <span class="s">&lt;&lt; EOF
+</span></span></span><span class="line"><span class="cl"><span class="s">port 6379
+</span></span></span><span class="line"><span class="cl"><span class="s">bind 0.0.0.0
+</span></span></span><span class="line"><span class="cl"><span class="s">masterauth 123456
+</span></span></span><span class="line"><span class="cl"><span class="s">requirepass 123456
+</span></span></span><span class="line"><span class="cl"><span class="s">cluster-enabled yes
+</span></span></span><span class="line"><span class="cl"><span class="s">cluster-config-file nodes.conf
+</span></span></span><span class="line"><span class="cl"><span class="s">cluster-node-timeout 5000
+</span></span></span><span class="line"><span class="cl"><span class="s">cluster-announce-ip 172.18.0.1${port}
+</span></span></span><span class="line"><span class="cl"><span class="s">cluster-announce-port 6379
+</span></span></span><span class="line"><span class="cl"><span class="s">cluster-announce-bus-port 16379
+</span></span></span><span class="line"><span class="cl"><span class="s">appendonly yes
+</span></span></span><span class="line"><span class="cl"><span class="s">EOF</span>
+</span></span><span class="line"><span class="cl"><span class="k">done</span>
+</span></span><span class="line"><span class="cl">root@lin-server:~# chmod +x CreateRedisConfigurations.sh 
+</span></span><span class="line"><span class="cl">root@lin-server:~# ./CreateRedisConfigurations.sh 
+</span></span><span class="line"><span class="cl"><span class="c1"># Verify</span>
+</span></span><span class="line"><span class="cl">root@lin-server:~# tree /data/redis/
+</span></span><span class="line"><span class="cl">/data/redis/
+</span></span><span class="line"><span class="cl">├── node-1
+</span></span><span class="line"><span class="cl">│   └── conf
+</span></span><span class="line"><span class="cl">│       └── redis.conf
+</span></span><span class="line"><span class="cl">├── node-2
+</span></span><span class="line"><span class="cl">│   └── conf
+</span></span><span class="line"><span class="cl">│       └── redis.conf
+</span></span><span class="line"><span class="cl">├── node-3
+</span></span><span class="line"><span class="cl">│   └── conf
+</span></span><span class="line"><span class="cl">│       └── redis.conf
+</span></span><span class="line"><span class="cl">├── node-4
+</span></span><span class="line"><span class="cl">│   └── conf
+</span></span><span class="line"><span class="cl">│       └── redis.conf
+</span></span><span class="line"><span class="cl">├── node-5
+</span></span><span class="line"><span class="cl">│   └── conf
+</span></span><span class="line"><span class="cl">│       └── redis.conf
+</span></span><span class="line"><span class="cl">└── node-6
+</span></span><span class="line"><span class="cl">    └── conf
+</span></span><span class="line"><span class="cl">        └── redis.conf
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="m">13</span> directories, <span class="m">6</span> files
+</span></span><span class="line"><span class="cl">root@lin-server:~# cat /data/redis/node-1/conf/redis.conf
+</span></span><span class="line"><span class="cl">port <span class="m">6379</span>
+</span></span><span class="line"><span class="cl"><span class="nb">bind</span> 0.0.0.0
+</span></span><span class="line"><span class="cl">masterauth <span class="m">123456</span>
+</span></span><span class="line"><span class="cl">requirepass <span class="m">123456</span>
+</span></span><span class="line"><span class="cl">cluster-enabled yes
+</span></span><span class="line"><span class="cl">cluster-config-file nodes.conf
+</span></span><span class="line"><span class="cl">cluster-node-timeout <span class="m">5000</span>
+</span></span><span class="line"><span class="cl">cluster-announce-ip 172.18.0.11
+</span></span><span class="line"><span class="cl">cluster-announce-port <span class="m">6379</span>
+</span></span><span class="line"><span class="cl">cluster-announce-bus-port <span class="m">16379</span>
+</span></span><span class="line"><span class="cl">appendonly yes
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h5 id="create-six-redis-containers">Create six Redis containers
+</h5><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># Run six Redis containers using a script</span>
+</span></span><span class="line"><span class="cl">vim RunRedis.sh
+</span></span><span class="line"><span class="cl"><span class="k">for</span> port in <span class="o">{</span>1..6<span class="o">}</span><span class="p">;</span><span class="k">do</span>
+</span></span><span class="line"><span class="cl">   docker run -p 637<span class="si">${</span><span class="nv">port</span><span class="si">}</span>:6379 -p 1667<span class="si">${</span><span class="nv">port</span><span class="si">}</span>:16379 --name redis-<span class="si">${</span><span class="nv">port</span><span class="si">}</span> <span class="se">\
+</span></span></span><span class="line"><span class="cl">   -v /data/redis/node-<span class="si">${</span><span class="nv">port</span><span class="si">}</span>/data:/data <span class="se">\
+</span></span></span><span class="line"><span class="cl">   -v /data/redis/node-<span class="si">${</span><span class="nv">port</span><span class="si">}</span>/conf/redis.conf:/etc/redis/redis.conf <span class="se">\
+</span></span></span><span class="line"><span class="cl">   -d --net net-redis --ip 172.18.0.1<span class="si">${</span><span class="nv">port</span><span class="si">}</span> redis:5.0.9-alpine3.11 redis-server /etc/redis/redis.conf
+</span></span><span class="line"><span class="cl"><span class="k">done</span>
+</span></span><span class="line"><span class="cl">chmod +x RunRedis.sh
+</span></span><span class="line"><span class="cl">./RunRedis.sh
+</span></span></code></pre></td></tr></table>
+</div>
+</div>
 </section>
 
 
