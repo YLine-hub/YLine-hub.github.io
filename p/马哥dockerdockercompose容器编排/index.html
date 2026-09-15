@@ -213,6 +213,15 @@
         <li><a href="#verify-the-docker-compose-execution-result">Verify the Docker Compose execution result</a></li>
         <li><a href="#stop-the-foreground-execution">Stop the foreground execution</a></li>
         <li><a href="#delete-containers">Delete containers</a></li>
+        <li><a href="#run-in-the-background">Run in the background</a></li>
+        <li><a href="#stop-start-and-view-logs">Stop, start, and view logs</a></li>
+        <li><a href="#pause-and-resume">Pause and resume</a></li>
+      </ol>
+    </li>
+    <li><a href="#start-multiple-containers-using-docker-compose">Start multiple containers using Docker Compose</a>
+      <ol>
+        <li><a href="#edit-the-docker-compose-file-and-use-volumes">Edit the docker-compose file and use volumes</a></li>
+        <li><a href="#start-the-container-and-verify-the-result">Start the container and verify the result</a></li>
       </ol>
     </li>
   </ol>
@@ -476,7 +485,7 @@
 </span></span><span class="line"><span class="cl">root@lin-server:/data/docker-compose# docker-compose down
 </span></span><span class="line"><span class="cl"><span class="o">[</span>+<span class="o">]</span> down 2/2
 </span></span><span class="line"><span class="cl"> ✔ Container nginx-web            Removed                                    0.1s
-</span></span><span class="line"><span class="cl"> ✔ Network docker-compose_default Removed                                    0.1s
+</span></span><span class="line"><span class="cl"> ✔ Network docker-compose_default Removed                                     0.1s
 </span></span><span class="line"><span class="cl">root@lin-server:/data/docker-compose# docker-compose ps
 </span></span><span class="line"><span class="cl">NAME      IMAGE     COMMAND   SERVICE   CREATED   STATUS    PORTS
 </span></span><span class="line"><span class="cl">root@lin-server:/data/docker-compose# docker ps -a
@@ -485,6 +494,305 @@
 </span></span><span class="line"><span class="cl"><span class="c1"># The image will also be removed automatically</span>
 </span></span><span class="line"><span class="cl">root@lin-server:/data/docker-compose# docker-compose images
 </span></span><span class="line"><span class="cl">CONTAINER           REPOSITORY          TAG                 PLATFORM            IMAGE ID            SIZE                CREATED
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="run-in-the-background">Run in the background
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:/data/docker-compose# docker-compose up -d
+</span></span><span class="line"><span class="cl"><span class="o">[</span>+<span class="o">]</span> up 2/2
+</span></span><span class="line"><span class="cl"> ✔ Network docker-compose_default Created                                                        0.0s
+</span></span><span class="line"><span class="cl"> ✔ Container nginx-web            Started                                                        0.3s
+</span></span><span class="line"><span class="cl">root@lin-server:/data/docker-compose# docker-compose ps
+</span></span><span class="line"><span class="cl">NAME        IMAGE                    COMMAND              SERVICE             CREATED         STATUS         PORTS
+</span></span><span class="line"><span class="cl">nginx-web   centos7-nginx:1.6.1.v2   <span class="s2">&#34;/bin/sh -c nginx&#34;</span>   service-nginx-web   <span class="m">4</span> seconds ago   Up <span class="m">4</span> seconds   0.0.0.0:80-&gt;80/tcp, <span class="o">[</span>::<span class="o">]</span>:80-&gt;80/tcp, 0.0.0.0:443-&gt;443/tcp, <span class="o">[</span>::<span class="o">]</span>:443-&gt;443/tcp
+</span></span><span class="line"><span class="cl">root@lin-server:/data/docker-compose# curl 127.0.0.1
+</span></span><span class="line"><span class="cl">Nginx Test Page in Docker
+</span></span><span class="line"><span class="cl">root@lin-server:/data/docker-compose# curl http://127.0.0.1
+</span></span><span class="line"><span class="cl">Nginx Test Page in Docker
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="stop-start-and-view-logs">Stop, start, and view logs
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span><span class="lnt">51
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:/data/docker-compose# docker-compose stop
+</span></span><span class="line"><span class="cl"><span class="o">[</span>+<span class="o">]</span> stop 1/1
+</span></span><span class="line"><span class="cl"> ✔ Container nginx-web Stopped                                                                   0.1s
+</span></span><span class="line"><span class="cl">root@lin-server:/data/docker-compose# docker-compose ps
+</span></span><span class="line"><span class="cl">NAME      IMAGE     COMMAND   SERVICE   CREATED   STATUS    PORTS
+</span></span><span class="line"><span class="cl">root@lin-server:/data/docker-compose# docker-compose start
+</span></span><span class="line"><span class="cl"><span class="o">[</span>+<span class="o">]</span> start 1/1
+</span></span><span class="line"><span class="cl"> ✔ Container nginx-web Started                                                                   0.1s
+</span></span><span class="line"><span class="cl">root@lin-server:/data/docker-compose# docker-compose ps
+</span></span><span class="line"><span class="cl">NAME        IMAGE                    COMMAND              SERVICE             CREATED          STATUS         PORTS
+</span></span><span class="line"><span class="cl">nginx-web   centos7-nginx:1.6.1.v2   <span class="s2">&#34;/bin/sh -c nginx&#34;</span>   service-nginx-web   <span class="m">44</span> minutes ago   Up <span class="m">6</span> seconds   0.0.0.0:80-&gt;80/tcp, <span class="o">[</span>::<span class="o">]</span>:80-&gt;80/tcp, 0.0.0.0:443-&gt;443/tcp, <span class="o">[</span>::<span class="o">]</span>:443-&gt;443/tcp
+</span></span><span class="line"><span class="cl">root@lin-server:/data/docker-compose# docker-compose restart
+</span></span><span class="line"><span class="cl"><span class="o">[</span>+<span class="o">]</span> restart 0/1
+</span></span><span class="line"><span class="cl"> ⠹ Container nginx-web Restarting                                                                0.2s
+</span></span><span class="line"><span class="cl">root@lin-server:/data/docker-compose# docker-compose ps
+</span></span><span class="line"><span class="cl">NAME        IMAGE                    COMMAND              SERVICE             CREATED          STATUS         PORTS
+</span></span><span class="line"><span class="cl">nginx-web   centos7-nginx:1.6.1.v2   <span class="s2">&#34;/bin/sh -c nginx&#34;</span>   service-nginx-web   <span class="m">45</span> minutes ago   Up <span class="m">3</span> seconds   0.0.0.0:80-&gt;80/tcp, <span class="o">[</span>::<span class="o">]</span>:80-&gt;80/tcp, 0.0.0.0:443-&gt;443/tcp, <span class="o">[</span>::<span class="o">]</span>:443-&gt;443/tcp
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># While performing the above operations, you can open another terminal to monitor log events</span>
+</span></span><span class="line"><span class="cl">root@lin-server:/data/docker-compose# docker-compose events
+</span></span><span class="line"><span class="cl">2026-09-15 01:58:34.935709 container <span class="nb">kill</span> ab4ade8a84c2ff9d60a01505771233b986dd6df0dcbd23fece11956a0b2adaca <span class="o">(</span>org.label-schema.license<span class="o">=</span>GPLv2, org.label-schema.build-date<span class="o">=</span>20191024, <span class="nv">image</span><span class="o">=</span>centos7-nginx:1.6.1.v2, <span class="nv">name</span><span class="o">=</span>nginx-web, org.label-schema.schema-version<span class="o">=</span>1.0, org.label-schema.name<span class="o">=</span>CentOS Base Image, org.label-schema.vendor<span class="o">=</span>CentOS, <span class="nv">signal</span><span class="o">=</span>15<span class="o">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">2026-09-15 01:58:35.023874 container stop ab4ade8a84c2ff9d60a01505771233b986dd6df0dcbd23fece11956a0b2adaca <span class="o">(</span>org.label-schema.build-date<span class="o">=</span>20191024, <span class="nv">name</span><span class="o">=</span>nginx-web, org.label-schema.schema-version<span class="o">=</span>1.0, org.label-schema.license<span class="o">=</span>GPLv2, org.label-schema.name<span class="o">=</span>CentOS Base Image, org.label-schema.vendor<span class="o">=</span>CentOS, <span class="nv">image</span><span class="o">=</span>centos7-nginx:1.6.1.v2<span class="o">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">2026-09-15 01:58:35.024814 container die ab4ade8a84c2ff9d60a01505771233b986dd6df0dcbd23fece11956a0b2adaca <span class="o">(</span><span class="nv">execDuration</span><span class="o">=</span>2674, org.label-schema.license<span class="o">=</span>GPLv2, org.label-schema.vendor<span class="o">=</span>CentOS, <span class="nv">image</span><span class="o">=</span>centos7-nginx:1.6.1.v2, org.label-schema.build-date<span class="o">=</span>20191024, <span class="nv">exitCode</span><span class="o">=</span>0, <span class="nv">name</span><span class="o">=</span>nginx-web, org.label-schema.name<span class="o">=</span>CentOS Base Image, org.label-schema.schema-version<span class="o">=</span>1.0<span class="o">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">2026-09-15 01:58:46.910893 container start ab4ade8a84c2ff9d60a01505771233b986dd6df0dcbd23fece11956a0b2adaca <span class="o">(</span>org.label-schema.name<span class="o">=</span>CentOS Base Image, <span class="nv">image</span><span class="o">=</span>centos7-nginx:1.6.1.v2, org.label-schema.license<span class="o">=</span>GPLv2, org.label-schema.vendor<span class="o">=</span>CentOS, <span class="nv">name</span><span class="o">=</span>nginx-web, org.label-schema.schema-version<span class="o">=</span>1.0, org.label-schema.build-date<span class="o">=</span>20191024<span class="o">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">2026-09-15 01:58:58.691731 container <span class="nb">kill</span> ab4ade8a84c2ff9d60a01505771233b986dd6df0dcbd23fece11956a0b2adaca <span class="o">(</span><span class="nv">image</span><span class="o">=</span>centos7-nginx:1.6.1.v2, <span class="nv">signal</span><span class="o">=</span>15, org.label-schema.build-date<span class="o">=</span>20191024, org.label-schema.name<span class="o">=</span>CentOS Base Image, org.label-schema.vendor<span class="o">=</span>CentOS, org.label-schema.schema-version<span class="o">=</span>1.0, <span class="nv">name</span><span class="o">=</span>nginx-web, org.label-schema.license<span class="o">=</span>GPLv2<span class="o">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">2026-09-15 01:58:58.785253 container stop ab4ade8a84c2ff9d60a01505771233b986dd6df0dcbd23fece11956a0b2adaca <span class="o">(</span>org.label-schema.license<span class="o">=</span>GPLv2, org.label-schema.name<span class="o">=</span>CentOS Base Image, org.label-schema.vendor<span class="o">=</span>CentOS, org.label-schema.schema-version<span class="o">=</span>1.0, <span class="nv">image</span><span class="o">=</span>centos7-nginx:1.6.1.v2, <span class="nv">name</span><span class="o">=</span>nginx-web, org.label-schema.build-date<span class="o">=</span>20191024<span class="o">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">2026-09-15 01:58:58.786200 container die ab4ade8a84c2ff9d60a01505771233b986dd6df0dcbd23fece11956a0b2adaca <span class="o">(</span><span class="nv">execDuration</span><span class="o">=</span>11, <span class="nv">name</span><span class="o">=</span>nginx-web, org.label-schema.build-date<span class="o">=</span>20191024, org.label-schema.name<span class="o">=</span>CentOS Base Image, org.label-schema.license<span class="o">=</span>GPLv2, <span class="nv">image</span><span class="o">=</span>centos7-nginx:1.6.1.v2, <span class="nv">exitCode</span><span class="o">=</span>0, org.label-schema.vendor<span class="o">=</span>CentOS, org.label-schema.schema-version<span class="o">=</span>1.0<span class="o">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">2026-09-15 01:58:58.898308 container start ab4ade8a84c2ff9d60a01505771233b986dd6df0dcbd23fece11956a0b2adaca <span class="o">(</span>org.label-schema.name<span class="o">=</span>CentOS Base Image, org.label-schema.schema-version<span class="o">=</span>1.0, <span class="nv">name</span><span class="o">=</span>nginx-web, org.label-schema.build-date<span class="o">=</span>20191024, org.label-schema.vendor<span class="o">=</span>CentOS, org.label-schema.license<span class="o">=</span>GPLv2, <span class="nv">image</span><span class="o">=</span>centos7-nginx:1.6.1.v2<span class="o">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">2026-09-15 01:58:58.898335 container restart ab4ade8a84c2ff9d60a01505771233b986dd6df0dcbd23fece11956a0b2adaca <span class="o">(</span><span class="nv">name</span><span class="o">=</span>nginx-web, org.label-schema.name<span class="o">=</span>CentOS Base Image, org.label-schema.schema-version<span class="o">=</span>1.0, <span class="nv">image</span><span class="o">=</span>centos7-nginx:1.6.1.v2, org.label-schema.build-date<span class="o">=</span>20191024, org.label-schema.vendor<span class="o">=</span>CentOS, org.label-schema.license<span class="o">=</span>GPLv2<span class="o">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Display logs in JSON format</span>
+</span></span><span class="line"><span class="cl">root@lin-server:/data/docker-compose# docker-compose events --json
+</span></span><span class="line"><span class="cl"><span class="o">{</span><span class="s2">&#34;action&#34;</span>:<span class="s2">&#34;kill&#34;</span>,<span class="s2">&#34;attributes&#34;</span>:<span class="o">{</span><span class="s2">&#34;image&#34;</span>:<span class="s2">&#34;centos7-nginx:1.6.1.v2&#34;</span>,<span class="s2">&#34;name&#34;</span>:<span class="s2">&#34;nginx-web&#34;</span>,<span class="s2">&#34;org.label-schema.build-date&#34;</span>:<span class="s2">&#34;20191024&#34;</span>,<span class="s2">&#34;org.label-schema.license&#34;</span>:<span class="s2">&#34;GPLv2&#34;</span>,<span class="s2">&#34;org.label-schema.name&#34;</span>:<span class="s2">&#34;CentOS Base Image&#34;</span>,<span class="s2">&#34;org.label-schema.schema-version&#34;</span>:<span class="s2">&#34;1.0&#34;</span>,<span class="s2">&#34;org.label-schema.vendor&#34;</span>:<span class="s2">&#34;CentOS&#34;</span>,<span class="s2">&#34;signal&#34;</span>:<span class="s2">&#34;15&#34;</span><span class="o">}</span>,<span class="s2">&#34;id&#34;</span>:<span class="s2">&#34;ab4ade8a84c2ff9d60a01505771233b986dd6df0dcbd23fece11956a0b2adaca&#34;</span>,<span class="s2">&#34;service&#34;</span>:<span class="s2">&#34;service-nginx-web&#34;</span>,<span class="s2">&#34;time&#34;</span>:<span class="s2">&#34;2026-09-15T01:59:40.824611579Z&#34;</span>,<span class="s2">&#34;type&#34;</span>:<span class="s2">&#34;container&#34;</span><span class="o">}</span>
+</span></span><span class="line"><span class="cl"><span class="o">{</span><span class="s2">&#34;action&#34;</span>:<span class="s2">&#34;stop&#34;</span>,<span class="s2">&#34;attributes&#34;</span>:<span class="o">{</span><span class="s2">&#34;image&#34;</span>:<span class="s2">&#34;centos7-nginx:1.6.1.v2&#34;</span>,<span class="s2">&#34;name&#34;</span>:<span class="s2">&#34;nginx-web&#34;</span>,<span class="s2">&#34;org.label-schema.build-date&#34;</span>:<span class="s2">&#34;20191024&#34;</span>,<span class="s2">&#34;org.label-schema.license&#34;</span>:<span class="s2">&#34;GPLv2&#34;</span>,<span class="s2">&#34;org.label-schema.name&#34;</span>:<span class="s2">&#34;CentOS Base Image&#34;</span>,<span class="s2">&#34;org.label-schema.schema-version&#34;</span>:<span class="s2">&#34;1.0&#34;</span>,<span class="s2">&#34;org.label-schema.vendor&#34;</span>:<span class="s2">&#34;CentOS&#34;</span><span class="o">}</span>,<span class="s2">&#34;id&#34;</span>:<span class="s2">&#34;ab4ade8a84c2ff9d60a01505771233b986dd6df0dcbd23fece11956a0b2adaca&#34;</span>,<span class="s2">&#34;service&#34;</span>:<span class="s2">&#34;service-nginx-web&#34;</span>,<span class="s2">&#34;time&#34;</span>:<span class="s2">&#34;2026-09-15T01:59:40.906930854Z&#34;</span>,<span class="s2">&#34;type&#34;</span>:<span class="s2">&#34;container&#34;</span><span class="o">}</span>
+</span></span><span class="line"><span class="cl"><span class="o">{</span><span class="s2">&#34;action&#34;</span>:<span class="s2">&#34;die&#34;</span>,<span class="s2">&#34;attributes&#34;</span>:<span class="o">{</span><span class="s2">&#34;execDuration&#34;</span>:<span class="s2">&#34;42&#34;</span>,<span class="s2">&#34;exitCode&#34;</span>:<span class="s2">&#34;0&#34;</span>,<span class="s2">&#34;image&#34;</span>:<span class="s2">&#34;centos7-nginx:1.6.1.v2&#34;</span>,<span class="s2">&#34;name&#34;</span>:<span class="s2">&#34;nginx-web&#34;</span>,<span class="s2">&#34;org.label-schema.build-date&#34;</span>:<span class="s2">&#34;20191024&#34;</span>,<span class="s2">&#34;org.label-schema.license&#34;</span>:<span class="s2">&#34;GPLv2&#34;</span>,<span class="s2">&#34;org.label-schema.name&#34;</span>:<span class="s2">&#34;CentOS Base Image&#34;</span>,<span class="s2">&#34;org.label-schema.schema-version&#34;</span>:<span class="s2">&#34;1.0&#34;</span>,<span class="s2">&#34;org.label-schema.vendor&#34;</span>:<span class="s2">&#34;CentOS&#34;</span><span class="o">}</span>,<span class="s2">&#34;id&#34;</span>:<span class="s2">&#34;ab4ade8a84c2ff9d60a01505771233b986dd6df0dcbd23fece11956a0b2adaca&#34;</span>,<span class="s2">&#34;service&#34;</span>:<span class="s2">&#34;service-nginx-web&#34;</span>,<span class="s2">&#34;time&#34;</span>:<span class="s2">&#34;2026-09-15T01:59:40.907666887Z&#34;</span>,<span class="s2">&#34;type&#34;</span>:<span class="s2">&#34;container&#34;</span><span class="o">}</span>
+</span></span><span class="line"><span class="cl"><span class="o">{</span><span class="s2">&#34;action&#34;</span>:<span class="s2">&#34;start&#34;</span>,<span class="s2">&#34;attributes&#34;</span>:<span class="o">{</span><span class="s2">&#34;image&#34;</span>:<span class="s2">&#34;centos7-nginx:1.6.1.v2&#34;</span>,<span class="s2">&#34;name&#34;</span>:<span class="s2">&#34;nginx-web&#34;</span>,<span class="s2">&#34;org.label-schema.build-date&#34;</span>:<span class="s2">&#34;20191024&#34;</span>,<span class="s2">&#34;org.label-schema.license&#34;</span>:<span class="s2">&#34;GPLv2&#34;</span>,<span class="s2">&#34;org.label-schema.name&#34;</span>:<span class="s2">&#34;CentOS Base Image&#34;</span>,<span class="s2">&#34;org.label-schema.schema-version&#34;</span>:<span class="s2">&#34;1.0&#34;</span>,<span class="s2">&#34;org.label-schema.vendor&#34;</span>:<span class="s2">&#34;CentOS&#34;</span><span class="o">}</span>,<span class="s2">&#34;id&#34;</span>:<span class="s2">&#34;ab4ade8a84c2ff9d60a01505771233b986dd6df0dcbd23fece11956a0b2adaca&#34;</span>,<span class="s2">&#34;service&#34;</span>:<span class="s2">&#34;service-nginx-web&#34;</span>,<span class="s2">&#34;time&#34;</span>:<span class="s2">&#34;2026-09-15T01:59:49.603271243Z&#34;</span>,<span class="s2">&#34;type&#34;</span>:<span class="s2">&#34;container&#34;</span><span class="o">}</span>
+</span></span><span class="line"><span class="cl"><span class="o">{</span><span class="s2">&#34;action&#34;</span>:<span class="s2">&#34;kill&#34;</span>,<span class="s2">&#34;attributes&#34;</span>:<span class="o">{</span><span class="s2">&#34;image&#34;</span>:<span class="s2">&#34;centos7-nginx:1.6.1.v2&#34;</span>,<span class="s2">&#34;name&#34;</span>:<span class="s2">&#34;nginx-web&#34;</span>,<span class="s2">&#34;org.label-schema.build-date&#34;</span>:<span class="s2">&#34;20191024&#34;</span>,<span class="s2">&#34;org.label-schema.license&#34;</span>:<span class="s2">&#34;GPLv2&#34;</span>,<span class="s2">&#34;org.label-schema.name&#34;</span>:<span class="s2">&#34;CentOS Base Image&#34;</span>,<span class="s2">&#34;org.label-schema.schema-version&#34;</span>:<span class="s2">&#34;1.0&#34;</span>,<span class="s2">&#34;org.label-schema.vendor&#34;</span>:<span class="s2">&#34;CentOS&#34;</span>,<span class="s2">&#34;signal&#34;</span>:<span class="s2">&#34;15&#34;</span><span class="o">}</span>,<span class="s2">&#34;id&#34;</span>:<span class="s2">&#34;ab4ade8a84c2ff9d60a01505771233b986dd6df0dcbd23fece11956a0b2adaca&#34;</span>,<span class="s2">&#34;service&#34;</span>:<span class="s2">&#34;service-nginx-web&#34;</span>,<span class="s2">&#34;time&#34;</span>:<span class="s2">&#34;2026-09-15T01:59:59.36788555Z&#34;</span>,<span class="s2">&#34;type&#34;</span>:<span class="s2">&#34;container&#34;</span><span class="o">}</span>
+</span></span><span class="line"><span class="cl"><span class="o">{</span><span class="s2">&#34;action&#34;</span>:<span class="s2">&#34;stop&#34;</span>,<span class="s2">&#34;attributes&#34;</span>:<span class="o">{</span><span class="s2">&#34;image&#34;</span>:<span class="s2">&#34;centos7-nginx:1.6.1.v2&#34;</span>,<span class="s2">&#34;name&#34;</span>:<span class="s2">&#34;nginx-web&#34;</span>,<span class="s2">&#34;org.label-schema.build-date&#34;</span>:<span class="s2">&#34;20191024&#34;</span>,<span class="s2">&#34;org.label-schema.license&#34;</span>:<span class="s2">&#34;GPLv2&#34;</span>,<span class="s2">&#34;org.label-schema.name&#34;</span>:<span class="s2">&#34;CentOS Base Image&#34;</span>,<span class="s2">&#34;org.label-schema.schema-version&#34;</span>:<span class="s2">&#34;1.0&#34;</span>,<span class="s2">&#34;org.label-schema.vendor&#34;</span>:<span class="s2">&#34;CentOS&#34;</span><span class="o">}</span>,<span class="s2">&#34;id&#34;</span>:<span class="s2">&#34;ab4ade8a84c2ff9d60a01505771233b986dd6df0dcbd23fece11956a0b2adaca&#34;</span>,<span class="s2">&#34;service&#34;</span>:<span class="s2">&#34;service-nginx-web&#34;</span>,<span class="s2">&#34;time&#34;</span>:<span class="s2">&#34;2026-09-15T01:59:59.436069861Z&#34;</span>,<span class="s2">&#34;type&#34;</span>:<span class="s2">&#34;container&#34;</span><span class="o">}</span>
+</span></span><span class="line"><span class="cl"><span class="o">{</span><span class="s2">&#34;action&#34;</span>:<span class="s2">&#34;die&#34;</span>,<span class="s2">&#34;attributes&#34;</span>:<span class="o">{</span><span class="s2">&#34;execDuration&#34;</span>:<span class="s2">&#34;9&#34;</span>,<span class="s2">&#34;exitCode&#34;</span>:<span class="s2">&#34;0&#34;</span>,<span class="s2">&#34;image&#34;</span>:<span class="s2">&#34;centos7-nginx:1.6.1.v2&#34;</span>,<span class="s2">&#34;name&#34;</span>:<span class="s2">&#34;nginx-web&#34;</span>,<span class="s2">&#34;org.label-schema.build-date&#34;</span>:<span class="s2">&#34;20191024&#34;</span>,<span class="s2">&#34;org.label-schema.license&#34;</span>:<span class="s2">&#34;GPLv2&#34;</span>,<span class="s2">&#34;org.label-schema.name&#34;</span>:<span class="s2">&#34;CentOS Base Image&#34;</span>,<span class="s2">&#34;org.label-schema.schema-version&#34;</span>:<span class="s2">&#34;1.0&#34;</span>,<span class="s2">&#34;org.label-schema.vendor&#34;</span>:<span class="s2">&#34;CentOS&#34;</span><span class="o">}</span>,<span class="s2">&#34;id&#34;</span>:<span class="s2">&#34;ab4ade8a84c2ff9d60a01505771233b986dd6df0dcbd23fece11956a0b2adaca&#34;</span>,<span class="s2">&#34;service&#34;</span>:<span class="s2">&#34;service-nginx-web&#34;</span>,<span class="s2">&#34;time&#34;</span>:<span class="s2">&#34;2026-09-15T01:59:59.437010231Z&#34;</span>,<span class="s2">&#34;type&#34;</span>:<span class="s2">&#34;container&#34;</span><span class="o">}</span>
+</span></span><span class="line"><span class="cl"><span class="o">{</span><span class="s2">&#34;action&#34;</span>:<span class="s2">&#34;start&#34;</span>,<span class="s2">&#34;attributes&#34;</span>:<span class="o">{</span><span class="s2">&#34;image&#34;</span>:<span class="s2">&#34;centos7-nginx:1.6.1.v2&#34;</span>,<span class="s2">&#34;name&#34;</span>:<span class="s2">&#34;nginx-web&#34;</span>,<span class="s2">&#34;org.label-schema.build-date&#34;</span>:<span class="s2">&#34;20191024&#34;</span>,<span class="s2">&#34;org.label-schema.license&#34;</span>:<span class="s2">&#34;GPLv2&#34;</span>,<span class="s2">&#34;org.label-schema.name&#34;</span>:<span class="s2">&#34;CentOS Base Image&#34;</span>,<span class="s2">&#34;org.label-schema.schema-version&#34;</span>:<span class="s2">&#34;1.0&#34;</span>,<span class="s2">&#34;org.label-schema.vendor&#34;</span>:<span class="s2">&#34;CentOS&#34;</span><span class="o">}</span>,<span class="s2">&#34;id&#34;</span>:<span class="s2">&#34;ab4ade8a84c2ff9d60a01505771233b986dd6df0dcbd23fece11956a0b2adaca&#34;</span>,<span class="s2">&#34;service&#34;</span>:<span class="s2">&#34;service-nginx-web&#34;</span>,<span class="s2">&#34;time&#34;</span>:<span class="s2">&#34;2026-09-15T01:59:59.551319951Z&#34;</span>,<span class="s2">&#34;type&#34;</span>:<span class="s2">&#34;container&#34;</span><span class="o">}</span>
+</span></span><span class="line"><span class="cl"><span class="o">{</span><span class="s2">&#34;action&#34;</span>:<span class="s2">&#34;restart&#34;</span>,<span class="s2">&#34;attributes&#34;</span>:<span class="o">{</span><span class="s2">&#34;image&#34;</span>:<span class="s2">&#34;centos7-nginx:1.6.1.v2&#34;</span>,<span class="s2">&#34;name&#34;</span>:<span class="s2">&#34;nginx-web&#34;</span>,<span class="s2">&#34;org.label-schema.build-date&#34;</span>:<span class="s2">&#34;20191024&#34;</span>,<span class="s2">&#34;org.label-schema.license&#34;</span>:<span class="s2">&#34;GPLv2&#34;</span>,<span class="s2">&#34;org.label-schema.name&#34;</span>:<span class="s2">&#34;CentOS Base Image&#34;</span>,<span class="s2">&#34;org.label-schema.schema-version&#34;</span>:<span class="s2">&#34;1.0&#34;</span>,<span class="s2">&#34;org.label-schema.vendor&#34;</span>:<span class="s2">&#34;CentOS&#34;</span><span class="o">}</span>,<span class="s2">&#34;id&#34;</span>:<span class="s2">&#34;ab4ade8a84c2ff9d60a01505771233b986dd6df0dcbd23fece11956a0b2adaca&#34;</span>,<span class="s2">&#34;service&#34;</span>:<span class="s2">&#34;service-nginx-web&#34;</span>,<span class="s2">&#34;time&#34;</span>:<span class="s2">&#34;2026-09-15T01:59:59.551350455Z&#34;</span>,<span class="s2">&#34;type&#34;</span>:<span class="s2">&#34;container&#34;</span><span class="o">}</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="pause-and-resume">Pause and resume
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:/data/docker-compose# docker-compose pause
+</span></span><span class="line"><span class="cl"><span class="o">[</span>+<span class="o">]</span> pause 1/1
+</span></span><span class="line"><span class="cl"> ✔ Container nginx-web Paused                                                                    0.0s
+</span></span><span class="line"><span class="cl">root@lin-server:/data/docker-compose# docker-compose ps
+</span></span><span class="line"><span class="cl">NAME        IMAGE                    COMMAND              SERVICE             CREATED             STATUS                   PORTS
+</span></span><span class="line"><span class="cl">nginx-web   centos7-nginx:1.6.1.v2   <span class="s2">&#34;/bin/sh -c nginx&#34;</span>   service-nginx-web   About an hour ago   Up <span class="m">14</span> minutes <span class="o">(</span>Paused<span class="o">)</span>   0.0.0.0:80-&gt;80/tcp, <span class="o">[</span>::<span class="o">]</span>:80-&gt;80/tcp, 0.0.0.0:443-&gt;443/tcp, <span class="o">[</span>::<span class="o">]</span>:443-&gt;443/tcp
+</span></span><span class="line"><span class="cl">root@lin-server:/data/docker-compose# curl -m <span class="m">1</span> http://127.0.0.1
+</span></span><span class="line"><span class="cl">curl: <span class="o">(</span>28<span class="o">)</span> Operation timed out after <span class="m">1001</span> milliseconds with <span class="m">0</span> bytes received
+</span></span><span class="line"><span class="cl">root@lin-server:/data/docker-compose# docker-compose unpause
+</span></span><span class="line"><span class="cl"><span class="o">[</span>+<span class="o">]</span> unpause 1/1
+</span></span><span class="line"><span class="cl"> ✔ Container nginx-web Unpaused                                                                  0.0s
+</span></span><span class="line"><span class="cl">root@lin-server:/data/docker-compose# docker-compose ps
+</span></span><span class="line"><span class="cl">NAME        IMAGE                    COMMAND              SERVICE             CREATED             STATUS          PORTS
+</span></span><span class="line"><span class="cl">nginx-web   centos7-nginx:1.6.1.v2   <span class="s2">&#34;/bin/sh -c nginx&#34;</span>   service-nginx-web   About an hour ago   Up <span class="m">15</span> minutes   0.0.0.0:80-&gt;80/tcp, <span class="o">[</span>::<span class="o">]</span>:80-&gt;80/tcp, 0.0.0.0:443-&gt;443/tcp, <span class="o">[</span>::<span class="o">]</span>:443-&gt;443/tcp
+</span></span><span class="line"><span class="cl">root@lin-server:/data/docker-compose# curl -m <span class="m">1</span> http://127.0.0.1
+</span></span><span class="line"><span class="cl">Nginx Test Page in Docker
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="start-multiple-containers-using-docker-compose">Start multiple containers using Docker Compose
+</h2><h3 id="edit-the-docker-compose-file-and-use-volumes">Edit the docker-compose file and use volumes
+</h3><p>Note: For the same file,the volume takes priority over the file inside the image</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">vim docker-compose.yml
+</span></span><span class="line"><span class="cl">cat docker-compose.yml
+</span></span><span class="line"><span class="cl">services:
+</span></span><span class="line"><span class="cl">  service-nginx-web:
+</span></span><span class="line"><span class="cl">    image: centos7-nginx:1.6.1.v2
+</span></span><span class="line"><span class="cl">    container_name: nginx-web
+</span></span><span class="line"><span class="cl">    volumes:
+</span></span><span class="line"><span class="cl">      - /data/nginx:/apps/nginx/html <span class="c1"># Specify a volume to mount the host directory /data/nginx to /apps/nginx/html in the container</span>
+</span></span><span class="line"><span class="cl">    expose:
+</span></span><span class="line"><span class="cl">      - <span class="m">80</span>
+</span></span><span class="line"><span class="cl">      - <span class="m">443</span>
+</span></span><span class="line"><span class="cl">    ports:
+</span></span><span class="line"><span class="cl">      - <span class="s2">&#34;80:80&#34;</span>
+</span></span><span class="line"><span class="cl">      - <span class="s2">&#34;443:443&#34;</span>
+</span></span><span class="line"><span class="cl">    
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  service-tomcat-app1:
+</span></span><span class="line"><span class="cl">    image: tomcat-web:app1
+</span></span><span class="line"><span class="cl">    container_name: tomcat-app1
+</span></span><span class="line"><span class="cl">    expose:
+</span></span><span class="line"><span class="cl">      - <span class="m">8080</span>
+</span></span><span class="line"><span class="cl">    ports:
+</span></span><span class="line"><span class="cl">      - <span class="s2">&#34;8081:8080&#34;</span>
+</span></span><span class="line"><span class="cl">    command: /start.sh
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  service-tomcat-app2:
+</span></span><span class="line"><span class="cl">    image: tomcat-web:app1
+</span></span><span class="line"><span class="cl">    container_name: tomcat-app2
+</span></span><span class="line"><span class="cl">    expose:
+</span></span><span class="line"><span class="cl">      - <span class="m">8080</span>
+</span></span><span class="line"><span class="cl">    ports:
+</span></span><span class="line"><span class="cl">      - <span class="s2">&#34;8082:8080&#34;</span>
+</span></span><span class="line"><span class="cl">    command: /start.sh
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Prepare the nginx test page file on the host</span>
+</span></span><span class="line"><span class="cl">mkdir /data/nginx
+</span></span><span class="line"><span class="cl"><span class="nb">echo</span> Docker compose <span class="nb">test</span> page &gt; /data/nginx/index.html
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="start-the-container-and-verify-the-result">Start the container and verify the result
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:/data/docker-compose# docker-compose up -d
+</span></span><span class="line"><span class="cl"><span class="o">[</span>+<span class="o">]</span> up 3/3
+</span></span><span class="line"><span class="cl"> ✔ Container tomcat-app2 Started                                                                                                                           0.3s
+</span></span><span class="line"><span class="cl"> ✔ Container nginx-web   Started                                                                                                                           0.4s
+</span></span><span class="line"><span class="cl"> ✔ Container tomcat-app1 Started      
+</span></span><span class="line"><span class="cl">root@lin-server:/data/docker-compose# docker-compose ps
+</span></span><span class="line"><span class="cl">NAME          IMAGE                    COMMAND              SERVICE               CREATED              STATUS              PORTS
+</span></span><span class="line"><span class="cl">nginx-web     centos7-nginx:1.6.1.v2   <span class="s2">&#34;/bin/sh -c nginx&#34;</span>   service-nginx-web     About a minute ago   Up About a minute   0.0.0.0:80-&gt;80/tcp, <span class="o">[</span>::<span class="o">]</span>:80-&gt;80/tcp, 0.0.0.0:443-&gt;443/tcp, <span class="o">[</span>::<span class="o">]</span>:443-&gt;443/tcp
+</span></span><span class="line"><span class="cl">tomcat-app1   tomcat-web:app1          <span class="s2">&#34;/start.sh&#34;</span>          service-tomcat-app1   About a minute ago   Up About a minute   0.0.0.0:8081-&gt;8080/tcp, <span class="o">[</span>::<span class="o">]</span>:8081-&gt;8080/tcp
+</span></span><span class="line"><span class="cl">tomcat-app2   tomcat-web:app1          <span class="s2">&#34;/start.sh&#34;</span>          service-tomcat-app2   About a minute ago   Up About a minute   0.0.0.0:8082-&gt;8080/tcp, <span class="o">[</span>::<span class="o">]</span>:8082-&gt;8080/tcp
+</span></span><span class="line"><span class="cl">root@lin-server:/data/docker-compose# curl http://127.0.0.1
+</span></span><span class="line"><span class="cl">Docker compose <span class="nb">test</span> page
+</span></span><span class="line"><span class="cl">root@lin-server:/data/docker-compose# curl http://127.0.0.1:8081/testapp/
+</span></span><span class="line"><span class="cl">testapp v1
+</span></span><span class="line"><span class="cl">root@lin-server:/data/docker-compose# curl http://127.0.0.1:8082/testapp/
+</span></span><span class="line"><span class="cl">testapp v1
 </span></span></code></pre></td></tr></table>
 </div>
 </div>
