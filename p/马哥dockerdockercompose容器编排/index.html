@@ -222,6 +222,28 @@
       <ol>
         <li><a href="#edit-the-docker-compose-file-and-use-volumes">Edit the docker-compose file and use volumes</a></li>
         <li><a href="#start-the-container-and-verify-the-result">Start the container and verify the result</a></li>
+        <li><a href="#specify-the-number-of-containers-to-start-simultaneously">Specify the number of containers to start simultaneously</a></li>
+        <li><a href="#scale-up-and-scale-down">Scale up and scale down</a></li>
+      </ol>
+    </li>
+    <li><a href="#hands-on-example-implementing-a-wordpress-application">Hands-on Example: Implementing a WordPress Application</a>
+      <ol>
+        <li><a href="#lnmp-stack">LNMP stack</a>
+          <ol>
+            <li><a href="#install-and-configure-the-docker-compose-tool">Install and configure the Docker Compose tool</a></li>
+            <li><a href="#prepare-the-relevant-configuration-files">Prepare the relevant configuration files</a></li>
+            <li><a href="#start-the-container-1">Start the container</a></li>
+            <li><a href="#test-access">Test access</a></li>
+          </ol>
+        </li>
+        <li><a href="#lamp-stack">LAMP stack</a></li>
+      </ol>
+    </li>
+    <li><a href="#hands-on-example-set-up-the-spug-operations-platform">Hands-on Example: Set up the Spug operations platform</a></li>
+    <li><a href="#hands-on-example-build-and-deploy-a-tomcat-server">Hands-on Example: Build and deploy a Tomcat server</a></li>
+    <li><a href="#english">English</a>
+      <ol>
+        <li><a href="#new-word">new word</a></li>
       </ol>
     </li>
   </ol>
@@ -795,7 +817,1090 @@
 </span></span><span class="line"><span class="cl">testapp v1
 </span></span></code></pre></td></tr></table>
 </div>
+</div><h3 id="specify-the-number-of-containers-to-start-simultaneously">Specify the number of containers to start simultaneously
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span><span class="lnt">51
+</span><span class="lnt">52
+</span><span class="lnt">53
+</span><span class="lnt">54
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:/data/docker-compose# vim docker-compose.yml
+</span></span><span class="line"><span class="cl">root@lin-server:/data/docker-compose# cat docker-compose.yml
+</span></span><span class="line"><span class="cl">services:
+</span></span><span class="line"><span class="cl">  service-nginx-web:
+</span></span><span class="line"><span class="cl">    image: centos7-nginx:1.6.1.v2
+</span></span><span class="line"><span class="cl"><span class="c1">#    container_name: nginx-web    # Start multiple containers from the same image simultaneously.Do not specify container names, or they will conflict</span>
+</span></span><span class="line"><span class="cl">    expose:
+</span></span><span class="line"><span class="cl">      - <span class="m">80</span>
+</span></span><span class="line"><span class="cl">      - <span class="m">443</span>
+</span></span><span class="line"><span class="cl"><span class="c1">#    ports:           # Start multiple containers from the same image simultaneously.Do not specify port numbers, or they will conflict</span>
+</span></span><span class="line"><span class="cl"><span class="c1">#      - &#34;80:80&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="c1">#      - &#34;443:443&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="c1"># Add a service too</span>
+</span></span><span class="line"><span class="cl">  service-tomcat:
+</span></span><span class="line"><span class="cl">    image: tomcat:9.0.67-jdk8
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">root@lin-server:/data/docker-compose# docker-compose ps
+</span></span><span class="line"><span class="cl">NAME      IMAGE     COMMAND   SERVICE   CREATED   STATUS    PORTS
+</span></span><span class="line"><span class="cl">root@lin-server:/data/docker-compose# docker-compose up -d --scale service-nginx-web<span class="o">=</span><span class="m">2</span>
+</span></span><span class="line"><span class="cl"><span class="o">[</span>+<span class="o">]</span> up 3/3
+</span></span><span class="line"><span class="cl"> ✔ Container docker-compose-service-tomcat-1    Started                                           0.3s
+</span></span><span class="line"><span class="cl"> ✔ Container docker-compose-service-nginx-web-1 Started                                           0.5s
+</span></span><span class="line"><span class="cl"> ✔ Container docker-compose-service-nginx-web-2 Started                                           0.3s
+</span></span><span class="line"><span class="cl">root@lin-server:/data/docker-compose# docker-compose ps
+</span></span><span class="line"><span class="cl">NAME                                 IMAGE                    COMMAND              SERVICE             CREATED          STATUS          PORTS
+</span></span><span class="line"><span class="cl">docker-compose-service-nginx-web-1   centos7-nginx:1.6.1.v2   <span class="s2">&#34;/bin/sh -c nginx&#34;</span>   service-nginx-web   <span class="m">14</span> seconds ago   Up <span class="m">13</span> seconds   80/tcp, 443/tcp
+</span></span><span class="line"><span class="cl">docker-compose-service-nginx-web-2   centos7-nginx:1.6.1.v2   <span class="s2">&#34;/bin/sh -c nginx&#34;</span>   service-nginx-web   <span class="m">14</span> seconds ago   Up <span class="m">14</span> seconds   80/tcp, 443/tcp
+</span></span><span class="line"><span class="cl">docker-compose-service-tomcat-1      tomcat:9.0.67-jdk8       <span class="s2">&#34;catalina.sh run&#34;</span>    service-tomcat      <span class="m">14</span> seconds ago   Up <span class="m">14</span> seconds   8080/tcp
+</span></span><span class="line"><span class="cl">root@lin-server:/data/docker-compose# docker-compose up -d --scale service-nginx-web<span class="o">=</span><span class="m">3</span> --scale service-tomcat<span class="o">=</span><span class="m">2</span>
+</span></span><span class="line"><span class="cl"><span class="o">[</span>+<span class="o">]</span> up 5/5
+</span></span><span class="line"><span class="cl"> ✔ Container docker-compose-service-tomcat-1    Running                                           0.0s
+</span></span><span class="line"><span class="cl"> ✔ Container docker-compose-service-nginx-web-1 Running                                           0.0s
+</span></span><span class="line"><span class="cl"> ✔ Container docker-compose-service-nginx-web-2 Running                                           0.0s
+</span></span><span class="line"><span class="cl"> ✔ Container docker-compose-service-tomcat-2    Started                                           0.2s
+</span></span><span class="line"><span class="cl"> ✔ Container docker-compose-service-nginx-web-3 Started                                           0.2s
+</span></span><span class="line"><span class="cl">root@lin-server:/data/docker-compose# docker-compose ps
+</span></span><span class="line"><span class="cl">NAME                                 IMAGE                    COMMAND              SERVICE             CREATED          STATUS          PORTS
+</span></span><span class="line"><span class="cl">docker-compose-service-nginx-web-1   centos7-nginx:1.6.1.v2   <span class="s2">&#34;/bin/sh -c nginx&#34;</span>   service-nginx-web   <span class="m">56</span> seconds ago   Up <span class="m">55</span> seconds   80/tcp, 443/tcp
+</span></span><span class="line"><span class="cl">docker-compose-service-nginx-web-2   centos7-nginx:1.6.1.v2   <span class="s2">&#34;/bin/sh -c nginx&#34;</span>   service-nginx-web   <span class="m">56</span> seconds ago   Up <span class="m">55</span> seconds   80/tcp, 443/tcp
+</span></span><span class="line"><span class="cl">docker-compose-service-nginx-web-3   centos7-nginx:1.6.1.v2   <span class="s2">&#34;/bin/sh -c nginx&#34;</span>   service-nginx-web   <span class="m">12</span> seconds ago   Up <span class="m">11</span> seconds   80/tcp, 443/tcp
+</span></span><span class="line"><span class="cl">docker-compose-service-tomcat-1      tomcat:9.0.67-jdk8       <span class="s2">&#34;catalina.sh run&#34;</span>    service-tomcat      <span class="m">56</span> seconds ago   Up <span class="m">55</span> seconds   8080/tcp
+</span></span><span class="line"><span class="cl">docker-compose-service-tomcat-2      tomcat:9.0.67-jdk8       <span class="s2">&#34;catalina.sh run&#34;</span>    service-tomcat      <span class="m">12</span> seconds ago   Up <span class="m">11</span> seconds   8080/tcp
+</span></span><span class="line"><span class="cl">root@lin-server:/data/docker-compose# docker-compose up -d
+</span></span><span class="line"><span class="cl"><span class="o">[</span>+<span class="o">]</span> up 5/5
+</span></span><span class="line"><span class="cl"> ✔ Container docker-compose-service-tomcat-1    Running                                           0.0s
+</span></span><span class="line"><span class="cl"> ✔ Container docker-compose-service-nginx-web-1 Running                                           0.0s
+</span></span><span class="line"><span class="cl"> ✔ Container docker-compose-service-nginx-web-2 Removed                                           0.1s
+</span></span><span class="line"><span class="cl"> ✔ Container docker-compose-service-nginx-web-3 Removed                                           0.1s
+</span></span><span class="line"><span class="cl"> ✔ Container docker-compose-service-tomcat-2    Removed                                           0.1s
+</span></span><span class="line"><span class="cl">root@lin-server:/data/docker-compose# docker-compose ps
+</span></span><span class="line"><span class="cl">NAME                                 IMAGE                    COMMAND              SERVICE             CREATED              STATUS              PORTS
+</span></span><span class="line"><span class="cl">docker-compose-service-nginx-web-1   centos7-nginx:1.6.1.v2   <span class="s2">&#34;/bin/sh -c nginx&#34;</span>   service-nginx-web   About a minute ago   Up About a minute   80/tcp, 443/tcp
+</span></span><span class="line"><span class="cl">docker-compose-service-tomcat-1      tomcat:9.0.67-jdk8       <span class="s2">&#34;catalina.sh run&#34;</span>    service-tomcat      About a minute ago   Up About a minute   8080/tcp
+</span></span></code></pre></td></tr></table>
 </div>
+</div><h3 id="scale-up-and-scale-down">Scale up and scale down
+</h3><p><font color=red>Note: The scale command has been deprecated in the new version</font></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># Scale up </span>
+</span></span><span class="line"><span class="cl">root@lin-server:/data/docker-compose# docker-compose scale service-nginx-web<span class="o">=</span><span class="m">3</span>
+</span></span><span class="line"><span class="cl"><span class="o">[</span>+<span class="o">]</span> scale 3/3
+</span></span><span class="line"><span class="cl"> ✔ Container docker-compose-service-nginx-web-1 Running                                           0.0s
+</span></span><span class="line"><span class="cl"> ✔ Container docker-compose-service-nginx-web-3 Created                                           0.0s
+</span></span><span class="line"><span class="cl"> ✔ Container docker-compose-service-nginx-web-2 Created                                           0.0s
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Scale down to 0, which means deleting the containers</span>
+</span></span><span class="line"><span class="cl">root@lin-server:/data/docker-compose# docker-compose scale service-nginx-web<span class="o">=</span><span class="m">0</span>
+</span></span><span class="line"><span class="cl"><span class="o">[</span>+<span class="o">]</span> scale 3/3
+</span></span><span class="line"><span class="cl"> ✔ Container docker-compose-service-nginx-web-1 Removed                                           0.1s
+</span></span><span class="line"><span class="cl"> ✔ Container docker-compose-service-nginx-web-2 Removed                                           0.1s
+</span></span><span class="line"><span class="cl"> ✔ Container docker-compose-service-nginx-web-3 Removed                                           0.1s
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="hands-on-example-implementing-a-wordpress-application">Hands-on Example: Implementing a WordPress Application
+</h2><h3 id="lnmp-stack">LNMP stack
+</h3><h4 id="install-and-configure-the-docker-compose-tool">Install and configure the Docker Compose tool
+</h4><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# apt update <span class="o">&amp;&amp;</span> apt -y install docker-compose
+</span></span><span class="line"><span class="cl">root@lin-server:~# cat &gt; /etc/docker/daemon.json <span class="s">&lt;&lt;EOF
+</span></span></span><span class="line"><span class="cl"><span class="s">{
+</span></span></span><span class="line"><span class="cl"><span class="s">  &#34;registry-mirrors&#34;: [&#34;https://docker.1ms.run&#34;]
+</span></span></span><span class="line"><span class="cl"><span class="s">}
+</span></span></span><span class="line"><span class="cl"><span class="s">EOF</span>
+</span></span><span class="line"><span class="cl">root@lin-server:~# systemctl restart docker
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker info
+</span></span><span class="line"><span class="cl">...
+</span></span><span class="line"><span class="cl"> Registry Mirrors:
+</span></span><span class="line"><span class="cl">  https://docker.1ms.run/
+</span></span><span class="line"><span class="cl"> Live Restore Enabled: <span class="nb">false</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="prepare-the-relevant-configuration-files">Prepare the relevant configuration files
+</h4><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span><span class="lnt">51
+</span><span class="lnt">52
+</span><span class="lnt">53
+</span><span class="lnt">54
+</span><span class="lnt">55
+</span><span class="lnt">56
+</span><span class="lnt">57
+</span><span class="lnt">58
+</span><span class="lnt">59
+</span><span class="lnt">60
+</span><span class="lnt">61
+</span><span class="lnt">62
+</span><span class="lnt">63
+</span><span class="lnt">64
+</span><span class="lnt">65
+</span><span class="lnt">66
+</span><span class="lnt">67
+</span><span class="lnt">68
+</span><span class="lnt">69
+</span><span class="lnt">70
+</span><span class="lnt">71
+</span><span class="lnt">72
+</span><span class="lnt">73
+</span><span class="lnt">74
+</span><span class="lnt">75
+</span><span class="lnt">76
+</span><span class="lnt">77
+</span><span class="lnt">78
+</span><span class="lnt">79
+</span><span class="lnt">80
+</span><span class="lnt">81
+</span><span class="lnt">82
+</span><span class="lnt">83
+</span><span class="lnt">84
+</span><span class="lnt">85
+</span><span class="lnt">86
+</span><span class="lnt">87
+</span><span class="lnt">88
+</span><span class="lnt">89
+</span><span class="lnt">90
+</span><span class="lnt">91
+</span><span class="lnt">92
+</span><span class="lnt">93
+</span><span class="lnt">94
+</span><span class="lnt">95
+</span><span class="lnt">96
+</span><span class="lnt">97
+</span><span class="lnt">98
+</span><span class="lnt">99
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# mkdir -p wordpress/nginx
+</span></span><span class="line"><span class="cl">root@lin-server:~# <span class="nb">cd</span> wordpress
+</span></span><span class="line"><span class="cl">root@lin-server:~/wordpress# vim nginx/wordpress.conf
+</span></span><span class="line"><span class="cl">  log_format access_json <span class="s1">&#39;{&#34;@timestamp&#34;:&#34;$time_iso8601&#34;,&#39;</span>
+</span></span><span class="line"><span class="cl">    <span class="s1">&#39;&#34;host&#34;:&#34;$server_addr&#34;,&#39;</span>
+</span></span><span class="line"><span class="cl">    <span class="s1">&#39;&#34;clientip&#34;:&#34;$remote_addr&#34;,&#39;</span>
+</span></span><span class="line"><span class="cl">    <span class="s1">&#39;&#34;size&#34;:$body_bytes_sent,&#39;</span>
+</span></span><span class="line"><span class="cl">    <span class="s1">&#39;&#34;responsetime&#34;:$request_time,&#39;</span>
+</span></span><span class="line"><span class="cl">    <span class="s1">&#39;&#34;upstreamtime&#34;:&#34;$upstream_response_time&#34;,&#39;</span>
+</span></span><span class="line"><span class="cl">    <span class="s1">&#39;&#34;upstreamhost&#34;:&#34;$upstream_addr&#34;,&#39;</span>
+</span></span><span class="line"><span class="cl">    <span class="s1">&#39;&#34;http_host&#34;:&#34;$host&#34;,&#39;</span>
+</span></span><span class="line"><span class="cl">    <span class="s1">&#39;&#34;uri&#34;:&#34;$uri&#34;,&#39;</span>
+</span></span><span class="line"><span class="cl">    <span class="s1">&#39;&#34;domain&#34;:&#34;$host&#34;,&#39;</span>
+</span></span><span class="line"><span class="cl">    <span class="s1">&#39;&#34;xff&#34;:&#34;$http_x_forwarded_for&#34;,&#39;</span>
+</span></span><span class="line"><span class="cl">    <span class="s1">&#39;&#34;referer&#34;:&#34;$http_referer&#34;,&#39;</span>
+</span></span><span class="line"><span class="cl">    <span class="s1">&#39;&#34;tcp_xff&#34;:&#34;$proxy_protocol_addr&#34;,&#39;</span>
+</span></span><span class="line"><span class="cl">    <span class="s1">&#39;&#34;http_user_agent&#34;:&#34;$http_user_agent&#34;,&#39;</span>
+</span></span><span class="line"><span class="cl">    <span class="s1">&#39;&#34;status&#34;:&#34;$status&#34;}&#39;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  access_log /var/log/nginx/access_json.log access_json <span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">server <span class="o">{</span>
+</span></span><span class="line"><span class="cl">  listen 80<span class="p">;</span>
+</span></span><span class="line"><span class="cl">  server_name wordpress.wang.org<span class="p">;</span>
+</span></span><span class="line"><span class="cl">  client_max_body_size 100m<span class="p">;</span>
+</span></span><span class="line"><span class="cl">  root /var/www/html<span class="p">;</span>
+</span></span><span class="line"><span class="cl">  index index.php<span class="p">;</span>
+</span></span><span class="line"><span class="cl">  
+</span></span><span class="line"><span class="cl">  location / <span class="o">{</span>
+</span></span><span class="line"><span class="cl">    try_files <span class="nv">$uri</span> <span class="nv">$uri</span>/ /index.php?<span class="nv">$args</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="o">}</span>
+</span></span><span class="line"><span class="cl">  
+</span></span><span class="line"><span class="cl">  location ~ <span class="se">\.</span>php$ <span class="o">{</span>
+</span></span><span class="line"><span class="cl">    root /var/www/html<span class="p">;</span>
+</span></span><span class="line"><span class="cl">    fastcgi_index index.php<span class="p">;</span>
+</span></span><span class="line"><span class="cl">    fastcgi_pass wordpress:9000<span class="p">;</span>
+</span></span><span class="line"><span class="cl">    include fastcgi_params<span class="p">;</span>
+</span></span><span class="line"><span class="cl">    fastcgi_param SCRIPT_FILENAME <span class="nv">$document_root$fastcgi_script_name</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="o">}</span>
+</span></span><span class="line"><span class="cl"><span class="o">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">root@lin-server:~/wordpress# vim docker-compose.yaml
+</span></span><span class="line"><span class="cl">version: <span class="s1">&#39;3.3&#39;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">services:
+</span></span><span class="line"><span class="cl">  mysql:
+</span></span><span class="line"><span class="cl">    image: registry.cn-beijing.aliyuncs.com/wangxiaochun/mysql:8.0.29-oracle
+</span></span><span class="line"><span class="cl">    volumes:
+</span></span><span class="line"><span class="cl">      - /data/wordpress/mysql:/var/lib/mysql
+</span></span><span class="line"><span class="cl">    environment:
+</span></span><span class="line"><span class="cl">      - <span class="nv">MYSQL_ROOT_PASSWORD</span><span class="o">=</span><span class="m">123456</span>
+</span></span><span class="line"><span class="cl">      - <span class="nv">MYSQL_DATABASE</span><span class="o">=</span>wordpress
+</span></span><span class="line"><span class="cl">      - <span class="nv">MYSQL_USER</span><span class="o">=</span>wordpress
+</span></span><span class="line"><span class="cl">      - <span class="nv">MYSQL_PASSWORD</span><span class="o">=</span><span class="m">123456</span>
+</span></span><span class="line"><span class="cl">    restart: always
+</span></span><span class="line"><span class="cl">    networks:
+</span></span><span class="line"><span class="cl">      - wordpress-network
+</span></span><span class="line"><span class="cl">    
+</span></span><span class="line"><span class="cl">  wordpress:
+</span></span><span class="line"><span class="cl">    image: registry.cn-beijing.aliyuncs.com/wangxiaochun/wordpress:6.7.2-php8.1-fpm
+</span></span><span class="line"><span class="cl">    volumes:
+</span></span><span class="line"><span class="cl">      - /data/wordpress/wordpress:/var/www/html
+</span></span><span class="line"><span class="cl">    environment:
+</span></span><span class="line"><span class="cl">      - <span class="nv">WORDPRESS_DB_HOST</span><span class="o">=</span>mysql
+</span></span><span class="line"><span class="cl">      - <span class="nv">WORDPRESS_DB_NAME</span><span class="o">=</span>wordpress
+</span></span><span class="line"><span class="cl">      - <span class="nv">WORDPRESS_DB_USER</span><span class="o">=</span>wordpress
+</span></span><span class="line"><span class="cl">      - <span class="nv">WORDPRESS_DB_PASSWORD</span><span class="o">=</span><span class="m">123456</span>
+</span></span><span class="line"><span class="cl">    restart: always
+</span></span><span class="line"><span class="cl">    networks:
+</span></span><span class="line"><span class="cl">      - wordpress-network
+</span></span><span class="line"><span class="cl">  
+</span></span><span class="line"><span class="cl">  nginx:
+</span></span><span class="line"><span class="cl">    image: registry.cn-beijing.aliyuncs.com/wangxiaochun/nginx:1.26.0
+</span></span><span class="line"><span class="cl">    ports:
+</span></span><span class="line"><span class="cl">      - <span class="s1">&#39;80:80&#39;</span>
+</span></span><span class="line"><span class="cl">    volumes:
+</span></span><span class="line"><span class="cl">      - ./nginx/wordpress.conf:/etc/nginx/conf.d/wordpress.conf
+</span></span><span class="line"><span class="cl">      - /data/wordpress/nginx:/var/log/nginx/
+</span></span><span class="line"><span class="cl">      - /data/wordpress/wordpress:/var/www/html
+</span></span><span class="line"><span class="cl">    
+</span></span><span class="line"><span class="cl">    restart: always
+</span></span><span class="line"><span class="cl">    networks:
+</span></span><span class="line"><span class="cl">      - wordpress-network
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">networks:
+</span></span><span class="line"><span class="cl">  wordpress-network:
+</span></span><span class="line"><span class="cl">    driver: bridge
+</span></span><span class="line"><span class="cl">    ipam:
+</span></span><span class="line"><span class="cl">      config:
+</span></span><span class="line"><span class="cl">        - subnet: 172.30.0.0/16
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># List of all files</span>
+</span></span><span class="line"><span class="cl">root@lin-server:~/wordpress# tree 
+</span></span><span class="line"><span class="cl">.
+</span></span><span class="line"><span class="cl">├── docker-compose.yaml
+</span></span><span class="line"><span class="cl">└── nginx
+</span></span><span class="line"><span class="cl">    └── wordpress.conf
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="m">2</span> directories, <span class="m">2</span> files
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="start-the-container-1">Start the container
+</h4><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># Pull the image in advance</span>
+</span></span><span class="line"><span class="cl">root@lin-server:~/wordpress# docker-compose pull
+</span></span><span class="line"><span class="cl">WARN<span class="o">[</span>0000<span class="o">]</span> /root/wordpress/docker-compose.yaml: the attribute <span class="sb">`</span>version<span class="sb">`</span> is obsolete, it will be ignored, please remove it to avoid potential confusion 
+</span></span><span class="line"><span class="cl"><span class="o">[</span>+<span class="o">]</span> pull 3/3
+</span></span><span class="line"><span class="cl"> ✔ Image registry.cn-beijing.aliyuncs.com/wangxiaochun/mysql:8.0.29-oracle        Pulled          1.3s
+</span></span><span class="line"><span class="cl"> ✔ Image registry.cn-beijing.aliyuncs.com/wangxiaochun/wordpress:6.7.2-php8.1-fpm Pulled          1.3s
+</span></span><span class="line"><span class="cl"> ✔ Image registry.cn-beijing.aliyuncs.com/wangxiaochun/nginx:1.26.0               Pulled          1.3s
+</span></span><span class="line"><span class="cl">root@lin-server:~/wordpress# docker-compose images
+</span></span><span class="line"><span class="cl">WARN<span class="o">[</span>0000<span class="o">]</span> /root/wordpress/docker-compose.yaml: the attribute <span class="sb">`</span>version<span class="sb">`</span> is obsolete, it will be ignored, please remove it to avoid potential confusion 
+</span></span><span class="line"><span class="cl">CONTAINER           REPOSITORY          TAG                 PLATFORM            IMAGE ID            SIZE                CREATED
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Run</span>
+</span></span><span class="line"><span class="cl">docker-compose up
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">root@lin-server:~/wordpress# docker-compose images
+</span></span><span class="line"><span class="cl">WARN<span class="o">[</span>0000<span class="o">]</span> /root/wordpress/docker-compose.yaml: the attribute <span class="sb">`</span>version<span class="sb">`</span> is obsolete, it will be ignored, please remove it to avoid potential confusion 
+</span></span><span class="line"><span class="cl">CONTAINER               REPOSITORY                                                TAG                 PLATFORM            IMAGE ID            SIZE                CREATED
+</span></span><span class="line"><span class="cl">wordpress-mysql-1       registry.cn-beijing.aliyuncs.com/wangxiaochun/mysql       8.0.29-oracle       linux/amd64         33037edcac9b        444MB               <span class="m">4</span> years ago
+</span></span><span class="line"><span class="cl">wordpress-nginx-1       registry.cn-beijing.aliyuncs.com/wangxiaochun/nginx       1.26.0              linux/amd64         94543a6c1aef        188MB               <span class="m">2</span> years ago
+</span></span><span class="line"><span class="cl">wordpress-wordpress-1   registry.cn-beijing.aliyuncs.com/wangxiaochun/wordpress   6.7.2-php8.1-fpm    linux/amd64         510e2e70e66e        691MB               <span class="m">19</span> months ago
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="test-access">Test access
+</h4><p><font color=red>Note: Name resolution is required</font></p>
+<ul>
+<li>Configure the hosts file (for local testing)</li>
+</ul>
+<p>Windows：C:\Windows\System32\drivers\etc\hosts
+Mac/Linux：/etc/hosts</p>
+<p>Add the following line:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">192.168.128.100  wordpress.wang.org
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>Access</li>
+</ul>
+<blockquote>
+<p>http://192.168.128.100</p>
+</blockquote>
+<p><img src="/p/%E9%A9%AC%E5%93%A5dockerdockercompose%E5%AE%B9%E5%99%A8%E7%BC%96%E6%8E%92/image.png"
+	width="1315"
+	height="845"
+	srcset="/p/%E9%A9%AC%E5%93%A5dockerdockercompose%E5%AE%B9%E5%99%A8%E7%BC%96%E6%8E%92/image_hu_4028f633acd0e9fc.png 480w, /p/%E9%A9%AC%E5%93%A5dockerdockercompose%E5%AE%B9%E5%99%A8%E7%BC%96%E6%8E%92/image_hu_29d862491452657d.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="155"
+		data-flex-basis="373px"
+	
+></p>
+<blockquote>
+<p><a class="link" href="http://wordpress.wang.org/"  target="_blank" rel="noopener"
+    >http://wordpress.wang.org/</a></p>
+</blockquote>
+<p><img src="/p/%E9%A9%AC%E5%93%A5dockerdockercompose%E5%AE%B9%E5%99%A8%E7%BC%96%E6%8E%92/image-1.png"
+	width="1314"
+	height="844"
+	srcset="/p/%E9%A9%AC%E5%93%A5dockerdockercompose%E5%AE%B9%E5%99%A8%E7%BC%96%E6%8E%92/image-1_hu_126f38f0ab8776fc.png 480w, /p/%E9%A9%AC%E5%93%A5dockerdockercompose%E5%AE%B9%E5%99%A8%E7%BC%96%E6%8E%92/image-1_hu_d747f6eead2c7fb9.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="155"
+		data-flex-basis="373px"
+	
+></p>
+<p><img src="/p/%E9%A9%AC%E5%93%A5dockerdockercompose%E5%AE%B9%E5%99%A8%E7%BC%96%E6%8E%92/image-2.png"
+	width="1313"
+	height="845"
+	srcset="/p/%E9%A9%AC%E5%93%A5dockerdockercompose%E5%AE%B9%E5%99%A8%E7%BC%96%E6%8E%92/image-2_hu_f637b526480d311b.png 480w, /p/%E9%A9%AC%E5%93%A5dockerdockercompose%E5%AE%B9%E5%99%A8%E7%BC%96%E6%8E%92/image-2_hu_9a8e3c2ae695ef8c.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="155"
+		data-flex-basis="372px"
+	
+></p>
+<p><img src="/p/%E9%A9%AC%E5%93%A5dockerdockercompose%E5%AE%B9%E5%99%A8%E7%BC%96%E6%8E%92/image-3.png"
+	width="1311"
+	height="845"
+	srcset="/p/%E9%A9%AC%E5%93%A5dockerdockercompose%E5%AE%B9%E5%99%A8%E7%BC%96%E6%8E%92/image-3_hu_edc568eaae564b24.png 480w, /p/%E9%A9%AC%E5%93%A5dockerdockercompose%E5%AE%B9%E5%99%A8%E7%BC%96%E6%8E%92/image-3_hu_63eb061943e28bc4.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="155"
+		data-flex-basis="372px"
+	
+></p>
+<p><img src="/p/%E9%A9%AC%E5%93%A5dockerdockercompose%E5%AE%B9%E5%99%A8%E7%BC%96%E6%8E%92/image-4.png"
+	width="1316"
+	height="847"
+	srcset="/p/%E9%A9%AC%E5%93%A5dockerdockercompose%E5%AE%B9%E5%99%A8%E7%BC%96%E6%8E%92/image-4_hu_9d23edd74f4cd69a.png 480w, /p/%E9%A9%AC%E5%93%A5dockerdockercompose%E5%AE%B9%E5%99%A8%E7%BC%96%E6%8E%92/image-4_hu_3c5493d62a475016.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="155"
+		data-flex-basis="372px"
+	
+></p>
+<p>Log in to the admin panel and publish an article</p>
+<p><img src="/p/%E9%A9%AC%E5%93%A5dockerdockercompose%E5%AE%B9%E5%99%A8%E7%BC%96%E6%8E%92/image-5.png"
+	width="1315"
+	height="844"
+	srcset="/p/%E9%A9%AC%E5%93%A5dockerdockercompose%E5%AE%B9%E5%99%A8%E7%BC%96%E6%8E%92/image-5_hu_59f921176ccea311.png 480w, /p/%E9%A9%AC%E5%93%A5dockerdockercompose%E5%AE%B9%E5%99%A8%E7%BC%96%E6%8E%92/image-5_hu_8fdcdc2c2e1627e1.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="155"
+		data-flex-basis="373px"
+	
+></p>
+<p><img src="/p/%E9%A9%AC%E5%93%A5dockerdockercompose%E5%AE%B9%E5%99%A8%E7%BC%96%E6%8E%92/image-6.png"
+	width="1315"
+	height="846"
+	srcset="/p/%E9%A9%AC%E5%93%A5dockerdockercompose%E5%AE%B9%E5%99%A8%E7%BC%96%E6%8E%92/image-6_hu_ed0ecc0b7aa17e4e.png 480w, /p/%E9%A9%AC%E5%93%A5dockerdockercompose%E5%AE%B9%E5%99%A8%E7%BC%96%E6%8E%92/image-6_hu_c3fd48b6be7a58d4.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="155"
+		data-flex-basis="373px"
+	
+></p>
+<p><img src="/p/%E9%A9%AC%E5%93%A5dockerdockercompose%E5%AE%B9%E5%99%A8%E7%BC%96%E6%8E%92/image-7.png"
+	width="1316"
+	height="843"
+	srcset="/p/%E9%A9%AC%E5%93%A5dockerdockercompose%E5%AE%B9%E5%99%A8%E7%BC%96%E6%8E%92/image-7_hu_f7c0015b1ae97ab3.png 480w, /p/%E9%A9%AC%E5%93%A5dockerdockercompose%E5%AE%B9%E5%99%A8%E7%BC%96%E6%8E%92/image-7_hu_78223482759534f3.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="156"
+		data-flex-basis="374px"
+	
+></p>
+<h3 id="lamp-stack">LAMP stack
+</h3><p>Example</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">cat docker-compose.yaml
+</span></span><span class="line"><span class="cl">version: <span class="s1">&#39;3&#39;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">services:
+</span></span><span class="line"><span class="cl">  mysql:
+</span></span><span class="line"><span class="cl">    image: registry.cn-beijing.aliyuncs.com/wangxiaochun/mysql:8.0.29-oracle
+</span></span><span class="line"><span class="cl">    container_name: db
+</span></span><span class="line"><span class="cl">    restart: always
+</span></span><span class="line"><span class="cl">    environment:
+</span></span><span class="line"><span class="cl">      - <span class="nv">MYSQL_DATABASE</span><span class="o">=</span>wordpress
+</span></span><span class="line"><span class="cl">      - <span class="nv">MYSQL_ROOT_PASSWORD</span><span class="o">=</span><span class="m">123456</span>
+</span></span><span class="line"><span class="cl">      - <span class="nv">MYSQL_USER</span><span class="o">=</span>wordpress
+</span></span><span class="line"><span class="cl">      - <span class="nv">MYSQL_PASSWORD</span><span class="o">=</span><span class="m">123456</span>
+</span></span><span class="line"><span class="cl">    volumes:
+</span></span><span class="line"><span class="cl">      - /data/wordpress/mysql:/var/lib/mysql
+</span></span><span class="line"><span class="cl">    networks:
+</span></span><span class="line"><span class="cl">      - wordpress-network
+</span></span><span class="line"><span class="cl">    
+</span></span><span class="line"><span class="cl">    wordpress:
+</span></span><span class="line"><span class="cl">      depends_on:
+</span></span><span class="line"><span class="cl">        - mysql
+</span></span><span class="line"><span class="cl">      image: registry.cn-beijing.aliyuncs.com/wangxiaochun/wordpress:php8.2-apache
+</span></span><span class="line"><span class="cl">      container_name: wordpress
+</span></span><span class="line"><span class="cl">      restart: always
+</span></span><span class="line"><span class="cl">      ports:
+</span></span><span class="line"><span class="cl">        - <span class="s2">&#34;8888:80&#34;</span>
+</span></span><span class="line"><span class="cl">      environment:
+</span></span><span class="line"><span class="cl">        - <span class="nv">WORDPRESS_DB_HOST</span><span class="o">=</span>mysql:3306
+</span></span><span class="line"><span class="cl">        - <span class="nv">WORDPRESS_DB_USER</span><span class="o">=</span>wordpress
+</span></span><span class="line"><span class="cl">        - <span class="nv">WORDPRESS_DB_PASSWORD</span><span class="o">=</span><span class="m">123456</span>
+</span></span><span class="line"><span class="cl">        - <span class="nv">WORDPRESS_DB_NAME</span><span class="o">=</span>wordpress
+</span></span><span class="line"><span class="cl">      volumes:
+</span></span><span class="line"><span class="cl">        - /data/wordpress/wordpress:/var/www/html
+</span></span><span class="line"><span class="cl">      networks:
+</span></span><span class="line"><span class="cl">        - wordpress-network
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">networks:
+</span></span><span class="line"><span class="cl">  wordpress-network:
+</span></span><span class="line"><span class="cl">    driver: bridge
+</span></span><span class="line"><span class="cl">    ipam:
+</span></span><span class="line"><span class="cl">      config:
+</span></span><span class="line"><span class="cl">        - subnet: 172.30.0.0/16
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">docker-compose up -d
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="hands-on-example-set-up-the-spug-operations-platform">Hands-on Example: Set up the Spug operations platform
+</h2><ul>
+<li>Reference link</li>
+</ul>
+<blockquote>
+<p><a class="link" href="https://spug.cc/docs/install-docker"  target="_blank" rel="noopener"
+    >https://spug.cc/docs/install-docker</a></p>
+</blockquote>
+<ul>
+<li>Example: Deploying Spug with Docker Compose</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span><span class="lnt">51
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># Create a log directory</span>
+</span></span><span class="line"><span class="cl">mkdir -p /data/spug/service/<span class="o">{</span>spug_api/logs,spug_web/logs<span class="o">}</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># Set permissions</span>
+</span></span><span class="line"><span class="cl">chmod -R <span class="m">755</span> /data/spug/service
+</span></span><span class="line"><span class="cl"><span class="c1"># Create a docker-compose.yml file</span>
+</span></span><span class="line"><span class="cl">vim docker-compose.yml
+</span></span><span class="line"><span class="cl">version: <span class="s2">&#34;3.9&#34;</span>
+</span></span><span class="line"><span class="cl">services:
+</span></span><span class="line"><span class="cl">  db:
+</span></span><span class="line"><span class="cl">    image: mysql:5.7.30
+</span></span><span class="line"><span class="cl">    container_name: spug-db
+</span></span><span class="line"><span class="cl">    restart: always
+</span></span><span class="line"><span class="cl">    command: --character-set-server<span class="o">=</span>utf8mb4 --collation-server<span class="o">=</span>utf8mb4_unicode_ci
+</span></span><span class="line"><span class="cl">    volumes:
+</span></span><span class="line"><span class="cl">      - /data/spug/mysql:/var/lib/mysql
+</span></span><span class="line"><span class="cl">    environment:
+</span></span><span class="line"><span class="cl">      - <span class="nv">MYSQL_DATABASE</span><span class="o">=</span>spug
+</span></span><span class="line"><span class="cl">      - <span class="nv">MYSQL_USER</span><span class="o">=</span>spug
+</span></span><span class="line"><span class="cl">      - <span class="nv">MYSQL_PASSWORD</span><span class="o">=</span>spug.cc
+</span></span><span class="line"><span class="cl">      - <span class="nv">MYSQL_ROOT_PASSWORD</span><span class="o">=</span>spug.cc
+</span></span><span class="line"><span class="cl">  spug:
+</span></span><span class="line"><span class="cl">    image: registry.aliyuncs.com/openspug/spug
+</span></span><span class="line"><span class="cl">    container_name: spug
+</span></span><span class="line"><span class="cl">    privileged: <span class="nb">true</span>
+</span></span><span class="line"><span class="cl">    restart: always
+</span></span><span class="line"><span class="cl">    volumes:
+</span></span><span class="line"><span class="cl">      - /data/spug/repos:/data/repos
+</span></span><span class="line"><span class="cl">    ports:
+</span></span><span class="line"><span class="cl">      - <span class="s2">&#34;80:80&#34;</span>
+</span></span><span class="line"><span class="cl">    environment:
+</span></span><span class="line"><span class="cl">      - <span class="nv">SPUG_DOCKER_VERSION</span><span class="o">=</span>v3.2.1
+</span></span><span class="line"><span class="cl">      - <span class="nv">MYSQL_DATABASE</span><span class="o">=</span>spug
+</span></span><span class="line"><span class="cl">      - <span class="nv">MYSQL_USER</span><span class="o">=</span>spug
+</span></span><span class="line"><span class="cl">      - <span class="nv">MYSQL_PASSWORD</span><span class="o">=</span>spug.cc
+</span></span><span class="line"><span class="cl">      - <span class="nv">MYSQL_HOST</span><span class="o">=</span>db
+</span></span><span class="line"><span class="cl">      - <span class="nv">MYSQL_PORT</span><span class="o">=</span><span class="m">3306</span>
+</span></span><span class="line"><span class="cl">    depends_on:
+</span></span><span class="line"><span class="cl">      - db
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Start the project</span>
+</span></span><span class="line"><span class="cl">root@lin-server:~/spug# docker-compose up -d
+</span></span><span class="line"><span class="cl">WARN<span class="o">[</span>0000<span class="o">]</span> /root/spug/docker-compose.yml: the attribute <span class="sb">`</span>version<span class="sb">`</span> is obsolete, it will be ignored, please remove it to avoid potential confusion 
+</span></span><span class="line"><span class="cl"><span class="o">[</span>+<span class="o">]</span> up 3/3
+</span></span><span class="line"><span class="cl"> ✔ Network spug_default Created                                                                        0.0s
+</span></span><span class="line"><span class="cl"> ✔ Container spug-db    Started                                                                        0.1s
+</span></span><span class="line"><span class="cl"> ✔ Container spug       Started                                                                        0.3s
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Initialization: The following operation will create an administrator account with the username admin and password 123456.You can replace the administrator account and password as needed.</span>
+</span></span><span class="line"><span class="cl">docker <span class="nb">exec</span> spug init_spug admin <span class="m">123456</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Access test: Enter http://192.168.128.100:80 in your browser to access it (the default account and password were set during the initialization step above).</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/%E9%A9%AC%E5%93%A5dockerdockercompose%E5%AE%B9%E5%99%A8%E7%BC%96%E6%8E%92/image-8.png"
+	width="1315"
+	height="846"
+	srcset="/p/%E9%A9%AC%E5%93%A5dockerdockercompose%E5%AE%B9%E5%99%A8%E7%BC%96%E6%8E%92/image-8_hu_3c653013658874b.png 480w, /p/%E9%A9%AC%E5%93%A5dockerdockercompose%E5%AE%B9%E5%99%A8%E7%BC%96%E6%8E%92/image-8_hu_cd8144833413b546.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="155"
+		data-flex-basis="373px"
+	
+></p>
+<p><img src="/p/%E9%A9%AC%E5%93%A5dockerdockercompose%E5%AE%B9%E5%99%A8%E7%BC%96%E6%8E%92/image-9.png"
+	width="1315"
+	height="847"
+	srcset="/p/%E9%A9%AC%E5%93%A5dockerdockercompose%E5%AE%B9%E5%99%A8%E7%BC%96%E6%8E%92/image-9_hu_fe7d8a515decbb2c.png 480w, /p/%E9%A9%AC%E5%93%A5dockerdockercompose%E5%AE%B9%E5%99%A8%E7%BC%96%E6%8E%92/image-9_hu_a860b0847b8402aa.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="155"
+		data-flex-basis="372px"
+	
+></p>
+<h2 id="hands-on-example-build-and-deploy-a-tomcat-server">Hands-on Example: Build and deploy a Tomcat server
+</h2><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span><span class="lnt">51
+</span><span class="lnt">52
+</span><span class="lnt">53
+</span><span class="lnt">54
+</span><span class="lnt">55
+</span><span class="lnt">56
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# mkdir -p /data/tomcat/tomcat
+</span></span><span class="line"><span class="cl">root@lin-server:~# <span class="nb">cd</span> /data/tomcat
+</span></span><span class="line"><span class="cl">root@lin-server:/data/tomcat# vim tomcat/Dockerfile
+</span></span><span class="line"><span class="cl">FROM tomcat:jdk11
+</span></span><span class="line"><span class="cl">RUN <span class="nb">cd</span> /usr/local/tomcat/webapps.dist <span class="o">&amp;&amp;</span> mv * /usr/local/tomcat/webapps/
+</span></span><span class="line"><span class="cl">COPY ./manager-context.xml /usr/local/tomcat/webapps/manager/META-INF/context.xml
+</span></span><span class="line"><span class="cl">COPY ./host-manager-context.xml /usr/local/tomcat/webapps/host-manager/META-INF/context.xml
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">root@lin-server:/data/tomcat# vim docker-compose.yaml
+</span></span><span class="line"><span class="cl">version: <span class="s1">&#39;3.6&#39;</span>
+</span></span><span class="line"><span class="cl">volumes:
+</span></span><span class="line"><span class="cl">  tomcat_apps: <span class="o">{}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">networks:
+</span></span><span class="line"><span class="cl">  tomcat_net:
+</span></span><span class="line"><span class="cl">    driver: bridge
+</span></span><span class="line"><span class="cl">    ipam:
+</span></span><span class="line"><span class="cl">      config:
+</span></span><span class="line"><span class="cl">        - subnet: 172.27.0.0/24
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">services:
+</span></span><span class="line"><span class="cl">  tomcat:
+</span></span><span class="line"><span class="cl">    image: tomcat:v1.0
+</span></span><span class="line"><span class="cl">    build:
+</span></span><span class="line"><span class="cl">      context: tomcat
+</span></span><span class="line"><span class="cl">      dockerfile: Dockerfile
+</span></span><span class="line"><span class="cl">    hostname: tomcat.wang.org
+</span></span><span class="line"><span class="cl">    container_name: tomcat
+</span></span><span class="line"><span class="cl">    ports:
+</span></span><span class="line"><span class="cl">      - 80:8080
+</span></span><span class="line"><span class="cl">    volumes:
+</span></span><span class="line"><span class="cl">      - tomcat_apps:/usr/local/tomcat/webapps
+</span></span><span class="line"><span class="cl">      - ./tomcat/tomcat-users.xml:/usr/local/tomcat/conf/tomcat-users.xml
+</span></span><span class="line"><span class="cl">    networks:
+</span></span><span class="line"><span class="cl">      tomcat_net:
+</span></span><span class="line"><span class="cl">        ipv4_address: 172.27.0.100
+</span></span><span class="line"><span class="cl">        aliases:
+</span></span><span class="line"><span class="cl">          - tomcat
+</span></span><span class="line"><span class="cl">          - apps
+</span></span><span class="line"><span class="cl">    environment:
+</span></span><span class="line"><span class="cl">      TZ: Asia/Shanghai
+</span></span><span class="line"><span class="cl">    restart: always
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">root@lin-server:/data/tomcat# tree .
+</span></span><span class="line"><span class="cl">.
+</span></span><span class="line"><span class="cl">├── docker-compose.yaml
+</span></span><span class="line"><span class="cl">└── tomcat
+</span></span><span class="line"><span class="cl">    ├── Dockerfile
+</span></span><span class="line"><span class="cl">    ├── host-manager-context.xml
+</span></span><span class="line"><span class="cl">    ├── manager-context.xml
+</span></span><span class="line"><span class="cl">    └── tomcat-users.xml
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Run and build</span>
+</span></span><span class="line"><span class="cl">docker-compose build
+</span></span><span class="line"><span class="cl">docker-compose ps
+</span></span><span class="line"><span class="cl">docker inspect tomcat
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li><code>/data/tomcat/tomcat/tomcat-users.xml</code></li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-xml" data-lang="xml"><span class="line"><span class="cl"><span class="cp">&lt;?xml version=&#34;1.0&#34; encoding=&#34;UTF-8&#34;?&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="nt">&lt;tomcat-users</span> <span class="na">xmlns=</span><span class="s">&#34;http://tomcat.apache.org/xml&#34;</span>
+</span></span><span class="line"><span class="cl">              <span class="na">xmlns:xsi=</span><span class="s">&#34;http://www.w3.org/2001/XMLSchema-instance&#34;</span>
+</span></span><span class="line"><span class="cl">              <span class="na">xsi:schemaLocation=</span><span class="s">&#34;http://tomcat.apache.org/xml tomcat-users.xsd&#34;</span>
+</span></span><span class="line"><span class="cl">              <span class="na">version=</span><span class="s">&#34;1.0&#34;</span><span class="nt">&gt;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c">&lt;!--
+</span></span></span><span class="line"><span class="cl"><span class="c">      角色定义：
+</span></span></span><span class="line"><span class="cl"><span class="c">      - manager-gui：允许访问 HTML 界面（/manager/html）
+</span></span></span><span class="line"><span class="cl"><span class="c">      - manager-script：允许访问文本接口（/manager/text）
+</span></span></span><span class="line"><span class="cl"><span class="c">      - manager-jmx：允许访问 JMX 代理接口
+</span></span></span><span class="line"><span class="cl"><span class="c">      - manager-status：允许访问只读状态页面
+</span></span></span><span class="line"><span class="cl"><span class="c">      - admin-gui：允许访问 host-manager HTML 界面
+</span></span></span><span class="line"><span class="cl"><span class="c">      - admin-script：允许访问 host-manager 文本接口
+</span></span></span><span class="line"><span class="cl"><span class="c">    --&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;role</span> <span class="na">rolename=</span><span class="s">&#34;manager-gui&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;role</span> <span class="na">rolename=</span><span class="s">&#34;manager-script&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;role</span> <span class="na">rolename=</span><span class="s">&#34;manager-jmx&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;role</span> <span class="na">rolename=</span><span class="s">&#34;manager-status&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;role</span> <span class="na">rolename=</span><span class="s">&#34;admin-gui&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;role</span> <span class="na">rolename=</span><span class="s">&#34;admin-script&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c">&lt;!--
+</span></span></span><span class="line"><span class="cl"><span class="c">      用户定义：
+</span></span></span><span class="line"><span class="cl"><span class="c">      用户名：admin
+</span></span></span><span class="line"><span class="cl"><span class="c">      密码：admin123（请根据实际情况修改）
+</span></span></span><span class="line"><span class="cl"><span class="c">      角色：拥有所有管理权限
+</span></span></span><span class="line"><span class="cl"><span class="c">    --&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;user</span> <span class="na">username=</span><span class="s">&#34;admin&#34;</span> <span class="na">password=</span><span class="s">&#34;admin123&#34;</span>
+</span></span><span class="line"><span class="cl">          <span class="na">roles=</span><span class="s">&#34;manager-gui,manager-script,manager-jmx,manager-status,admin-gui,admin-script&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nt">&lt;/tomcat-users&gt;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li><code>/data/tomcat/tomcat/manager-context.xml</code></li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-xml" data-lang="xml"><span class="line"><span class="cl"><span class="cp">&lt;?xml version=&#34;1.0&#34; encoding=&#34;UTF-8&#34;?&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="nt">&lt;Context</span> <span class="na">antiResourceLocking=</span><span class="s">&#34;false&#34;</span> <span class="na">privileged=</span><span class="s">&#34;true&#34;</span> <span class="nt">&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="c">&lt;!--
+</span></span></span><span class="line"><span class="cl"><span class="c">      默认情况下，Manager 应用只允许来自 localhost 的访问。
+</span></span></span><span class="line"><span class="cl"><span class="c">      下面注释掉的 Valve 允许所有 IP 访问，生产环境请谨慎使用。
+</span></span></span><span class="line"><span class="cl"><span class="c">    --&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="c">&lt;!--
+</span></span></span><span class="line"><span class="cl"><span class="c">    &lt;Valve className=&#34;org.apache.catalina.valves.RemoteAddrValve&#34;
+</span></span></span><span class="line"><span class="cl"><span class="c">           allow=&#34;127\.\d+\.\d+\.\d+|::1|0:0:0:0:0:0:0:1&#34; /&gt;
+</span></span></span><span class="line"><span class="cl"><span class="c">    --&gt;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;Manager</span> <span class="na">sessionAttributeValueClassNameFilter=</span><span class="s">&#34;java\.lang\.(?:Boolean|Integer|Long|Number|String)|org\.apache\.catalina\.filters\.CsrfPreventionFilter\$LruCache(?:\$1)?|java\.util\.(?:LinkedHashMap|LinkedHashSet)|java\.util\.concurrent\.ConcurrentHashMap&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="nt">&lt;/Context&gt;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li><code>/data/tomcat/tomcat/host-manager-context.xml</code></li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-xml" data-lang="xml"><span class="line"><span class="cl"><span class="cp">&lt;?xml version=&#34;1.0&#34; encoding=&#34;UTF-8&#34;?&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="nt">&lt;Context</span> <span class="na">antiResourceLocking=</span><span class="s">&#34;false&#34;</span> <span class="na">privileged=</span><span class="s">&#34;true&#34;</span> <span class="nt">&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="c">&lt;!--
+</span></span></span><span class="line"><span class="cl"><span class="c">      默认情况下，Host Manager 应用只允许来自 localhost 的访问。
+</span></span></span><span class="line"><span class="cl"><span class="c">      下面注释掉的 Valve 允许所有 IP 访问，生产环境请谨慎使用。
+</span></span></span><span class="line"><span class="cl"><span class="c">    --&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="c">&lt;!--
+</span></span></span><span class="line"><span class="cl"><span class="c">    &lt;Valve className=&#34;org.apache.catalina.valves.RemoteAddrValve&#34;
+</span></span></span><span class="line"><span class="cl"><span class="c">           allow=&#34;127\.\d+\.\d+\.\d+|::1|0:0:0:0:0:0:0:1&#34; /&gt;
+</span></span></span><span class="line"><span class="cl"><span class="c">    --&gt;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;Manager</span> <span class="na">sessionAttributeValueClassNameFilter=</span><span class="s">&#34;java\.lang\.(?:Boolean|Integer|Long|Number|String)|org\.apache\.catalina\.filters\.CsrfPreventionFilter\$LruCache(?:\$1)?|java\.util\.(?:LinkedHashMap|LinkedHashSet)|java\.util\.concurrent\.ConcurrentHashMap&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="nt">&lt;/Context&gt;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="english">English
+</h2><h3 id="new-word">new word
+</h3><ul>
+<li>deploy  v、部署</li>
+</ul>
+
 </section>
 
 
