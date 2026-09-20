@@ -241,6 +241,8 @@
     </li>
     <li><a href="#hands-on-example-set-up-the-spug-operations-platform">Hands-on Example: Set up the Spug operations platform</a></li>
     <li><a href="#hands-on-example-build-and-deploy-a-tomcat-server">Hands-on Example: Build and deploy a Tomcat server</a></li>
+    <li><a href="#hands-on-example-ruoyi-microservices-project">Hands-on Example: RuoYi microservices project</a></li>
+    <li><a href="#hands-on-example-convert-between-docker-run-and-docker-compose-files">Hands-on Example: Convert between docker run and Docker Compose files</a></li>
     <li><a href="#english">English</a>
       <ol>
         <li><a href="#new-word">new word</a></li>
@@ -1634,125 +1636,7 @@ Mac/Linux：/etc/hosts</p>
 	
 ></p>
 <h2 id="hands-on-example-build-and-deploy-a-tomcat-server">Hands-on Example: Build and deploy a Tomcat server
-</h2><div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span><span class="lnt">23
-</span><span class="lnt">24
-</span><span class="lnt">25
-</span><span class="lnt">26
-</span><span class="lnt">27
-</span><span class="lnt">28
-</span><span class="lnt">29
-</span><span class="lnt">30
-</span><span class="lnt">31
-</span><span class="lnt">32
-</span><span class="lnt">33
-</span><span class="lnt">34
-</span><span class="lnt">35
-</span><span class="lnt">36
-</span><span class="lnt">37
-</span><span class="lnt">38
-</span><span class="lnt">39
-</span><span class="lnt">40
-</span><span class="lnt">41
-</span><span class="lnt">42
-</span><span class="lnt">43
-</span><span class="lnt">44
-</span><span class="lnt">45
-</span><span class="lnt">46
-</span><span class="lnt">47
-</span><span class="lnt">48
-</span><span class="lnt">49
-</span><span class="lnt">50
-</span><span class="lnt">51
-</span><span class="lnt">52
-</span><span class="lnt">53
-</span><span class="lnt">54
-</span><span class="lnt">55
-</span><span class="lnt">56
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# mkdir -p /data/tomcat/tomcat
-</span></span><span class="line"><span class="cl">root@lin-server:~# <span class="nb">cd</span> /data/tomcat
-</span></span><span class="line"><span class="cl">root@lin-server:/data/tomcat# vim tomcat/Dockerfile
-</span></span><span class="line"><span class="cl">FROM tomcat:jdk11
-</span></span><span class="line"><span class="cl">RUN <span class="nb">cd</span> /usr/local/tomcat/webapps.dist <span class="o">&amp;&amp;</span> mv * /usr/local/tomcat/webapps/
-</span></span><span class="line"><span class="cl">COPY ./manager-context.xml /usr/local/tomcat/webapps/manager/META-INF/context.xml
-</span></span><span class="line"><span class="cl">COPY ./host-manager-context.xml /usr/local/tomcat/webapps/host-manager/META-INF/context.xml
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">root@lin-server:/data/tomcat# vim docker-compose.yaml
-</span></span><span class="line"><span class="cl">version: <span class="s1">&#39;3.6&#39;</span>
-</span></span><span class="line"><span class="cl">volumes:
-</span></span><span class="line"><span class="cl">  tomcat_apps: <span class="o">{}</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">networks:
-</span></span><span class="line"><span class="cl">  tomcat_net:
-</span></span><span class="line"><span class="cl">    driver: bridge
-</span></span><span class="line"><span class="cl">    ipam:
-</span></span><span class="line"><span class="cl">      config:
-</span></span><span class="line"><span class="cl">        - subnet: 172.27.0.0/24
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">services:
-</span></span><span class="line"><span class="cl">  tomcat:
-</span></span><span class="line"><span class="cl">    image: tomcat:v1.0
-</span></span><span class="line"><span class="cl">    build:
-</span></span><span class="line"><span class="cl">      context: tomcat
-</span></span><span class="line"><span class="cl">      dockerfile: Dockerfile
-</span></span><span class="line"><span class="cl">    hostname: tomcat.wang.org
-</span></span><span class="line"><span class="cl">    container_name: tomcat
-</span></span><span class="line"><span class="cl">    ports:
-</span></span><span class="line"><span class="cl">      - 80:8080
-</span></span><span class="line"><span class="cl">    volumes:
-</span></span><span class="line"><span class="cl">      - tomcat_apps:/usr/local/tomcat/webapps
-</span></span><span class="line"><span class="cl">      - ./tomcat/tomcat-users.xml:/usr/local/tomcat/conf/tomcat-users.xml
-</span></span><span class="line"><span class="cl">    networks:
-</span></span><span class="line"><span class="cl">      tomcat_net:
-</span></span><span class="line"><span class="cl">        ipv4_address: 172.27.0.100
-</span></span><span class="line"><span class="cl">        aliases:
-</span></span><span class="line"><span class="cl">          - tomcat
-</span></span><span class="line"><span class="cl">          - apps
-</span></span><span class="line"><span class="cl">    environment:
-</span></span><span class="line"><span class="cl">      TZ: Asia/Shanghai
-</span></span><span class="line"><span class="cl">    restart: always
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">root@lin-server:/data/tomcat# tree .
-</span></span><span class="line"><span class="cl">.
-</span></span><span class="line"><span class="cl">├── docker-compose.yaml
-</span></span><span class="line"><span class="cl">└── tomcat
-</span></span><span class="line"><span class="cl">    ├── Dockerfile
-</span></span><span class="line"><span class="cl">    ├── host-manager-context.xml
-</span></span><span class="line"><span class="cl">    ├── manager-context.xml
-</span></span><span class="line"><span class="cl">    └── tomcat-users.xml
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="c1"># Run and build</span>
-</span></span><span class="line"><span class="cl">docker-compose build
-</span></span><span class="line"><span class="cl">docker-compose ps
-</span></span><span class="line"><span class="cl">docker inspect tomcat
-</span></span></code></pre></td></tr></table>
-</div>
-</div><ul>
+</h2><ul>
 <li><code>/data/tomcat/tomcat/tomcat-users.xml</code></li>
 </ul>
 <div class="highlight"><div class="chroma">
@@ -1895,7 +1779,362 @@ Mac/Linux：/etc/hosts</p>
 </span></span><span class="line"><span class="cl"><span class="nt">&lt;/Context&gt;</span>
 </span></span></code></pre></td></tr></table>
 </div>
-</div><h2 id="english">English
+</div><ul>
+<li>Build and deploy a Tomcat server</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">  1
+</span><span class="lnt">  2
+</span><span class="lnt">  3
+</span><span class="lnt">  4
+</span><span class="lnt">  5
+</span><span class="lnt">  6
+</span><span class="lnt">  7
+</span><span class="lnt">  8
+</span><span class="lnt">  9
+</span><span class="lnt"> 10
+</span><span class="lnt"> 11
+</span><span class="lnt"> 12
+</span><span class="lnt"> 13
+</span><span class="lnt"> 14
+</span><span class="lnt"> 15
+</span><span class="lnt"> 16
+</span><span class="lnt"> 17
+</span><span class="lnt"> 18
+</span><span class="lnt"> 19
+</span><span class="lnt"> 20
+</span><span class="lnt"> 21
+</span><span class="lnt"> 22
+</span><span class="lnt"> 23
+</span><span class="lnt"> 24
+</span><span class="lnt"> 25
+</span><span class="lnt"> 26
+</span><span class="lnt"> 27
+</span><span class="lnt"> 28
+</span><span class="lnt"> 29
+</span><span class="lnt"> 30
+</span><span class="lnt"> 31
+</span><span class="lnt"> 32
+</span><span class="lnt"> 33
+</span><span class="lnt"> 34
+</span><span class="lnt"> 35
+</span><span class="lnt"> 36
+</span><span class="lnt"> 37
+</span><span class="lnt"> 38
+</span><span class="lnt"> 39
+</span><span class="lnt"> 40
+</span><span class="lnt"> 41
+</span><span class="lnt"> 42
+</span><span class="lnt"> 43
+</span><span class="lnt"> 44
+</span><span class="lnt"> 45
+</span><span class="lnt"> 46
+</span><span class="lnt"> 47
+</span><span class="lnt"> 48
+</span><span class="lnt"> 49
+</span><span class="lnt"> 50
+</span><span class="lnt"> 51
+</span><span class="lnt"> 52
+</span><span class="lnt"> 53
+</span><span class="lnt"> 54
+</span><span class="lnt"> 55
+</span><span class="lnt"> 56
+</span><span class="lnt"> 57
+</span><span class="lnt"> 58
+</span><span class="lnt"> 59
+</span><span class="lnt"> 60
+</span><span class="lnt"> 61
+</span><span class="lnt"> 62
+</span><span class="lnt"> 63
+</span><span class="lnt"> 64
+</span><span class="lnt"> 65
+</span><span class="lnt"> 66
+</span><span class="lnt"> 67
+</span><span class="lnt"> 68
+</span><span class="lnt"> 69
+</span><span class="lnt"> 70
+</span><span class="lnt"> 71
+</span><span class="lnt"> 72
+</span><span class="lnt"> 73
+</span><span class="lnt"> 74
+</span><span class="lnt"> 75
+</span><span class="lnt"> 76
+</span><span class="lnt"> 77
+</span><span class="lnt"> 78
+</span><span class="lnt"> 79
+</span><span class="lnt"> 80
+</span><span class="lnt"> 81
+</span><span class="lnt"> 82
+</span><span class="lnt"> 83
+</span><span class="lnt"> 84
+</span><span class="lnt"> 85
+</span><span class="lnt"> 86
+</span><span class="lnt"> 87
+</span><span class="lnt"> 88
+</span><span class="lnt"> 89
+</span><span class="lnt"> 90
+</span><span class="lnt"> 91
+</span><span class="lnt"> 92
+</span><span class="lnt"> 93
+</span><span class="lnt"> 94
+</span><span class="lnt"> 95
+</span><span class="lnt"> 96
+</span><span class="lnt"> 97
+</span><span class="lnt"> 98
+</span><span class="lnt"> 99
+</span><span class="lnt">100
+</span><span class="lnt">101
+</span><span class="lnt">102
+</span><span class="lnt">103
+</span><span class="lnt">104
+</span><span class="lnt">105
+</span><span class="lnt">106
+</span><span class="lnt">107
+</span><span class="lnt">108
+</span><span class="lnt">109
+</span><span class="lnt">110
+</span><span class="lnt">111
+</span><span class="lnt">112
+</span><span class="lnt">113
+</span><span class="lnt">114
+</span><span class="lnt">115
+</span><span class="lnt">116
+</span><span class="lnt">117
+</span><span class="lnt">118
+</span><span class="lnt">119
+</span><span class="lnt">120
+</span><span class="lnt">121
+</span><span class="lnt">122
+</span><span class="lnt">123
+</span><span class="lnt">124
+</span><span class="lnt">125
+</span><span class="lnt">126
+</span><span class="lnt">127
+</span><span class="lnt">128
+</span><span class="lnt">129
+</span><span class="lnt">130
+</span><span class="lnt">131
+</span><span class="lnt">132
+</span><span class="lnt">133
+</span><span class="lnt">134
+</span><span class="lnt">135
+</span><span class="lnt">136
+</span><span class="lnt">137
+</span><span class="lnt">138
+</span><span class="lnt">139
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# mkdir -p /data/tomcat/tomcat
+</span></span><span class="line"><span class="cl">root@lin-server:~# <span class="nb">cd</span> /data/tomcat
+</span></span><span class="line"><span class="cl">root@lin-server:/data/tomcat# vim tomcat/Dockerfile
+</span></span><span class="line"><span class="cl">FROM tomcat:jdk11
+</span></span><span class="line"><span class="cl">RUN <span class="nb">cd</span> /usr/local/tomcat/webapps.dist <span class="o">&amp;&amp;</span> mv * /usr/local/tomcat/webapps/
+</span></span><span class="line"><span class="cl">COPY ./manager-context.xml /usr/local/tomcat/webapps/manager/META-INF/context.xml
+</span></span><span class="line"><span class="cl">COPY ./host-manager-context.xml /usr/local/tomcat/webapps/host-manager/META-INF/context.xml
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">root@lin-server:/data/tomcat# vim docker-compose.yaml
+</span></span><span class="line"><span class="cl">version: <span class="s1">&#39;3.6&#39;</span>
+</span></span><span class="line"><span class="cl">volumes:
+</span></span><span class="line"><span class="cl">  tomcat_apps: <span class="o">{}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">networks:
+</span></span><span class="line"><span class="cl">  tomcat_net:
+</span></span><span class="line"><span class="cl">    driver: bridge
+</span></span><span class="line"><span class="cl">    ipam:
+</span></span><span class="line"><span class="cl">      config:
+</span></span><span class="line"><span class="cl">        - subnet: 172.27.0.0/24
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">services:
+</span></span><span class="line"><span class="cl">  tomcat:
+</span></span><span class="line"><span class="cl">    image: tomcat:v1.0
+</span></span><span class="line"><span class="cl">    build:
+</span></span><span class="line"><span class="cl">      context: tomcat
+</span></span><span class="line"><span class="cl">      dockerfile: Dockerfile
+</span></span><span class="line"><span class="cl">    hostname: tomcat.wang.org
+</span></span><span class="line"><span class="cl">    container_name: tomcat
+</span></span><span class="line"><span class="cl">    ports:
+</span></span><span class="line"><span class="cl">      - 80:8080
+</span></span><span class="line"><span class="cl">    volumes:
+</span></span><span class="line"><span class="cl">      - tomcat_apps:/usr/local/tomcat/webapps
+</span></span><span class="line"><span class="cl">      - ./tomcat/tomcat-users.xml:/usr/local/tomcat/conf/tomcat-users.xml
+</span></span><span class="line"><span class="cl">    networks:
+</span></span><span class="line"><span class="cl">      tomcat_net:
+</span></span><span class="line"><span class="cl">        ipv4_address: 172.27.0.100
+</span></span><span class="line"><span class="cl">        aliases:
+</span></span><span class="line"><span class="cl">          - tomcat
+</span></span><span class="line"><span class="cl">          - apps
+</span></span><span class="line"><span class="cl">    environment:
+</span></span><span class="line"><span class="cl">      TZ: Asia/Shanghai
+</span></span><span class="line"><span class="cl">    restart: always
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">root@lin-server:/data/tomcat# tree .
+</span></span><span class="line"><span class="cl">.
+</span></span><span class="line"><span class="cl">├── docker-compose.yaml
+</span></span><span class="line"><span class="cl">└── tomcat
+</span></span><span class="line"><span class="cl">    ├── Dockerfile
+</span></span><span class="line"><span class="cl">    ├── host-manager-context.xml
+</span></span><span class="line"><span class="cl">    ├── manager-context.xml
+</span></span><span class="line"><span class="cl">    └── tomcat-users.xml
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Run and build</span>
+</span></span><span class="line"><span class="cl">root@lin-server:/data/tomcat# docker-compose build
+</span></span><span class="line"><span class="cl">WARN<span class="o">[</span>0000<span class="o">]</span> /data/tomcat/docker-compose.yaml: the attribute <span class="sb">`</span>version<span class="sb">`</span> is obsolete, it will be ignored, please remove it to avoid potential confusion 
+</span></span><span class="line"><span class="cl">WARN<span class="o">[</span>0000<span class="o">]</span> Docker Compose requires buildx plugin to be installed 
+</span></span><span class="line"><span class="cl">Sending build context to Docker daemon   1.24kB
+</span></span><span class="line"><span class="cl">Step 1/5 : FROM tomcat:jdk11
+</span></span><span class="line"><span class="cl">jdk11: Pulling from library/tomcat
+</span></span><span class="line"><span class="cl">Digest: sha256:7bd5f7eec261ab29dde1e0c8b36a278394bb542cefe3ed5cb99bda3d1c0308b7
+</span></span><span class="line"><span class="cl">Status: Downloaded newer image <span class="k">for</span> tomcat:jdk11
+</span></span><span class="line"><span class="cl"> ---&gt; 23fe88842887
+</span></span><span class="line"><span class="cl">Step 2/5 : RUN <span class="nb">cd</span> /usr/local/tomcat/webapps.dist <span class="o">&amp;&amp;</span> mv * /usr/local/tomcat/webapps/
+</span></span><span class="line"><span class="cl"> ---&gt; Running in 535eb1ca0b71
+</span></span><span class="line"><span class="cl"> ---&gt; Removed intermediate container 535eb1ca0b71
+</span></span><span class="line"><span class="cl"> ---&gt; 72b36729fff8
+</span></span><span class="line"><span class="cl">Step 3/5 : COPY ./manager-context.xml /usr/local/tomcat/webapps/manager/META-INF/context.xml
+</span></span><span class="line"><span class="cl"> ---&gt; 409932e856b6
+</span></span><span class="line"><span class="cl">Step 4/5 : COPY ./host-manager-context.xml /usr/local/tomcat/webapps/host-manager/META-INF/context.xml
+</span></span><span class="line"><span class="cl"> ---&gt; ee18e77e16fb
+</span></span><span class="line"><span class="cl">Step 5/5 : LABEL com.docker.compose.image.builder<span class="o">=</span>classic
+</span></span><span class="line"><span class="cl"> ---&gt; Running in dd7f52033fdd
+</span></span><span class="line"><span class="cl"> ---&gt; Removed intermediate container dd7f52033fdd
+</span></span><span class="line"><span class="cl"> ---&gt; 9cc10f06ddc0
+</span></span><span class="line"><span class="cl">Successfully built 9cc10f06ddc0
+</span></span><span class="line"><span class="cl">Successfully tagged tomcat:v1.0
+</span></span><span class="line"><span class="cl"><span class="o">[</span>+<span class="o">]</span> build 1/1
+</span></span><span class="line"><span class="cl"> ✔ Image tomcat:v1.0 Built                                         2.0s
+</span></span><span class="line"><span class="cl">root@lin-server:/data/tomcat# docker-compose up -d
+</span></span><span class="line"><span class="cl">WARN<span class="o">[</span>0000<span class="o">]</span> /data/tomcat/docker-compose.yaml: the attribute <span class="sb">`</span>version<span class="sb">`</span> is obsolete, it will be ignored, please remove it to avoid potential confusion 
+</span></span><span class="line"><span class="cl"><span class="o">[</span>+<span class="o">]</span> up 1/1
+</span></span><span class="line"><span class="cl"> ✔ Container tomcat Started                                                                                        0.1s
+</span></span><span class="line"><span class="cl">root@lin-server:/data/tomcat# docker-compose ps
+</span></span><span class="line"><span class="cl">WARN<span class="o">[</span>0000<span class="o">]</span> /data/tomcat/docker-compose.yaml: the attribute <span class="sb">`</span>version<span class="sb">`</span> is obsolete, it will be ignored, please remove it to avoid potential confusion 
+</span></span><span class="line"><span class="cl">NAME      IMAGE         COMMAND             SERVICE   CREATED          STATUS          PORTS
+</span></span><span class="line"><span class="cl">tomcat    tomcat:v1.0   <span class="s2">&#34;catalina.sh run&#34;</span>   tomcat    <span class="m">10</span> seconds ago   Up <span class="m">10</span> seconds   0.0.0.0:80-&gt;8080/tcp, <span class="o">[</span>::<span class="o">]</span>:80-&gt;8080/tcp
+</span></span><span class="line"><span class="cl">root@lin-server:/data/tomcat# docker inspect tomcat
+</span></span><span class="line"><span class="cl">....
+</span></span><span class="line"><span class="cl"><span class="s2">&#34;Networks&#34;</span>: <span class="o">{</span>
+</span></span><span class="line"><span class="cl">                <span class="s2">&#34;tomcat_tomcat_net&#34;</span>: <span class="o">{</span>
+</span></span><span class="line"><span class="cl">                    <span class="s2">&#34;IPAMConfig&#34;</span>: <span class="o">{</span>
+</span></span><span class="line"><span class="cl">                        <span class="s2">&#34;IPv4Address&#34;</span>: <span class="s2">&#34;172.27.0.100&#34;</span>
+</span></span><span class="line"><span class="cl">                    <span class="o">}</span>,
+</span></span><span class="line"><span class="cl">                    <span class="s2">&#34;Links&#34;</span>: null,
+</span></span><span class="line"><span class="cl">                    <span class="s2">&#34;Aliases&#34;</span>: <span class="o">[</span>
+</span></span><span class="line"><span class="cl">                        <span class="s2">&#34;tomcat&#34;</span>,
+</span></span><span class="line"><span class="cl">                        <span class="s2">&#34;tomcat&#34;</span>,
+</span></span><span class="line"><span class="cl">                        <span class="s2">&#34;tomcat&#34;</span>,
+</span></span><span class="line"><span class="cl">                        <span class="s2">&#34;apps&#34;</span>
+</span></span><span class="line"><span class="cl">                    <span class="o">]</span>,
+</span></span><span class="line"><span class="cl">                    <span class="s2">&#34;MacAddress&#34;</span>: <span class="s2">&#34;ae:1c:a7:e6:98:9e&#34;</span>,
+</span></span><span class="line"><span class="cl">                    <span class="s2">&#34;DriverOpts&#34;</span>: null,
+</span></span><span class="line"><span class="cl">                    <span class="s2">&#34;GwPriority&#34;</span>: 0,
+</span></span><span class="line"><span class="cl">                    <span class="s2">&#34;NetworkID&#34;</span>: <span class="s2">&#34;337f15638f9d205cfee815435740d007677d5cedf19a98f783f70f940a653b0b&#34;</span>,
+</span></span><span class="line"><span class="cl">                    <span class="s2">&#34;EndpointID&#34;</span>: <span class="s2">&#34;9ad025e92f29517897d132869d87608833a7e257630a202fa3a13499987ceec3&#34;</span>,
+</span></span><span class="line"><span class="cl">                    <span class="s2">&#34;Gateway&#34;</span>: <span class="s2">&#34;172.27.0.1&#34;</span>,
+</span></span><span class="line"><span class="cl">                    <span class="s2">&#34;IPAddress&#34;</span>: <span class="s2">&#34;172.27.0.100&#34;</span>,
+</span></span><span class="line"><span class="cl">                    <span class="s2">&#34;IPPrefixLen&#34;</span>: 24,
+</span></span><span class="line"><span class="cl">                    <span class="s2">&#34;IPv6Gateway&#34;</span>: <span class="s2">&#34;&#34;</span>,
+</span></span><span class="line"><span class="cl">                    <span class="s2">&#34;GlobalIPv6Address&#34;</span>: <span class="s2">&#34;&#34;</span>,
+</span></span><span class="line"><span class="cl">                    <span class="s2">&#34;GlobalIPv6PrefixLen&#34;</span>: 0,
+</span></span><span class="line"><span class="cl">                    <span class="s2">&#34;DNSNames&#34;</span>: <span class="o">[</span>
+</span></span><span class="line"><span class="cl">                        <span class="s2">&#34;tomcat&#34;</span>,
+</span></span><span class="line"><span class="cl">                        <span class="s2">&#34;apps&#34;</span>,
+</span></span><span class="line"><span class="cl">                        <span class="s2">&#34;cab477e33dbe&#34;</span>,
+</span></span><span class="line"><span class="cl">                        <span class="s2">&#34;tomcat.wang.org&#34;</span>
+</span></span><span class="line"><span class="cl">                    <span class="o">]</span>
+</span></span><span class="line"><span class="cl">                <span class="o">}</span>
+</span></span><span class="line"><span class="cl">            <span class="o">}</span>
+</span></span><span class="line"><span class="cl">        <span class="o">}</span>
+</span></span><span class="line"><span class="cl">    <span class="o">}</span>
+</span></span><span class="line"><span class="cl"><span class="o">]</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">root@lin-server:/data/tomcat# docker network ls
+</span></span><span class="line"><span class="cl">NETWORK ID     NAME                          DRIVER    SCOPE
+</span></span><span class="line"><span class="cl">faf926562e8e   bridge                        bridge    <span class="nb">local</span>
+</span></span><span class="line"><span class="cl">a126ecc7ac2b   host                          host      <span class="nb">local</span>
+</span></span><span class="line"><span class="cl">5b989cafe67d   none                          null      <span class="nb">local</span>
+</span></span><span class="line"><span class="cl">337f15638f9d   tomcat_tomcat_net             bridge    <span class="nb">local</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">root@lin-server:/data/tomcat# docker volume ls
+</span></span><span class="line"><span class="cl">DRIVER    VOLUME NAME
+</span></span><span class="line"><span class="cl"><span class="nb">local</span>     tomcat_tomcat_apps
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">root@lin-server:/data/tomcat# ls /var/lib/docker/volumes/
+</span></span><span class="line"><span class="cl">backingFsBlockDev  tomcat_tomcat_apps metadata.db
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">root@lin-server:/data/tomcat# ls /var/lib/docker/volumes/tomcat_tomcat_apps/_data/
+</span></span><span class="line"><span class="cl">docs  examples  host-manager  manager  ROOT
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/%E9%A9%AC%E5%93%A5dockerdockercompose%E5%AE%B9%E5%99%A8%E7%BC%96%E6%8E%92/image-10.png"
+	width="1317"
+	height="847"
+	srcset="/p/%E9%A9%AC%E5%93%A5dockerdockercompose%E5%AE%B9%E5%99%A8%E7%BC%96%E6%8E%92/image-10_hu_ffee06d68b4cca59.png 480w, /p/%E9%A9%AC%E5%93%A5dockerdockercompose%E5%AE%B9%E5%99%A8%E7%BC%96%E6%8E%92/image-10_hu_1204a135540fa4f3.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="155"
+		data-flex-basis="373px"
+	
+></p>
+<ul>
+<li>Access it in your browser and enter the username and password: <code>admin/admin123</code></li>
+</ul>
+<blockquote>
+<p>http://192.168.128.100/manager/html</p>
+</blockquote>
+<p><img src="/p/%E9%A9%AC%E5%93%A5dockerdockercompose%E5%AE%B9%E5%99%A8%E7%BC%96%E6%8E%92/image-11.png"
+	width="1317"
+	height="847"
+	srcset="/p/%E9%A9%AC%E5%93%A5dockerdockercompose%E5%AE%B9%E5%99%A8%E7%BC%96%E6%8E%92/image-11_hu_106f4d4d03c38f40.png 480w, /p/%E9%A9%AC%E5%93%A5dockerdockercompose%E5%AE%B9%E5%99%A8%E7%BC%96%E6%8E%92/image-11_hu_73d733795f04b066.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="155"
+		data-flex-basis="373px"
+	
+></p>
+<p><img src="/p/%E9%A9%AC%E5%93%A5dockerdockercompose%E5%AE%B9%E5%99%A8%E7%BC%96%E6%8E%92/image-12.png"
+	width="1317"
+	height="847"
+	srcset="/p/%E9%A9%AC%E5%93%A5dockerdockercompose%E5%AE%B9%E5%99%A8%E7%BC%96%E6%8E%92/image-12_hu_7af2f24b9d9d3813.png 480w, /p/%E9%A9%AC%E5%93%A5dockerdockercompose%E5%AE%B9%E5%99%A8%E7%BC%96%E6%8E%92/image-12_hu_32da0ba569bb53e1.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="155"
+		data-flex-basis="373px"
+	
+></p>
+<h2 id="hands-on-example-ruoyi-microservices-project">Hands-on Example: RuoYi microservices project
+</h2><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># https://gitee.com/y_project/RuoYi-Cloud/blob/master/docker/docker-compose.yml</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="hands-on-example-convert-between-docker-run-and-docker-compose-files">Hands-on Example: Convert between docker run and Docker Compose files
+</h2><p>Use a website to automatically generate a Docker Compose file from a docker run command.</p>
+<blockquote>
+<p><a class="link" href="https://www.composerize.com/"  target="_blank" rel="noopener"
+    >https://www.composerize.com/</a></p>
+</blockquote>
+<p>Use a website to convert a Docker Compose file into/to a docker run command.</p>
+<blockquote>
+<p><a class="link" href="https://www.decomposerize.com/"  target="_blank" rel="noopener"
+    >https://www.decomposerize.com/</a></p>
+</blockquote>
+<h2 id="english">English
 </h2><h3 id="new-word">new word
 </h3><ul>
 <li>deploy  v、部署</li>
