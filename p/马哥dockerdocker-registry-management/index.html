@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="en-us" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="Alibaba Cloud Docker registry Register and log in to the Alibaba Cloud registry http://cr.console.aliyun.com\nSet a dedicated management password for the registry Create a repository This step does not need to be performed in advance; docker push can sutomatically create a private repository.\n">
+<title>[马哥][docker]Docker Registry Management</title>
+
+<link rel='canonical' href='https://YLine-hub.github.io/p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/'>
+
+<link rel="stylesheet" href="/scss/style.min.663803bebe609202d5b39d848f2d7c2dc8b598a2d879efa079fa88893d29c49c.css"><meta property='og:title' content="[马哥][docker]Docker Registry Management">
+<meta property='og:description' content="Alibaba Cloud Docker registry Register and log in to the Alibaba Cloud registry http://cr.console.aliyun.com\nSet a dedicated management password for the registry Create a repository This step does not need to be performed in advance; docker push can sutomatically create a private repository.\n">
+<meta property='og:url' content='https://YLine-hub.github.io/p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/'>
+<meta property='og:site_name' content='リンボの個人ブログ'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:published_time' content='2026-09-22T14:13:42&#43;08:00'/><meta property='article:modified_time' content='2026-09-22T14:13:42&#43;08:00'/>
+<meta name="twitter:title" content="[马哥][docker]Docker Registry Management">
+<meta name="twitter:description" content="Alibaba Cloud Docker registry Register and log in to the Alibaba Cloud registry http://cr.console.aliyun.com\nSet a dedicated management password for the registry Create a repository This step does not need to be performed in advance; docker push can sutomatically create a private repository.\n">
+    <link rel="shortcut icon" href="/favicon.ico" />
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        
+            
+            <figure class="site-avatar">
+                <a href="/">
+                
+                    
+                    
+                    
+                        
+                        <img src="/img/avatar_hu_e071e112ba608175.png" width="300"
+                            height="300" class="site-logo" loading="lazy" alt="Avatar">
+                    
+                
+                </a>
+                
+                    <span class="emoji">🏖️</span>
+                
+            </figure>
+            
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">リンボの個人ブログ</a></h1>
+            <h2 class="site-description">努力不一定能获得回报，但不努力一定不会有回报。</h2>
+        </div>
+    </header><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-home" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <polyline points="5 12 3 12 12 3 21 12 19 12" />
+  <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7" />
+  <path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6" />
+</svg>
+
+
+
+                
+                <span>主页</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/%E5%85%B3%E4%BA%8E/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/archives/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/search/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-search" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="10" cy="10" r="7" />
+  <line x1="21" y1="21" x2="15" y2="15" />
+</svg>
+
+
+
+                
+                <span>搜索</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav id="TableOfContents">
+  <ol>
+    <li><a href="#alibaba-cloud-docker-registry">Alibaba Cloud Docker registry</a>
+      <ol>
+        <li><a href="#register-and-log-in-to-the-alibaba-cloud-registry">Register and log in to the Alibaba Cloud registry</a></li>
+        <li><a href="#set-a-dedicated-management-password-for-the-registry">Set a dedicated management password for the registry</a></li>
+        <li><a href="#create-a-repository">Create a repository</a></li>
+        <li><a href="#log-in-to-alibaba-cloud-before-uploading-the-image">Log in to Alibaba Cloud before uploading the image</a></li>
+        <li><a href="#tag-the-uploaded-image">Tag the uploaded image</a></li>
+        <li><a href="#push-the-image-to-alibaba-cloud">Push the image to Alibaba Cloud</a></li>
+        <li><a href="#view-the-uploaded-image-on-the-website">View the uploaded image on the website</a></li>
+        <li><a href="#download-the-image-you-just-uploaded-from-another-host-and-run-the-container">Download the image you just uploaded from another host and run the container</a></li>
+      </ol>
+    </li>
+  </ol>
+</nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            <a href="/categories/docker/" >
+                Docker
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/">[马哥][docker]Docker Registry Management</a>
+        </h2>
+    
+        
+    </div>
+
+    
+    
+    
+    
+    <footer class="article-time">
+        
+            <div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                <time class="article-time--published">2026-09-22</time>
+            </div>
+        
+
+        
+    </footer>
+    
+
+    
+</div>
+
+</header>
+
+    <section class="article-content">
+    
+    
+    <h2 id="alibaba-cloud-docker-registry">Alibaba Cloud Docker registry
+</h2><h3 id="register-and-log-in-to-the-alibaba-cloud-registry">Register and log in to the Alibaba Cloud registry
+</h3><blockquote>
+<p><a class="link" href="http://cr.console.aliyun.com"  target="_blank" rel="noopener"
+    >http://cr.console.aliyun.com</a></p>
+</blockquote>
+<p><img src="/p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image.png"
+	width="1421"
+	height="867"
+	srcset="/p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image_hu_5c1ce3599ce657f9.png 480w, /p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image_hu_e8b92923544356e0.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="163"
+		data-flex-basis="393px"
+	
+></p>
+<p><img src="/p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-1.png"
+	width="1420"
+	height="865"
+	srcset="/p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-1_hu_174ae5b8f1987c76.png 480w, /p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-1_hu_c5b402949de98021.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="164"
+		data-flex-basis="393px"
+	
+></p>
+<h3 id="set-a-dedicated-management-password-for-the-registry">Set a dedicated management password for the registry
+</h3><p><img src="/p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-2.png"
+	width="1422"
+	height="868"
+	srcset="/p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-2_hu_36d4db3b5a8f8b8b.png 480w, /p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-2_hu_1f15bb37eee5a150.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="163"
+		data-flex-basis="393px"
+	
+></p>
+<p><img src="/p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-3.png"
+	width="1422"
+	height="868"
+	srcset="/p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-3_hu_ef986b113a74e67f.png 480w, /p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-3_hu_f6b34b5f29d52aa0.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="163"
+		data-flex-basis="393px"
+	
+></p>
+<p><img src="/p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-4.png"
+	width="880"
+	height="603"
+	srcset="/p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-4_hu_719968171d2e70d4.png 480w, /p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-4_hu_4d403d7db52d5370.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="145"
+		data-flex-basis="350px"
+	
+></p>
+<h3 id="create-a-repository">Create a repository
+</h3><p>This step does not need to be performed in advance; <code>docker push</code> can sutomatically create a private repository.</p>
+<p><img src="/p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-5.png"
+	width="1422"
+	height="868"
+	srcset="/p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-5_hu_37443e299011f8fb.png 480w, /p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-5_hu_d1928bff0f9bb20e.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="163"
+		data-flex-basis="393px"
+	
+></p>
+<p><img src="/p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-6.png"
+	width="932"
+	height="481"
+	srcset="/p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-6_hu_583c1d8b47526eae.png 480w, /p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-6_hu_a04dda46fce3ca9.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="193"
+		data-flex-basis="465px"
+	
+></p>
+<p><img src="/p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-7.png"
+	width="1388"
+	height="362"
+	srcset="/p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-7_hu_83349ea43dfd4960.png 480w, /p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-7_hu_da5bcb0818ec55ce.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="383"
+		data-flex-basis="920px"
+	
+></p>
+<p><img src="/p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-8.png"
+	width="1225"
+	height="255"
+	srcset="/p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-8_hu_94eac826d3f25bc3.png 480w, /p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-8_hu_53c957be6e35ea6d.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="480"
+		data-flex-basis="1152px"
+	
+></p>
+<p><img src="/p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-9.png"
+	width="1382"
+	height="250"
+	srcset="/p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-9_hu_7030e8ece191817f.png 480w, /p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-9_hu_8420e7e845ad5659.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="552"
+		data-flex-basis="1326px"
+	
+></p>
+<h3 id="log-in-to-alibaba-cloud-before-uploading-the-image">Log in to Alibaba Cloud before uploading the image
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># Log in using the dedicated repository management password set earlier.</span>
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker login --username<span class="o">=</span>ylinehub crpi-dcmzbk7ldosl3n6l.cn-hangzhou.personal.cr.aliyuncs.com
+</span></span><span class="line"><span class="cl">Password: 
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">WARNING! Your credentials are stored unencrypted in <span class="s1">&#39;/root/.docker/config.json&#39;</span>.
+</span></span><span class="line"><span class="cl">Configure a credential helper to remove this warning. See
+</span></span><span class="line"><span class="cl">https://docs.docker.com/go/credential-store/
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">Login Succeeded
+</span></span><span class="line"><span class="cl"><span class="c1"># The login password is saved in ~/.docker/config.json, so you won&#39;t need to enter it again next time</span>
+</span></span><span class="line"><span class="cl">root@lin-server:~# cat .docker/config.json 
+</span></span><span class="line"><span class="cl"><span class="o">{</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;auths&#34;</span>: <span class="o">{</span>
+</span></span><span class="line"><span class="cl">                <span class="s2">&#34;crpi-dcmzbk7ldosl3n6l.cn-hangzhou.personal.cr.aliyuncs.com&#34;</span>: <span class="o">{</span>
+</span></span><span class="line"><span class="cl">                        <span class="s2">&#34;auth&#34;</span>: <span class="s2">&#34;eWxpbmVodWI6WWxiMjk3OTQxOTQz&#34;</span>
+</span></span><span class="line"><span class="cl">                <span class="o">}</span>
+</span></span><span class="line"><span class="cl">        <span class="o">}</span>
+</span></span><span class="line"><span class="cl"><span class="o">}</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="tag-the-uploaded-image">Tag the uploaded image
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# docker tag tomcat-web:app1 crpi-dcmzbk7ldosl3n6l.cn-hangzhou.personal.cr.aliyuncs.com/yline/tomcat-web:app1
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker tag centos7-nginx:1.6.1.v2 crpi-dcmzbk7ldosl3n6l.cn-hangzhou.personal.cr.aliyuncs.com/yline/centos7-nginx:1.6.1.v2
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker images
+</span></span><span class="line"><span class="cl">REPOSITORY                                                                       TAG                 IMAGE ID       CREATED        SIZE
+</span></span><span class="line"><span class="cl">crpi-dcmzbk7ldosl3n6l.cn-hangzhou.personal.cr.aliyuncs.com/yline/tomcat-web      app1                651daf4cc549   <span class="m">7</span> days ago     762MB
+</span></span><span class="line"><span class="cl">tomcat-web                                                                       app1                651daf4cc549   <span class="m">7</span> days ago     762MB
+</span></span><span class="line"><span class="cl">crpi-dcmzbk7ldosl3n6l.cn-hangzhou.personal.cr.aliyuncs.com/yline/centos7-nginx   1.6.1.v2            9dc2a5bb9348   <span class="m">2</span> weeks ago    703MB
+</span></span><span class="line"><span class="cl">centos7-nginx                                                                    1.6.1.v2            9dc2a5bb9348   <span class="m">2</span> weeks ago    703MB
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="push-the-image-to-alibaba-cloud">Push the image to Alibaba Cloud
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# docker push crpi-dcmzbk7ldosl3n6l.cn-hangzhou.personal.cr.aliyuncs.com/yline/tomcat-web:app1
+</span></span><span class="line"><span class="cl">The push refers to repository <span class="o">[</span>crpi-dcmzbk7ldosl3n6l.cn-hangzhou.personal.cr.aliyuncs.com/yline/tomcat-web<span class="o">]</span>
+</span></span><span class="line"><span class="cl">e75451716649: Pushed 
+</span></span><span class="line"><span class="cl">950d1cd21157: Pushed 
+</span></span><span class="line"><span class="cl">app1: digest: sha256:2a7f63759ade3842a1025179369ffe12ed586505fd3ffc2ffae99b04c7ffa707 size: <span class="m">742</span>
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker push crpi-dcmzbk7ldosl3n6l.cn-hangzhou.personal.cr.aliyuncs.com/yline/centos7-nginx:1.6.1.v2
+</span></span><span class="line"><span class="cl">The push refers to repository <span class="o">[</span>crpi-dcmzbk7ldosl3n6l.cn-hangzhou.personal.cr.aliyuncs.com/yline/centos7-nginx<span class="o">]</span>
+</span></span><span class="line"><span class="cl">2369e4cee6b0: Pushed 
+</span></span><span class="line"><span class="cl">9c93a98375c5: Pushed 
+</span></span><span class="line"><span class="cl">034f282942cd: Pushed 
+</span></span><span class="line"><span class="cl">1.6.1.v2: digest: sha256:48f0acfeb7517b446e18efa873ffc8b1012ee4327e2bae1b30fc38cf868c4b59 size: <span class="m">954</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="view-the-uploaded-image-on-the-website">View the uploaded image on the website
+</h3><p><img src="/p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-10.png"
+	width="1890"
+	height="468"
+	srcset="/p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-10_hu_5a504434f4688238.png 480w, /p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-10_hu_cef4ed874f233f1b.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="403"
+		data-flex-basis="969px"
+	
+></p>
+<h3 id="download-the-image-you-just-uploaded-from-another-host-and-run-the-container">Download the image you just uploaded from another host and run the container
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># The image is private, so you need to log in before pulling it.</span>
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker login --username<span class="o">=</span>ylinehub crpi-dcmzbk7ldosl3n6l.cn-hangzhou.personal.cr.aliyuncs.com
+</span></span><span class="line"><span class="cl">Password: 
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">WARNING! Your credentials are stored unencrypted in <span class="s1">&#39;/root/.docker/config.json&#39;</span>.
+</span></span><span class="line"><span class="cl">Configure a credential helper to remove this warning. See
+</span></span><span class="line"><span class="cl">https://docs.docker.com/go/credential-store/
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">Login Succeeded
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker pull crpi-dcmzbk7ldosl3n6l.cn-hangzhou.personal.cr.aliyuncs.com/yline/tomcat-web:app1
+</span></span><span class="line"><span class="cl">app1: Pulling from yline/tomcat-web
+</span></span><span class="line"><span class="cl">aee1767db0dd: Pull <span class="nb">complete</span> 
+</span></span><span class="line"><span class="cl">6cf60394d5e1: Pull <span class="nb">complete</span> 
+</span></span><span class="line"><span class="cl">Digest: sha256:2a7f63759ade3842a1025179369ffe12ed586505fd3ffc2ffae99b04c7ffa707
+</span></span><span class="line"><span class="cl">Status: Downloaded newer image <span class="k">for</span> crpi-dcmzbk7ldosl3n6l.cn-hangzhou.personal.cr.aliyuncs.com/yline/tomcat-web:app1
+</span></span><span class="line"><span class="cl">crpi-dcmzbk7ldosl3n6l.cn-hangzhou.personal.cr.aliyuncs.com/yline/tomcat-web:app1
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker pull crpi-dcmzbk7ldosl3n6l.cn-hangzhou.personal.cr.aliyuncs.com/yline/centos7-nginx:1.6.1.v2
+</span></span><span class="line"><span class="cl">1.6.1.v2: Pulling from yline/centos7-nginx
+</span></span><span class="line"><span class="cl">f34b00c7da20: Pull <span class="nb">complete</span> 
+</span></span><span class="line"><span class="cl">a27dc55439a6: Pull <span class="nb">complete</span> 
+</span></span><span class="line"><span class="cl">6772b75d2836: Pull <span class="nb">complete</span> 
+</span></span><span class="line"><span class="cl">Digest: sha256:48f0acfeb7517b446e18efa873ffc8b1012ee4327e2bae1b30fc38cf868c4b59
+</span></span><span class="line"><span class="cl">Status: Downloaded newer image <span class="k">for</span> crpi-dcmzbk7ldosl3n6l.cn-hangzhou.personal.cr.aliyuncs.com/yline/centos7-nginx:1.6.1.v2
+</span></span><span class="line"><span class="cl">crpi-dcmzbk7ldosl3n6l.cn-hangzhou.personal.cr.aliyuncs.com/yline/centos7-nginx:1.6.1.v2
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker images
+</span></span><span class="line"><span class="cl">REPOSITORY                                                                       TAG        IMAGE ID       CREATED       SIZE
+</span></span><span class="line"><span class="cl">crpi-dcmzbk7ldosl3n6l.cn-hangzhou.personal.cr.aliyuncs.com/yline/tomcat-web      app1       651daf4cc549   <span class="m">8</span> days ago    762MB
+</span></span><span class="line"><span class="cl">crpi-dcmzbk7ldosl3n6l.cn-hangzhou.personal.cr.aliyuncs.com/yline/centos7-nginx   1.6.1.v2   9dc2a5bb9348   <span class="m">2</span> weeks ago   703MB
+</span></span></code></pre></td></tr></table>
+</div>
+</div>
+</section>
+
+
+    <footer class="article-footer">
+    
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+<aside class="related-content--wrapper">
+    <h2 class="section-title">相关文章</h2>
+    <div class="related-content">
+        <div class="flex article-list--tile">
+            
+                
+<article class="">
+    <a href="/p/%E9%A9%AC%E5%93%A5docker%E7%BD%91%E7%BB%9C%E7%AE%A1%E7%90%86/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[马哥][docker]网络管理</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/docker%E5%AE%89%E8%A3%85/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Docker]安装</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-cig%E6%9C%AA%E5%AE%8C%E6%88%90/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Docker]高级篇-CIG（未完成）</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-portainer/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Docker]高级篇-Portainer</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-compose%E5%AE%B9%E5%99%A8%E7%BC%96%E6%8E%92/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Docker]高级篇-Docker compose容器编排</h2>
+        </div>
+    </a>
+</article>
+
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+            2025 - 
+        
+        2026 リンボの個人ブログ
+    </section>
+    
+    <section class="powerby">
+         <br />
+        
+    </section>
+</footer>
+
+
+    
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+    
+    <div class="pswp__bg"></div>
+
+    
+    <div class="pswp__scroll-wrap">
+
+        
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+
+        
+        <div class="pswp__ui pswp__ui--hidden">
+
+            <div class="pswp__top-bar">
+
+                
+
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+
+                <button class="pswp__button pswp__button--share" title="Share"></button>
+
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+
+                
+                
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                        <div class="pswp__preloader__cut">
+                            <div class="pswp__preloader__donut"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div>
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.js"integrity="sha256-ePwmChbbvXbsO02lbM3HoHbSHTHFAeChekF1xKJdleo="crossorigin="anonymous"
+                defer
+                >
+            </script><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe-ui-default.min.js"integrity="sha256-UKkzOn/w1mBxRmLLGrSeyB4e1xbrp4xylgAWb3M42pU="crossorigin="anonymous"
+                defer
+                >
+            </script><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/default-skin/default-skin.min.css"crossorigin="anonymous"
+            ><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.css"crossorigin="anonymous"
+            >
+
+            </main>
+        </div>
+        <script 
+                src="https://cdn.jsdelivr.net/npm/node-vibrant@3.1.6/dist/vibrant.min.js"integrity="sha256-awcR2jno4kI5X0zL8ex0vi2z&#43;KMkF24hUW8WePSA9HM="crossorigin="anonymous"
+                
+                >
+            </script><script type="text/javascript" src="/ts/main.1e9a3bafd846ced4c345d084b355fb8c7bae75701c338f8a1f8a82c780137826.js" defer></script>
+<script>
+    (function () {
+        const customFont = document.createElement('link');
+        customFont.href = "https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap";
+
+        customFont.type = "text/css";
+        customFont.rel = "stylesheet";
+
+        document.head.appendChild(customFont);
+    }());
+</script>
+
+    </body>
+</html>
