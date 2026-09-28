@@ -227,6 +227,21 @@
         <li><a href="#four-invocation-methods">Four invocation methods</a></li>
       </ol>
     </li>
+    <li><a href="#parse-the-output">Parse the output</a>
+      <ol>
+        <li><a href="#output-result-type">Output result type</a></li>
+        <li><a href="#get-the-json-result">Get the JSON result</a>
+          <ol>
+            <li><a href="#there-are-two-ways">There are two ways</a></li>
+            <li><a href="#constrain-it-through-prompt">Constrain it through prompt</a></li>
+            <li><a href="#constrain-it-through-the-vendor">Constrain it through the vendor</a></li>
+          </ol>
+        </li>
+        <li><a href="#get-other-types-of-parsing-results">Get other types of parsing results</a></li>
+      </ol>
+    </li>
+    <li><a href="#prompt-template">Prompt template</a></li>
+    <li><a href="#chains">Chains</a></li>
   </ol>
 </nav>
         </div>
@@ -1186,6 +1201,1013 @@
 </span></span><span class="line"><span class="cl"><span class="o">*</span>   <span class="o">**</span><span class="err">`</span><span class="n">langchain</span><span class="o">-</span><span class="n">community</span><span class="err">`</span><span class="o">**</span><span class="p">:</span> <span class="n">Contains</span> <span class="n">third</span><span class="o">-</span><span class="n">party</span> <span class="n">integrations</span> <span class="p">(</span><span class="n">vector</span> <span class="n">stores</span><span class="p">,</span> <span class="n">LLM</span> <span class="n">providers</span><span class="p">,</span> <span class="n">document</span> <span class="n">loaders</span><span class="p">)</span> <span class="n">maintained</span> <span class="n">by</span> <span class="n">the</span> <span class="n">community</span> <span class="ow">and</span> <span class="n">partners</span><span class="o">.</span>
 </span></span><span class="line"><span class="cl"><span class="o">*</span>   <span class="o">**</span><span class="err">`</span><span class="n">langgraph</span><span class="err">`</span><span class="o">**</span><span class="p">:</span> <span class="n">A</span> <span class="n">library</span> <span class="k">for</span> <span class="n">building</span> <span class="n">stateful</span><span class="p">,</span> <span class="n">multi</span><span class="o">-</span><span class="n">actor</span> <span class="n">applications</span> <span class="n">with</span> <span class="n">LLMs</span><span class="o">.</span> <span class="n">It</span> <span class="n">is</span> <span class="n">used</span> <span class="n">to</span> <span class="n">create</span> <span class="n">complex</span><span class="p">,</span> <span class="n">cyclical</span> <span class="n">agent</span> <span class="n">workflows</span> <span class="ow">and</span> <span class="n">state</span> <span class="n">machines</span><span class="p">,</span> <span class="n">offering</span> <span class="n">much</span> <span class="n">finer</span> <span class="n">control</span> <span class="n">over</span> <span class="n">agent</span> <span class="n">routing</span> <span class="n">than</span> <span class="n">traditional</span> <span class="n">agents</span><span class="o">.</span>
 </span></span><span class="line"><span class="cl"><span class="o">*</span>   <span class="o">**</span><span class="err">`</span><span class="n">langserve</span><span class="err">`</span><span class="o">**</span><span class="p">:</span> <span class="n">A</span> <span class="n">library</span> <span class="k">for</span> <span class="n">deploying</span> <span class="n">LangChain</span> <span class="n">runnables</span> <span class="ow">and</span> <span class="n">chains</span> <span class="n">as</span> <span class="n">production</span><span class="o">-</span><span class="n">ready</span> <span class="n">REST</span> <span class="n">APIs</span><span class="o">.</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="parse-the-output">Parse the output
+</h2><h3 id="output-result-type">Output result type
+</h3><p><code>08_test_langchain_ollama.py</code></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-py" data-lang="py"><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">langchain_ollama</span> <span class="kn">import</span> <span class="n">ChatOllama</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">ollama_client</span> <span class="o">=</span> <span class="n">ChatOllama</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">    <span class="n">model</span><span class="o">=</span><span class="s2">&#34;qwen3:8b&#34;</span><span class="p">,</span><span class="n">base_url</span><span class="o">=</span><span class="s2">&#34;http://192.168.3.69:11434&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">resp</span> <span class="o">=</span> <span class="n">ollama_client</span><span class="o">.</span><span class="n">invoke</span><span class="p">(</span><span class="s2">&#34;Who are you?&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nb">print</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">resp</span><span class="p">))</span>   <span class="c1"># &lt;class &#39;langchain_core.messages.ai.AIMessage&#39;&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="nb">print</span><span class="p">(</span><span class="n">resp</span><span class="o">.</span><span class="n">content</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>response</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">&lt;class &#39;langchain_core.messages.ai.AIMessage&#39;&gt;
+</span></span><span class="line"><span class="cl">Hello! I am Qwen, a large language model developed by Alibaba Cloud. I can understand and generate text on a wide range of topics, such as answering questions, creating stories, writing code, and more. While I don&#39;t have personal experiences or consciousness, I aim to provide helpful and accurate information. How can I assist you today? 😊
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="get-the-json-result">Get the JSON result
+</h3><h4 id="there-are-two-ways">There are two ways
+</h4><ol>
+<li>
+<p>Explicitly constrain the LLM to output JSON in the prompt</p>
+</li>
+<li>
+<p>Restrict it through interface parameters directly provided by some vendors</p>
+</li>
+</ol>
+<h4 id="constrain-it-through-prompt">Constrain it through prompt
+</h4><p>To explicitly constrain the LLM&rsquo;s output via the prompt, you need to use the JSONOutputParser provided by Langchain. The overall process is as follows:</p>
+<ol>
+<li>
+<p>Define the JSON schema using Pydantic;</p>
+</li>
+<li>
+<p>Create a JSONOutputParser instance, json_parser, using the constructed JSON schema;</p>
+</li>
+<li>
+<p>Call the json_parser.get_format_instructions() method, and put the JSON output constrains into the SystemMessage;</p>
+</li>
+<li>
+<p>Pass both the SystemMessage and UserMessage to the LLM for invocation, then parse the result into a Python dict object using the json_parser.parse() method.</p>
+</li>
+</ol>
+<p>Example</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-py" data-lang="py"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">os</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">dotenv</span> <span class="kn">import</span> <span class="n">load_dotenv</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">langchain.chat_models</span> <span class="kn">import</span> <span class="n">init_chat_model</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">langchain_core.messages</span> <span class="kn">import</span> <span class="n">SystemMessage</span><span class="p">,</span> <span class="n">HumanMessage</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">langchain_core.output_parsers</span> <span class="kn">import</span> <span class="n">JsonOutputParser</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">pydantic</span> <span class="kn">import</span> <span class="n">BaseModel</span><span class="p">,</span> <span class="n">Field</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># load_dotenv()</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># client = init_chat_model(</span>
+</span></span><span class="line"><span class="cl"><span class="c1">#     model=&#34;qwen3.8-max&#34;,</span>
+</span></span><span class="line"><span class="cl"><span class="c1">#     model_provider=&#34;openai&#34;,</span>
+</span></span><span class="line"><span class="cl"><span class="c1">#     api_key=os.getenv(&#34;DASHSCOPE_API_KEY&#34;),</span>
+</span></span><span class="line"><span class="cl"><span class="c1">#     base_url=os.getenv(&#34;DASHSCOPE_BASE_URL&#34;)</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># )</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">client</span> <span class="o">=</span> <span class="n">ChatOllama</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">    <span class="n">model</span><span class="o">=</span><span class="s2">&#34;qwen3:8b&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="n">base_url</span><span class="o">=</span><span class="s2">&#34;http://192.168.3.69:11434&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Pydantic is used for data validation. Data model classes typically inherit from BaseModel, which allows you to restrict data types and formats.</span>
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">Prime</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="n">prime</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">description</span><span class="o">=</span><span class="s2">&#34;prime number&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">count</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">description</span><span class="o">=</span><span class="s2">&#34;The number of primes less than a given prime&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Output parser: the output format set for the LLM</span>
+</span></span><span class="line"><span class="cl"><span class="n">output_parser</span> <span class="o">=</span> <span class="n">JsonOutputParser</span><span class="p">(</span><span class="n">pydantic_object</span><span class="o">=</span><span class="n">Prime</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># resp = client.invoke([</span>
+</span></span><span class="line"><span class="cl"><span class="c1">#     (&#34;system&#34;,output_parser.get_format_instructions()),</span>
+</span></span><span class="line"><span class="cl"><span class="c1">#     (&#34;user&#34;,&#34;Randomly generate 5 primes between 1000 and 100000, and indicate the number of primes less than each prime.&#34;)</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># ])</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">input_messages</span> <span class="o">=</span> <span class="p">[</span>
+</span></span><span class="line"><span class="cl">    <span class="n">SystemMessage</span><span class="p">(</span><span class="n">content</span><span class="o">=</span><span class="n">output_parser</span><span class="o">.</span><span class="n">get_format_instructions</span><span class="p">()),</span>
+</span></span><span class="line"><span class="cl">    <span class="n">HumanMessage</span><span class="p">(</span><span class="n">content</span><span class="o">=</span><span class="s2">&#34;Randomly generate 5 primes between 1000 and 100000, and indicate the number of primes less than each prime.&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="p">]</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">resp</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">invoke</span><span class="p">(</span><span class="n">input_messages</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="nb">print</span><span class="p">(</span><span class="n">resp</span><span class="o">.</span><span class="n">content</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>response</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">{
+</span></span><span class="line"><span class="cl">  &#34;prime&#34;: [1009, 1013, 1019, 1021, 1031],
+</span></span><span class="line"><span class="cl">  &#34;count&#34;: [168, 169, 170, 171, 172]
+</span></span><span class="line"><span class="cl">}
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="constrain-it-through-the-vendor">Constrain it through the vendor
+</h4><p>dashscope</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-py" data-lang="py"><span class="line"><span class="cl"><span class="s2">&#34;&#34;&#34;
+</span></span></span><span class="line"><span class="cl"><span class="s2">    @Author:yline
+</span></span></span><span class="line"><span class="cl"><span class="s2">    @Time:2026/9/28
+</span></span></span><span class="line"><span class="cl"><span class="s2">    @Desc:
+</span></span></span><span class="line"><span class="cl"><span class="s2">&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">os</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">dashscope</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">dotenv</span> <span class="kn">import</span> <span class="n">load_dotenv</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">load_dotenv</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">messages</span><span class="o">=</span><span class="p">[</span>
+</span></span><span class="line"><span class="cl">    <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;role&#34;</span><span class="p">:</span> <span class="s2">&#34;system&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;content&#34;</span><span class="p">:</span> <span class="p">[{</span><span class="s2">&#34;text&#34;</span><span class="p">:</span> <span class="s2">&#34;请抽取用户的姓名与年龄信息，以JSON格式返回&#34;</span><span class="p">}]</span>
+</span></span><span class="line"><span class="cl">    <span class="p">},</span>
+</span></span><span class="line"><span class="cl">    <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;role&#34;</span><span class="p">:</span> <span class="s2">&#34;user&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;content&#34;</span><span class="p">:</span> <span class="p">[{</span><span class="s2">&#34;text&#34;</span><span class="p">:</span> <span class="s2">&#34;大家好，我叫刘五，今年34岁，邮箱是liuwu@example.com，平时喜欢打篮球和旅游&#34;</span><span class="p">}],</span>
+</span></span><span class="line"><span class="cl">    <span class="p">},</span>
+</span></span><span class="line"><span class="cl"><span class="p">]</span>
+</span></span><span class="line"><span class="cl"><span class="n">response</span> <span class="o">=</span> <span class="n">dashscope</span><span class="o">.</span><span class="n">MultiModalConversation</span><span class="o">.</span><span class="n">call</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">    <span class="n">api_key</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s1">&#39;DASHSCOPE_API_KEY&#39;</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">    <span class="n">model</span><span class="o">=</span><span class="s2">&#34;qwen3.8-max&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="n">messages</span><span class="o">=</span><span class="n">messages</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="n">response_format</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;type&#39;</span><span class="p">:</span> <span class="s1">&#39;json_object&#39;</span><span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">json_string</span> <span class="o">=</span> <span class="n">response</span><span class="o">.</span><span class="n">output</span><span class="o">.</span><span class="n">choices</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">message</span><span class="o">.</span><span class="n">content</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">&#34;text&#34;</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl"><span class="nb">print</span><span class="p">(</span><span class="n">json_string</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>response</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">{
+</span></span><span class="line"><span class="cl">  &#34;姓名&#34;: &#34;刘五&#34;,
+</span></span><span class="line"><span class="cl">  &#34;年龄&#34;: 34
+</span></span><span class="line"><span class="cl">}
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="get-other-types-of-parsing-results">Get other types of parsing results
+</h3><p>To get other forms of results, such as XML, you can also use other classes in output_parser. The parsers provided in the output_parser package are as follows:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">__all__ = [
+</span></span><span class="line"><span class="cl">    &#34;BaseCumulativeTransformOutputParser&#34;,
+</span></span><span class="line"><span class="cl">    &#34;BaseGenerationOutputParser&#34;,
+</span></span><span class="line"><span class="cl">    &#34;BaseLLMOutputParser&#34;,
+</span></span><span class="line"><span class="cl">    &#34;BaseOutputParser&#34;,
+</span></span><span class="line"><span class="cl">    &#34;BaseTransformOutputParser&#34;,
+</span></span><span class="line"><span class="cl">    &#34;CommaSeparatedListOutputParser&#34;,
+</span></span><span class="line"><span class="cl">    &#34;JsonOutputKeyToolsParser&#34;,
+</span></span><span class="line"><span class="cl">    &#34;JsonOutputParser&#34;,         # key point
+</span></span><span class="line"><span class="cl">    &#34;JsonOutputToolsParser&#34;,
+</span></span><span class="line"><span class="cl">    &#34;ListOutputParser&#34;,
+</span></span><span class="line"><span class="cl">    &#34;MarkdownListOutputParser&#34;,
+</span></span><span class="line"><span class="cl">    &#34;NumberedListOutputParser&#34;,
+</span></span><span class="line"><span class="cl">    &#34;PydanticOutputParser&#34;,
+</span></span><span class="line"><span class="cl">    &#34;PydanticToolsParser&#34;,
+</span></span><span class="line"><span class="cl">    &#34;SimpleJsonOutputParser&#34;,
+</span></span><span class="line"><span class="cl">    &#34;StrOutputParser&#34;,          # default
+</span></span><span class="line"><span class="cl">    &#34;XMLOutputParser&#34;,
+</span></span><span class="line"><span class="cl">]
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="prompt-template">Prompt template
+</h2><p>Example</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span><span class="lnt">51
+</span><span class="lnt">52
+</span><span class="lnt">53
+</span><span class="lnt">54
+</span><span class="lnt">55
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-py" data-lang="py"><span class="line"><span class="cl"><span class="s2">&#34;&#34;&#34;
+</span></span></span><span class="line"><span class="cl"><span class="s2">    @Author:yline
+</span></span></span><span class="line"><span class="cl"><span class="s2">    @Time:2026/9/28
+</span></span></span><span class="line"><span class="cl"><span class="s2">    @Desc:
+</span></span></span><span class="line"><span class="cl"><span class="s2">&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">os</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">dotenv</span> <span class="kn">import</span> <span class="n">load_dotenv</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">langchain.chat_models</span> <span class="kn">import</span> <span class="n">init_chat_model</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">langchain_core.prompts</span> <span class="kn">import</span> <span class="n">ChatPromptTemplate</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">load_dotenv</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">client</span> <span class="o">=</span> <span class="n">init_chat_model</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">    <span class="n">model</span><span class="o">=</span><span class="s2">&#34;qwen3.7-plus&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="n">model_provider</span><span class="o">=</span><span class="s2">&#34;openai&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="n">api_key</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">&#34;DASHSCOPE_API_KEY&#34;</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">    <span class="n">base_url</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">&#34;DASHSCOPE_BASE_URL&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Object, nonsupport</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># input_messages = [</span>
+</span></span><span class="line"><span class="cl"><span class="c1">#     SystemMessage(content=&#34;You are a professional product reviewer!&#34;),</span>
+</span></span><span class="line"><span class="cl"><span class="c1">#     HumanMessage(content=&#34;Evaluate the {product}. How is it? Please evaluate it from the perspectives of {aspect1} and {aspect2}.&#34;)</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># ]</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Tuple</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># input_messages = [</span>
+</span></span><span class="line"><span class="cl"><span class="c1">#     (&#34;system&#34;,&#34;You are a professional product reviewer!&#34;),</span>
+</span></span><span class="line"><span class="cl"><span class="c1">#     (&#34;human&#34;,&#34;Evaluate the {product}. How is it? Please evaluate it from the perspectives of {aspect1} and {aspect2}.&#34;)</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># ]</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Dict</span>
+</span></span><span class="line"><span class="cl"><span class="n">input_messages</span> <span class="o">=</span> <span class="p">[</span>
+</span></span><span class="line"><span class="cl">    <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;role&#34;</span><span class="p">:</span> <span class="s2">&#34;system&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;content&#34;</span><span class="p">:</span> <span class="s2">&#34;You are a professional product reviewer!&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">},</span>
+</span></span><span class="line"><span class="cl">    <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;role&#34;</span><span class="p">:</span> <span class="s2">&#34;user&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;content&#34;</span><span class="p">:</span> <span class="s2">&#34;Evaluate the </span><span class="si">{product}</span><span class="s2">. How is it? Please evaluate it from the perspectives of </span><span class="si">{aspect1}</span><span class="s2"> and </span><span class="si">{aspect2}</span><span class="s2">.&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">]</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">prompt_template</span> <span class="o">=</span> <span class="n">ChatPromptTemplate</span><span class="o">.</span><span class="n">from_messages</span><span class="p">(</span><span class="n">input_messages</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">prompts</span> <span class="o">=</span> <span class="n">prompt_template</span><span class="o">.</span><span class="n">invoke</span><span class="p">({</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;product&#34;</span><span class="p">:</span> <span class="s2">&#34;iPhone17&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;aspect1&#34;</span><span class="p">:</span> <span class="s2">&#34;performance&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;aspect2&#34;</span><span class="p">:</span> <span class="s2">&#34;appearance&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="p">})</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">resp</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">invoke</span><span class="p">(</span><span class="n">prompts</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nb">print</span><span class="p">(</span><span class="n">resp</span><span class="o">.</span><span class="n">content</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>Dict response</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">  1
+</span><span class="lnt">  2
+</span><span class="lnt">  3
+</span><span class="lnt">  4
+</span><span class="lnt">  5
+</span><span class="lnt">  6
+</span><span class="lnt">  7
+</span><span class="lnt">  8
+</span><span class="lnt">  9
+</span><span class="lnt"> 10
+</span><span class="lnt"> 11
+</span><span class="lnt"> 12
+</span><span class="lnt"> 13
+</span><span class="lnt"> 14
+</span><span class="lnt"> 15
+</span><span class="lnt"> 16
+</span><span class="lnt"> 17
+</span><span class="lnt"> 18
+</span><span class="lnt"> 19
+</span><span class="lnt"> 20
+</span><span class="lnt"> 21
+</span><span class="lnt"> 22
+</span><span class="lnt"> 23
+</span><span class="lnt"> 24
+</span><span class="lnt"> 25
+</span><span class="lnt"> 26
+</span><span class="lnt"> 27
+</span><span class="lnt"> 28
+</span><span class="lnt"> 29
+</span><span class="lnt"> 30
+</span><span class="lnt"> 31
+</span><span class="lnt"> 32
+</span><span class="lnt"> 33
+</span><span class="lnt"> 34
+</span><span class="lnt"> 35
+</span><span class="lnt"> 36
+</span><span class="lnt"> 37
+</span><span class="lnt"> 38
+</span><span class="lnt"> 39
+</span><span class="lnt"> 40
+</span><span class="lnt"> 41
+</span><span class="lnt"> 42
+</span><span class="lnt"> 43
+</span><span class="lnt"> 44
+</span><span class="lnt"> 45
+</span><span class="lnt"> 46
+</span><span class="lnt"> 47
+</span><span class="lnt"> 48
+</span><span class="lnt"> 49
+</span><span class="lnt"> 50
+</span><span class="lnt"> 51
+</span><span class="lnt"> 52
+</span><span class="lnt"> 53
+</span><span class="lnt"> 54
+</span><span class="lnt"> 55
+</span><span class="lnt"> 56
+</span><span class="lnt"> 57
+</span><span class="lnt"> 58
+</span><span class="lnt"> 59
+</span><span class="lnt"> 60
+</span><span class="lnt"> 61
+</span><span class="lnt"> 62
+</span><span class="lnt"> 63
+</span><span class="lnt"> 64
+</span><span class="lnt"> 65
+</span><span class="lnt"> 66
+</span><span class="lnt"> 67
+</span><span class="lnt"> 68
+</span><span class="lnt"> 69
+</span><span class="lnt"> 70
+</span><span class="lnt"> 71
+</span><span class="lnt"> 72
+</span><span class="lnt"> 73
+</span><span class="lnt"> 74
+</span><span class="lnt"> 75
+</span><span class="lnt"> 76
+</span><span class="lnt"> 77
+</span><span class="lnt"> 78
+</span><span class="lnt"> 79
+</span><span class="lnt"> 80
+</span><span class="lnt"> 81
+</span><span class="lnt"> 82
+</span><span class="lnt"> 83
+</span><span class="lnt"> 84
+</span><span class="lnt"> 85
+</span><span class="lnt"> 86
+</span><span class="lnt"> 87
+</span><span class="lnt"> 88
+</span><span class="lnt"> 89
+</span><span class="lnt"> 90
+</span><span class="lnt"> 91
+</span><span class="lnt"> 92
+</span><span class="lnt"> 93
+</span><span class="lnt"> 94
+</span><span class="lnt"> 95
+</span><span class="lnt"> 96
+</span><span class="lnt"> 97
+</span><span class="lnt"> 98
+</span><span class="lnt"> 99
+</span><span class="lnt">100
+</span><span class="lnt">101
+</span><span class="lnt">102
+</span><span class="lnt">103
+</span><span class="lnt">104
+</span><span class="lnt">105
+</span><span class="lnt">106
+</span><span class="lnt">107
+</span><span class="lnt">108
+</span><span class="lnt">109
+</span><span class="lnt">110
+</span><span class="lnt">111
+</span><span class="lnt">112
+</span><span class="lnt">113
+</span><span class="lnt">114
+</span><span class="lnt">115
+</span><span class="lnt">116
+</span><span class="lnt">117
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-gdscript3" data-lang="gdscript3"><span class="line"><span class="cl"><span class="n">I</span> <span class="n">can</span><span class="err">’</span><span class="n">t</span> <span class="n">give</span> <span class="n">a</span> <span class="n">verified</span><span class="p">,</span> <span class="n">hands</span><span class="o">-</span><span class="n">on</span> <span class="n">evaluation</span> <span class="n">of</span> <span class="n">the</span> <span class="n">iPhone</span> <span class="mi">17</span> <span class="n">based</span> <span class="n">on</span> <span class="n">confirmed</span> <span class="n">final</span> <span class="n">specs</span> <span class="n">because</span> <span class="n">my</span> <span class="n">reliable</span> <span class="n">knowledge</span> <span class="n">ends</span> <span class="n">before</span> <span class="n">that</span> <span class="n">model</span><span class="err">’</span><span class="n">s</span> <span class="n">full</span> <span class="n">release</span> <span class="n">details</span><span class="o">.</span> <span class="n">So</span> <span class="n">the</span> <span class="n">following</span> <span class="n">is</span> <span class="n">a</span> <span class="n">cautious</span><span class="p">,</span> <span class="n">expectation</span><span class="o">-</span><span class="n">based</span> <span class="n">assessment</span> <span class="n">rather</span> <span class="n">than</span> <span class="n">a</span> <span class="n">definitive</span> <span class="n">review</span><span class="o">.</span> <span class="n">If</span> <span class="n">you</span> <span class="n">mean</span> <span class="n">a</span> <span class="n">specific</span> <span class="n">version</span> <span class="err">—</span> <span class="n">iPhone</span> <span class="mi">17</span><span class="p">,</span> <span class="n">iPhone</span> <span class="mi">17</span> <span class="n">Pro</span><span class="p">,</span> <span class="ow">or</span> <span class="n">a</span> <span class="n">rumored</span> <span class="err">“</span><span class="n">Air</span><span class="o">/</span><span class="n">Slim</span><span class="err">”</span> <span class="n">model</span> <span class="err">—</span> <span class="n">the</span> <span class="n">answer</span> <span class="n">can</span> <span class="n">change</span> <span class="n">a</span> <span class="n">lot</span><span class="o">.</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">## Overall impression</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">The</span> <span class="n">iPhone</span> <span class="mi">17</span> <span class="n">is</span> <span class="n">likely</span> <span class="n">to</span> <span class="n">feel</span> <span class="n">like</span> <span class="n">a</span> <span class="n">very</span> <span class="n">polished</span><span class="p">,</span> <span class="n">high</span><span class="o">-</span><span class="n">end</span> <span class="n">smartphone</span><span class="p">:</span> <span class="n">extremely</span> <span class="n">fast</span><span class="p">,</span> <span class="n">smooth</span> <span class="ow">in</span> <span class="n">daily</span> <span class="n">use</span><span class="p">,</span> <span class="ow">and</span> <span class="n">premium</span> <span class="ow">in</span> <span class="n">design</span><span class="o">.</span> <span class="n">However</span><span class="p">,</span> <span class="n">unless</span> <span class="n">Apple</span> <span class="n">made</span> <span class="n">a</span> <span class="n">major</span> <span class="n">design</span> <span class="n">change</span><span class="p">,</span> <span class="n">it</span> <span class="n">may</span> <span class="n">feel</span> <span class="n">more</span> <span class="n">like</span> <span class="n">a</span> <span class="n">refined</span> <span class="n">evolution</span> <span class="n">than</span> <span class="n">a</span> <span class="n">dramatic</span> <span class="n">new</span> <span class="n">leap</span><span class="o">.</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="o">---</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">## 1. Performance</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">### Expected strengths</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="o">**</span><span class="n">Excellent</span> <span class="n">speed</span> <span class="ow">and</span> <span class="n">responsiveness</span><span class="o">**</span>  
+</span></span><span class="line"><span class="cl"><span class="n">Apple</span><span class="err">’</span><span class="n">s</span> <span class="n">iPhone</span> <span class="n">chips</span> <span class="n">usually</span> <span class="n">lead</span> <span class="n">the</span> <span class="n">smartphone</span> <span class="n">market</span> <span class="ow">in</span> <span class="n">performance</span><span class="o">.</span> <span class="n">If</span> <span class="n">the</span> <span class="n">iPhone</span> <span class="mi">17</span> <span class="n">uses</span> <span class="n">the</span> <span class="n">next</span><span class="o">-</span><span class="n">generation</span> <span class="n">A</span><span class="o">-</span><span class="n">series</span> <span class="n">chip</span><span class="p">,</span> <span class="n">it</span> <span class="n">should</span> <span class="n">be</span> <span class="n">extremely</span> <span class="n">fast</span> <span class="k">for</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="o">-</span> <span class="n">Everyday</span> <span class="n">apps</span> <span class="ow">and</span> <span class="n">multitasking</span>  
+</span></span><span class="line"><span class="cl"><span class="o">-</span> <span class="n">Gaming</span><span class="p">,</span> <span class="n">including</span> <span class="n">graphically</span> <span class="n">demanding</span> <span class="n">titles</span>  
+</span></span><span class="line"><span class="cl"><span class="o">-</span> <span class="n">Photo</span> <span class="ow">and</span> <span class="n">video</span> <span class="n">editing</span>  
+</span></span><span class="line"><span class="cl"><span class="o">-</span> <span class="n">AI</span><span class="o">-</span><span class="n">related</span> <span class="n">features</span> <span class="ow">and</span> <span class="n">on</span><span class="o">-</span><span class="n">device</span> <span class="n">processing</span>  
+</span></span><span class="line"><span class="cl"><span class="o">-</span> <span class="n">Long</span><span class="o">-</span><span class="n">term</span> <span class="n">software</span> <span class="n">smoothness</span>  
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="o">**</span><span class="n">Strong</span> <span class="n">gaming</span> <span class="n">performance</span><span class="o">**</span>  
+</span></span><span class="line"><span class="cl"><span class="n">Recent</span> <span class="n">iPhones</span> <span class="n">have</span> <span class="n">had</span> <span class="n">very</span> <span class="n">capable</span> <span class="n">GPUs</span><span class="p">,</span> <span class="n">so</span> <span class="n">the</span> <span class="n">iPhone</span> <span class="mi">17</span> <span class="n">should</span> <span class="n">handle</span> <span class="n">high</span><span class="o">-</span><span class="n">frame</span><span class="o">-</span><span class="n">rate</span> <span class="n">gaming</span> <span class="n">well</span><span class="o">.</span> <span class="n">If</span> <span class="n">Apple</span> <span class="n">improves</span> <span class="n">thermal</span> <span class="n">design</span><span class="p">,</span> <span class="n">sustained</span> <span class="n">performance</span> <span class="n">could</span> <span class="n">be</span> <span class="n">even</span> <span class="n">better</span><span class="p">,</span> <span class="n">especially</span> <span class="ow">in</span> <span class="n">Pro</span> <span class="n">models</span><span class="o">.</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="o">**</span><span class="n">Improved</span> <span class="n">AI</span> <span class="ow">and</span> <span class="n">camera</span> <span class="n">processing</span><span class="o">**</span>  
+</span></span><span class="line"><span class="cl"><span class="n">Apple</span> <span class="n">has</span> <span class="n">been</span> <span class="n">pushing</span> <span class="n">on</span><span class="o">-</span><span class="n">device</span> <span class="n">AI</span> <span class="ow">and</span> <span class="n">computational</span> <span class="n">photography</span><span class="o">.</span> <span class="n">The</span> <span class="n">iPhone</span> <span class="mi">17</span> <span class="n">would</span> <span class="n">likely</span> <span class="n">benefit</span> <span class="n">from</span> <span class="n">a</span> <span class="n">faster</span> <span class="n">Neural</span> <span class="n">Engine</span><span class="p">,</span> <span class="n">improving</span> <span class="n">features</span> <span class="n">such</span> <span class="n">as</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="o">-</span> <span class="n">Photo</span> <span class="n">enhancement</span>  
+</span></span><span class="line"><span class="cl"><span class="o">-</span> <span class="n">Portrait</span> <span class="n">mode</span>  
+</span></span><span class="line"><span class="cl"><span class="o">-</span> <span class="n">Night</span> <span class="n">mode</span>  
+</span></span><span class="line"><span class="cl"><span class="o">-</span> <span class="n">Voice</span> <span class="n">processing</span>  
+</span></span><span class="line"><span class="cl"><span class="o">-</span> <span class="n">Smart</span> <span class="n">assistants</span>  
+</span></span><span class="line"><span class="cl"><span class="o">-</span> <span class="n">Real</span><span class="o">-</span><span class="n">time</span> <span class="n">translation</span> <span class="ow">or</span> <span class="n">image</span> <span class="n">tools</span>  
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="o">**</span><span class="n">Long</span><span class="o">-</span><span class="n">term</span> <span class="n">software</span> <span class="n">support</span><span class="o">**</span>  
+</span></span><span class="line"><span class="cl"><span class="n">iPhones</span> <span class="n">generally</span> <span class="n">receive</span> <span class="n">updates</span> <span class="k">for</span> <span class="n">many</span> <span class="n">years</span><span class="o">.</span> <span class="n">Even</span> <span class="k">if</span> <span class="n">the</span> <span class="n">iPhone</span> <span class="mi">17</span> <span class="n">is</span> <span class="ow">not</span> <span class="n">radically</span> <span class="n">different</span> <span class="n">from</span> <span class="n">the</span> <span class="n">previous</span> <span class="n">generation</span><span class="p">,</span> <span class="n">its</span> <span class="n">performance</span> <span class="n">should</span> <span class="n">remain</span> <span class="n">strong</span> <span class="k">for</span> <span class="n">a</span> <span class="n">long</span> <span class="n">time</span><span class="o">.</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">### Possible limitations</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="o">**</span><span class="n">Base</span> <span class="n">model</span> <span class="n">may</span> <span class="ow">not</span> <span class="n">feel</span> <span class="n">as</span> <span class="err">“</span><span class="n">Pro</span><span class="err">”</span> <span class="n">as</span> <span class="n">the</span> <span class="n">Pro</span> <span class="n">models</span><span class="o">**</span>  
+</span></span><span class="line"><span class="cl"><span class="n">Apple</span> <span class="n">often</span> <span class="n">separates</span> <span class="n">its</span> <span class="n">standard</span> <span class="ow">and</span> <span class="n">Pro</span> <span class="n">iPhones</span> <span class="n">by</span> <span class="n">camera</span> <span class="n">systems</span><span class="p">,</span> <span class="n">display</span> <span class="n">refresh</span> <span class="n">rate</span><span class="p">,</span> <span class="n">materials</span><span class="p">,</span> <span class="ow">and</span> <span class="n">GPU</span> <span class="n">performance</span><span class="o">.</span> <span class="n">If</span> <span class="n">the</span> <span class="n">iPhone</span> <span class="mi">17</span> <span class="n">base</span> <span class="n">model</span> <span class="n">still</span> <span class="n">lacks</span> <span class="n">a</span> <span class="n">high</span><span class="o">-</span><span class="n">refresh</span><span class="o">-</span><span class="n">rate</span> <span class="n">display</span><span class="p">,</span> <span class="n">it</span> <span class="n">may</span> <span class="n">feel</span> <span class="n">less</span> <span class="n">fluid</span> <span class="n">than</span> <span class="n">competing</span> <span class="n">Android</span> <span class="n">flagships</span><span class="p">,</span> <span class="n">even</span> <span class="k">if</span> <span class="n">the</span> <span class="n">chip</span> <span class="n">is</span> <span class="n">fast</span><span class="o">.</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="o">**</span><span class="n">Incremental</span> <span class="n">year</span><span class="o">-</span><span class="n">over</span><span class="o">-</span><span class="n">year</span> <span class="n">improvement</span><span class="o">**</span>  
+</span></span><span class="line"><span class="cl"><span class="n">If</span> <span class="n">you</span> <span class="n">are</span> <span class="n">coming</span> <span class="n">from</span> <span class="n">an</span> <span class="n">iPhone</span> <span class="mi">15</span> <span class="ow">or</span> <span class="n">iPhone</span> <span class="mi">16</span><span class="p">,</span> <span class="n">the</span> <span class="n">performance</span> <span class="n">jump</span> <span class="n">may</span> <span class="ow">not</span> <span class="n">feel</span> <span class="n">huge</span> <span class="n">unless</span> <span class="n">you</span> <span class="n">are</span> <span class="n">moving</span> <span class="n">from</span> <span class="n">an</span> <span class="n">older</span> <span class="n">device</span><span class="o">.</span> <span class="n">Apple</span><span class="err">’</span><span class="n">s</span> <span class="n">yearly</span> <span class="n">chip</span> <span class="n">upgrades</span> <span class="n">are</span> <span class="n">usually</span> <span class="n">strong</span> <span class="n">on</span> <span class="n">paper</span> <span class="n">but</span> <span class="n">less</span> <span class="n">dramatic</span> <span class="ow">in</span> <span class="n">daily</span> <span class="n">use</span><span class="o">.</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="o">**</span><span class="n">Battery</span> <span class="n">improvement</span> <span class="n">may</span> <span class="n">be</span> <span class="n">modest</span><span class="o">**</span>  
+</span></span><span class="line"><span class="cl"><span class="ne">Performance</span> <span class="n">efficiency</span> <span class="n">should</span> <span class="n">improve</span><span class="p">,</span> <span class="n">but</span> <span class="n">battery</span> <span class="n">life</span> <span class="n">may</span> <span class="ow">not</span> <span class="n">be</span> <span class="n">a</span> <span class="n">massive</span> <span class="n">leap</span> <span class="n">unless</span> <span class="n">the</span> <span class="n">device</span> <span class="n">is</span> <span class="n">significantly</span> <span class="n">larger</span><span class="p">,</span> <span class="n">thinner</span><span class="p">,</span> <span class="ow">or</span> <span class="n">uses</span> <span class="n">a</span> <span class="n">more</span> <span class="n">efficient</span> <span class="n">display</span><span class="o">/</span><span class="n">modem</span><span class="o">.</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">### Performance verdict</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">The</span> <span class="n">iPhone</span> <span class="mi">17</span> <span class="n">should</span> <span class="n">be</span> <span class="n">one</span> <span class="n">of</span> <span class="n">the</span> <span class="n">fastest</span> <span class="ow">and</span> <span class="n">most</span> <span class="n">reliable</span> <span class="n">smartphones</span> <span class="n">available</span><span class="o">.</span> <span class="n">It</span> <span class="n">will</span> <span class="n">likely</span> <span class="n">be</span> <span class="n">overkill</span> <span class="k">for</span> <span class="n">most</span> <span class="n">users</span><span class="p">,</span> <span class="n">which</span> <span class="n">is</span> <span class="n">good</span> <span class="k">for</span> <span class="n">longevity</span><span class="o">.</span> <span class="n">The</span> <span class="n">main</span> <span class="n">question</span> <span class="n">is</span> <span class="n">whether</span> <span class="n">Apple</span> <span class="n">improves</span> <span class="n">cooling</span><span class="p">,</span> <span class="n">display</span> <span class="n">smoothness</span><span class="p">,</span> <span class="ow">and</span> <span class="n">battery</span> <span class="n">efficiency</span> <span class="n">enough</span> <span class="n">to</span> <span class="n">make</span> <span class="n">the</span> <span class="n">upgrade</span> <span class="n">feel</span> <span class="n">meaningful</span><span class="o">.</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="o">**</span><span class="n">Expected</span> <span class="n">performance</span> <span class="n">rating</span><span class="p">:</span> <span class="mi">9</span><span class="o">/</span><span class="mi">10</span><span class="o">**</span>  
+</span></span><span class="line"><span class="cl"><span class="o">*</span><span class="n">Very</span> <span class="n">strong</span><span class="p">,</span> <span class="n">but</span> <span class="n">possibly</span> <span class="ow">not</span> <span class="n">a</span> <span class="n">huge</span> <span class="n">upgrade</span> <span class="n">from</span> <span class="n">the</span> <span class="n">previous</span> <span class="n">generation</span><span class="o">.*</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="o">---</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">## 2. Appearance and design</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">### Expected strengths</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="o">**</span><span class="n">Premium</span><span class="p">,</span> <span class="n">clean</span> <span class="n">Apple</span> <span class="n">design</span><span class="o">**</span>  
+</span></span><span class="line"><span class="cl"><span class="n">Apple</span><span class="err">’</span><span class="n">s</span> <span class="n">recent</span> <span class="n">iPhones</span> <span class="n">have</span> <span class="n">a</span> <span class="n">very</span> <span class="n">recognizable</span> <span class="n">design</span> <span class="n">language</span><span class="p">:</span> <span class="n">flat</span> <span class="n">edges</span><span class="p">,</span> <span class="n">clean</span> <span class="n">surfaces</span><span class="p">,</span> <span class="n">slim</span> <span class="n">bezels</span><span class="p">,</span> <span class="ow">and</span> <span class="n">a</span> <span class="n">premium</span> <span class="n">feel</span><span class="o">.</span> <span class="n">The</span> <span class="n">iPhone</span> <span class="mi">17</span> <span class="n">will</span> <span class="n">likely</span> <span class="k">continue</span> <span class="n">this</span> <span class="n">style</span><span class="o">.</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="o">**</span><span class="n">High</span><span class="o">-</span><span class="n">quality</span> <span class="n">materials</span><span class="o">**</span>  
+</span></span><span class="line"><span class="cl"><span class="n">Depending</span> <span class="n">on</span> <span class="n">the</span> <span class="n">model</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="o">-</span> <span class="n">The</span> <span class="n">standard</span> <span class="n">iPhone</span> <span class="mi">17</span> <span class="n">may</span> <span class="n">use</span> <span class="n">aluminum</span> <span class="ow">and</span> <span class="n">glass</span><span class="o">.</span>  
+</span></span><span class="line"><span class="cl"><span class="o">-</span> <span class="n">The</span> <span class="n">Pro</span> <span class="n">models</span> <span class="n">may</span> <span class="n">use</span> <span class="n">titanium</span> <span class="ow">or</span> <span class="n">another</span> <span class="n">premium</span> <span class="n">material</span> <span class="k">for</span> <span class="n">better</span> <span class="n">durability</span> <span class="ow">and</span> <span class="n">a</span> <span class="n">more</span> <span class="n">upscale</span> <span class="n">feel</span><span class="o">.</span>  
+</span></span><span class="line"><span class="cl"><span class="o">-</span> <span class="n">A</span> <span class="n">rumored</span> <span class="n">thinner</span> <span class="err">“</span><span class="n">Air</span><span class="err">”</span> <span class="ow">or</span> <span class="err">“</span><span class="n">Slim</span><span class="err">”</span> <span class="n">model</span><span class="p">,</span> <span class="k">if</span> <span class="n">it</span> <span class="n">exists</span><span class="p">,</span> <span class="n">could</span> <span class="n">focus</span> <span class="n">more</span> <span class="n">on</span> <span class="n">fashion</span> <span class="ow">and</span> <span class="n">lightness</span> <span class="n">than</span> <span class="n">raw</span> <span class="n">camera</span> <span class="n">power</span><span class="o">.</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="o">**</span><span class="n">Elegant</span> <span class="n">color</span> <span class="n">options</span><span class="o">**</span>  
+</span></span><span class="line"><span class="cl"><span class="n">Apple</span> <span class="n">usually</span> <span class="n">offers</span> <span class="n">a</span> <span class="n">mix</span> <span class="n">of</span> <span class="n">safe</span> <span class="n">colors</span> <span class="err">—</span> <span class="n">black</span><span class="p">,</span> <span class="n">white</span><span class="p">,</span> <span class="n">silver</span><span class="p">,</span> <span class="n">blue</span><span class="p">,</span> <span class="n">natural</span> <span class="n">titanium</span> <span class="err">—</span> <span class="n">plus</span> <span class="n">one</span> <span class="ow">or</span> <span class="n">two</span> <span class="n">more</span> <span class="n">distinctive</span> <span class="n">seasonal</span> <span class="n">colors</span><span class="o">.</span> <span class="n">The</span> <span class="n">iPhone</span> <span class="mi">17</span> <span class="n">will</span> <span class="n">likely</span> <span class="n">follow</span> <span class="n">this</span> <span class="n">approach</span><span class="o">.</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="o">**</span><span class="n">Strong</span> <span class="n">build</span> <span class="n">quality</span><span class="o">**</span>  
+</span></span><span class="line"><span class="cl"><span class="n">iPhones</span> <span class="n">are</span> <span class="n">generally</span> <span class="n">well</span><span class="o">-</span><span class="n">built</span><span class="p">,</span> <span class="n">with</span> <span class="n">excellent</span> <span class="n">fit</span> <span class="ow">and</span> <span class="n">finish</span><span class="o">.</span> <span class="n">The</span> <span class="n">iPhone</span> <span class="mi">17</span> <span class="n">should</span> <span class="n">feel</span> <span class="n">solid</span><span class="p">,</span> <span class="n">refined</span><span class="p">,</span> <span class="ow">and</span> <span class="n">expensive</span> <span class="ow">in</span> <span class="n">hand</span><span class="o">.</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">### Possible limitations</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="o">**</span><span class="n">Design</span> <span class="n">may</span> <span class="n">feel</span> <span class="n">familiar</span><span class="o">**</span>  
+</span></span><span class="line"><span class="cl"><span class="n">If</span> <span class="n">Apple</span> <span class="n">keeps</span> <span class="n">the</span> <span class="n">same</span> <span class="n">basic</span> <span class="n">shape</span><span class="p">,</span> <span class="n">camera</span> <span class="n">layout</span><span class="p">,</span> <span class="ow">and</span> <span class="n">Dynamic</span> <span class="n">Island</span> <span class="n">design</span><span class="p">,</span> <span class="n">the</span> <span class="n">iPhone</span> <span class="mi">17</span> <span class="n">may</span> <span class="ow">not</span> <span class="n">look</span> <span class="n">dramatically</span> <span class="n">different</span> <span class="n">from</span> <span class="n">recent</span> <span class="n">iPhones</span><span class="o">.</span> <span class="n">For</span> <span class="n">some</span> <span class="n">buyers</span><span class="p">,</span> <span class="n">that</span> <span class="n">is</span> <span class="n">a</span> <span class="n">good</span> <span class="n">thing</span><span class="p">;</span> <span class="k">for</span> <span class="n">others</span><span class="p">,</span> <span class="n">it</span> <span class="n">may</span> <span class="n">feel</span> <span class="n">too</span> <span class="n">safe</span><span class="o">.</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="o">**</span><span class="ne">Camera</span> <span class="n">bump</span> <span class="n">may</span> <span class="n">remain</span> <span class="n">prominent</span><span class="o">**</span>  
+</span></span><span class="line"><span class="cl"><span class="n">Apple</span><span class="err">’</span><span class="n">s</span> <span class="n">camera</span> <span class="n">systems</span> <span class="n">keep</span> <span class="n">improving</span><span class="p">,</span> <span class="n">but</span> <span class="n">that</span> <span class="n">often</span> <span class="n">means</span> <span class="n">larger</span> <span class="n">lenses</span> <span class="ow">and</span> <span class="n">a</span> <span class="n">noticeable</span> <span class="n">camera</span> <span class="n">module</span><span class="o">.</span> <span class="n">If</span> <span class="n">appearance</span> <span class="n">is</span> <span class="n">a</span> <span class="n">priority</span><span class="p">,</span> <span class="n">the</span> <span class="n">iPhone</span> <span class="mi">17</span> <span class="n">may</span> <span class="n">still</span> <span class="n">look</span> <span class="n">best</span> <span class="ow">in</span> <span class="n">a</span> <span class="k">case</span><span class="o">.</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="o">**</span><span class="err">“</span><span class="n">Slim</span><span class="err">”</span> <span class="ow">or</span> <span class="err">“</span><span class="n">Air</span><span class="err">”</span> <span class="n">model</span> <span class="n">could</span> <span class="n">be</span> <span class="n">more</span> <span class="n">about</span> <span class="n">style</span> <span class="n">than</span> <span class="n">power</span><span class="o">**</span>  
+</span></span><span class="line"><span class="cl"><span class="n">If</span> <span class="n">Apple</span> <span class="n">releases</span> <span class="n">a</span> <span class="n">thinner</span> <span class="n">iPhone</span> <span class="mi">17</span> <span class="n">variant</span><span class="p">,</span> <span class="n">it</span> <span class="n">may</span> <span class="n">look</span> <span class="n">more</span> <span class="n">exciting</span> <span class="n">but</span> <span class="n">could</span> <span class="n">compromise</span> <span class="n">on</span> <span class="n">battery</span> <span class="n">size</span><span class="p">,</span> <span class="n">camera</span> <span class="n">hardware</span><span class="p">,</span> <span class="ow">or</span> <span class="n">thermal</span> <span class="n">performance</span><span class="o">.</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">### Appearance verdict</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">The</span> <span class="n">iPhone</span> <span class="mi">17</span> <span class="n">will</span> <span class="n">likely</span> <span class="n">look</span> <span class="n">premium</span><span class="p">,</span> <span class="n">modern</span><span class="p">,</span> <span class="ow">and</span> <span class="n">elegant</span><span class="p">,</span> <span class="n">but</span> <span class="ow">not</span> <span class="n">revolutionary</span> <span class="n">unless</span> <span class="n">Apple</span> <span class="n">introduces</span> <span class="n">a</span> <span class="n">noticeably</span> <span class="n">thinner</span> <span class="ow">or</span> <span class="n">redesigned</span> <span class="n">model</span><span class="o">.</span> <span class="n">Apple</span> <span class="n">tends</span> <span class="n">to</span> <span class="n">refine</span> <span class="n">rather</span> <span class="n">than</span> <span class="n">reinvent</span> <span class="n">its</span> <span class="n">design</span> <span class="n">every</span> <span class="n">year</span><span class="o">.</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="o">**</span><span class="n">Expected</span> <span class="n">appearance</span> <span class="n">rating</span><span class="p">:</span> <span class="mi">8</span><span class="o">/</span><span class="mi">10</span><span class="o">**</span>  
+</span></span><span class="line"><span class="cl"><span class="o">*</span><span class="n">Premium</span> <span class="ow">and</span> <span class="n">attractive</span><span class="p">,</span> <span class="n">but</span> <span class="n">probably</span> <span class="n">evolutionary</span> <span class="n">rather</span> <span class="n">than</span> <span class="n">dramatic</span><span class="o">.*</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="o">---</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">## Final verdict</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">The</span> <span class="n">iPhone</span> <span class="mi">17</span> <span class="n">should</span> <span class="n">be</span> <span class="n">an</span> <span class="n">excellent</span> <span class="n">flagship</span> <span class="n">smartphone</span><span class="p">,</span> <span class="n">especially</span> <span class="k">if</span> <span class="n">you</span> <span class="n">care</span> <span class="n">about</span> <span class="n">speed</span><span class="p">,</span> <span class="n">long</span><span class="o">-</span><span class="n">term</span> <span class="n">software</span> <span class="n">support</span><span class="p">,</span> <span class="n">camera</span> <span class="n">processing</span><span class="p">,</span> <span class="ow">and</span> <span class="n">build</span> <span class="n">quality</span><span class="o">.</span> <span class="n">It</span> <span class="n">will</span> <span class="n">likely</span> <span class="n">be</span> <span class="n">one</span> <span class="n">of</span> <span class="n">the</span> <span class="n">best</span><span class="o">-</span><span class="n">performing</span> <span class="n">phones</span> <span class="n">on</span> <span class="n">the</span> <span class="n">market</span><span class="o">.</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">However</span><span class="p">,</span> <span class="k">if</span> <span class="n">you</span> <span class="n">already</span> <span class="n">own</span> <span class="n">a</span> <span class="n">recent</span> <span class="n">iPhone</span><span class="p">,</span> <span class="n">the</span> <span class="n">upgrade</span> <span class="n">may</span> <span class="n">feel</span> <span class="n">incremental</span> <span class="n">unless</span> <span class="n">Apple</span> <span class="n">makes</span> <span class="n">major</span> <span class="n">changes</span> <span class="n">to</span> <span class="n">the</span> <span class="n">design</span><span class="p">,</span> <span class="n">display</span><span class="p">,</span> <span class="n">battery</span><span class="p">,</span> <span class="ow">or</span> <span class="n">camera</span> <span class="n">system</span><span class="o">.</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">### Best for:</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="o">-</span> <span class="n">Users</span> <span class="n">upgrading</span> <span class="n">from</span> <span class="n">an</span> <span class="n">older</span> <span class="n">iPhone</span>  
+</span></span><span class="line"><span class="cl"><span class="o">-</span> <span class="n">People</span> <span class="n">who</span> <span class="n">want</span> <span class="n">top</span><span class="o">-</span><span class="n">tier</span> <span class="n">performance</span> <span class="ow">and</span> <span class="n">longevity</span>  
+</span></span><span class="line"><span class="cl"><span class="o">-</span> <span class="n">Users</span> <span class="n">who</span> <span class="n">prefer</span> <span class="n">a</span> <span class="n">clean</span><span class="p">,</span> <span class="n">premium</span> <span class="n">Apple</span> <span class="n">design</span>  
+</span></span><span class="line"><span class="cl"><span class="o">-</span> <span class="n">Creators</span> <span class="n">who</span> <span class="n">want</span> <span class="n">strong</span> <span class="n">camera</span> <span class="ow">and</span> <span class="n">video</span> <span class="n">processing</span>  
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">### Not as compelling for:</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="o">-</span> <span class="n">iPhone</span> <span class="mi">15</span> <span class="ow">or</span> <span class="n">iPhone</span> <span class="mi">16</span> <span class="n">users</span> <span class="n">expecting</span> <span class="n">a</span> <span class="n">huge</span> <span class="n">upgrade</span>  
+</span></span><span class="line"><span class="cl"><span class="o">-</span> <span class="n">Buyers</span> <span class="n">who</span> <span class="n">want</span> <span class="n">a</span> <span class="n">radically</span> <span class="n">new</span> <span class="n">design</span>  
+</span></span><span class="line"><span class="cl"><span class="o">-</span> <span class="n">Users</span> <span class="n">who</span> <span class="n">prioritize</span> <span class="n">value</span> <span class="n">over</span> <span class="n">flagship</span> <span class="n">performance</span>  
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">In</span> <span class="n">short</span><span class="p">:</span> <span class="o">**</span><span class="n">the</span> <span class="n">iPhone</span> <span class="mi">17</span> <span class="n">is</span> <span class="n">likely</span> <span class="n">to</span> <span class="n">be</span> <span class="n">powerful</span><span class="p">,</span> <span class="n">polished</span><span class="p">,</span> <span class="ow">and</span> <span class="n">premium</span><span class="p">,</span> <span class="n">but</span> <span class="n">probably</span> <span class="n">more</span> <span class="n">of</span> <span class="n">a</span> <span class="n">refinement</span> <span class="n">than</span> <span class="n">a</span> <span class="n">revolution</span><span class="o">.**</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>Object response</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">Hello there! As a professional product reviewer, I would be absolutely thrilled to evaluate this for you. However, it looks like you forgot to fill in the placeholders for the **{product}**, **{aspect1}**, and **{aspect2}**! 
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">To show you how I structure my professional reviews, I have provided an example below using a popular tech product—the **Sony WH-1000XM5 Wireless Headphones**—evaluated from the perspectives of **Sound Quality** and **Comfort &amp; Design**. 
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">***
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">### **Example Review: Sony WH-1000XM5 Wireless Headphones**
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">**Overall Impression:**
+</span></span><span class="line"><span class="cl">The Sony WH-1000XM5 represents a significant pivot in Sony’s flagship headphone lineup. Moving away from the utilitarian look of the XM4s, Sony has opted for a minimalist, modern aesthetic. But does the form compromise the function? Let’s break it down.
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">#### **Aspect 1: Sound Quality**
+</span></span><span class="line"><span class="cl">From an audiophile and everyday listener perspective, the sound profile of the WH-1000XM5 is a masterclass in tuning. Out of the box, the frequency response is remarkably balanced, though it still leans slightly toward the warmer, bass-forward side that Sony is known for. 
+</span></span><span class="line"><span class="cl">* **Low End:** The bass is punchy, deep, and highly textured without bleeding into the midrange. It provides that satisfying thump for hip-hop and EDM without muddying the track.
+</span></span><span class="line"><span class="cl">* **Mids and Highs:** Vocals are crisp and forward, giving podcasts and acoustic tracks excellent clarity. The treble is smooth and rolled off just enough to prevent sibilance (harsh &#34;s&#34; sounds) during long listening sessions. 
+</span></span><span class="line"><span class="cl">* **Spatial Audio &amp; Codecs:** With support for LDAC and Sony&#39;s DSEE Extreme upscaling, the soundstage feels surprisingly wide for closed-back headphones. Instrument separation is top-tier, making it one of the best-sounding Bluetooth headphones on the market.
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">#### **Aspect 2: Comfort &amp; Design**
+</span></span><span class="line"><span class="cl">This is where the WH-1000XM5 makes its most controversial changes. The new design is sleek, featuring a stepless slider and a quieter, more seamless hinge. 
+</span></span><span class="line"><span class="cl">* **Ergonomics &amp; Weight:** Weighing in at just 250 grams, they are incredibly light. The synthetic leather earcups are soft and create a excellent passive seal. 
+</span></span><span class="line"><span class="cl">* **Clamping Force:** Sony reduced the clamping force compared to the XM4s. For the first two hours, they feel like they are floating on your head. However, for users with larger heads, the reduced clamp force combined with the shallower ear cups can lead to fatigue and heat buildup after the 3-hour mark. 
+</span></span><span class="line"><span class="cl">* **Build Quality:** While they look premium, the matte finish is a magnet for fingerprints, and the lack of a folding mechanism (they only lay flat) means the included carrying case is significantly bulkier than previous generations. 
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">**The Verdict (Example):**
+</span></span><span class="line"><span class="cl">The WH-1000XM5 delivers flagship-tier sound quality and industry-leading noise cancellation, but the redesign in comfort and portability is a double-edged sword. It’s a triumph for desktop and short-flight use, but long-haul travelers might still prefer the foldable XM4s.
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">***
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">### **Now it&#39;s your turn!**
+</span></span><span class="line"><span class="cl">Please reply and tell me:
+</span></span><span class="line"><span class="cl">1. What is the **{product}** you want me to review?
+</span></span><span class="line"><span class="cl">2. What is **{aspect1}** you want me to focus on?
+</span></span><span class="line"><span class="cl">3. What is **{aspect2}** you want me to focus on?
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">Once you provide those details, I will craft a detailed, professional, and insightful review just for you!
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="chains">Chains
+</h2><ul>
+<li>openai</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-py" data-lang="py"><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">langchain_core.prompts</span> <span class="kn">import</span> <span class="n">ChatPromptTemplate</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">langchain_openai</span> <span class="kn">import</span> <span class="n">ChatOpenAI</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">pydantic</span> <span class="kn">import</span> <span class="n">BaseModel</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">call_chains</span><span class="p">():</span>
+</span></span><span class="line"><span class="cl">    
+</span></span><span class="line"><span class="cl">    <span class="k">class</span> <span class="nc">CalendarEvent</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>
+</span></span><span class="line"><span class="cl">        <span class="n">date</span><span class="p">:</span> <span class="nb">str</span>
+</span></span><span class="line"><span class="cl">        <span class="n">participants</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">        
+</span></span><span class="line"><span class="cl">	<span class="n">template</span> <span class="o">=</span> <span class="n">ChatPromptTemplate</span><span class="o">.</span><span class="n">from_messages</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">		<span class="n">messages</span><span class="o">=</span><span class="p">[</span>
+</span></span><span class="line"><span class="cl">			<span class="p">(</span><span class="s2">&#34;user&#34;</span><span class="p">,</span> <span class="s2">&#34;</span><span class="si">{input_question}</span><span class="s2">&#34;</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">		<span class="p">]</span>
+</span></span><span class="line"><span class="cl">	<span class="p">)</span>
+</span></span><span class="line"><span class="cl">    
+</span></span><span class="line"><span class="cl">	<span class="n">llm</span> <span class="o">=</span> <span class="n">ChatOpenAI</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">		<span class="n">model</span><span class="o">=</span><span class="s2">&#34;gpt-4o-mini&#34;</span>
+</span></span><span class="line"><span class="cl">	<span class="p">)</span>
+</span></span><span class="line"><span class="cl">    
+</span></span><span class="line"><span class="cl">	<span class="n">llm</span> <span class="o">=</span> <span class="n">llm</span><span class="o">.</span><span class="n">with_structured_output</span><span class="p">(</span><span class="n">CalendarEvent</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    
+</span></span><span class="line"><span class="cl">	<span class="c1"># python 提供了魔法方法， __or__ 实现了 | 的操作</span>
+</span></span><span class="line"><span class="cl">	<span class="n">chain</span> <span class="o">=</span> <span class="n">template</span> <span class="o">|</span> <span class="n">llm</span>
+</span></span><span class="line"><span class="cl">	<span class="n">response</span> <span class="o">=</span> <span class="n">chain</span><span class="o">.</span><span class="n">invoke</span><span class="p">(</span><span class="s2">&#34;2026 年 5 月 13 日,张三和李四要参与一场会议，会议名称为&#39;和平之旅&#39;&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">	<span class="nb">print</span><span class="p">(</span><span class="n">response</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>zcode</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-py" data-lang="py"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">os</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">dotenv</span> <span class="kn">import</span> <span class="n">load_dotenv</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">langchain_core.output_parsers</span> <span class="kn">import</span> <span class="n">JsonOutputParser</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">langchain_core.prompts</span> <span class="kn">import</span> <span class="n">ChatPromptTemplate</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">langchain_openai</span> <span class="kn">import</span> <span class="n">ChatOpenAI</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">pydantic</span> <span class="kn">import</span> <span class="n">BaseModel</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">load_dotenv</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">call_chains</span><span class="p">():</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="k">class</span> <span class="nc">CalendarEvent</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">		<span class="n">name</span><span class="p">:</span> <span class="nb">str</span>
+</span></span><span class="line"><span class="cl">		<span class="n">date</span><span class="p">:</span> <span class="nb">str</span>
+</span></span><span class="line"><span class="cl">		<span class="n">participants</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="n">parser</span> <span class="o">=</span> <span class="n">JsonOutputParser</span><span class="p">(</span><span class="n">pydantic_object</span><span class="o">=</span><span class="n">CalendarEvent</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="n">template</span> <span class="o">=</span> <span class="n">ChatPromptTemplate</span><span class="o">.</span><span class="n">from_messages</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">		<span class="n">messages</span><span class="o">=</span><span class="p">[</span>
+</span></span><span class="line"><span class="cl">			<span class="p">(</span><span class="s2">&#34;system&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">			 <span class="s2">&#34;你是一个日程信息提取助手。&#34;</span>
+</span></span><span class="line"><span class="cl">			 <span class="s2">&#34;请从用户输入中提取会议信息，**只输出 JSON，不要输出任何解释或多余文字**。</span><span class="se">\n</span><span class="s2">&#34;</span>
+</span></span><span class="line"><span class="cl">			 <span class="s2">&#34;</span><span class="si">{format_instructions}</span><span class="s2">&#34;</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">			<span class="p">(</span><span class="s2">&#34;user&#34;</span><span class="p">,</span> <span class="s2">&#34;</span><span class="si">{input_question}</span><span class="s2">&#34;</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">		<span class="p">]</span>
+</span></span><span class="line"><span class="cl">	<span class="p">)</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span><span class="n">format_instructions</span><span class="o">=</span><span class="n">parser</span><span class="o">.</span><span class="n">get_format_instructions</span><span class="p">())</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="n">llm</span> <span class="o">=</span> <span class="n">ChatOpenAI</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">		<span class="n">model</span><span class="o">=</span><span class="s2">&#34;glm-5.3-flash&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">		<span class="n">temperature</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">		<span class="n">api_key</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">&#34;ZAI_API_KEY&#34;</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">		<span class="n">base_url</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">&#34;ZAI_BASE_URL&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">	<span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="c1"># python 提供了魔法方法， __or__ 实现了 | 的操作</span>
+</span></span><span class="line"><span class="cl">	<span class="n">chain</span> <span class="o">=</span> <span class="n">template</span> <span class="o">|</span> <span class="n">llm</span> <span class="o">|</span> <span class="n">parser</span>
+</span></span><span class="line"><span class="cl">	<span class="n">response</span> <span class="o">=</span> <span class="n">chain</span><span class="o">.</span><span class="n">invoke</span><span class="p">({</span><span class="s2">&#34;2026 年 5 月 13 日,张三和李四要参与一场会议，会议名称为&#39;和平之旅&#39;&#34;</span><span class="p">})</span>
+</span></span><span class="line"><span class="cl">	<span class="nb">print</span><span class="p">(</span><span class="n">response</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">	<span class="n">call_chains</span><span class="p">()</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>dashscope</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-py" data-lang="py"><span class="line"><span class="cl"><span class="s2">&#34;&#34;&#34;
+</span></span></span><span class="line"><span class="cl"><span class="s2">    @Author:yline
+</span></span></span><span class="line"><span class="cl"><span class="s2">    @Time:2026/9/28
+</span></span></span><span class="line"><span class="cl"><span class="s2">    @Desc:
+</span></span></span><span class="line"><span class="cl"><span class="s2">&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">os</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">dotenv</span> <span class="kn">import</span> <span class="n">load_dotenv</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">langchain_core.prompts</span> <span class="kn">import</span> <span class="n">ChatPromptTemplate</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">langchain_openai</span> <span class="kn">import</span> <span class="n">ChatOpenAI</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">pydantic</span> <span class="kn">import</span> <span class="n">BaseModel</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">load_dotenv</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">call_chains</span><span class="p">():</span>
+</span></span><span class="line"><span class="cl">    <span class="k">class</span> <span class="nc">CalendarEvent</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>
+</span></span><span class="line"><span class="cl">        <span class="n">date</span><span class="p">:</span> <span class="nb">str</span>
+</span></span><span class="line"><span class="cl">        <span class="n">participants</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="n">template</span> <span class="o">=</span> <span class="n">ChatPromptTemplate</span><span class="o">.</span><span class="n">from_messages</span><span class="p">([</span>
+</span></span><span class="line"><span class="cl">        <span class="p">(</span><span class="s2">&#34;user&#34;</span><span class="p">,</span><span class="s2">&#34;</span><span class="si">{input_question}</span><span class="s2">&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="p">])</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="n">llm</span> <span class="o">=</span> <span class="n">ChatOpenAI</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">        <span class="n">model</span><span class="o">=</span><span class="s2">&#34;qwen3.7-plus&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="n">temperature</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="n">api_key</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">&#34;DASHSCOPE_API_KEY&#34;</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">        <span class="n">base_url</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">&#34;DASHSCOPE_BASE_URL&#34;</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">        <span class="n">extra_body</span><span class="o">=</span><span class="p">{</span><span class="s2">&#34;enable_thinking&#34;</span><span class="p">:</span> <span class="kc">False</span><span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="n">structured_llm</span> <span class="o">=</span> <span class="n">llm</span><span class="o">.</span><span class="n">with_structured_output</span><span class="p">(</span><span class="n">CalendarEvent</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s2">&#34;function_calling&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="n">chain</span> <span class="o">=</span> <span class="n">template</span> <span class="o">|</span> <span class="n">structured_llm</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="n">resp</span> <span class="o">=</span> <span class="n">chain</span><span class="o">.</span><span class="n">invoke</span><span class="p">(</span><span class="s2">&#34;2026 年 5 月 13 日，张三和李四要参与一场会议，会议名称为&#39;和平之旅&#39;&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="nb">print</span><span class="p">(</span><span class="n">resp</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="n">call_chains</span><span class="p">()</span>
 </span></span></code></pre></td></tr></table>
 </div>
 </div>
