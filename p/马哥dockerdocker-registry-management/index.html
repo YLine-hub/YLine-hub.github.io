@@ -218,6 +218,47 @@
         <li><a href="#download-the-image-you-just-uploaded-from-another-host-and-run-the-container">Download the image you just uploaded from another host and run the container</a></li>
       </ol>
     </li>
+    <li><a href="#private-cloud-single-node-docker-registry">Private cloud single-node Docker Registry</a>
+      <ol>
+        <li><a href="#pull-the-docker-registry-image">Pull the Docker Registry image</a></li>
+        <li><a href="#set-up-a-single-node-registry">Set up a single-node registry</a>
+          <ol>
+            <li><a href="#create-a-directory-for-authorized-user-passwords">Create a directory for authorized user passwords</a></li>
+            <li><a href="#create-an-authorized-registry-user-and-password">Create an authorized registry user and password</a></li>
+            <li><a href="#start-the-docker-registry-container">Start the Docker Registry container</a></li>
+            <li><a href="#verify-the-port-and-container">Verify the port and container</a></li>
+          </ol>
+        </li>
+        <li><a href="#log-in-to-the-registry">Log in to the registry</a>
+          <ol>
+            <li><a href="#logging-in-directly-throws-an-error">Logging in directly throws an error</a></li>
+            <li><a href="#add-the-registry-server-address-to-the-service-unit-file">Add the registry server address to the service unit file</a></li>
+            <li><a href="#log-in-again-to-verify-success">Log in again to verify success</a></li>
+          </ol>
+        </li>
+        <li><a href="#tag-and-push-the-image">Tag and push the image</a></li>
+        <li><a href="#pull-the-image-and-run-a-container">Pull the image and run a container</a>
+          <ol>
+            <li><a href="#first-modify-the-docker-service-file">First, modify the Docker service file</a></li>
+            <li><a href="#log-in-to-the-registry-server">Log in to the registry server</a></li>
+            <li><a href="#pull-the-image-and-run-a-container-1">Pull the image and run a container</a></li>
+          </ol>
+        </li>
+      </ol>
+    </li>
+    <li><a href="#harbor-a-distributed-registry-for-docker">Harbor: A distributed registry for Docker</a>
+      <ol>
+        <li><a href="#install-harbor">Install Harbor</a>
+          <ol>
+            <li><a href="#download-the-harbor-installation-package-and-extract-it">Download the Harbor installation package and extract it</a></li>
+            <li><a href="#edit-the-harbor-configuration-file">Edit the Harbor configuration file</a></li>
+            <li><a href="#run-the-harbor-installation-script">Run the Harbor installation script</a></li>
+            <li><a href="#configure-harbor-to-start-automatically-on-boot">Configure Harbor to start automatically on boot.</a></li>
+            <li><a href="#modify-the-docker-composeyaml-file-to-resolve-address-conflicts-optional">Modify the docker-compose.yaml file to resolve address conflicts. (Optional)</a></li>
+          </ol>
+        </li>
+      </ol>
+    </li>
   </ol>
 </nav>
         </div>
@@ -603,6 +644,925 @@
 </span></span><span class="line"><span class="cl">REPOSITORY                                                                       TAG        IMAGE ID       CREATED       SIZE
 </span></span><span class="line"><span class="cl">crpi-dcmzbk7ldosl3n6l.cn-hangzhou.personal.cr.aliyuncs.com/yline/tomcat-web      app1       651daf4cc549   <span class="m">8</span> days ago    762MB
 </span></span><span class="line"><span class="cl">crpi-dcmzbk7ldosl3n6l.cn-hangzhou.personal.cr.aliyuncs.com/yline/centos7-nginx   1.6.1.v2   9dc2a5bb9348   <span class="m">2</span> weeks ago   703MB
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="private-cloud-single-node-docker-registry">Private cloud single-node Docker Registry
+</h2><h3 id="pull-the-docker-registry-image">Pull the Docker Registry image
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">docker pull registry:2.7.1
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker pull swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/library/registry:2.7.1
+</span></span><span class="line"><span class="cl">2.7.1: Pulling from ddn-k8s/docker.io/library/registry
+</span></span><span class="line"><span class="cl">79e9f2f55bf5: Pull <span class="nb">complete</span> 
+</span></span><span class="line"><span class="cl">0d96da54f60b: Pull <span class="nb">complete</span> 
+</span></span><span class="line"><span class="cl">5b27040df4a2: Pull <span class="nb">complete</span> 
+</span></span><span class="line"><span class="cl">e2ead8259a04: Pull <span class="nb">complete</span> 
+</span></span><span class="line"><span class="cl">3790aef225b9: Pull <span class="nb">complete</span> 
+</span></span><span class="line"><span class="cl">Digest: sha256:36cb5b157911061fb610d8884dc09e0b0300a767a350563cbfd88b4b85324ce4
+</span></span><span class="line"><span class="cl">Status: Downloaded newer image <span class="k">for</span> swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/library/registry:2.7.1
+</span></span><span class="line"><span class="cl">swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/library/registry:2.7.1
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker tag swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/library/registry:2.7.1 registry:2.7.1
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="set-up-a-single-node-registry">Set up a single-node registry
+</h3><h4 id="create-a-directory-for-authorized-user-passwords">Create a directory for authorized user passwords
+</h4><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# mkdir -p /etc/docker/auth
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="create-an-authorized-registry-user-and-password">Create an authorized registry user and password
+</h4><p>Create a registry user for uploading and downloading images</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# apt -y install apache2-utils
+</span></span><span class="line"><span class="cl">root@lin-server:~# htpasswd -Bbn wang <span class="m">123456</span> &gt; /etc/docker/auth/registry
+</span></span><span class="line"><span class="cl">root@lin-server:~# cat /etc/docker/auth/registry
+</span></span><span class="line"><span class="cl">wang:<span class="nv">$2</span>y<span class="nv">$05$VZc2XkGmwqJaCR2syJFQ1</span>.VUs1fHK3RDr/GJhMQ4ku2UZ4/3VqFny
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># For older versions, you can generate the user and password file as follows:</span>
+</span></span><span class="line"><span class="cl">docker run --entrypoint htpasswd registry:2.7.1 -Bbn wang <span class="m">123456</span> &gt; /etc/docker/auth/registry
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="start-the-docker-registry-container">Start the Docker Registry container
+</h4><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">docker run -d -p 5000:5000 --restart<span class="o">=</span>always --name registry -v /etc/docker/auth:/auth -e <span class="s2">&#34;REGISTRY_AUTH=htpasswd&#34;</span> -e <span class="s2">&#34;REGISTRY_AUTH_HTPASSWD_REALM=Registry Realm&#34;</span> -e <span class="nv">REGISTRY_AUTH_HTPASSWD_PATH</span><span class="o">=</span>/auth/registry registry:2.7.1
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="verify-the-port-and-container">Verify the port and container
+</h4><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# docker ps 
+</span></span><span class="line"><span class="cl">CONTAINER ID   IMAGE            COMMAND                  CREATED          STATUS          PORTS                                         NAMES
+</span></span><span class="line"><span class="cl">b3212b4673e2   registry:2.7.1   <span class="s2">&#34;/entrypoint.sh /etc…&#34;</span>   <span class="m">11</span> seconds ago   Up <span class="m">11</span> seconds   0.0.0.0:5000-&gt;5000/tcp, <span class="o">[</span>::<span class="o">]</span>:5000-&gt;5000/tcp   registry
+</span></span><span class="line"><span class="cl">root@lin-server:~# ss -ntl
+</span></span><span class="line"><span class="cl">State        Recv-Q       Send-Q              Local Address:Port               Peer Address:Port       Process       
+</span></span><span class="line"><span class="cl">LISTEN       <span class="m">0</span>            <span class="m">4096</span>                      0.0.0.0:22                      0.0.0.0:*                        
+</span></span><span class="line"><span class="cl">LISTEN       <span class="m">0</span>            <span class="m">4096</span>                127.0.0.53%lo:53                      0.0.0.0:*                        
+</span></span><span class="line"><span class="cl">LISTEN       <span class="m">0</span>            <span class="m">4096</span>                      0.0.0.0:5000                    0.0.0.0:*                        
+</span></span><span class="line"><span class="cl">LISTEN       <span class="m">0</span>            <span class="m">4096</span>                   127.0.0.54:53                      0.0.0.0:*                        
+</span></span><span class="line"><span class="cl">LISTEN       <span class="m">0</span>            <span class="m">4096</span>                         <span class="o">[</span>::<span class="o">]</span>:22                         <span class="o">[</span>::<span class="o">]</span>:*                        
+</span></span><span class="line"><span class="cl">LISTEN       <span class="m">0</span>            <span class="m">4096</span>                         <span class="o">[</span>::<span class="o">]</span>:5000                       <span class="o">[</span>::<span class="o">]</span>:*         
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="log-in-to-the-registry">Log in to the registry
+</h3><h4 id="logging-in-directly-throws-an-error">Logging in directly throws an error
+</h4><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# docker login 192.168.128.100:5000
+</span></span><span class="line"><span class="cl">Username: wang
+</span></span><span class="line"><span class="cl">Password: 
+</span></span><span class="line"><span class="cl">Error response from daemon: Get <span class="s2">&#34;https://192.168.128.100:5000/v2/&#34;</span>: http: server gave HTTP response to HTTPS client
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="add-the-registry-server-address-to-the-service-unit-file">Add the registry server address to the service unit file
+</h4><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># Modify the configuration to allow docker login to support HTTP</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># Method 1</span>
+</span></span><span class="line"><span class="cl">root@lin-server:~# vim /lib/systemd/system/docker.service
+</span></span><span class="line"><span class="cl">root@lin-server:~# grep ExecStart /lib/systemd/system/docker.service
+</span></span><span class="line"><span class="cl"><span class="nv">ExecStart</span><span class="o">=</span>/usr/bin/dockerd --insecure-registry 192.168.128.100:5000
+</span></span><span class="line"><span class="cl"><span class="c1"># Method 2</span>
+</span></span><span class="line"><span class="cl"><span class="o">[</span>root@ubuntu1804 ~<span class="o">]</span><span class="c1">#vim /etc/docker/daemon.json </span>
+</span></span><span class="line"><span class="cl"><span class="o">{</span>
+</span></span><span class="line"><span class="cl">  <span class="s2">&#34;insecure-registries&#34;</span>: <span class="o">[</span><span class="s2">&#34;192.168.128.100:5000&#34;</span><span class="o">]</span>
+</span></span><span class="line"><span class="cl"><span class="o">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Restart the service</span>
+</span></span><span class="line"><span class="cl">root@lin-server:~# systemctl daemon-reload
+</span></span><span class="line"><span class="cl">root@lin-server:~# systemctl restart docker
+</span></span><span class="line"><span class="cl">root@lin-server:~# ps aux<span class="p">|</span>grep dockerd
+</span></span><span class="line"><span class="cl">root       <span class="m">28179</span>  0.6  1.6 <span class="m">2107424</span> <span class="m">66732</span> ?       Ssl  07:35   0:00 /usr/bin/dockerd --insecure-registry 192.168.128.100:5000
+</span></span><span class="line"><span class="cl">root       <span class="m">28540</span>  0.0  0.0   <span class="m">6548</span>  <span class="m">2348</span> pts/0    S+   07:36   0:00 grep --color<span class="o">=</span>auto dockerd
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="log-in-again-to-verify-success">Log in again to verify success
+</h4><p>Run the following login on the host 192.168.128.100</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span><span class="lnt">9
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# docker login 192.168.128.100:5000
+</span></span><span class="line"><span class="cl">Username: wang
+</span></span><span class="line"><span class="cl">Password: 
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">WARNING! Your credentials are stored unencrypted in <span class="s1">&#39;/root/.docker/config.json&#39;</span>.
+</span></span><span class="line"><span class="cl">Configure a credential helper to remove this warning. See
+</span></span><span class="line"><span class="cl">https://docs.docker.com/go/credential-store/
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">Login Succeeded
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="tag-and-push-the-image">Tag and push the image
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# docker tag centos7-nginx:1.6.1.v2 192.168.128.100:5000/centos7-nginx:1.6.1.v2
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker push 192.168.128.100:5000/centos7-nginx:1.6.1.v2
+</span></span><span class="line"><span class="cl">The push refers to repository <span class="o">[</span>192.168.128.100:5000/centos7-nginx<span class="o">]</span>
+</span></span><span class="line"><span class="cl">2369e4cee6b0: Pushed 
+</span></span><span class="line"><span class="cl">9c93a98375c5: Pushed 
+</span></span><span class="line"><span class="cl">034f282942cd: Pushed 
+</span></span><span class="line"><span class="cl">1.6.1.v2: digest: sha256:48f0acfeb7517b446e18efa873ffc8b1012ee4327e2bae1b30fc38cf868c4b59 size: <span class="m">954</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="pull-the-image-and-run-a-container">Pull the image and run a container
+</h3><p>Pull the image and run a container on the host 192.168.128.101</p>
+<h4 id="first-modify-the-docker-service-file">First, modify the Docker service file
+</h4><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# vim /lib/systemd/system/docker.service
+</span></span><span class="line"><span class="cl">root@lin-server:~# grep ExecStart /lib/systemd/system/docker.service
+</span></span><span class="line"><span class="cl"><span class="nv">ExecStart</span><span class="o">=</span>/usr/bin/dockerd --insecure-registry 192.168.128.100:5000
+</span></span><span class="line"><span class="cl">root@lin-server:~# systemctl daemon-reload
+</span></span><span class="line"><span class="cl">root@lin-server:~# systemctl restart docker
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="log-in-to-the-registry-server">Log in to the registry server
+</h4><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span><span class="lnt">9
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# docker login 192.168.128.100:5000
+</span></span><span class="line"><span class="cl">Username: wang
+</span></span><span class="line"><span class="cl">Password: 
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">WARNING! Your credentials are stored unencrypted in <span class="s1">&#39;/root/.docker/config.json&#39;</span>.
+</span></span><span class="line"><span class="cl">Configure a credential helper to remove this warning. See
+</span></span><span class="line"><span class="cl">https://docs.docker.com/go/credential-store/
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">Login Succeeded
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="pull-the-image-and-run-a-container-1">Pull the image and run a container
+</h4><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# docker images
+</span></span><span class="line"><span class="cl">REPOSITORY   TAG       IMAGE ID   CREATED   SIZE
+</span></span><span class="line"><span class="cl">root@lin-server:~# curl -u wang:123456 http://192.168.128.100:5000/v2/_catalog
+</span></span><span class="line"><span class="cl"><span class="o">{</span><span class="s2">&#34;repositories&#34;</span>:<span class="o">[</span><span class="s2">&#34;centos7-nginx&#34;</span><span class="o">]}</span>
+</span></span><span class="line"><span class="cl">root@lin-server:~# curl -u wang:123456 http://192.168.128.100:5000/v2/centos7-nginx/tags/list
+</span></span><span class="line"><span class="cl">root@lin-server:~# curl -u wang:123456 http://192.168.128.100:5000/v2/centos7-nginx/tags/list
+</span></span><span class="line"><span class="cl"><span class="o">{</span><span class="s2">&#34;name&#34;</span>:<span class="s2">&#34;centos7-nginx&#34;</span>,<span class="s2">&#34;tags&#34;</span>:<span class="o">[</span><span class="s2">&#34;1.6.1.v2&#34;</span><span class="o">]}</span>
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker pull 192.168.128.100:5000/centos7-nginx:1.6.1.v2
+</span></span><span class="line"><span class="cl">1.6.1.v2: Pulling from centos7-nginx
+</span></span><span class="line"><span class="cl">f34b00c7da20: Pull <span class="nb">complete</span> 
+</span></span><span class="line"><span class="cl">a27dc55439a6: Pull <span class="nb">complete</span> 
+</span></span><span class="line"><span class="cl">6772b75d2836: Pull <span class="nb">complete</span> 
+</span></span><span class="line"><span class="cl">Digest: sha256:48f0acfeb7517b446e18efa873ffc8b1012ee4327e2bae1b30fc38cf868c4b59
+</span></span><span class="line"><span class="cl">Status: Downloaded newer image <span class="k">for</span> 192.168.128.100:5000/centos7-nginx:1.6.1.v2
+</span></span><span class="line"><span class="cl">192.168.128.100:5000/centos7-nginx:1.6.1.v2
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker images
+</span></span><span class="line"><span class="cl">REPOSITORY                           TAG        IMAGE ID       CREATED       SIZE
+</span></span><span class="line"><span class="cl">192.168.128.100:5000/centos7-nginx   1.6.1.v2   9dc2a5bb9348   <span class="m">3</span> weeks ago   703MB
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker run -it --rm 9dc2a5bb9348 bash
+</span></span><span class="line"><span class="cl"><span class="o">[</span>root@c6319c277305 /<span class="o">]</span><span class="c1"># cat /etc/redhat-release </span>
+</span></span><span class="line"><span class="cl">CentOS Linux release 7.7.1908 <span class="o">(</span>Core<span class="o">)</span>
+</span></span><span class="line"><span class="cl"><span class="o">[</span>root@c6319c277305 /<span class="o">]</span><span class="c1"># exit</span>
+</span></span><span class="line"><span class="cl"><span class="nb">exit</span>
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker ps
+</span></span><span class="line"><span class="cl">CONTAINER ID   IMAGE     COMMAND   CREATED   STATUS    PORTS     NAMES
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="harbor-a-distributed-registry-for-docker">Harbor: A distributed registry for Docker
+</h2><h3 id="install-harbor">Install Harbor
+</h3><blockquote>
+<p><a class="link" href="https://github.com/vmware/harbor/releases"  target="_blank" rel="noopener"
+    >https://github.com/vmware/harbor/releases</a></p>
+</blockquote>
+<h4 id="download-the-harbor-installation-package-and-extract-it">Download the Harbor installation package and extract it
+</h4><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">https://github.com/goharbor/harbor/releases
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>The following uses the stable Harbor version 1.7.6 installation package</p>
+<ul>
+<li>Method 1: Download the complete offline installation package (recommended)</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# wget https://github.com/goharbor/harbor/releases/download/v2.7.4/harbor-offline-installer-v2.7.4.tgz
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">root@lin-server:~# wget https://github.com/goharbor/harbor/releases/download/v2.5.2/harbor-offline-installer-v2.5.2.tgz
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">root@lin-server:~# wget https://storage.googleapis.com/harbor-releases/release-1.7.0/harbor-offline-installer-v1.7.6.tgz
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>Method 2: Download the online installer —— it&rsquo;s slower and not recommended</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# wget https://storage.googleapis.com/harbor-releases/release-1.7.0/harbor-online-installer-v1.7.6.tgz
+</span></span></code></pre></td></tr></table>
+</div>
+</div><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# ls -lh harbor-o*
+</span></span><span class="line"><span class="cl">-rw-r--r-- <span class="m">1</span> root root 721M Nov <span class="m">30</span>  <span class="m">2023</span> harbor-offline-installer-v2.7.4.tgz
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>Extract the offline package</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# tar xvf harbor-offline-installer-v2.7.4.tgz -C /usr/local
+</span></span><span class="line"><span class="cl">harbor/harbor.v2.7.4.tar.gz
+</span></span><span class="line"><span class="cl">harbor/prepare
+</span></span><span class="line"><span class="cl">harbor/LICENSE
+</span></span><span class="line"><span class="cl">harbor/install.sh
+</span></span><span class="line"><span class="cl">harbor/common.sh
+</span></span><span class="line"><span class="cl">harbor/harbor.yml.tmpl
+</span></span><span class="line"><span class="cl">root@lin-server:~# <span class="nb">cd</span> /usr/local/harbor/
+</span></span><span class="line"><span class="cl">root@lin-server:/usr/local/harbor# ls
+</span></span><span class="line"><span class="cl">common.sh  harbor.v2.7.4.tar.gz  harbor.yml.tmpl  install.sh  LICENSE  prepare
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="edit-the-harbor-configuration-file">Edit the Harbor configuration file
+</h4><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># The new configuration file is in YAML format</span>
+</span></span><span class="line"><span class="cl">root@lin-server:/usr/local/harbor# mv harbor.yml.tmpl harbor.yml
+</span></span><span class="line"><span class="cl">root@lin-server:/usr/local/harbor# vim harbor.yml
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># The old configuration file is in text format</span>
+</span></span><span class="line"><span class="cl">root@lin-server:/usr/local/harbor# vim harbor.cfg
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Efit the following two lines</span>
+</span></span><span class="line"><span class="cl">hostname: 192.168.128.100               <span class="c1"># Edit this line to point to the current host IP or FQDN. Using an IP address is recommended.</span>
+</span></span><span class="line"><span class="cl">harbor_admin_password: <span class="m">123456</span>           <span class="c1"># Edit this line to specify the password for the Harbor admin user. The default username/password is: admin/Harbor12345</span>
+</span></span><span class="line"><span class="cl">data_volume: /data/harbor               <span class="c1"># It is recommended to modify the data directory path and use a large-capacity high-speed disk. The default is /data.</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># If HTTPS is not used, you also need to comment out the following line.</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># https:</span>
+</span></span><span class="line"><span class="cl">  <span class="c1"># port: 443</span>
+</span></span><span class="line"><span class="cl">  <span class="c1"># certificate: /your/certificate/path</span>
+</span></span><span class="line"><span class="cl">  <span class="c1"># private_key: /your/private/key/path</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Optional</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># If you change it to HTTPS, you need to specify the certificate paths below.</span>
+</span></span><span class="line"><span class="cl">https:
+</span></span><span class="line"><span class="cl">  port: <span class="m">443</span>
+</span></span><span class="line"><span class="cl">  certificate: /data/cert/server.crt
+</span></span><span class="line"><span class="cl">  private_key: /data/cert/server.key
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="run-the-harbor-installation-script">Run the Harbor installation script
+</h4><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">  1
+</span><span class="lnt">  2
+</span><span class="lnt">  3
+</span><span class="lnt">  4
+</span><span class="lnt">  5
+</span><span class="lnt">  6
+</span><span class="lnt">  7
+</span><span class="lnt">  8
+</span><span class="lnt">  9
+</span><span class="lnt"> 10
+</span><span class="lnt"> 11
+</span><span class="lnt"> 12
+</span><span class="lnt"> 13
+</span><span class="lnt"> 14
+</span><span class="lnt"> 15
+</span><span class="lnt"> 16
+</span><span class="lnt"> 17
+</span><span class="lnt"> 18
+</span><span class="lnt"> 19
+</span><span class="lnt"> 20
+</span><span class="lnt"> 21
+</span><span class="lnt"> 22
+</span><span class="lnt"> 23
+</span><span class="lnt"> 24
+</span><span class="lnt"> 25
+</span><span class="lnt"> 26
+</span><span class="lnt"> 27
+</span><span class="lnt"> 28
+</span><span class="lnt"> 29
+</span><span class="lnt"> 30
+</span><span class="lnt"> 31
+</span><span class="lnt"> 32
+</span><span class="lnt"> 33
+</span><span class="lnt"> 34
+</span><span class="lnt"> 35
+</span><span class="lnt"> 36
+</span><span class="lnt"> 37
+</span><span class="lnt"> 38
+</span><span class="lnt"> 39
+</span><span class="lnt"> 40
+</span><span class="lnt"> 41
+</span><span class="lnt"> 42
+</span><span class="lnt"> 43
+</span><span class="lnt"> 44
+</span><span class="lnt"> 45
+</span><span class="lnt"> 46
+</span><span class="lnt"> 47
+</span><span class="lnt"> 48
+</span><span class="lnt"> 49
+</span><span class="lnt"> 50
+</span><span class="lnt"> 51
+</span><span class="lnt"> 52
+</span><span class="lnt"> 53
+</span><span class="lnt"> 54
+</span><span class="lnt"> 55
+</span><span class="lnt"> 56
+</span><span class="lnt"> 57
+</span><span class="lnt"> 58
+</span><span class="lnt"> 59
+</span><span class="lnt"> 60
+</span><span class="lnt"> 61
+</span><span class="lnt"> 62
+</span><span class="lnt"> 63
+</span><span class="lnt"> 64
+</span><span class="lnt"> 65
+</span><span class="lnt"> 66
+</span><span class="lnt"> 67
+</span><span class="lnt"> 68
+</span><span class="lnt"> 69
+</span><span class="lnt"> 70
+</span><span class="lnt"> 71
+</span><span class="lnt"> 72
+</span><span class="lnt"> 73
+</span><span class="lnt"> 74
+</span><span class="lnt"> 75
+</span><span class="lnt"> 76
+</span><span class="lnt"> 77
+</span><span class="lnt"> 78
+</span><span class="lnt"> 79
+</span><span class="lnt"> 80
+</span><span class="lnt"> 81
+</span><span class="lnt"> 82
+</span><span class="lnt"> 83
+</span><span class="lnt"> 84
+</span><span class="lnt"> 85
+</span><span class="lnt"> 86
+</span><span class="lnt"> 87
+</span><span class="lnt"> 88
+</span><span class="lnt"> 89
+</span><span class="lnt"> 90
+</span><span class="lnt"> 91
+</span><span class="lnt"> 92
+</span><span class="lnt"> 93
+</span><span class="lnt"> 94
+</span><span class="lnt"> 95
+</span><span class="lnt"> 96
+</span><span class="lnt"> 97
+</span><span class="lnt"> 98
+</span><span class="lnt"> 99
+</span><span class="lnt">100
+</span><span class="lnt">101
+</span><span class="lnt">102
+</span><span class="lnt">103
+</span><span class="lnt">104
+</span><span class="lnt">105
+</span><span class="lnt">106
+</span><span class="lnt">107
+</span><span class="lnt">108
+</span><span class="lnt">109
+</span><span class="lnt">110
+</span><span class="lnt">111
+</span><span class="lnt">112
+</span><span class="lnt">113
+</span><span class="lnt">114
+</span><span class="lnt">115
+</span><span class="lnt">116
+</span><span class="lnt">117
+</span><span class="lnt">118
+</span><span class="lnt">119
+</span><span class="lnt">120
+</span><span class="lnt">121
+</span><span class="lnt">122
+</span><span class="lnt">123
+</span><span class="lnt">124
+</span><span class="lnt">125
+</span><span class="lnt">126
+</span><span class="lnt">127
+</span><span class="lnt">128
+</span><span class="lnt">129
+</span><span class="lnt">130
+</span><span class="lnt">131
+</span><span class="lnt">132
+</span><span class="lnt">133
+</span><span class="lnt">134
+</span><span class="lnt">135
+</span><span class="lnt">136
+</span><span class="lnt">137
+</span><span class="lnt">138
+</span><span class="lnt">139
+</span><span class="lnt">140
+</span><span class="lnt">141
+</span><span class="lnt">142
+</span><span class="lnt">143
+</span><span class="lnt">144
+</span><span class="lnt">145
+</span><span class="lnt">146
+</span><span class="lnt">147
+</span><span class="lnt">148
+</span><span class="lnt">149
+</span><span class="lnt">150
+</span><span class="lnt">151
+</span><span class="lnt">152
+</span><span class="lnt">153
+</span><span class="lnt">154
+</span><span class="lnt">155
+</span><span class="lnt">156
+</span><span class="lnt">157
+</span><span class="lnt">158
+</span><span class="lnt">159
+</span><span class="lnt">160
+</span><span class="lnt">161
+</span><span class="lnt">162
+</span><span class="lnt">163
+</span><span class="lnt">164
+</span><span class="lnt">165
+</span><span class="lnt">166
+</span><span class="lnt">167
+</span><span class="lnt">168
+</span><span class="lnt">169
+</span><span class="lnt">170
+</span><span class="lnt">171
+</span><span class="lnt">172
+</span><span class="lnt">173
+</span><span class="lnt">174
+</span><span class="lnt">175
+</span><span class="lnt">176
+</span><span class="lnt">177
+</span><span class="lnt">178
+</span><span class="lnt">179
+</span><span class="lnt">180
+</span><span class="lnt">181
+</span><span class="lnt">182
+</span><span class="lnt">183
+</span><span class="lnt">184
+</span><span class="lnt">185
+</span><span class="lnt">186
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># First, install Python</span>
+</span></span><span class="line"><span class="cl">root@lin-server:~# apt -y install python-is-python3
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># View the installation options</span>
+</span></span><span class="line"><span class="cl">root@lin-server:/usr/local/harbor# /usr/local/harbor/install.sh -h
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">Note: Please <span class="nb">set</span> hostname and other necessary attributes in harbor.yml first. DO NOT use localhost or 127.0.0.1 <span class="k">for</span> hostname, because Harbor needs to be accessed by external clients.
+</span></span><span class="line"><span class="cl">Please <span class="nb">set</span> --with-notary <span class="k">if</span> needs <span class="nb">enable</span> Notary in Harbor, and <span class="nb">set</span> ui_url_protocol/ssl_cert/ssl_cert_key in harbor.yml bacause notary must run under https. 
+</span></span><span class="line"><span class="cl">Please <span class="nb">set</span> --with-trivy <span class="k">if</span> needs <span class="nb">enable</span> Trivy in Harbor
+</span></span><span class="line"><span class="cl">Please <span class="nb">set</span> --with-chartmuseum <span class="k">if</span> needs <span class="nb">enable</span> Chartmuseum in Harbor
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Install docker Harbor and enable the chart repository</span>
+</span></span><span class="line"><span class="cl">root@lin-server:/usr/local/harbor# /usr/local/harbor/install.sh --with-chartmuseum
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Install docker Harbor</span>
+</span></span><span class="line"><span class="cl">root@lin-server:/usr/local/harbor# /usr/local/harbor/install.sh
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="o">[</span>Step 0<span class="o">]</span>: checking <span class="k">if</span> docker is installed ...
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">Note: docker version: 28.5.2
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="o">[</span>Step 1<span class="o">]</span>: checking docker-compose is installed ...
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">Note: docker-compose version: 5.4.0
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="o">[</span>Step 2<span class="o">]</span>: loading Harbor images ...
+</span></span><span class="line"><span class="cl">278182fd9733: Loading layer   37.8MB/37.8MB
+</span></span><span class="line"><span class="cl">3d415daaab01: Loading layer  9.188MB/9.188MB
+</span></span><span class="line"><span class="cl">1dc571fc24ed: Loading layer  3.584kB/3.584kB
+</span></span><span class="line"><span class="cl">160a572d9166: Loading layer   2.56kB/2.56kB
+</span></span><span class="line"><span class="cl">ff3d67560300: Loading layer  108.5MB/108.5MB
+</span></span><span class="line"><span class="cl">b493bca3835d: Loading layer  109.3MB/109.3MB
+</span></span><span class="line"><span class="cl">Loaded image: goharbor/harbor-jobservice:v2.7.4
+</span></span><span class="line"><span class="cl">5cf402592d7e: Loading layer  6.172MB/6.172MB
+</span></span><span class="line"><span class="cl">5c6c3b856ec2: Loading layer  4.096kB/4.096kB
+</span></span><span class="line"><span class="cl">a62b6c7b749f: Loading layer  17.39MB/17.39MB
+</span></span><span class="line"><span class="cl">67f588f29a6e: Loading layer  3.072kB/3.072kB
+</span></span><span class="line"><span class="cl">d320d7614740: Loading layer  31.34MB/31.34MB
+</span></span><span class="line"><span class="cl">66acb7b3bfa2: Loading layer  49.52MB/49.52MB
+</span></span><span class="line"><span class="cl">Loaded image: goharbor/harbor-registryctl:v2.7.4
+</span></span><span class="line"><span class="cl">ceb1660ebac3: Loading layer  84.64MB/84.64MB
+</span></span><span class="line"><span class="cl">c01b38d3ae2d: Loading layer  3.072kB/3.072kB
+</span></span><span class="line"><span class="cl">fbc499a3dc72: Loading layer   59.9kB/59.9kB
+</span></span><span class="line"><span class="cl">1917f990b7e8: Loading layer  61.95kB/61.95kB
+</span></span><span class="line"><span class="cl">Loaded image: goharbor/redis-photon:v2.7.4
+</span></span><span class="line"><span class="cl">74f523d48b2a: Loading layer  6.699MB/6.699MB
+</span></span><span class="line"><span class="cl">9d6c28276f8f: Loading layer  4.096kB/4.096kB
+</span></span><span class="line"><span class="cl">b46b143fdd27: Loading layer  3.072kB/3.072kB
+</span></span><span class="line"><span class="cl">b43020f4c6b1: Loading layer  196.4MB/196.4MB
+</span></span><span class="line"><span class="cl">82d20d439fcc: Loading layer   14.2MB/14.2MB
+</span></span><span class="line"><span class="cl">7a96327cf554: Loading layer  211.4MB/211.4MB
+</span></span><span class="line"><span class="cl">Loaded image: goharbor/trivy-adapter-photon:v2.7.4
+</span></span><span class="line"><span class="cl">1a04c2a44993: Loading layer  72.76MB/72.76MB
+</span></span><span class="line"><span class="cl">c50cbd8eddab: Loading layer  40.31MB/40.31MB
+</span></span><span class="line"><span class="cl">0cb9d383bf15: Loading layer  19.96MB/19.96MB
+</span></span><span class="line"><span class="cl">a65e5576f832: Loading layer  65.54kB/65.54kB
+</span></span><span class="line"><span class="cl">4898cf665d29: Loading layer   2.56kB/2.56kB
+</span></span><span class="line"><span class="cl">73be511612dc: Loading layer  1.536kB/1.536kB
+</span></span><span class="line"><span class="cl">3e88a2c3b85d: Loading layer  12.29kB/12.29kB
+</span></span><span class="line"><span class="cl">bb65be13a5cb: Loading layer  2.125MB/2.125MB
+</span></span><span class="line"><span class="cl">2ff58a98a85b: Loading layer  410.1kB/410.1kB
+</span></span><span class="line"><span class="cl">Loaded image: goharbor/prepare:v2.7.4
+</span></span><span class="line"><span class="cl">5e13805a3bc9: Loading layer  9.188MB/9.188MB
+</span></span><span class="line"><span class="cl">64f4cbc0ae62: Loading layer  3.584kB/3.584kB
+</span></span><span class="line"><span class="cl">f4c178debcd6: Loading layer   2.56kB/2.56kB
+</span></span><span class="line"><span class="cl">0903a175b205: Loading layer  89.15MB/89.15MB
+</span></span><span class="line"><span class="cl">7d5d750eccb3: Loading layer  5.632kB/5.632kB
+</span></span><span class="line"><span class="cl">82912a014842: Loading layer    108kB/108kB
+</span></span><span class="line"><span class="cl">ac6094015fed: Loading layer  44.03kB/44.03kB
+</span></span><span class="line"><span class="cl">2fa3c352b3f9: Loading layer   90.1MB/90.1MB
+</span></span><span class="line"><span class="cl">b0484b00836a: Loading layer   2.56kB/2.56kB
+</span></span><span class="line"><span class="cl">Loaded image: goharbor/harbor-core:v2.7.4
+</span></span><span class="line"><span class="cl">aa8b7df953c2: Loading layer  6.172MB/6.172MB
+</span></span><span class="line"><span class="cl">1c4834e7471b: Loading layer  4.096kB/4.096kB
+</span></span><span class="line"><span class="cl">db3b73d2c8e3: Loading layer  3.072kB/3.072kB
+</span></span><span class="line"><span class="cl">e102bc85def1: Loading layer  17.39MB/17.39MB
+</span></span><span class="line"><span class="cl">cdf8e4749b60: Loading layer  18.18MB/18.18MB
+</span></span><span class="line"><span class="cl">Loaded image: goharbor/registry-photon:v2.7.4
+</span></span><span class="line"><span class="cl">8e8a0f3947a0: Loading layer  6.167MB/6.167MB
+</span></span><span class="line"><span class="cl">22f9f7eb909a: Loading layer  9.193MB/9.193MB
+</span></span><span class="line"><span class="cl">2096817ba618: Loading layer  15.88MB/15.88MB
+</span></span><span class="line"><span class="cl">b0c6e1424dbd: Loading layer  29.29MB/29.29MB
+</span></span><span class="line"><span class="cl">9a6db54c1c67: Loading layer  22.02kB/22.02kB
+</span></span><span class="line"><span class="cl">5f8423ae3434: Loading layer  15.88MB/15.88MB
+</span></span><span class="line"><span class="cl">Loaded image: goharbor/notary-server-photon:v2.7.4
+</span></span><span class="line"><span class="cl">d86e53a5badd: Loading layer  81.69MB/81.69MB
+</span></span><span class="line"><span class="cl">Loaded image: goharbor/nginx-photon:v2.7.4
+</span></span><span class="line"><span class="cl">7414aab9131b: Loading layer  6.167MB/6.167MB
+</span></span><span class="line"><span class="cl">07fd4b4b9bef: Loading layer  9.193MB/9.193MB
+</span></span><span class="line"><span class="cl">b868fd1ef848: Loading layer  14.47MB/14.47MB
+</span></span><span class="line"><span class="cl">e63dba874b0f: Loading layer  29.29MB/29.29MB
+</span></span><span class="line"><span class="cl">8108e7c6c3e2: Loading layer  22.02kB/22.02kB
+</span></span><span class="line"><span class="cl">e941ae168ad4: Loading layer  14.47MB/14.47MB
+</span></span><span class="line"><span class="cl">Loaded image: goharbor/notary-signer-photon:v2.7.4
+</span></span><span class="line"><span class="cl">57c2d1aef950: Loading layer  6.171MB/6.171MB
+</span></span><span class="line"><span class="cl">811c13e77b1e: Loading layer  93.14MB/93.14MB
+</span></span><span class="line"><span class="cl">a72b336c7167: Loading layer  3.072kB/3.072kB
+</span></span><span class="line"><span class="cl">d9d537f2c1ba: Loading layer  4.096kB/4.096kB
+</span></span><span class="line"><span class="cl">6abb5e380542: Loading layer  93.93MB/93.93MB
+</span></span><span class="line"><span class="cl">Loaded image: goharbor/chartmuseum-photon:v2.7.4
+</span></span><span class="line"><span class="cl">9d12146f74b3: Loading layer  81.69MB/81.69MB
+</span></span><span class="line"><span class="cl">83259c95f48b: Loading layer  6.145MB/6.145MB
+</span></span><span class="line"><span class="cl">fe2278d6c68d: Loading layer  1.249MB/1.249MB
+</span></span><span class="line"><span class="cl">8578f15ca8f3: Loading layer  1.194MB/1.194MB
+</span></span><span class="line"><span class="cl">Loaded image: goharbor/harbor-portal:v2.7.4
+</span></span><span class="line"><span class="cl">e97272680951: Loading layer  92.67MB/92.67MB
+</span></span><span class="line"><span class="cl">b0a656ee5de2: Loading layer  3.584kB/3.584kB
+</span></span><span class="line"><span class="cl">ae5a64f4961f: Loading layer  3.072kB/3.072kB
+</span></span><span class="line"><span class="cl">c8beb00bed7b: Loading layer   2.56kB/2.56kB
+</span></span><span class="line"><span class="cl">c89b952ee1b7: Loading layer  3.072kB/3.072kB
+</span></span><span class="line"><span class="cl">4cf08003d1ce: Loading layer  3.584kB/3.584kB
+</span></span><span class="line"><span class="cl">ce8a54349ea9: Loading layer  20.48kB/20.48kB
+</span></span><span class="line"><span class="cl">Loaded image: goharbor/harbor-log:v2.7.4
+</span></span><span class="line"><span class="cl">c5f2e2480755: Loading layer  115.9MB/115.9MB
+</span></span><span class="line"><span class="cl">c10014425dd7: Loading layer  25.24MB/25.24MB
+</span></span><span class="line"><span class="cl">dd0ec9899ccd: Loading layer   5.12kB/5.12kB
+</span></span><span class="line"><span class="cl">c17ad26e7ee2: Loading layer  6.144kB/6.144kB
+</span></span><span class="line"><span class="cl">1e10c99feced: Loading layer  3.072kB/3.072kB
+</span></span><span class="line"><span class="cl">8f64023145f1: Loading layer  2.048kB/2.048kB
+</span></span><span class="line"><span class="cl">729e82f3ca6d: Loading layer   2.56kB/2.56kB
+</span></span><span class="line"><span class="cl">93b026651674: Loading layer   2.56kB/2.56kB
+</span></span><span class="line"><span class="cl">a0c835082861: Loading layer   2.56kB/2.56kB
+</span></span><span class="line"><span class="cl">63831d725726: Loading layer  9.728kB/9.728kB
+</span></span><span class="line"><span class="cl">Loaded image: goharbor/harbor-db:v2.7.4
+</span></span><span class="line"><span class="cl">a4c28cb7caf3: Loading layer  9.188MB/9.188MB
+</span></span><span class="line"><span class="cl">428b4927dd44: Loading layer  25.96MB/25.96MB
+</span></span><span class="line"><span class="cl">0837cf226fa1: Loading layer  4.608kB/4.608kB
+</span></span><span class="line"><span class="cl">55afc8a1a6f0: Loading layer  26.75MB/26.75MB
+</span></span><span class="line"><span class="cl">Loaded image: goharbor/harbor-exporter:v2.7.4
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="o">[</span>Step 3<span class="o">]</span>: preparing environment ...
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="o">[</span>Step 4<span class="o">]</span>: preparing harbor configs ...
+</span></span><span class="line"><span class="cl">prepare base dir is <span class="nb">set</span> to /usr/local/harbor
+</span></span><span class="line"><span class="cl">WARNING:root:WARNING: HTTP protocol is insecure. Harbor will deprecate http protocol in the future. Please make sure to upgrade to https
+</span></span><span class="line"><span class="cl">Generated configuration file: /config/portal/nginx.conf
+</span></span><span class="line"><span class="cl">Generated configuration file: /config/log/logrotate.conf
+</span></span><span class="line"><span class="cl">Generated configuration file: /config/log/rsyslog_docker.conf
+</span></span><span class="line"><span class="cl">Generated configuration file: /config/nginx/nginx.conf
+</span></span><span class="line"><span class="cl">Generated configuration file: /config/core/env
+</span></span><span class="line"><span class="cl">Generated configuration file: /config/core/app.conf
+</span></span><span class="line"><span class="cl">Generated configuration file: /config/registry/config.yml
+</span></span><span class="line"><span class="cl">Generated configuration file: /config/registryctl/env
+</span></span><span class="line"><span class="cl">Generated configuration file: /config/registryctl/config.yml
+</span></span><span class="line"><span class="cl">Generated configuration file: /config/db/env
+</span></span><span class="line"><span class="cl">Generated configuration file: /config/jobservice/env
+</span></span><span class="line"><span class="cl">Generated configuration file: /config/jobservice/config.yml
+</span></span><span class="line"><span class="cl">Generated and saved secret to file: /data/secret/keys/secretkey
+</span></span><span class="line"><span class="cl">Successfully called func: create_root_cert
+</span></span><span class="line"><span class="cl">Generated configuration file: /compose_location/docker-compose.yml
+</span></span><span class="line"><span class="cl">Clean up the input dir
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">Note: stopping existing Harbor instance ...
+</span></span><span class="line"><span class="cl">WARN<span class="o">[</span>0000<span class="o">]</span> /usr/local/harbor/docker-compose.yml: the attribute <span class="sb">`</span>version<span class="sb">`</span> is obsolete, it will be ignored, please remove it to avoid potential confusion 
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="o">[</span>Step 5<span class="o">]</span>: starting Harbor ...
+</span></span><span class="line"><span class="cl">WARN<span class="o">[</span>0000<span class="o">]</span> /usr/local/harbor/docker-compose.yml: the attribute <span class="sb">`</span>version<span class="sb">`</span> is obsolete, it will be ignored, please remove it to avoid potential confusion 
+</span></span><span class="line"><span class="cl"><span class="o">[</span>+<span class="o">]</span> up 10/10
+</span></span><span class="line"><span class="cl"> ✔ Network harbor_harbor       Created                                                           0.0s
+</span></span><span class="line"><span class="cl"> ✔ Container harbor-log        Started                                                           0.2s
+</span></span><span class="line"><span class="cl"> ✔ Container registryctl       Started                                                           0.6s
+</span></span><span class="line"><span class="cl"> ✔ Container redis             Started                                                           0.5s
+</span></span><span class="line"><span class="cl"> ✔ Container harbor-portal     Started                                                           0.5s
+</span></span><span class="line"><span class="cl"> ✔ Container harbor-db         Started                                                           0.6s
+</span></span><span class="line"><span class="cl"> ✔ Container registry          Started                                                           0.7s
+</span></span><span class="line"><span class="cl"> ✔ Container harbor-core       Started                                                           0.9s
+</span></span><span class="line"><span class="cl"> ✔ Container nginx             Started                                                           1.2s
+</span></span><span class="line"><span class="cl"> ✔ Container harbor-jobservice Started                                                           1.2s
+</span></span><span class="line"><span class="cl">✔ ----Harbor has been installed and started successfully.----
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># It will automatically start several related containers after installing Harbor</span>
+</span></span><span class="line"><span class="cl">root@lin-server:/usr/local/harbor# docker ps
+</span></span><span class="line"><span class="cl">CONTAINER ID   IMAGE                                COMMAND                  CREATED          STATUS                             PORTS                                     NAMES
+</span></span><span class="line"><span class="cl">0dc71b88b496   goharbor/harbor-jobservice:v2.7.4    <span class="s2">&#34;/harbor/entrypoint.…&#34;</span>   <span class="m">17</span> seconds ago   Up <span class="m">11</span> seconds <span class="o">(</span>health: starting<span class="o">)</span>                                             harbor-jobservice
+</span></span><span class="line"><span class="cl">f25f039bde55   goharbor/nginx-photon:v2.7.4         <span class="s2">&#34;nginx -g &#39;daemon of…&#34;</span>   <span class="m">17</span> seconds ago   Up <span class="m">15</span> seconds <span class="o">(</span>health: starting<span class="o">)</span>   0.0.0.0:80-&gt;8080/tcp, <span class="o">[</span>::<span class="o">]</span>:80-&gt;8080/tcp   nginx
+</span></span><span class="line"><span class="cl">f1f361489535   goharbor/harbor-core:v2.7.4          <span class="s2">&#34;/harbor/entrypoint.…&#34;</span>   <span class="m">17</span> seconds ago   Up <span class="m">16</span> seconds <span class="o">(</span>health: starting<span class="o">)</span>                                             harbor-core
+</span></span><span class="line"><span class="cl">f5b3460deae5   goharbor/harbor-db:v2.7.4            <span class="s2">&#34;/docker-entrypoint.…&#34;</span>   <span class="m">17</span> seconds ago   Up <span class="m">16</span> seconds <span class="o">(</span>health: starting<span class="o">)</span>                                             harbor-db
+</span></span><span class="line"><span class="cl">84cb0094498b   goharbor/harbor-registryctl:v2.7.4   <span class="s2">&#34;/home/harbor/start.…&#34;</span>   <span class="m">17</span> seconds ago   Up <span class="m">16</span> seconds <span class="o">(</span>health: starting<span class="o">)</span>                                             registryctl
+</span></span><span class="line"><span class="cl">fd269649dba9   goharbor/harbor-portal:v2.7.4        <span class="s2">&#34;nginx -g &#39;daemon of…&#34;</span>   <span class="m">17</span> seconds ago   Up <span class="m">16</span> seconds <span class="o">(</span>health: starting<span class="o">)</span>                                             harbor-portal
+</span></span><span class="line"><span class="cl">19a5be85463d   goharbor/redis-photon:v2.7.4         <span class="s2">&#34;redis-server /etc/r…&#34;</span>   <span class="m">17</span> seconds ago   Up <span class="m">16</span> seconds <span class="o">(</span>health: starting<span class="o">)</span>                                             redis
+</span></span><span class="line"><span class="cl">cbb2438fbef4   goharbor/registry-photon:v2.7.4      <span class="s2">&#34;/home/harbor/entryp…&#34;</span>   <span class="m">17</span> seconds ago   Up <span class="m">16</span> seconds <span class="o">(</span>health: starting<span class="o">)</span>                                             registry
+</span></span><span class="line"><span class="cl">8f6a10e5cb05   goharbor/harbor-log:v2.7.4           <span class="s2">&#34;/bin/sh -c /usr/loc…&#34;</span>   <span class="m">17</span> seconds ago   Up <span class="m">16</span> seconds <span class="o">(</span>health: starting<span class="o">)</span>   127.0.0.1:1514-&gt;10514/tcp                 harbor-log
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="configure-harbor-to-start-automatically-on-boot">Configure Harbor to start automatically on boot.
+</h4><p>Older versions of Harbor do not start automatically on boot, so you can create a service file to enable it.</p>
+<p>Newer versions of Harbor start automatically on boot by default, sucn as harbor-v2.9.1.</p>
+<h5 id="method-1-create-a-service-file-to-enable-it">Method 1: Create a service file to enable it
+</h5><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# vim /lib/systemd/system/harbor.service
+</span></span><span class="line"><span class="cl"><span class="o">[</span>Unit<span class="o">]</span>
+</span></span><span class="line"><span class="cl"><span class="nv">Description</span><span class="o">=</span>Harbor
+</span></span><span class="line"><span class="cl"><span class="nv">After</span><span class="o">=</span>docker.service systemd-networkd.service systemd-resolved.service
+</span></span><span class="line"><span class="cl"><span class="nv">Requires</span><span class="o">=</span>docker.service
+</span></span><span class="line"><span class="cl"><span class="nv">Documentation</span><span class="o">=</span>http://github.com/vmware/harbor
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="o">[</span>Service<span class="o">]</span>
+</span></span><span class="line"><span class="cl"><span class="nv">Type</span><span class="o">=</span>simple
+</span></span><span class="line"><span class="cl"><span class="nv">Restart</span><span class="o">=</span>on-failure
+</span></span><span class="line"><span class="cl"><span class="nv">RestartSec</span><span class="o">=</span><span class="m">5</span>
+</span></span><span class="line"><span class="cl"><span class="nv">ExecStart</span><span class="o">=</span>/usr/bin/docker-compose -f /usr/local/harbor/docker-compose.yml up
+</span></span><span class="line"><span class="cl"><span class="nv">ExecStop</span><span class="o">=</span>/usr/bin/docker-compose -f /usr/local/harbor/docker-compose.yml down
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="o">[</span>Install<span class="o">]</span>
+</span></span><span class="line"><span class="cl"><span class="nv">WantedBy</span><span class="o">=</span>multi-user.target
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">root@lin-server:~# systemctl daemon-reload
+</span></span><span class="line"><span class="cl">root@lin-server:~# systemctl <span class="nb">enable</span> harbor
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h5 id="mehtod-2-implement-it-via-rclocal">Mehtod 2: Implement it via rc.local
+</h5><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# cat /etc/rc.local 
+</span></span><span class="line"><span class="cl"><span class="c1">#!/bin/bash</span>
+</span></span><span class="line"><span class="cl"><span class="nb">cd</span> /usr/local/harbor
+</span></span><span class="line"><span class="cl">/usr/bin/docker-compose up 
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">root@lin-server:~# chmod +x /etc/rc.local
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="modify-the-docker-composeyaml-file-to-resolve-address-conflicts-optional">Modify the docker-compose.yaml file to resolve address conflicts. (Optional)
+</h4><p>If the custom network address conflicts, you can modify the following file.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span><span class="lnt">9
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# vim /usr/local/harbor/docker-compose.yml
+</span></span><span class="line"><span class="cl">networks:
+</span></span><span class="line"><span class="cl"> harbor:          <span class="c1"># Add the following content.</span>
+</span></span><span class="line"><span class="cl">   ipam:
+</span></span><span class="line"><span class="cl">     driver: default
+</span></span><span class="line"><span class="cl">     config:
+</span></span><span class="line"><span class="cl">      - subnet: 172.27.0.0/16
+</span></span><span class="line"><span class="cl">root@lin-server:~# <span class="nb">cd</span> /usr/local/harbor/
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker-compose down<span class="p">;</span>docker-compose up -d
 </span></span></code></pre></td></tr></table>
 </div>
 </div>
