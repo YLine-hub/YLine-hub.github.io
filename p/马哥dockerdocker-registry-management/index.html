@@ -255,6 +255,8 @@
             <li><a href="#run-the-harbor-installation-script">Run the Harbor installation script</a></li>
             <li><a href="#configure-harbor-to-start-automatically-on-boot">Configure Harbor to start automatically on boot.</a></li>
             <li><a href="#modify-the-docker-composeyaml-file-to-resolve-address-conflicts-optional">Modify the docker-compose.yaml file to resolve address conflicts. (Optional)</a></li>
+            <li><a href="#log-in-to-the-harbor-website">Log in to the Harbor website</a></li>
+            <li><a href="#hands-on-example-one-click-harbor-installation-script">Hands-on Example: One-click Harbor installation script</a></li>
           </ol>
         </li>
       </ol>
@@ -1565,6 +1567,156 @@
 </span></span><span class="line"><span class="cl">root@lin-server:~# docker-compose down<span class="p">;</span>docker-compose up -d
 </span></span></code></pre></td></tr></table>
 </div>
+</div><h4 id="log-in-to-the-harbor-website">Log in to the Harbor website
+</h4><p>Access it with a browser: http://192.168.128.101/</p>
+<ul>
+<li>username: admin</li>
+<li>password: 123456 (That is, the password specified in harbor.yml earlier)</li>
+</ul>
+<p><img src="/p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-11.png"
+	width="1401"
+	height="962"
+	srcset="/p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-11_hu_6f37a7dcfa31710a.png 480w, /p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-11_hu_89715f2c0b082c1f.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="145"
+		data-flex-basis="349px"
+	
+></p>
+<h4 id="hands-on-example-one-click-harbor-installation-script">Hands-on Example: One-click Harbor installation script
+</h4><h5 id="install-harbor-176">Install harbor 1.7.6
+</h5><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span><span class="lnt">51
+</span><span class="lnt">52
+</span><span class="lnt">53
+</span><span class="lnt">54
+</span><span class="lnt">55
+</span><span class="lnt">56
+</span><span class="lnt">57
+</span><span class="lnt">58
+</span><span class="lnt">59
+</span><span class="lnt">60
+</span><span class="lnt">61
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">cat install_harbor_for_ubuntu2404.sh
+</span></span><span class="line"><span class="cl"><span class="c1">#!/bin/bash</span>
+</span></span><span class="line"><span class="cl"><span class="c1">#Description: Install harbor on ubuntu2404</span>
+</span></span><span class="line"><span class="cl"><span class="c1">#Author: laowang</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nv">COLOR</span><span class="o">=</span><span class="s2">&#34;echo -e \E[1;31m&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="nv">END</span><span class="o">=</span><span class="s2">&#34;\E[m&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="nv">HARBOR_VERSION</span><span class="o">=</span><span class="s2">&#34;v2.7.4&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="nv">IPADDR</span><span class="o">=</span><span class="sb">`</span>hostname -I<span class="p">|</span>awk <span class="s1">&#39;{print $1}&#39;</span><span class="sb">`</span>
+</span></span><span class="line"><span class="cl"><span class="nv">HARBOR_ADMIN_PASSWORD</span><span class="o">=</span><span class="m">123456</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">install_harbor<span class="o">(){</span>
+</span></span><span class="line"><span class="cl">        <span class="si">${</span><span class="nv">COLOR</span><span class="si">}</span><span class="s2">&#34;Start installing Harbor......&#34;</span><span class="si">${</span><span class="nv">END</span><span class="si">}</span>
+</span></span><span class="line"><span class="cl">        sleep <span class="m">1</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="o">[</span> ! -f <span class="s2">&#34;harbor-offline-installer-v2.7.4.tgz&#34;</span> <span class="o">]</span><span class="p">;</span><span class="k">then</span>
+</span></span><span class="line"><span class="cl">                <span class="si">${</span><span class="nv">COLOR</span><span class="si">}</span><span class="s2">&#34;File does not exist, downloading ...&#34;</span><span class="si">${</span><span class="nv">END</span><span class="si">}</span>
+</span></span><span class="line"><span class="cl">                wget https://github.com/goharbor/harbor/releases/download/<span class="si">${</span><span class="nv">HARBOR_VERSION</span><span class="si">}</span>/harbor-offline-installer-<span class="si">${</span><span class="nv">HARBOR_VERSION</span><span class="si">}</span>.tgz
+</span></span><span class="line"><span class="cl">        <span class="k">else</span>
+</span></span><span class="line"><span class="cl">                <span class="si">${</span><span class="nv">COLOR</span><span class="si">}</span><span class="s2">&#34;File already exists, skipping download&#34;</span><span class="si">${</span><span class="nv">END</span><span class="si">}</span>
+</span></span><span class="line"><span class="cl">        <span class="k">fi</span>
+</span></span><span class="line"><span class="cl">        <span class="o">[</span> ! -d <span class="s2">&#34;/apps&#34;</span><span class="o">]</span> <span class="o">&amp;&amp;</span> mkdir /apps
+</span></span><span class="line"><span class="cl">        tar xvf harbor-offline-installer-<span class="si">${</span><span class="nv">HARBOR_VERSION</span><span class="si">}</span>.tgz -C /apps/
+</span></span><span class="line"><span class="cl">        mv /apps/harbor/harbor.yml.tmpl /apps/harbor/harbor.yml
+</span></span><span class="line"><span class="cl">        sed -i.bak -e <span class="s1">&#39;s/^hostname:.*/hostname: &#39;</span><span class="nv">$IPADDR</span><span class="s1">&#39;/&#39;</span> -e <span class="s1">&#39;s/^harbor_admin_password:.*/harbor_admin_password: &#39;</span><span class="nv">$HARBOR_ADMIN_PASSWORD</span><span class="s1">&#39;/&#39;</span> /apps/harbor/harbor.yml
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        apt -y install python-is-python3
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        /apps/harbor/install.sh <span class="o">&amp;&amp;</span> <span class="si">${</span><span class="nv">COLOR</span><span class="si">}</span><span class="s2">&#34;Harbor installed successfully&#34;</span><span class="si">${</span><span class="nv">END</span><span class="si">}</span> <span class="o">||</span> <span class="si">${</span><span class="nv">COLOR</span><span class="si">}</span><span class="s2">&#34;Harbor installation failed&#34;</span><span class="si">${</span><span class="nv">END</span><span class="si">}</span>
+</span></span><span class="line"><span class="cl"><span class="o">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">harbor_service<span class="o">(){</span>
+</span></span><span class="line"><span class="cl">        cat &gt; /lib/systemd/system/harbor.service <span class="s">&lt;&lt;EOF
+</span></span></span><span class="line"><span class="cl"><span class="s">[Unit]
+</span></span></span><span class="line"><span class="cl"><span class="s">Description=Harbor
+</span></span></span><span class="line"><span class="cl"><span class="s">After=docker.service systemd-networkd.service systemd-resolved.service
+</span></span></span><span class="line"><span class="cl"><span class="s">Requires=docker.service
+</span></span></span><span class="line"><span class="cl"><span class="s">Documentation=http://github.con/vmware/harbor
+</span></span></span><span class="line"><span class="cl"><span class="s">
+</span></span></span><span class="line"><span class="cl"><span class="s">[Service]
+</span></span></span><span class="line"><span class="cl"><span class="s">Type=simple
+</span></span></span><span class="line"><span class="cl"><span class="s">Restart=on-failure
+</span></span></span><span class="line"><span class="cl"><span class="s">RestartSec=5
+</span></span></span><span class="line"><span class="cl"><span class="s">ExecStart=/usr/bin/docker-compose -f /usr/local/harbor/docker-compose.yml up
+</span></span></span><span class="line"><span class="cl"><span class="s">ExecStop=/usr/bin/docker-compose -f /usr/local/harbor/docker-compose.yml down
+</span></span></span><span class="line"><span class="cl"><span class="s">
+</span></span></span><span class="line"><span class="cl"><span class="s">[Install]
+</span></span></span><span class="line"><span class="cl"><span class="s">WantedBy=multi-user.target
+</span></span></span><span class="line"><span class="cl"><span class="s">EOF</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">systemctl daemon-reload
+</span></span><span class="line"><span class="cl">systemctl <span class="nb">enable</span> harbor <span class="p">&amp;</span>&gt;/dev/null <span class="o">||</span> <span class="si">${</span><span class="nv">COLOR</span><span class="si">}</span><span class="s2">&#34;Harbor has been configured to start automatically on boot&#34;</span><span class="si">${</span><span class="nv">END</span><span class="si">}</span>
+</span></span><span class="line"><span class="cl"><span class="o">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nb">command</span> -v docker <span class="p">&amp;</span>&gt; /dev/null <span class="o">&amp;&amp;</span>  <span class="si">${</span><span class="nv">COLOR</span><span class="si">}</span><span class="s2">&#34;Docker is installed&#34;</span><span class="si">${</span><span class="nv">END</span><span class="si">}</span> <span class="o">||</span> <span class="si">${</span><span class="nv">COLOR</span><span class="si">}</span><span class="s2">&#34;Docker is not installed&#34;</span><span class="si">${</span><span class="nv">END</span><span class="si">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nb">command</span> -v docker-compose <span class="p">&amp;</span>&gt; /dev/null <span class="o">&amp;&amp;</span> <span class="si">${</span><span class="nv">COLOR</span><span class="si">}</span><span class="s2">&#34;Docker-compose is installed&#34;</span><span class="si">${</span><span class="nv">END</span><span class="si">}</span> <span class="o">||</span> <span class="si">${</span><span class="nv">COLOR</span><span class="si">}</span><span class="s2">&#34;Docker is not installed&#34;</span><span class="si">${</span><span class="nv">END</span><span class="si">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">install_harbor
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">harbor_service
+</span></span></code></pre></td></tr></table>
+</div>
 </div>
 </section>
 
@@ -1595,19 +1747,6 @@
 
         <div class="article-details">
             <h2 class="article-title">[马哥][docker]网络管理</h2>
-        </div>
-    </a>
-</article>
-
-            
-                
-<article class="">
-    <a href="/p/docker%E5%AE%89%E8%A3%85/">
-        
-        
-
-        <div class="article-details">
-            <h2 class="article-title">[Docker]安装</h2>
         </div>
     </a>
 </article>
@@ -1647,6 +1786,19 @@
 
         <div class="article-details">
             <h2 class="article-title">[Docker]高级篇-Docker compose容器编排</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Docker]高级篇-Docker Network</h2>
         </div>
     </a>
 </article>
