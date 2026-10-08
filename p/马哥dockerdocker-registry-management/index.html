@@ -272,6 +272,13 @@
         <li><a href="#implement-harbor-high-availability">Implement Harbor high availability</a>
           <ol>
             <li><a href="#install-harbor-on-the-second-host">Install Harbor on the second host</a></li>
+            <li><a href="#in-the-repository-management-on-the-source-harbor-create-a-new-target-to-enable-one-way-replication-to-the-target-harbor-server">In the repository management on the source Harbor, create a new target to enable one-way replication to the target Harbor server</a></li>
+            <li><a href="#create-a-replication-rule-on-the-source-harbor-to-enable-one-way-replication-to-the-target-harbor">Create a replication rule on the source Harbor to enable one-way replication to the target Harbor</a></li>
+            <li><a href="#in-the-registry-management-on-the-source-harbor-manually-run-replication-to-perform-the-initial-synchronization">In the registry management on the source Harbor, manually run replication to perform the initial synchronization</a></li>
+            <li><a href="#repeat-the-above-steps-on-the-target-harbor-host">Repeat the above steps on the target Harbor host</a></li>
+            <li><a href="#confirm-the-synchronization-is-successful">Confirm the synchronization is successful</a></li>
+            <li><a href="#push-an-image-to-see-whether-dual-host-synchronization-works">Push an image to see whether dual-host synchronization works</a></li>
+            <li><a href="#delete-an-image-to-see-whether-it-synchronizes-automatically">Delete an image to see whether it synchronizes automatically</a></li>
           </ol>
         </li>
       </ol>
@@ -1875,11 +1882,17 @@
 </span><span class="lnt">33
 </span><span class="lnt">34
 </span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
 </span></code></pre></td>
 <td class="lntd">
 <pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># Method 1</span>
 </span></span><span class="line"><span class="cl">root@lin-server:~# vim /lib/systemd/system/docker.service
 </span></span><span class="line"><span class="cl"><span class="nv">ExecStart</span><span class="o">=</span>/usr/bin/dockerd --insecure-registry 192.168.128.101
+</span></span><span class="line"><span class="cl"><span class="c1"># ExecStart=/usr/bin/dockerd --insecure-registry 192.168.128.101 --insecure-registry 192.168.128.102</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="c1"># Method 2</span>
 </span></span><span class="line"><span class="cl"><span class="c1"># Note: &#34;:80&#34; can be omitted</span>
@@ -1887,6 +1900,10 @@
 </span></span><span class="line"><span class="cl"><span class="o">{</span>
 </span></span><span class="line"><span class="cl">        <span class="s2">&#34;insecure-registries&#34;</span>: <span class="o">[</span><span class="s2">&#34;192.168.128.101:80&#34;</span><span class="o">]</span>
 </span></span><span class="line"><span class="cl"><span class="o">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># {</span>
+</span></span><span class="line"><span class="cl"><span class="c1">#         &#34;insecure-registries&#34;: [&#34;192.168.128.101:80&#34;,&#34;192.168.128.102:80&#34;]</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># }</span>
 </span></span><span class="line"><span class="cl">root@lin-server:~# systemctl daemon-reload
 </span></span><span class="line"><span class="cl">root@lin-server:~# systemctl restart docker
 </span></span><span class="line"><span class="cl">
@@ -2142,7 +2159,8 @@
 	
 ></p>
 <h4 id="install-harbor-on-the-second-host">Install Harbor on the second host
-</h4><p><img src="/p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-21.png"
+</h4><p><code>hostname: 192.168.128.102</code></p>
+<p><img src="/p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-21.png"
 	width="1399"
 	height="919"
 	srcset="/p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-21_hu_98d2821d16b9e432.png 480w, /p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-21_hu_fbe19dcf6dd61785.png 1024w"
@@ -2154,6 +2172,434 @@
 		class="gallery-image" 
 		data-flex-grow="152"
 		data-flex-basis="365px"
+	
+></p>
+<h4 id="in-the-repository-management-on-the-source-harbor-create-a-new-target-to-enable-one-way-replication-to-the-target-harbor-server">In the repository management on the source Harbor, create a new target to enable one-way replication to the target Harbor server
+</h4><ol>
+<li>Whichever Harbor is the source host, create the new target on that host first</li>
+</ol>
+<p><img src="/p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-22.png"
+	width="1133"
+	height="847"
+	srcset="/p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-22_hu_2153a935debb6ef5.png 480w, /p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-22_hu_8b72f14ee1d206e1.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="133"
+		data-flex-basis="321px"
+	
+></p>
+<ol start="2">
+<li>Enter the host 192.168.128.101 of the first Harbor server, the target name &ldquo;example&rdquo; (not the project name, just an arbitrary name), and the user information and password &ldquo;admin&rdquo;</li>
+</ol>
+<p><font color=red>Note: You must use the admin user. If a developer user is used, image deletion synchronization cannot be achieved</font></p>
+<p><img src="/p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-23.png"
+	width="1131"
+	height="801"
+	srcset="/p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-23_hu_2ac117ddffb0004d.png 480w, /p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-23_hu_8e1dd052cc2042f1.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="141"
+		data-flex-basis="338px"
+	
+></p>
+<p><img src="/p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-24.png"
+	width="1131"
+	height="806"
+	srcset="/p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-24_hu_507b0e1c790677e0.png 480w, /p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-24_hu_ca875991aefed4d7.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="140"
+		data-flex-basis="336px"
+	
+></p>
+<h4 id="create-a-replication-rule-on-the-source-harbor-to-enable-one-way-replication-to-the-target-harbor">Create a replication rule on the source Harbor to enable one-way replication to the target Harbor
+</h4><p><img src="/p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-25.png"
+	width="1133"
+	height="847"
+	srcset="/p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-25_hu_f6cf9529549ca7e1.png 480w, /p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-25_hu_85783b7286e57eae.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="133"
+		data-flex-basis="321px"
+	
+></p>
+<p><img src="/p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-26.png"
+	width="1133"
+	height="847"
+	srcset="/p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-26_hu_eff18eca7b27880b.png 480w, /p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-26_hu_5e2a2394814efc52.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="133"
+		data-flex-basis="321px"
+	
+></p>
+<p><img src="/p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-27.png"
+	width="1133"
+	height="847"
+	srcset="/p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-27_hu_782d2b58c0127219.png 480w, /p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-27_hu_38432683f694811a.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="133"
+		data-flex-basis="321px"
+	
+></p>
+<h4 id="in-the-registry-management-on-the-source-harbor-manually-run-replication-to-perform-the-initial-synchronization">In the registry management on the source Harbor, manually run replication to perform the initial synchronization
+</h4><p><img src="/p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-28.png"
+	width="1133"
+	height="847"
+	srcset="/p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-28_hu_3c04133bad0a4cad.png 480w, /p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-28_hu_6844861b93a7d18b.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="133"
+		data-flex-basis="321px"
+	
+></p>
+<p><img src="/p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-29.png"
+	width="1133"
+	height="847"
+	srcset="/p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-29_hu_8af134bd475d8c60.png 480w, /p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-29_hu_a08581ea3dbb36f9.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="133"
+		data-flex-basis="321px"
+	
+></p>
+<h4 id="repeat-the-above-steps-on-the-target-harbor-host">Repeat the above steps on the target Harbor host
+</h4><p><img src="/p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-30.png"
+	width="1133"
+	height="847"
+	srcset="/p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-30_hu_692bb0ed8ea5135e.png 480w, /p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-30_hu_d8c097bc47f08855.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="133"
+		data-flex-basis="321px"
+	
+></p>
+<p><img src="/p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-31.png"
+	width="1133"
+	height="847"
+	srcset="/p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-31_hu_46ab0a72c0561661.png 480w, /p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-31_hu_1be7b36c5c3f94e3.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="133"
+		data-flex-basis="321px"
+	
+></p>
+<p><img src="/p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-32.png"
+	width="1133"
+	height="847"
+	srcset="/p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-32_hu_fb4cfd19bec5a463.png 480w, /p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-32_hu_7ab84c8e25649d31.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="133"
+		data-flex-basis="321px"
+	
+></p>
+<p><img src="/p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-33.png"
+	width="1133"
+	height="847"
+	srcset="/p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-33_hu_e2c9558e892350f1.png 480w, /p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-33_hu_fbbdb616ad326631.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="133"
+		data-flex-basis="321px"
+	
+></p>
+<p><img src="/p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-34.png"
+	width="1133"
+	height="847"
+	srcset="/p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-34_hu_26045234d5609e8d.png 480w, /p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-34_hu_1545b0bfc6ffbb40.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="133"
+		data-flex-basis="321px"
+	
+></p>
+<h4 id="confirm-the-synchronization-is-successful">Confirm the synchronization is successful
+</h4><p>On the second Harbor host, you can see the images synchronized from the first host.</p>
+<p><img src="/p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-35.png"
+	width="1133"
+	height="847"
+	srcset="/p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-35_hu_10839d6a13dafe64.png 480w, /p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-35_hu_7a92d603880a0ac1.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="133"
+		data-flex-basis="321px"
+	
+></p>
+<p>You can also view the synchronization logs</p>
+<p><img src="/p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-36.png"
+	width="1133"
+	height="847"
+	srcset="/p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-36_hu_67414acc5a843dd2.png 480w, /p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-36_hu_996db23c291e7dd5.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="133"
+		data-flex-basis="321px"
+	
+></p>
+<h4 id="push-an-image-to-see-whether-dual-host-synchronization-works">Push an image to see whether dual-host synchronization works
+</h4><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 192.168.128.101</span>
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker tag  tomcat-web:app1 192.168.128.101/example/tomcat-web:app1
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker push 192.168.128.101/example/tomcat-web:app1
+</span></span><span class="line"><span class="cl">The push refers to repository <span class="o">[</span>192.168.128.101/example/tomcat-web<span class="o">]</span>
+</span></span><span class="line"><span class="cl">e75451716649: Pushed 
+</span></span><span class="line"><span class="cl">950d1cd21157: Pushed 
+</span></span><span class="line"><span class="cl">app1: digest: sha256:2a7f63759ade3842a1025179369ffe12ed586505fd3ffc2ffae99b04c7ffa707 size: <span class="m">742</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-37.png"
+	width="1133"
+	height="847"
+	srcset="/p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-37_hu_e9828054d155b8b5.png 480w, /p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-37_hu_1a4cbeab2287e178.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="133"
+		data-flex-basis="321px"
+	
+></p>
+<p><img src="/p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-38.png"
+	width="1133"
+	height="847"
+	srcset="/p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-38_hu_7a975706725dc81d.png 480w, /p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-38_hu_360edbcca858c246.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="133"
+		data-flex-basis="321px"
+	
+></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 192.168.128.101</span>
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker login 192.168.128.102
+</span></span><span class="line"><span class="cl">Username: admin
+</span></span><span class="line"><span class="cl">Password: 
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">WARNING! Your credentials are stored unencrypted in <span class="s1">&#39;/root/.docker/config.json&#39;</span>.
+</span></span><span class="line"><span class="cl">Configure a credential helper to remove this warning. See
+</span></span><span class="line"><span class="cl">https://docs.docker.com/go/credential-store/
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">Login Succeeded
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker tag  nginx_ubuntu26.04:v1.28.3 192.168.128.102/example/nginx_ubuntu26.04:v1.28.3
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker push 192.168.128.102/example/nginx_ubuntu26.04:v1.28.3
+</span></span><span class="line"><span class="cl">The push refers to repository <span class="o">[</span>192.168.128.102/example/nginx_ubuntu26.04<span class="o">]</span>
+</span></span><span class="line"><span class="cl">a8d911e8fb30: Pushed 
+</span></span><span class="line"><span class="cl">168f4b64baaa: Pushed 
+</span></span><span class="line"><span class="cl">b577adbc0b58: Pushed 
+</span></span><span class="line"><span class="cl">v1.28.3: digest: sha256:b894991f68f1df1e47a757e5b728e9159df91cf5c3f2cabc29b5d2d47e4550ae size: <span class="m">948</span>
+</span></span><span class="line"><span class="cl">root@lin-server:~# 
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-39.png"
+	width="1133"
+	height="847"
+	srcset="/p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-39_hu_2723d2b7ace9ec3e.png 480w, /p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-39_hu_87a106e83c78700a.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="133"
+		data-flex-basis="321px"
+	
+></p>
+<p><img src="/p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-40.png"
+	width="1133"
+	height="847"
+	srcset="/p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-40_hu_8df9258914cfff47.png 480w, /p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-40_hu_bcd88a1d9a0acee8.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="133"
+		data-flex-basis="321px"
+	
+></p>
+<h4 id="delete-an-image-to-see-whether-it-synchronizes-automatically">Delete an image to see whether it synchronizes automatically
+</h4><p><img src="/p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-41.png"
+	width="1133"
+	height="847"
+	srcset="/p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-41_hu_4c15dc7e154f7610.png 480w, /p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-41_hu_4501a0d4eb4aae9e.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="133"
+		data-flex-basis="321px"
+	
+></p>
+<p><img src="/p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-42.png"
+	width="1133"
+	height="847"
+	srcset="/p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-42_hu_fc5ab71da35234cc.png 480w, /p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-42_hu_9a7768156bcf9a23.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="133"
+		data-flex-basis="321px"
+	
+></p>
+<p><img src="/p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-43.png"
+	width="1133"
+	height="847"
+	srcset="/p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-43_hu_e6b59cf473b897f2.png 480w, /p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-43_hu_39c2108b4c76b70b.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="133"
+		data-flex-basis="321px"
+	
+></p>
+<p><img src="/p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-44.png"
+	width="1133"
+	height="847"
+	srcset="/p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-44_hu_7f8bef2edcb51d10.png 480w, /p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-44_hu_594ba050209d5c96.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="133"
+		data-flex-basis="321px"
+	
+></p>
+<p><img src="/p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-45.png"
+	width="1133"
+	height="847"
+	srcset="/p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-45_hu_8444914b826bf4ee.png 480w, /p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-45_hu_2017106f0c0616e4.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="133"
+		data-flex-basis="321px"
+	
+></p>
+<p><img src="/p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-46.png"
+	width="1133"
+	height="847"
+	srcset="/p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-46_hu_487b1430369cb98b.png 480w, /p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-46_hu_cddea3963ff82ddc.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="133"
+		data-flex-basis="321px"
 	
 ></p>
 

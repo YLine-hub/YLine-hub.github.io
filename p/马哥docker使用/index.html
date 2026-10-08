@@ -1,18 +1,18 @@
 <!DOCTYPE html>
 <html lang="en-us" dir="ltr">
     <head><meta charset='utf-8'>
-<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="Docker实现代理功能 先安装科学上网软件，并开启局域网连接\n配置代理\n1 2 3 4 5 6 7 8 9 10 11 # 创建服务目录 mkdir -p /etc/systemd/system/docker.service.d # 定义代理配置，代理端口一般是7890 cat &gt;&gt; /etc/systemd/system/docker.service.d/http-proxy.conf &lt;&lt;EOF [Service] Environment=&#34;HTTP_PROXY=http://${PROXY_SERVER_IP}:${PROXY_PORT}/&#34; Environment=&#34;HTTPS_PROXY=http://${PROXY_SERVER_IP}:${PROXY_PORT}/&#34; Environment=&#34;NO_PROXY=127.0.0.0/8,172.17.0.0/16,10.0.0.0/24,10.244.0.0/16,192.168.0.0/16,wang.org,cluster.local&#34; EOF # 重启docker，启动代理 systemctl daemon-reload &amp;&amp; systemctl restart docker 开启远程连接 docker服务端开启远程连接 1 2 3 4 5 6 7 8 9 10 11 12 # 在docker服务端主机开启远程网络连接功能 vim /usr/lib/systemd/system/docker.service [service] ... ExecStart=/usr/bin/dockerd -H unix:///var/run/docker.sock -H tcp://0.0.0.0:2375 ... # 重启服务 systemctl daemon-reload systemctl restart docker # 确认端口打开 ss -ntlp|grep dockerd 在另一台docker客户端主机远程连接服务器 1 docker -H &lt;docker服务器IP&gt;:2375 version 通过ssh协议远程连接 1 2 3 ssh-keygen ssh-copy-id 192.168.133.1010 docker -H ssh://root@192.168.133.100 version docker 镜像导出 导出所有镜像 到处镜像并压缩 1 docker save rockylinux:9.1-minimal | gzip - &gt; rockylinux-9.1-minimal.tar.gz 导出所有镜像至不同的文件中 1 docker images | awk &#39;NR!=1{print $1,$2}&#39; | while read repo tag ;do docker save $repo:$tag -o /opt/$repo-$tag.tar ;done 解决文件名问题\n">
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="Docker实现代理功能 先安装科学上网软件，并开启局域网连接\n配置代理\n1 2 3 4 5 6 7 8 9 10 11 # 创建服务目录 mkdir -p /etc/systemd/system/docker.service.d # 定义代理配置，代理端口一般是7890 cat &gt;&gt; /etc/systemd/system/docker.service.d/http-proxy.conf &lt;&lt;EOF [Service] Environment=&#34;HTTP_PROXY=http://${PROXY_SERVER_IP}:${PROXY_PORT}/&#34; Environment=&#34;HTTPS_PROXY=http://${PROXY_SERVER_IP}:${PROXY_PORT}/&#34; Environment=&#34;NO_PROXY=127.0.0.0/8,172.17.0.0/16,10.0.0.0/24,10.244.0.0/16,192.168.0.0/16,wang.org,cluster.local&#34; EOF # 重启docker，启动代理 systemctl daemon-reload &amp;&amp; systemctl restart docker 开启远程连接 docker服务端开启远程连接 1 2 3 4 5 6 7 8 9 10 11 12 # 在docker服务端主机开启远程网络连接功能 vim /usr/lib/systemd/system/docker.service [service] ... ExecStart=/usr/bin/dockerd -H unix:///var/run/docker.sock -H tcp://0.0.0.0:2375 ... # 重启服务 systemctl daemon-reload systemctl restart docker # 确认端口打开 ss -ntlp|grep dockerd 在另一台docker客户端主机远程连接服务器 1 docker -H &lt;docker服务器IP&gt;:2375 version 通过ssh协议远程连接 1 2 3 ssh-keygen ssh-copy-id 192.168.133.1010 docker -H ssh://root@192.168.133.100 version docker 镜像导出 导出镜像 1 2 3 4 5 # Method 1 docker save -o rockylinux_9.1-minimal.tar rockylinux:9.1-minimal # Method 2 docker save rockylinux:9.1-minimal &gt; rockylinux_9.1-minimal.tar 导出镜像并压缩 1 docker save rockylinux:9.1-minimal | gzip - &gt; rockylinux-9.1-minimal.tar.gz 导出所有镜像 导出所有镜像至不同的文件中 1 docker images | awk &#39;NR!=1{print $1,$2}&#39; | while read repo tag ;do docker save $repo:$tag -o /opt/$repo-$tag.tar ;done 解决文件名问题 1 2 3 4 5 6 7 docker images | awk &#39;NR!=1{print $1,$2}&#39; | while read repo tag ;do # 将 / 替换为 _，避免目录错误 safe_repo=$(echo &#34;$repo&#34; | sed &#39;s|/|_|g&#39;); safe_tag=$(echo &#34;$tag&#34; | sed &#39;s|/|_|g&#39;); echo &#34;export $repo:$tag&#34;; docker save &#34;$repo:$tag&#34; -o &#34;/opt/${safe_repo}-${safe_tag}.tar&#34;; done 导出所有镜像到一个文件中 1 docker image save `docker image ls --format &#34;{{.Repository}}:{{.Tag}}&#34;` -o all.tar 镜像导入 1 2 3 4 5 # Method 1 docker load -i rockylinux_9.1-minimal.tar # Method 2 docker load &lt; rockylinux_9.1-minimal.tar 容器热迁移 环境准备 安装 criu 安装 docker 配置 docker 支持 CRIU ubuntu 24安装环境 安装环境 1 add-apt-repository ppa:criu/ppa -y &amp;&amp; apt update &amp;&amp; apt -y install criu docker.io 检测criu 1 criu check 查看版本 1 criu -V 开启CRIU功能 默认没有开启checkpoint的实验性功能 1 docker checkpoint 启动CRIU功能 1 2 3 4 5 6 7 8 9 cat &gt; /etc/docker/daemon.json &lt;&lt;EOF { &#34;registry-mirrors&#34;: [ &#34;https://docker.1ms.run&#34;, &#34;https://docker.xuanyuan.me&#34; ], &#34;experimental&#34;: true } EOF 重启docker 1 systemctl restart docker 测试CRIU是否开启 1 docker checkpoint 启动运行一个需要热迁移的容器 启动容器 1 docker run --restart always --name cr -d registry.cn-beijing.aliyuncs.com/wangxiaochun/busybox:1.32.0 /bin/sh -c &#39;i=0;while true; do echo $i `date +%F_%T`; i=$(expr $i + 1); sleep 1; done&#39; 查看日志 1 docker logs -f cr 备份 创建checkpoint快照 1 docker checkpoint create --checkpoint-dir /srv/ cr checkpoint1 创建checkpoint后，容器会自动退出 1 docker ps -l 查看生成的checkpoint 1 ls /srv 查看里面的文件 1 ls /srv/checkpoint1 查看文件大小 1 du -sh /srv/checkpoint1 查看checkpoint 1 docker checkpoint ls cr 必须指定路径才能看到\n">
 <title>[马哥][docker]使用</title>
 
 <link rel='canonical' href='https://YLine-hub.github.io/p/%E9%A9%AC%E5%93%A5docker%E4%BD%BF%E7%94%A8/'>
 
 <link rel="stylesheet" href="/scss/style.min.663803bebe609202d5b39d848f2d7c2dc8b598a2d879efa079fa88893d29c49c.css"><meta property='og:title' content="[马哥][docker]使用">
-<meta property='og:description' content="Docker实现代理功能 先安装科学上网软件，并开启局域网连接\n配置代理\n1 2 3 4 5 6 7 8 9 10 11 # 创建服务目录 mkdir -p /etc/systemd/system/docker.service.d # 定义代理配置，代理端口一般是7890 cat &gt;&gt; /etc/systemd/system/docker.service.d/http-proxy.conf &lt;&lt;EOF [Service] Environment=&#34;HTTP_PROXY=http://${PROXY_SERVER_IP}:${PROXY_PORT}/&#34; Environment=&#34;HTTPS_PROXY=http://${PROXY_SERVER_IP}:${PROXY_PORT}/&#34; Environment=&#34;NO_PROXY=127.0.0.0/8,172.17.0.0/16,10.0.0.0/24,10.244.0.0/16,192.168.0.0/16,wang.org,cluster.local&#34; EOF # 重启docker，启动代理 systemctl daemon-reload &amp;&amp; systemctl restart docker 开启远程连接 docker服务端开启远程连接 1 2 3 4 5 6 7 8 9 10 11 12 # 在docker服务端主机开启远程网络连接功能 vim /usr/lib/systemd/system/docker.service [service] ... ExecStart=/usr/bin/dockerd -H unix:///var/run/docker.sock -H tcp://0.0.0.0:2375 ... # 重启服务 systemctl daemon-reload systemctl restart docker # 确认端口打开 ss -ntlp|grep dockerd 在另一台docker客户端主机远程连接服务器 1 docker -H &lt;docker服务器IP&gt;:2375 version 通过ssh协议远程连接 1 2 3 ssh-keygen ssh-copy-id 192.168.133.1010 docker -H ssh://root@192.168.133.100 version docker 镜像导出 导出所有镜像 到处镜像并压缩 1 docker save rockylinux:9.1-minimal | gzip - &gt; rockylinux-9.1-minimal.tar.gz 导出所有镜像至不同的文件中 1 docker images | awk &#39;NR!=1{print $1,$2}&#39; | while read repo tag ;do docker save $repo:$tag -o /opt/$repo-$tag.tar ;done 解决文件名问题\n">
+<meta property='og:description' content="Docker实现代理功能 先安装科学上网软件，并开启局域网连接\n配置代理\n1 2 3 4 5 6 7 8 9 10 11 # 创建服务目录 mkdir -p /etc/systemd/system/docker.service.d # 定义代理配置，代理端口一般是7890 cat &gt;&gt; /etc/systemd/system/docker.service.d/http-proxy.conf &lt;&lt;EOF [Service] Environment=&#34;HTTP_PROXY=http://${PROXY_SERVER_IP}:${PROXY_PORT}/&#34; Environment=&#34;HTTPS_PROXY=http://${PROXY_SERVER_IP}:${PROXY_PORT}/&#34; Environment=&#34;NO_PROXY=127.0.0.0/8,172.17.0.0/16,10.0.0.0/24,10.244.0.0/16,192.168.0.0/16,wang.org,cluster.local&#34; EOF # 重启docker，启动代理 systemctl daemon-reload &amp;&amp; systemctl restart docker 开启远程连接 docker服务端开启远程连接 1 2 3 4 5 6 7 8 9 10 11 12 # 在docker服务端主机开启远程网络连接功能 vim /usr/lib/systemd/system/docker.service [service] ... ExecStart=/usr/bin/dockerd -H unix:///var/run/docker.sock -H tcp://0.0.0.0:2375 ... # 重启服务 systemctl daemon-reload systemctl restart docker # 确认端口打开 ss -ntlp|grep dockerd 在另一台docker客户端主机远程连接服务器 1 docker -H &lt;docker服务器IP&gt;:2375 version 通过ssh协议远程连接 1 2 3 ssh-keygen ssh-copy-id 192.168.133.1010 docker -H ssh://root@192.168.133.100 version docker 镜像导出 导出镜像 1 2 3 4 5 # Method 1 docker save -o rockylinux_9.1-minimal.tar rockylinux:9.1-minimal # Method 2 docker save rockylinux:9.1-minimal &gt; rockylinux_9.1-minimal.tar 导出镜像并压缩 1 docker save rockylinux:9.1-minimal | gzip - &gt; rockylinux-9.1-minimal.tar.gz 导出所有镜像 导出所有镜像至不同的文件中 1 docker images | awk &#39;NR!=1{print $1,$2}&#39; | while read repo tag ;do docker save $repo:$tag -o /opt/$repo-$tag.tar ;done 解决文件名问题 1 2 3 4 5 6 7 docker images | awk &#39;NR!=1{print $1,$2}&#39; | while read repo tag ;do # 将 / 替换为 _，避免目录错误 safe_repo=$(echo &#34;$repo&#34; | sed &#39;s|/|_|g&#39;); safe_tag=$(echo &#34;$tag&#34; | sed &#39;s|/|_|g&#39;); echo &#34;export $repo:$tag&#34;; docker save &#34;$repo:$tag&#34; -o &#34;/opt/${safe_repo}-${safe_tag}.tar&#34;; done 导出所有镜像到一个文件中 1 docker image save `docker image ls --format &#34;{{.Repository}}:{{.Tag}}&#34;` -o all.tar 镜像导入 1 2 3 4 5 # Method 1 docker load -i rockylinux_9.1-minimal.tar # Method 2 docker load &lt; rockylinux_9.1-minimal.tar 容器热迁移 环境准备 安装 criu 安装 docker 配置 docker 支持 CRIU ubuntu 24安装环境 安装环境 1 add-apt-repository ppa:criu/ppa -y &amp;&amp; apt update &amp;&amp; apt -y install criu docker.io 检测criu 1 criu check 查看版本 1 criu -V 开启CRIU功能 默认没有开启checkpoint的实验性功能 1 docker checkpoint 启动CRIU功能 1 2 3 4 5 6 7 8 9 cat &gt; /etc/docker/daemon.json &lt;&lt;EOF { &#34;registry-mirrors&#34;: [ &#34;https://docker.1ms.run&#34;, &#34;https://docker.xuanyuan.me&#34; ], &#34;experimental&#34;: true } EOF 重启docker 1 systemctl restart docker 测试CRIU是否开启 1 docker checkpoint 启动运行一个需要热迁移的容器 启动容器 1 docker run --restart always --name cr -d registry.cn-beijing.aliyuncs.com/wangxiaochun/busybox:1.32.0 /bin/sh -c &#39;i=0;while true; do echo $i `date +%F_%T`; i=$(expr $i + 1); sleep 1; done&#39; 查看日志 1 docker logs -f cr 备份 创建checkpoint快照 1 docker checkpoint create --checkpoint-dir /srv/ cr checkpoint1 创建checkpoint后，容器会自动退出 1 docker ps -l 查看生成的checkpoint 1 ls /srv 查看里面的文件 1 ls /srv/checkpoint1 查看文件大小 1 du -sh /srv/checkpoint1 查看checkpoint 1 docker checkpoint ls cr 必须指定路径才能看到\n">
 <meta property='og:url' content='https://YLine-hub.github.io/p/%E9%A9%AC%E5%93%A5docker%E4%BD%BF%E7%94%A8/'>
 <meta property='og:site_name' content='リンボの個人ブログ'>
 <meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:published_time' content='2026-08-04T13:39:27&#43;08:00'/><meta property='article:modified_time' content='2026-08-04T13:39:27&#43;08:00'/>
 <meta name="twitter:title" content="[马哥][docker]使用">
-<meta name="twitter:description" content="Docker实现代理功能 先安装科学上网软件，并开启局域网连接\n配置代理\n1 2 3 4 5 6 7 8 9 10 11 # 创建服务目录 mkdir -p /etc/systemd/system/docker.service.d # 定义代理配置，代理端口一般是7890 cat &gt;&gt; /etc/systemd/system/docker.service.d/http-proxy.conf &lt;&lt;EOF [Service] Environment=&#34;HTTP_PROXY=http://${PROXY_SERVER_IP}:${PROXY_PORT}/&#34; Environment=&#34;HTTPS_PROXY=http://${PROXY_SERVER_IP}:${PROXY_PORT}/&#34; Environment=&#34;NO_PROXY=127.0.0.0/8,172.17.0.0/16,10.0.0.0/24,10.244.0.0/16,192.168.0.0/16,wang.org,cluster.local&#34; EOF # 重启docker，启动代理 systemctl daemon-reload &amp;&amp; systemctl restart docker 开启远程连接 docker服务端开启远程连接 1 2 3 4 5 6 7 8 9 10 11 12 # 在docker服务端主机开启远程网络连接功能 vim /usr/lib/systemd/system/docker.service [service] ... ExecStart=/usr/bin/dockerd -H unix:///var/run/docker.sock -H tcp://0.0.0.0:2375 ... # 重启服务 systemctl daemon-reload systemctl restart docker # 确认端口打开 ss -ntlp|grep dockerd 在另一台docker客户端主机远程连接服务器 1 docker -H &lt;docker服务器IP&gt;:2375 version 通过ssh协议远程连接 1 2 3 ssh-keygen ssh-copy-id 192.168.133.1010 docker -H ssh://root@192.168.133.100 version docker 镜像导出 导出所有镜像 到处镜像并压缩 1 docker save rockylinux:9.1-minimal | gzip - &gt; rockylinux-9.1-minimal.tar.gz 导出所有镜像至不同的文件中 1 docker images | awk &#39;NR!=1{print $1,$2}&#39; | while read repo tag ;do docker save $repo:$tag -o /opt/$repo-$tag.tar ;done 解决文件名问题\n">
+<meta name="twitter:description" content="Docker实现代理功能 先安装科学上网软件，并开启局域网连接\n配置代理\n1 2 3 4 5 6 7 8 9 10 11 # 创建服务目录 mkdir -p /etc/systemd/system/docker.service.d # 定义代理配置，代理端口一般是7890 cat &gt;&gt; /etc/systemd/system/docker.service.d/http-proxy.conf &lt;&lt;EOF [Service] Environment=&#34;HTTP_PROXY=http://${PROXY_SERVER_IP}:${PROXY_PORT}/&#34; Environment=&#34;HTTPS_PROXY=http://${PROXY_SERVER_IP}:${PROXY_PORT}/&#34; Environment=&#34;NO_PROXY=127.0.0.0/8,172.17.0.0/16,10.0.0.0/24,10.244.0.0/16,192.168.0.0/16,wang.org,cluster.local&#34; EOF # 重启docker，启动代理 systemctl daemon-reload &amp;&amp; systemctl restart docker 开启远程连接 docker服务端开启远程连接 1 2 3 4 5 6 7 8 9 10 11 12 # 在docker服务端主机开启远程网络连接功能 vim /usr/lib/systemd/system/docker.service [service] ... ExecStart=/usr/bin/dockerd -H unix:///var/run/docker.sock -H tcp://0.0.0.0:2375 ... # 重启服务 systemctl daemon-reload systemctl restart docker # 确认端口打开 ss -ntlp|grep dockerd 在另一台docker客户端主机远程连接服务器 1 docker -H &lt;docker服务器IP&gt;:2375 version 通过ssh协议远程连接 1 2 3 ssh-keygen ssh-copy-id 192.168.133.1010 docker -H ssh://root@192.168.133.100 version docker 镜像导出 导出镜像 1 2 3 4 5 # Method 1 docker save -o rockylinux_9.1-minimal.tar rockylinux:9.1-minimal # Method 2 docker save rockylinux:9.1-minimal &gt; rockylinux_9.1-minimal.tar 导出镜像并压缩 1 docker save rockylinux:9.1-minimal | gzip - &gt; rockylinux-9.1-minimal.tar.gz 导出所有镜像 导出所有镜像至不同的文件中 1 docker images | awk &#39;NR!=1{print $1,$2}&#39; | while read repo tag ;do docker save $repo:$tag -o /opt/$repo-$tag.tar ;done 解决文件名问题 1 2 3 4 5 6 7 docker images | awk &#39;NR!=1{print $1,$2}&#39; | while read repo tag ;do # 将 / 替换为 _，避免目录错误 safe_repo=$(echo &#34;$repo&#34; | sed &#39;s|/|_|g&#39;); safe_tag=$(echo &#34;$tag&#34; | sed &#39;s|/|_|g&#39;); echo &#34;export $repo:$tag&#34;; docker save &#34;$repo:$tag&#34; -o &#34;/opt/${safe_repo}-${safe_tag}.tar&#34;; done 导出所有镜像到一个文件中 1 docker image save `docker image ls --format &#34;{{.Repository}}:{{.Tag}}&#34;` -o all.tar 镜像导入 1 2 3 4 5 # Method 1 docker load -i rockylinux_9.1-minimal.tar # Method 2 docker load &lt; rockylinux_9.1-minimal.tar 容器热迁移 环境准备 安装 criu 安装 docker 配置 docker 支持 CRIU ubuntu 24安装环境 安装环境 1 add-apt-repository ppa:criu/ppa -y &amp;&amp; apt update &amp;&amp; apt -y install criu docker.io 检测criu 1 criu check 查看版本 1 criu -V 开启CRIU功能 默认没有开启checkpoint的实验性功能 1 docker checkpoint 启动CRIU功能 1 2 3 4 5 6 7 8 9 cat &gt; /etc/docker/daemon.json &lt;&lt;EOF { &#34;registry-mirrors&#34;: [ &#34;https://docker.1ms.run&#34;, &#34;https://docker.xuanyuan.me&#34; ], &#34;experimental&#34;: true } EOF 重启docker 1 systemctl restart docker 测试CRIU是否开启 1 docker checkpoint 启动运行一个需要热迁移的容器 启动容器 1 docker run --restart always --name cr -d registry.cn-beijing.aliyuncs.com/wangxiaochun/busybox:1.32.0 /bin/sh -c &#39;i=0;while true; do echo $i `date +%F_%T`; i=$(expr $i + 1); sleep 1; done&#39; 查看日志 1 docker logs -f cr 备份 创建checkpoint快照 1 docker checkpoint create --checkpoint-dir /srv/ cr checkpoint1 创建checkpoint后，容器会自动退出 1 docker ps -l 查看生成的checkpoint 1 ls /srv 查看里面的文件 1 ls /srv/checkpoint1 查看文件大小 1 du -sh /srv/checkpoint1 查看checkpoint 1 docker checkpoint ls cr 必须指定路径才能看到\n">
     <link rel="shortcut icon" href="/favicon.ico" />
 
     </head>
@@ -215,6 +215,7 @@
             <li><a href="#导出所有镜像">导出所有镜像</a></li>
           </ol>
         </li>
+        <li><a href="#镜像导入">镜像导入</a></li>
         <li><a href="#容器热迁移">容器热迁移</a>
           <ol>
             <li><a href="#环境准备">环境准备</a></li>
@@ -517,9 +518,27 @@
 </div>
 </div><h2 id="docker">docker
 </h2><h3 id="镜像导出">镜像导出
-</h3><h4 id="导出所有镜像">导出所有镜像
-</h4><ol>
-<li>到处镜像并压缩</li>
+</h3><ol>
+<li>导出镜像</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># Method 1</span>
+</span></span><span class="line"><span class="cl">docker save -o rockylinux_9.1-minimal.tar rockylinux:9.1-minimal
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Method 2</span>
+</span></span><span class="line"><span class="cl">docker save rockylinux:9.1-minimal &gt; rockylinux_9.1-minimal.tar
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="2">
+<li>导出镜像并压缩</li>
 </ol>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
@@ -529,7 +548,8 @@
 <pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">docker save rockylinux:9.1-minimal <span class="p">|</span> gzip - &gt; rockylinux-9.1-minimal.tar.gz
 </span></span></code></pre></td></tr></table>
 </div>
-</div><ol start="2">
+</div><h4 id="导出所有镜像">导出所有镜像
+</h4><ol>
 <li>导出所有镜像至不同的文件中</li>
 </ol>
 <div class="highlight"><div class="chroma">
@@ -540,7 +560,9 @@
 <pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">docker images <span class="p">|</span> awk <span class="s1">&#39;NR!=1{print $1,$2}&#39;</span> <span class="p">|</span> <span class="k">while</span> <span class="nb">read</span> repo tag <span class="p">;</span><span class="k">do</span> docker save <span class="nv">$repo</span>:<span class="nv">$tag</span> -o /opt/<span class="nv">$repo</span>-<span class="nv">$tag</span>.tar <span class="p">;</span><span class="k">done</span>
 </span></span></code></pre></td></tr></table>
 </div>
-</div><p>解决文件名问题</p>
+</div><ol start="2">
+<li>解决文件名问题</li>
+</ol>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
 <pre tabindex="0" class="chroma"><code><span class="lnt">1
@@ -570,6 +592,23 @@
 </span></code></pre></td>
 <td class="lntd">
 <pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">docker image save <span class="sb">`</span>docker image ls --format <span class="s2">&#34;{{.Repository}}:{{.Tag}}&#34;</span><span class="sb">`</span> -o all.tar
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="镜像导入">镜像导入
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># Method 1</span>
+</span></span><span class="line"><span class="cl">docker load -i rockylinux_9.1-minimal.tar
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Method 2</span>
+</span></span><span class="line"><span class="cl">docker load &lt; rockylinux_9.1-minimal.tar
 </span></span></code></pre></td></tr></table>
 </div>
 </div><h3 id="容器热迁移">容器热迁移
