@@ -279,6 +279,15 @@
             <li><a href="#confirm-the-synchronization-is-successful">Confirm the synchronization is successful</a></li>
             <li><a href="#push-an-image-to-see-whether-dual-host-synchronization-works">Push an image to see whether dual-host synchronization works</a></li>
             <li><a href="#delete-an-image-to-see-whether-it-synchronizes-automatically">Delete an image to see whether it synchronizes automatically</a></li>
+            <li><a href="#configure-nginx-as-a-reverse-proxy">Configure Nginx as a reverse proxy</a></li>
+            <li><a href="#based-on-https">Based on HTTPS</a></li>
+          </ol>
+        </li>
+        <li><a href="#harbor-secure-https-configuration">Harbor secure HTTPS configuration</a>
+          <ol>
+            <li><a href="#generate-the-harbor-server-cetificate">Generate the Harbor server cetificate</a></li>
+            <li><a href="#configure-the-harbor-server-to-use-the-certificate">Configure the Harbor server to use the certificate</a></li>
+            <li><a href="#configure-the-docker-client-to-use-the-cetificate-files">Configure the Docker client to use the cetificate files</a></li>
           </ol>
         </li>
       </ol>
@@ -1691,17 +1700,17 @@
 </span></span><span class="line"><span class="cl">        <span class="si">${</span><span class="nv">COLOR</span><span class="si">}</span><span class="s2">&#34;Start installing Harbor......&#34;</span><span class="si">${</span><span class="nv">END</span><span class="si">}</span>
 </span></span><span class="line"><span class="cl">        sleep <span class="m">1</span>
 </span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="o">[</span> ! -f <span class="s2">&#34;harbor-offline-installer-v2.7.4.tgz&#34;</span> <span class="o">]</span><span class="p">;</span><span class="k">then</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="o">[</span> ! -f <span class="s2">&#34;harbor-offline-installer-</span><span class="si">${</span><span class="nv">HARBOR_VERSION</span><span class="si">}</span><span class="s2">.tgz&#34;</span> <span class="o">]</span><span class="p">;</span> <span class="k">then</span>
 </span></span><span class="line"><span class="cl">                <span class="si">${</span><span class="nv">COLOR</span><span class="si">}</span><span class="s2">&#34;File does not exist, downloading ...&#34;</span><span class="si">${</span><span class="nv">END</span><span class="si">}</span>
 </span></span><span class="line"><span class="cl">                wget https://github.com/goharbor/harbor/releases/download/<span class="si">${</span><span class="nv">HARBOR_VERSION</span><span class="si">}</span>/harbor-offline-installer-<span class="si">${</span><span class="nv">HARBOR_VERSION</span><span class="si">}</span>.tgz
 </span></span><span class="line"><span class="cl">        <span class="k">else</span>
 </span></span><span class="line"><span class="cl">                <span class="si">${</span><span class="nv">COLOR</span><span class="si">}</span><span class="s2">&#34;File already exists, skipping download&#34;</span><span class="si">${</span><span class="nv">END</span><span class="si">}</span>
 </span></span><span class="line"><span class="cl">        <span class="k">fi</span>
-</span></span><span class="line"><span class="cl">        <span class="o">[</span> ! -d <span class="s2">&#34;/apps&#34;</span><span class="o">]</span> <span class="o">&amp;&amp;</span> mkdir /apps
+</span></span><span class="line"><span class="cl">        <span class="o">[</span> ! -d <span class="s2">&#34;/apps&#34;</span> <span class="o">]</span> <span class="o">&amp;&amp;</span> mkdir /apps
 </span></span><span class="line"><span class="cl">        tar xvf harbor-offline-installer-<span class="si">${</span><span class="nv">HARBOR_VERSION</span><span class="si">}</span>.tgz -C /apps/
 </span></span><span class="line"><span class="cl">        mv /apps/harbor/harbor.yml.tmpl /apps/harbor/harbor.yml
 </span></span><span class="line"><span class="cl">        sed -i.bak -e <span class="s1">&#39;s/^hostname:.*/hostname: &#39;</span><span class="nv">$IPADDR</span><span class="s1">&#39;/&#39;</span> -e <span class="s1">&#39;s/^harbor_admin_password:.*/harbor_admin_password: &#39;</span><span class="nv">$HARBOR_ADMIN_PASSWORD</span><span class="s1">&#39;/&#39;</span> /apps/harbor/harbor.yml
-</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        sed -i -E <span class="s1">&#39;s/^(\s*)(https:)/\1# \2/; s/^(\s*)(port:\s*443)/\1# \2/; s/^(\s*)(certificate:\s*\/data\/cert\/harbor\.crt)/\1# \2/; s/^(\s*)(private_key:\s*\/data\/cert\/harbor\.key)/\1# \2/&#39;</span> /apps/harbor/harbor.yml
 </span></span><span class="line"><span class="cl">        apt -y install python-is-python3
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">        /apps/harbor/install.sh <span class="o">&amp;&amp;</span> <span class="si">${</span><span class="nv">COLOR</span><span class="si">}</span><span class="s2">&#34;Harbor installed successfully&#34;</span><span class="si">${</span><span class="nv">END</span><span class="si">}</span> <span class="o">||</span> <span class="si">${</span><span class="nv">COLOR</span><span class="si">}</span><span class="s2">&#34;Harbor installation failed&#34;</span><span class="si">${</span><span class="nv">END</span><span class="si">}</span>
@@ -2602,7 +2611,826 @@
 		data-flex-basis="321px"
 	
 ></p>
-
+<h4 id="configure-nginx-as-a-reverse-proxy">Configure Nginx as a reverse proxy
+</h4><p>Example: Container-based Nginx reverse proxy</p>
+<p><code>192.168.128.100</code></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# mkdir harbor
+</span></span><span class="line"><span class="cl"> root@lin-server:~# vim harbor.wang.org.conf
+</span></span><span class="line"><span class="cl">upstream harbor <span class="o">{</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">hash</span> <span class="nv">$remote_addr</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        server 192.168.128.101:80<span class="p">;</span>
+</span></span><span class="line"><span class="cl">        server 192.168.128.102:80<span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="o">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">server <span class="o">{</span>
+</span></span><span class="line"><span class="cl">        server_name harbor.wang.org<span class="p">;</span>
+</span></span><span class="line"><span class="cl">        client_max_body_size 10g<span class="p">;</span>
+</span></span><span class="line"><span class="cl">        location / <span class="o">{</span>
+</span></span><span class="line"><span class="cl">                proxy_pass http://harbor<span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="o">}</span>
+</span></span><span class="line"><span class="cl"><span class="o">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker run --name myharbor -d -p 80:80 --restart<span class="o">=</span>always -v ./harbor.wang.org.conf:/etc/nginx/conf.d/harbor.wang.org.conf nginx:1.24
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>192.168.128.103</code></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# cat /etc/docker/daemon.json 
+</span></span><span class="line"><span class="cl"><span class="o">{</span>
+</span></span><span class="line"><span class="cl">  <span class="s2">&#34;registry-mirrors&#34;</span>: <span class="o">[</span><span class="s2">&#34;https://registry.linkease.net:5443&#34;</span><span class="o">]</span>,
+</span></span><span class="line"><span class="cl">  <span class="s2">&#34;insecure-registries&#34;</span>: <span class="o">[</span><span class="s2">&#34;harbor.wang.org&#34;</span><span class="o">]</span>
+</span></span><span class="line"><span class="cl"><span class="o">}</span>
+</span></span><span class="line"><span class="cl">root@lin-server:~# cat /etc/hosts
+</span></span><span class="line"><span class="cl">127.0.0.1 localhost
+</span></span><span class="line"><span class="cl">127.0.1.1 lin-server
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># The following lines are desirable for IPv6 capable hosts</span>
+</span></span><span class="line"><span class="cl">::1     ip6-localhost ip6-loopback
+</span></span><span class="line"><span class="cl">fe00::0 ip6-localnet
+</span></span><span class="line"><span class="cl">ff00::0 ip6-mcastprefix
+</span></span><span class="line"><span class="cl">ff02::1 ip6-allnodes
+</span></span><span class="line"><span class="cl">ff02::2 ip6-allrouters
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">192.168.128.100 harbor.wang.org
+</span></span><span class="line"><span class="cl">root@lin-server:~# systemctl daemon-reload
+</span></span><span class="line"><span class="cl">root@lin-server:~# systemctl restart docker
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker login http://harbor.wang.org
+</span></span><span class="line"><span class="cl">Username: admin
+</span></span><span class="line"><span class="cl">Password: 
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">WARNING! Your credentials are stored unencrypted in <span class="s1">&#39;/root/.docker/config.json&#39;</span>.
+</span></span><span class="line"><span class="cl">Configure a credential helper to remove this warning. See
+</span></span><span class="line"><span class="cl">https://docs.docker.com/go/credential-store/
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">Login Succeeded
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker tag nginx:latest harbor.wang.org/example/nginx:latest
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker push harbor.wang.org/example/nginx:latest
+</span></span><span class="line"><span class="cl">The push refers to repository <span class="o">[</span>harbor.wang.org/example/nginx<span class="o">]</span>
+</span></span><span class="line"><span class="cl">a8fae4102358: Pushed 
+</span></span><span class="line"><span class="cl">b0020123c41b: Pushed 
+</span></span><span class="line"><span class="cl">f29840e7d6e5: Pushed 
+</span></span><span class="line"><span class="cl">f109061e6486: Pushed 
+</span></span><span class="line"><span class="cl">e8fb5de3ef79: Pushed 
+</span></span><span class="line"><span class="cl">070ef859f070: Pushed 
+</span></span><span class="line"><span class="cl">411a86676185: Pushed 
+</span></span><span class="line"><span class="cl">latest: digest: sha256:e522a180e31d441de11e60f594308762d937bac46365a4e6ae12f1f8f559ce55 size: <span class="m">1778</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-47.png"
+	width="1530"
+	height="847"
+	srcset="/p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-47_hu_cde4361893cf76e.png 480w, /p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-47_hu_ef00bd9cf7d194ad.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="180"
+		data-flex-basis="433px"
+	
+></p>
+<p><img src="/p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-48.png"
+	width="1530"
+	height="847"
+	srcset="/p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-48_hu_c3ec14b8bea419dc.png 480w, /p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-48_hu_2d09bad54d1a34ca.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="180"
+		data-flex-basis="433px"
+	
+></p>
+<p>Example: Install Nginx via a package manager to set up a reverse proxy</p>
+<p><code>192.168.128.100</code></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# apt update
+</span></span><span class="line"><span class="cl">root@lin-server:~# apt install nginx -y
+</span></span><span class="line"><span class="cl">root@lin-server:~# systemctl start nginx 
+</span></span><span class="line"><span class="cl">root@lin-server:~# systemctl <span class="nb">enable</span> nginx
+</span></span><span class="line"><span class="cl">root@lin-server:~# curl -I http://localhost
+</span></span><span class="line"><span class="cl">HTTP/1.1 <span class="m">200</span> OK
+</span></span><span class="line"><span class="cl">Server: nginx/1.24.0 <span class="o">(</span>Ubuntu<span class="o">)</span>
+</span></span><span class="line"><span class="cl">Date: Fri, <span class="m">09</span> Oct <span class="m">2026</span> 06:56:09 GMT
+</span></span><span class="line"><span class="cl">Content-Type: text/html
+</span></span><span class="line"><span class="cl">Content-Length: <span class="m">615</span>
+</span></span><span class="line"><span class="cl">Last-Modified: Fri, <span class="m">09</span> Oct <span class="m">2026</span> 06:55:10 GMT
+</span></span><span class="line"><span class="cl">Connection: keep-alive
+</span></span><span class="line"><span class="cl">ETag: <span class="s2">&#34;6ac88fce-267&#34;</span>
+</span></span><span class="line"><span class="cl">Accept-Ranges: bytes
+</span></span><span class="line"><span class="cl">root@lin-server:~# cat /etc/nginx/conf.d/harbor.wang.org.conf
+</span></span><span class="line"><span class="cl">upstream harbor <span class="o">{</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">hash</span> <span class="nv">$remote_addr</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        server harbor1.wang.org:80<span class="p">;</span>
+</span></span><span class="line"><span class="cl">        server harbor2.wang.org:80<span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="o">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">server <span class="o">{</span>
+</span></span><span class="line"><span class="cl">        listen 80<span class="p">;</span>
+</span></span><span class="line"><span class="cl">        server_name harbor.wang.org<span class="p">;</span>
+</span></span><span class="line"><span class="cl">        client_max_body_size 10g<span class="p">;</span>
+</span></span><span class="line"><span class="cl">        location / <span class="o">{</span>
+</span></span><span class="line"><span class="cl">                proxy_pass http://harbor<span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="o">}</span>
+</span></span><span class="line"><span class="cl"><span class="o">}</span>
+</span></span><span class="line"><span class="cl">root@lin-server:~# systemctl restart nginx
+</span></span><span class="line"><span class="cl">root@lin-server:~# cat /etc/hosts
+</span></span><span class="line"><span class="cl">127.0.0.1 localhost
+</span></span><span class="line"><span class="cl">127.0.1.1 lin-server
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># The following lines are desirable for IPv6 capable hosts</span>
+</span></span><span class="line"><span class="cl">::1     ip6-localhost ip6-loopback
+</span></span><span class="line"><span class="cl">fe00::0 ip6-localnet
+</span></span><span class="line"><span class="cl">ff00::0 ip6-mcastprefix
+</span></span><span class="line"><span class="cl">ff02::1 ip6-allnodes
+</span></span><span class="line"><span class="cl">ff02::2 ip6-allrouters
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">192.168.128.101 harbor1.wang.org
+</span></span><span class="line"><span class="cl">192.168.128.102 harbor2.wang.org
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>192.168.128.103</code></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# cat /etc/docker/daemon.json 
+</span></span><span class="line"><span class="cl"><span class="o">{</span>
+</span></span><span class="line"><span class="cl">  <span class="s2">&#34;registry-mirrors&#34;</span>: <span class="o">[</span><span class="s2">&#34;https://registry.linkease.net:5443&#34;</span><span class="o">]</span>,
+</span></span><span class="line"><span class="cl">  <span class="s2">&#34;insecure-registries&#34;</span>: <span class="o">[</span><span class="s2">&#34;harbor.wang.org&#34;</span><span class="o">]</span>
+</span></span><span class="line"><span class="cl"><span class="o">}</span>
+</span></span><span class="line"><span class="cl">root@lin-server:~# cat /etc/hosts
+</span></span><span class="line"><span class="cl">127.0.0.1 localhost
+</span></span><span class="line"><span class="cl">127.0.1.1 lin-server
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># The following lines are desirable for IPv6 capable hosts</span>
+</span></span><span class="line"><span class="cl">::1     ip6-localhost ip6-loopback
+</span></span><span class="line"><span class="cl">fe00::0 ip6-localnet
+</span></span><span class="line"><span class="cl">ff00::0 ip6-mcastprefix
+</span></span><span class="line"><span class="cl">ff02::1 ip6-allnodes
+</span></span><span class="line"><span class="cl">ff02::2 ip6-allrouters
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">192.168.128.100 harbor.wang.org
+</span></span><span class="line"><span class="cl">192.168.128.101 harbor1.wang.org
+</span></span><span class="line"><span class="cl">192.168.128.102 harbor2.wang.org
+</span></span><span class="line"><span class="cl">root@lin-server:~# systemctl daemon-reload
+</span></span><span class="line"><span class="cl">root@lin-server:~# systemctl restart docker
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker login http://harbor.wang.org
+</span></span><span class="line"><span class="cl">Username: admin
+</span></span><span class="line"><span class="cl">Password: 
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">WARNING! Your credentials are stored unencrypted in <span class="s1">&#39;/root/.docker/config.json&#39;</span>.
+</span></span><span class="line"><span class="cl">Configure a credential helper to remove this warning. See
+</span></span><span class="line"><span class="cl">https://docs.docker.com/go/credential-store/
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">Login Succeeded
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker tag httpd-busybox:v1.0 harbor.wang.org/example/httpd-busybox:v1.0
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker push harbor.wang.org/example/httpd-busybox:v1.0
+</span></span><span class="line"><span class="cl">The push refers to repository <span class="o">[</span>harbor.wang.org/example/httpd-busybox<span class="o">]</span>
+</span></span><span class="line"><span class="cl">5d1459430e64: Pushed 
+</span></span><span class="line"><span class="cl">0958e0fef2d6: Pushed 
+</span></span><span class="line"><span class="cl">v1.0: digest: sha256:23be91b2ac7e2a1ccd281f5894190894c4038c8a0052ddd19f127ba5a092086a size: <span class="m">735</span>
+</span></span><span class="line"><span class="cl">root@lin-server:~# 
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-49.png"
+	width="1530"
+	height="847"
+	srcset="/p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-49_hu_a4aff70589474937.png 480w, /p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-49_hu_93b30def331cf1c9.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="180"
+		data-flex-basis="433px"
+	
+></p>
+<p><img src="/p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-50.png"
+	width="1530"
+	height="847"
+	srcset="/p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-50_hu_223b43b31565ccd9.png 480w, /p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-50_hu_e7704f7e3a5293cb.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="180"
+		data-flex-basis="433px"
+	
+></p>
+<h4 id="based-on-https">Based on HTTPS
+</h4><p><code>192.168.128.100</code></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# apt update
+</span></span><span class="line"><span class="cl">root@lin-server:~# apt install nginx -y
+</span></span><span class="line"><span class="cl">root@lin-server:~# systemctl start nginx 
+</span></span><span class="line"><span class="cl">root@lin-server:~# systemctl <span class="nb">enable</span> nginx
+</span></span><span class="line"><span class="cl">root@lin-server:~# curl -I http://localhost
+</span></span><span class="line"><span class="cl">HTTP/1.1 <span class="m">200</span> OK
+</span></span><span class="line"><span class="cl">Server: nginx/1.24.0 <span class="o">(</span>Ubuntu<span class="o">)</span>
+</span></span><span class="line"><span class="cl">Date: Fri, <span class="m">09</span> Oct <span class="m">2026</span> 06:56:09 GMT
+</span></span><span class="line"><span class="cl">Content-Type: text/html
+</span></span><span class="line"><span class="cl">Content-Length: <span class="m">615</span>
+</span></span><span class="line"><span class="cl">Last-Modified: Fri, <span class="m">09</span> Oct <span class="m">2026</span> 06:55:10 GMT
+</span></span><span class="line"><span class="cl">Connection: keep-alive
+</span></span><span class="line"><span class="cl">ETag: <span class="s2">&#34;6ac88fce-267&#34;</span>
+</span></span><span class="line"><span class="cl">Accept-Ranges: bytes
+</span></span><span class="line"><span class="cl">cat harbor.wang.org.conf
+</span></span><span class="line"><span class="cl">upstream harbor <span class="o">{</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">hash</span> <span class="nv">$remote_addr</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        server 192.168.128.101:80<span class="p">;</span>
+</span></span><span class="line"><span class="cl">        server 192.168.128.102:80<span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="o">}</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="harbor-secure-https-configuration">Harbor secure HTTPS configuration
+</h3><h4 id="generate-the-harbor-server-cetificate">Generate the Harbor server cetificate
+</h4><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">  1
+</span><span class="lnt">  2
+</span><span class="lnt">  3
+</span><span class="lnt">  4
+</span><span class="lnt">  5
+</span><span class="lnt">  6
+</span><span class="lnt">  7
+</span><span class="lnt">  8
+</span><span class="lnt">  9
+</span><span class="lnt"> 10
+</span><span class="lnt"> 11
+</span><span class="lnt"> 12
+</span><span class="lnt"> 13
+</span><span class="lnt"> 14
+</span><span class="lnt"> 15
+</span><span class="lnt"> 16
+</span><span class="lnt"> 17
+</span><span class="lnt"> 18
+</span><span class="lnt"> 19
+</span><span class="lnt"> 20
+</span><span class="lnt"> 21
+</span><span class="lnt"> 22
+</span><span class="lnt"> 23
+</span><span class="lnt"> 24
+</span><span class="lnt"> 25
+</span><span class="lnt"> 26
+</span><span class="lnt"> 27
+</span><span class="lnt"> 28
+</span><span class="lnt"> 29
+</span><span class="lnt"> 30
+</span><span class="lnt"> 31
+</span><span class="lnt"> 32
+</span><span class="lnt"> 33
+</span><span class="lnt"> 34
+</span><span class="lnt"> 35
+</span><span class="lnt"> 36
+</span><span class="lnt"> 37
+</span><span class="lnt"> 38
+</span><span class="lnt"> 39
+</span><span class="lnt"> 40
+</span><span class="lnt"> 41
+</span><span class="lnt"> 42
+</span><span class="lnt"> 43
+</span><span class="lnt"> 44
+</span><span class="lnt"> 45
+</span><span class="lnt"> 46
+</span><span class="lnt"> 47
+</span><span class="lnt"> 48
+</span><span class="lnt"> 49
+</span><span class="lnt"> 50
+</span><span class="lnt"> 51
+</span><span class="lnt"> 52
+</span><span class="lnt"> 53
+</span><span class="lnt"> 54
+</span><span class="lnt"> 55
+</span><span class="lnt"> 56
+</span><span class="lnt"> 57
+</span><span class="lnt"> 58
+</span><span class="lnt"> 59
+</span><span class="lnt"> 60
+</span><span class="lnt"> 61
+</span><span class="lnt"> 62
+</span><span class="lnt"> 63
+</span><span class="lnt"> 64
+</span><span class="lnt"> 65
+</span><span class="lnt"> 66
+</span><span class="lnt"> 67
+</span><span class="lnt"> 68
+</span><span class="lnt"> 69
+</span><span class="lnt"> 70
+</span><span class="lnt"> 71
+</span><span class="lnt"> 72
+</span><span class="lnt"> 73
+</span><span class="lnt"> 74
+</span><span class="lnt"> 75
+</span><span class="lnt"> 76
+</span><span class="lnt"> 77
+</span><span class="lnt"> 78
+</span><span class="lnt"> 79
+</span><span class="lnt"> 80
+</span><span class="lnt"> 81
+</span><span class="lnt"> 82
+</span><span class="lnt"> 83
+</span><span class="lnt"> 84
+</span><span class="lnt"> 85
+</span><span class="lnt"> 86
+</span><span class="lnt"> 87
+</span><span class="lnt"> 88
+</span><span class="lnt"> 89
+</span><span class="lnt"> 90
+</span><span class="lnt"> 91
+</span><span class="lnt"> 92
+</span><span class="lnt"> 93
+</span><span class="lnt"> 94
+</span><span class="lnt"> 95
+</span><span class="lnt"> 96
+</span><span class="lnt"> 97
+</span><span class="lnt"> 98
+</span><span class="lnt"> 99
+</span><span class="lnt">100
+</span><span class="lnt">101
+</span><span class="lnt">102
+</span><span class="lnt">103
+</span><span class="lnt">104
+</span><span class="lnt">105
+</span><span class="lnt">106
+</span><span class="lnt">107
+</span><span class="lnt">108
+</span><span class="lnt">109
+</span><span class="lnt">110
+</span><span class="lnt">111
+</span><span class="lnt">112
+</span><span class="lnt">113
+</span><span class="lnt">114
+</span><span class="lnt">115
+</span><span class="lnt">116
+</span><span class="lnt">117
+</span><span class="lnt">118
+</span><span class="lnt">119
+</span><span class="lnt">120
+</span><span class="lnt">121
+</span><span class="lnt">122
+</span><span class="lnt">123
+</span><span class="lnt">124
+</span><span class="lnt">125
+</span><span class="lnt">126
+</span><span class="lnt">127
+</span><span class="lnt">128
+</span><span class="lnt">129
+</span><span class="lnt">130
+</span><span class="lnt">131
+</span><span class="lnt">132
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">mkdir -p /data/harbor/certs
+</span></span><span class="line"><span class="cl"><span class="nb">cd</span> /data/harbor/certs
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">openssl genrsa -out ca.key <span class="m">4096</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">openssl req -x509 -new -nodes -sha512 -days <span class="m">3650</span> <span class="se">\
+</span></span></span><span class="line"><span class="cl">        -subj <span class="s2">&#34;/C=CN/ST=Beijing/L=Beijing/O=example/OU=Personal/CN=ca.wang.org&#34;</span> <span class="se">\
+</span></span></span><span class="line"><span class="cl">        -key ca.key <span class="se">\
+</span></span></span><span class="line"><span class="cl">        -out ca.crt
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">openssl genrsa -out harbor.wang.org.key <span class="m">4096</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">openssl req -sha512 -new <span class="se">\
+</span></span></span><span class="line"><span class="cl">        -subj <span class="s2">&#34;/C=CN/ST=Beijing/L=Beijing/O=example/OU=Personal/CN=harbor.wang.org&#34;</span> <span class="se">\
+</span></span></span><span class="line"><span class="cl">        -key harbor.wang.org.key <span class="se">\
+</span></span></span><span class="line"><span class="cl">        -out harbor.wang.org.csr
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">cat &gt; v3.ext <span class="s">&lt;&lt;-EOF
+</span></span></span><span class="line"><span class="cl"><span class="s">authorityKeyIdentifier=keyid,issuer
+</span></span></span><span class="line"><span class="cl"><span class="s">basicConstraints=CA:FALSE
+</span></span></span><span class="line"><span class="cl"><span class="s">keyUsage = digitalSignature, nonRepudiation, keyEncipherment, dataEncipherment
+</span></span></span><span class="line"><span class="cl"><span class="s">extendedKeyUsage = serverAuth
+</span></span></span><span class="line"><span class="cl"><span class="s">subjectAltName = @alt_names
+</span></span></span><span class="line"><span class="cl"><span class="s">
+</span></span></span><span class="line"><span class="cl"><span class="s">[alt_names]
+</span></span></span><span class="line"><span class="cl"><span class="s">DNS.1=harbor.wang.org
+</span></span></span><span class="line"><span class="cl"><span class="s">EOF</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">openssl x509 -req -sha512 -days <span class="m">3650</span> <span class="se">\
+</span></span></span><span class="line"><span class="cl">        -extfile v3.ext <span class="se">\
+</span></span></span><span class="line"><span class="cl">        -CA ca.crt -CAkey ca.key -CAcreateserial <span class="se">\
+</span></span></span><span class="line"><span class="cl">        -in harbor.wang.org.csr <span class="se">\
+</span></span></span><span class="line"><span class="cl">        -out harbor.wang.org.crt
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">root@lin-server:/data/harbor/certs# openssl x509 -in harbor.wang.org.crt -noout -text
+</span></span><span class="line"><span class="cl">Certificate:
+</span></span><span class="line"><span class="cl">    Data:
+</span></span><span class="line"><span class="cl">        Version: <span class="m">3</span> <span class="o">(</span>0x2<span class="o">)</span>
+</span></span><span class="line"><span class="cl">        Serial Number:
+</span></span><span class="line"><span class="cl">            1c:1e:9e:b3:a0:c5:88:7f:83:fc:ca:05:08:e0:65:1a:9a:a9:af:88
+</span></span><span class="line"><span class="cl">        Signature Algorithm: sha512WithRSAEncryption
+</span></span><span class="line"><span class="cl">        Issuer: <span class="nv">C</span> <span class="o">=</span> CN, <span class="nv">ST</span> <span class="o">=</span> Beijing, <span class="nv">L</span> <span class="o">=</span> Beijing, <span class="nv">O</span> <span class="o">=</span> example, <span class="nv">OU</span> <span class="o">=</span> Personal, <span class="nv">CN</span> <span class="o">=</span> ca.wang.org
+</span></span><span class="line"><span class="cl">        Validity
+</span></span><span class="line"><span class="cl">            Not Before: Oct  <span class="m">9</span> 09:22:53 <span class="m">2026</span> GMT
+</span></span><span class="line"><span class="cl">            Not After : Oct  <span class="m">6</span> 09:22:53 <span class="m">2036</span> GMT
+</span></span><span class="line"><span class="cl">        Subject: <span class="nv">C</span> <span class="o">=</span> CN, <span class="nv">ST</span> <span class="o">=</span> Beijing, <span class="nv">L</span> <span class="o">=</span> Beijing, <span class="nv">O</span> <span class="o">=</span> example, <span class="nv">OU</span> <span class="o">=</span> Personal, <span class="nv">CN</span> <span class="o">=</span> harbor.wang.org
+</span></span><span class="line"><span class="cl">        Subject Public Key Info:
+</span></span><span class="line"><span class="cl">            Public Key Algorithm: rsaEncryption
+</span></span><span class="line"><span class="cl">                Public-Key: <span class="o">(</span><span class="m">4096</span> bit<span class="o">)</span>
+</span></span><span class="line"><span class="cl">                Modulus:
+</span></span><span class="line"><span class="cl">                    00:b1:05:ca:ef:49:e3:b5:3b:4c:d5:93:c2:fb:5c:
+</span></span><span class="line"><span class="cl">                    5a:90:30:b3:76:f7:d8:9b:96:1f:91:81:a6:90:4f:
+</span></span><span class="line"><span class="cl">                    f5:81:9e:4d:91:ac:b6:44:fc:dd:a9:93:43:9f:ed:
+</span></span><span class="line"><span class="cl">                    a3:b5:fa:15:12:c7:7f:d3:92:05:60:37:25:84:03:
+</span></span><span class="line"><span class="cl">                    6e:a2:be:7e:d7:1e:08:13:48:45:80:17:c3:88:a5:
+</span></span><span class="line"><span class="cl">                    fb:4e:01:a3:c3:77:98:3b:40:0d:e1:25:08:f6:36:
+</span></span><span class="line"><span class="cl">                    34:7c:39:7d:7f:5b:fb:1e:c8:fb:a1:4d:95:8d:a1:
+</span></span><span class="line"><span class="cl">                    c1:f2:13:df:b1:b6:94:56:c6:12:c7:a1:6d:fa:bf:
+</span></span><span class="line"><span class="cl">                    50:b8:80:a4:bf:9f:6a:65:07:f6:1d:ad:42:6b:95:
+</span></span><span class="line"><span class="cl">                    5a:80:4b:50:30:e9:91:52:b8:2d:e7:be:4d:0c:4a:
+</span></span><span class="line"><span class="cl">                    9d:6a:69:38:3c:25:fc:7d:7b:07:d0:4d:f8:86:c5:
+</span></span><span class="line"><span class="cl">                    7a:72:54:aa:05:c3:e3:d6:ec:a9:44:1f:66:c5:4f:
+</span></span><span class="line"><span class="cl">                    4e:cf:f4:e5:cc:a2:7b:d0:c7:7b:27:9b:92:e7:f3:
+</span></span><span class="line"><span class="cl">                    0a:0d:a0:df:10:10:07:c2:a8:2b:96:1f:6f:70:6a:
+</span></span><span class="line"><span class="cl">                    75:d3:9a:ec:c1:46:54:8a:54:dc:41:d7:04:c4:b7:
+</span></span><span class="line"><span class="cl">                    ed:23:75:ee:80:b4:ba:64:ff:89:29:f5:6f:bb:3b:
+</span></span><span class="line"><span class="cl">                    e5:5c:ce:18:93:8d:89:f8:71:75:c9:a5:13:91:b5:
+</span></span><span class="line"><span class="cl">                    6d:ee:13:e3:c9:b3:5f:a2:03:97:10:eb:2f:7c:fa:
+</span></span><span class="line"><span class="cl">                    5b:f7:b5:46:bd:07:f9:e4:17:ab:48:06:4b:21:7a:
+</span></span><span class="line"><span class="cl">                    12:b7:2a:01:14:bc:4e:08:61:5a:a3:34:92:53:0a:
+</span></span><span class="line"><span class="cl">                    b0:60:1c:02:7f:34:0f:1a:dc:c1:14:8e:08:d8:49:
+</span></span><span class="line"><span class="cl">                    c1:34:bb:9a:b4:1f:c5:ca:f2:e7:88:24:69:5b:c0:
+</span></span><span class="line"><span class="cl">                    a0:f7:41:8e:52:9b:c4:b3:66:2c:d1:1a:70:9b:ca:
+</span></span><span class="line"><span class="cl">                    22:56:3e:27:24:c6:da:c1:94:80:55:d1:cd:78:a0:
+</span></span><span class="line"><span class="cl">                    f3:86:4c:f9:1e:b3:e9:8f:76:1c:c3:39:98:27:46:
+</span></span><span class="line"><span class="cl">                    23:bb:ad:ed:81:00:17:b3:fa:88:f6:51:ff:d4:a8:
+</span></span><span class="line"><span class="cl">                    56:2e:1e:e5:cf:4f:8d:b8:b3:f5:91:58:84:c9:61:
+</span></span><span class="line"><span class="cl">                    d2:12:3b:4a:58:2d:57:f0:87:67:f1:39:ef:b5:f8:
+</span></span><span class="line"><span class="cl">                    52:13:74:8f:07:43:95:05:2d:68:ee:19:30:c0:50:
+</span></span><span class="line"><span class="cl">                    ab:9f:94:74:ca:98:16:3d:2c:ef:e0:6c:f4:3a:f3:
+</span></span><span class="line"><span class="cl">                    36:d8:49:7a:96:c4:f9:23:3f:8f:bd:59:52:ad:34:
+</span></span><span class="line"><span class="cl">                    7c:ec:f8:59:73:bb:f8:55:10:bc:a4:28:c4:02:c9:
+</span></span><span class="line"><span class="cl">                    cf:4b:21:3f:9e:51:54:6e:ca:95:3c:03:ac:46:f6:
+</span></span><span class="line"><span class="cl">                    84:b1:4f:a1:56:1c:4d:37:29:94:57:46:17:ef:94:
+</span></span><span class="line"><span class="cl">                    d7:7b:89
+</span></span><span class="line"><span class="cl">                Exponent: <span class="m">65537</span> <span class="o">(</span>0x10001<span class="o">)</span>
+</span></span><span class="line"><span class="cl">        X509v3 extensions:
+</span></span><span class="line"><span class="cl">            X509v3 Authority Key Identifier: 
+</span></span><span class="line"><span class="cl">                0B:36:5E:4E:F1:D0:2F:AE:41:C5:2E:A8:02:7D:EB:2A:63:4A:35:89
+</span></span><span class="line"><span class="cl">            X509v3 Basic Constraints: 
+</span></span><span class="line"><span class="cl">                CA:FALSE
+</span></span><span class="line"><span class="cl">            X509v3 Key Usage: 
+</span></span><span class="line"><span class="cl">                Digital Signature, Non Repudiation, Key Encipherment, Data Encipherment
+</span></span><span class="line"><span class="cl">            X509v3 Extended Key Usage: 
+</span></span><span class="line"><span class="cl">                TLS Web Server Authentication
+</span></span><span class="line"><span class="cl">            X509v3 Subject Alternative Name: 
+</span></span><span class="line"><span class="cl">                DNS:harbor.wang.org
+</span></span><span class="line"><span class="cl">            X509v3 Subject Key Identifier: 
+</span></span><span class="line"><span class="cl">                0C:FD:86:7C:E5:BD:DC:00:EE:38:5B:C9:EA:F1:A9:06:DB:CF:20:BC
+</span></span><span class="line"><span class="cl">    Signature Algorithm: sha512WithRSAEncryption
+</span></span><span class="line"><span class="cl">    Signature Value:
+</span></span><span class="line"><span class="cl">        98:94:7d:3d:2d:bc:92:c5:c6:bf:a9:b0:53:1a:c1:89:4e:a1:
+</span></span><span class="line"><span class="cl">        7b:85:84:14:fb:2c:ca:35:83:68:c0:f9:63:e1:5c:52:bd:ee:
+</span></span><span class="line"><span class="cl">        74:d2:e0:66:02:25:54:c3:99:c4:e9:5e:6d:32:c6:7c:ac:4c:
+</span></span><span class="line"><span class="cl">        c0:99:c6:e7:26:8e:6b:43:ae:46:c2:eb:fc:03:40:f4:e4:87:
+</span></span><span class="line"><span class="cl">        cb:d0:5e:c4:a9:e7:81:51:d9:bc:34:ed:f9:f1:72:6a:0f:ae:
+</span></span><span class="line"><span class="cl">        15:e1:ed:5d:85:7f:83:a7:02:8e:39:e5:e6:4e:7b:65:66:e6:
+</span></span><span class="line"><span class="cl">        45:8c:24:1d:e2:48:31:61:b7:60:69:a5:0e:95:1d:5e:36:55:
+</span></span><span class="line"><span class="cl">        5f:bf:b2:05:f9:f5:1a:d0:ae:04:a0:8a:73:e8:01:c4:ba:98:
+</span></span><span class="line"><span class="cl">        05:cf:1c:80:3f:ce:72:fe:30:15:59:02:bc:8d:4b:ac:c6:df:
+</span></span><span class="line"><span class="cl">        20:c7:58:0c:33:aa:b2:78:1f:4a:b3:f2:ae:22:33:dd:a1:d3:
+</span></span><span class="line"><span class="cl">        39:60:b8:b3:92:fe:df:b4:22:57:e3:e1:61:a3:16:b3:07:81:
+</span></span><span class="line"><span class="cl">        84:e3:80:cc:a2:61:0f:f1:75:20:45:51:1b:5c:91:00:ad:0d:
+</span></span><span class="line"><span class="cl">        1b:a8:07:5f:3b:ef:19:90:de:ea:10:48:13:9a:f4:25:47:3c:
+</span></span><span class="line"><span class="cl">        f3:81:34:b2:6e:ed:e8:47:b1:cd:c9:72:8f:df:ab:7b:98:d3:
+</span></span><span class="line"><span class="cl">        0f:96:5f:98:77:e8:bd:29:c0:1b:5c:35:2e:0c:88:0f:fe:9b:
+</span></span><span class="line"><span class="cl">        c2:12:34:3a:d6:aa:bf:2c:46:57:91:89:b9:38:a9:a9:ba:6f:
+</span></span><span class="line"><span class="cl">        53:8c:c6:72:41:92:d5:1a:d6:5a:40:c4:9e:0d:71:13:b2:0b:
+</span></span><span class="line"><span class="cl">        4a:24:e7:da:af:41:94:31:88:13:93:43:a4:37:83:e2:37:39:
+</span></span><span class="line"><span class="cl">        44:10:c3:d8:fa:53:e9:6a:b3:c7:c3:5e:d3:da:90:de:58:ad:
+</span></span><span class="line"><span class="cl">        a3:18:96:08:cb:92:9b:1e:57:87:1a:32:24:ec:10:62:36:54:
+</span></span><span class="line"><span class="cl">        49:15:98:ef:dd:83:e0:d9:9b:14:56:52:76:7d:99:57:47:81:
+</span></span><span class="line"><span class="cl">        42:81:82:38:28:be:e6:c4:fe:ff:b0:be:08:f4:f3:bb:ad:04:
+</span></span><span class="line"><span class="cl">        12:ff:a0:2b:a3:c6:02:45:30:02:74:15:e6:ed:11:db:45:d4:
+</span></span><span class="line"><span class="cl">        06:7a:0e:18:0b:3b:8c:39:01:f7:47:3c:1f:5b:1e:ef:2c:0b:
+</span></span><span class="line"><span class="cl">        b4:34:dc:26:fe:cc:93:1a:ce:c4:8a:c6:3c:a9:0b:ba:c5:52:
+</span></span><span class="line"><span class="cl">        be:7b:35:ae:71:00:18:58:f1:7f:bd:d7:b0:9f:04:5d:8f:74:
+</span></span><span class="line"><span class="cl">        9d:d3:bc:90:5d:a0:2b:f2:5c:3e:4c:5e:64:57:ae:d0:7e:50:
+</span></span><span class="line"><span class="cl">        8b:de:f3:cd:1b:31:5d:43:b5:8e:c7:95:28:b4:f8:6f:11:8f:
+</span></span><span class="line"><span class="cl">        3f:63:7a:1b:6d:9b:97:41
+</span></span><span class="line"><span class="cl">root@lin-server:/data/harbor/certs# ls
+</span></span><span class="line"><span class="cl">ca.crt  ca.key  ca.srl  harbor.wang.org.crt  harbor.wang.org.csr  harbor.wang.org.key  v3.ext
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="configure-the-harbor-server-to-use-the-certificate">Configure the Harbor server to use the certificate
+</h4><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">cp harbor.wang.org.crt harbor.wang.org.key /data/harbor/certs/
+</span></span><span class="line"><span class="cl"><span class="c1"># vim /apps/harbor/harbor.yml</span>
+</span></span><span class="line"><span class="cl">vim /usr/local/harbor/harbor.yml
+</span></span><span class="line"><span class="cl">...
+</span></span><span class="line"><span class="cl">hostname: harbor.wang.org
+</span></span><span class="line"><span class="cl"><span class="c1"># https related config</span>
+</span></span><span class="line"><span class="cl">https:
+</span></span><span class="line"><span class="cl">  <span class="c1"># https port for harbor, default is 443</span>
+</span></span><span class="line"><span class="cl"> port: <span class="m">443</span>
+</span></span><span class="line"><span class="cl">  <span class="c1"># The path of cert and key files for nginx</span>
+</span></span><span class="line"><span class="cl"> certificate: /data/harbor/certs/harbor.wang.org.crt
+</span></span><span class="line"><span class="cl"> private_key: /data/harbor/certs/harbor.wang.org.key
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># cd /apps/harbor</span>
+</span></span><span class="line"><span class="cl"><span class="nb">cd</span> /usr/local/harbor/
+</span></span><span class="line"><span class="cl">./prepare
+</span></span><span class="line"><span class="cl">docker-compose down -v
+</span></span><span class="line"><span class="cl">docker-compose up -d
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>Configure the hosts file on Windows</p>
+<blockquote>
+<p>C:\Windows\System32\drivers\etc\hosts</p>
+</blockquote>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">192.168.128.100 harbor.wang.org
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>Entering the following HTTP link will automatically redirect to HTTPS.</p>
+<blockquote>
+<p><a class="link" href="http://harbor.wang.org"  target="_blank" rel="noopener"
+    >http://harbor.wang.org</a></p>
+</blockquote>
+<p><img src="/p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-51.png"
+	width="1530"
+	height="847"
+	srcset="/p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-51_hu_48b2e590b8bee1b0.png 480w, /p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-51_hu_ec2e17294ecbac44.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="180"
+		data-flex-basis="433px"
+	
+></p>
+<p><img src="/p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-52.png"
+	width="1530"
+	height="847"
+	srcset="/p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-52_hu_d73b4f6067d17555.png 480w, /p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-52_hu_a4770ff46eebb5b1.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="180"
+		data-flex-basis="433px"
+	
+></p>
+<p><img src="/p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-53.png"
+	width="1530"
+	height="847"
+	srcset="/p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-53_hu_af60fabe7d76a913.png 480w, /p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-53_hu_d8461b79d61c7cef.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="180"
+		data-flex-basis="433px"
+	
+></p>
+<h4 id="configure-the-docker-client-to-use-the-cetificate-files">Configure the Docker client to use the cetificate files
+</h4><p>Method 1:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">openssl x509 -inform PEM -in harbor.wang.org.crt -out harbor.wang.org.cert
+</span></span><span class="line"><span class="cl"><span class="c1"># or</span>
+</span></span><span class="line"><span class="cl">cp -a harbor.wang.org.crt harbor.wang.org.cert
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">md5sum harbor.wang.org.crt harbor.wang.org.cert
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">mkdir -pv /etc/docker/certs.d/harbor.wang.org/
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">mkdir -pv /etc/containerd/certs.d/harbor.wang.org/
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># cp harbor.wang.org.crt harbor.wang.org.key ca.crt /etc/docker/certs.d/harbor.wang.org/</span>
+</span></span><span class="line"><span class="cl">cp harbor.wang.org.cert harbor.wang.org.key ca.crt /etc/docker/certs.d/harbor.wang.org/
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">cp harbor.wang.org.crt /etc/docker/certs.d/harbor.wang.org/
+</span></span></code></pre></td></tr></table>
+</div>
+</div>
 </section>
 
 
@@ -2632,6 +3460,19 @@
 
         <div class="article-details">
             <h2 class="article-title">[马哥][docker]网络管理</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/docker%E5%AE%89%E8%A3%85/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Docker]安装</h2>
         </div>
     </a>
 </article>
@@ -2671,19 +3512,6 @@
 
         <div class="article-details">
             <h2 class="article-title">[Docker]高级篇-Docker compose容器编排</h2>
-        </div>
-    </a>
-</article>
-
-            
-                
-<article class="">
-    <a href="/p/docker%E9%AB%98%E7%BA%A7%E7%AF%87-docker-network/">
-        
-        
-
-        <div class="article-details">
-            <h2 class="article-title">[Docker]高级篇-Docker Network</h2>
         </div>
     </a>
 </article>
