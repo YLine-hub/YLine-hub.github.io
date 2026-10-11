@@ -288,6 +288,7 @@
             <li><a href="#generate-the-harbor-server-cetificate">Generate the Harbor server cetificate</a></li>
             <li><a href="#configure-the-harbor-server-to-use-the-certificate">Configure the Harbor server to use the certificate</a></li>
             <li><a href="#configure-the-docker-client-to-use-the-cetificate-files">Configure the Docker client to use the cetificate files</a></li>
+            <li><a href="#test-pushing-and-pulling-images-with-the-docker-client">Test pushing and pulling images with the Docker client</a></li>
           </ol>
         </li>
       </ol>
@@ -3396,6 +3397,32 @@
 ></p>
 <h4 id="configure-the-docker-client-to-use-the-cetificate-files">Configure the Docker client to use the cetificate files
 </h4><p>Method 1:</p>
+<p><code>192.168.128.100</code></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span><span class="lnt">9
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># Convert the Harbor .crt certificate file to a .cert extension. Docker recognizes .crt files as CA certificates files as client certificates.-</span>
+</span></span><span class="line"><span class="cl">root@lin-server:/data/harbor/certs# openssl x509 -inform PEM -in harbor.wang.org.crt -out harbor.wang.org.cert
+</span></span><span class="line"><span class="cl"><span class="c1"># or</span>
+</span></span><span class="line"><span class="cl">root@lin-server:/data/harbor/certs# cp -a harbor.wang.org.crt harbor.wang.org.cert
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">root@lin-server:/data/harbor/certs# md5sum harbor.wang.org.crt harbor.wang.org.cert 
+</span></span><span class="line"><span class="cl">d3434eaf0b530f7daad5981cdcb2193d  harbor.wang.org.crt
+</span></span><span class="line"><span class="cl">d3434eaf0b530f7daad5981cdcb2193d  harbor.wang.org.cert
+</span></span><span class="line"><span class="cl">root@lin-server:/data/harbor/certs# scp harbor.wang.org.crt 192.168.128.101:~
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>192.168.128.101</code></p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
 <pre tabindex="0" class="chroma"><code><span class="lnt"> 1
@@ -3412,22 +3439,148 @@
 </span><span class="lnt">12
 </span><span class="lnt">13
 </span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
 </span></code></pre></td>
 <td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">openssl x509 -inform PEM -in harbor.wang.org.crt -out harbor.wang.org.cert
-</span></span><span class="line"><span class="cl"><span class="c1"># or</span>
-</span></span><span class="line"><span class="cl">cp -a harbor.wang.org.crt harbor.wang.org.cert
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># Create a directory with the same name as the Harbor server</span>
+</span></span><span class="line"><span class="cl">root@lin-server:~# mkdir -pv /etc/docker/certs.d/harbor.wang.org/
+</span></span><span class="line"><span class="cl">mkdir: created directory <span class="s1">&#39;/etc/docker/certs.d&#39;</span>
+</span></span><span class="line"><span class="cl">mkdir: created directory <span class="s1">&#39;/etc/docker/certs.d/harbor.wang.org/&#39;</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># If you use containerd as the runtime</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># mkdir -pv /etc/containerd/certs.d/harbor.wang.org/</span>
 </span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">md5sum harbor.wang.org.crt harbor.wang.org.cert
+</span></span><span class="line"><span class="cl"><span class="c1"># Without certificate verification, the direct login fails.</span>
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker login harbor.wang.org
+</span></span><span class="line"><span class="cl">Username: admin
+</span></span><span class="line"><span class="cl">Password: 
+</span></span><span class="line"><span class="cl">Error response from daemon: Get <span class="s2">&#34;https://harbor.wang.org/v2/&#34;</span>: tls: failed to verify certificate: x509: certificate signed by unknown authority             
 </span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">mkdir -pv /etc/docker/certs.d/harbor.wang.org/
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">mkdir -pv /etc/containerd/certs.d/harbor.wang.org/
-</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Note: The official documentation says you need to copy both harbor.wang.org.key and ca.crt, but in practice this is not necessary</span>
 </span></span><span class="line"><span class="cl"><span class="c1"># cp harbor.wang.org.crt harbor.wang.org.key ca.crt /etc/docker/certs.d/harbor.wang.org/</span>
-</span></span><span class="line"><span class="cl">cp harbor.wang.org.cert harbor.wang.org.key ca.crt /etc/docker/certs.d/harbor.wang.org/
+</span></span><span class="line"><span class="cl"><span class="c1"># cp harbor.wang.org.cert harbor.wang.org.key ca.crt /etc/docker/certs.d/harbor.wang.org/</span>
 </span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">cp harbor.wang.org.crt /etc/docker/certs.d/harbor.wang.org/
+</span></span><span class="line"><span class="cl"><span class="c1"># Note: In practice, you only need to copy the file below</span>
+</span></span><span class="line"><span class="cl">root@lin-server:~# cp harbor.wang.org.crt /etc/docker/certs.d/harbor.wang.org/
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker login harbor.wang.org
+</span></span><span class="line"><span class="cl">Username: admin
+</span></span><span class="line"><span class="cl">Password: 
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">WARNING! Your credentials are stored unencrypted in <span class="s1">&#39;/root/.docker/config.json&#39;</span>.
+</span></span><span class="line"><span class="cl">Configure a credential helper to remove this warning. See
+</span></span><span class="line"><span class="cl">https://docs.docker.com/go/credential-store/
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">Login Succeeded
+</span></span><span class="line"><span class="cl">root@lin-server:~# cat ~/.docker/config.json 
+</span></span><span class="line"><span class="cl"><span class="o">{</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;auths&#34;</span>: <span class="o">{</span>
+</span></span><span class="line"><span class="cl">                <span class="s2">&#34;harbor.wang.org&#34;</span>: <span class="o">{</span>
+</span></span><span class="line"><span class="cl">                        <span class="s2">&#34;auth&#34;</span>: <span class="s2">&#34;YWRtaW46MTIzNDU2&#34;</span>
+</span></span><span class="line"><span class="cl">                <span class="o">}</span>
+</span></span><span class="line"><span class="cl">        <span class="o">}</span>
+</span></span><span class="line"><span class="cl"><span class="o">}</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="test-pushing-and-pulling-images-with-the-docker-client">Test pushing and pulling images with the Docker client
+</h4><p>Log in to Harbor and view the push command.</p>
+<p><img src="/p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-54.png"
+	width="1530"
+	height="847"
+	srcset="/p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-54_hu_22ad93794c84e709.png 480w, /p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-54_hu_2dc4b64cdd2c6c2d.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="180"
+		data-flex-basis="433px"
+	
+></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# docker pull wangxiaochun/busybox:1.30.0
+</span></span><span class="line"><span class="cl">1.30.0: Pulling from wangxiaochun/busybox
+</span></span><span class="line"><span class="cl">57c14dd66db0: Pull <span class="nb">complete</span> 
+</span></span><span class="line"><span class="cl">Digest: sha256:bbb143159af9eabdf45511fd5aab4fd2475d4c0e7fd4a5e154b98e838488e510
+</span></span><span class="line"><span class="cl">Status: Downloaded newer image <span class="k">for</span> wangxiaochun/busybox:1.30.0
+</span></span><span class="line"><span class="cl">docker.io/wangxiaochun/busybox:1.30.0
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker tag wangxiaochun/busybox:1.30.0 harbor.wang.org/library/busybox:1.30.0
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker push harbor.wang.org/library/busybox:1.30.0
+</span></span><span class="line"><span class="cl">The push refers to repository <span class="o">[</span>harbor.wang.org/library/busybox<span class="o">]</span>
+</span></span><span class="line"><span class="cl">683f499823be: Pushed 
+</span></span><span class="line"><span class="cl">1.30.0: digest: sha256:bbb143159af9eabdf45511fd5aab4fd2475d4c0e7fd4a5e154b98e838488e510 size: <span class="m">527</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>Verify whether the push was successful.</p>
+<p><img src="/p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-55.png"
+	width="1530"
+	height="847"
+	srcset="/p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-55_hu_ba56f360c1263b16.png 480w, /p/%E9%A9%AC%E5%93%A5dockerdocker-registry-management/image-55_hu_5a49fda72832f219.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="180"
+		data-flex-basis="433px"
+	
+></p>
+<p>Verify the pull</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:~# docker rmi harbor.wang.org/library/busybox:1.30.0
+</span></span><span class="line"><span class="cl">Untagged: harbor.wang.org/library/busybox:1.30.0
+</span></span><span class="line"><span class="cl">Untagged: harbor.wang.org/library/busybox@sha256:bbb143159af9eabdf45511fd5aab4fd2475d4c0e7fd4a5e154b98e838488e510
+</span></span><span class="line"><span class="cl">root@lin-server:~# docker pull harbor.wang.org/library/busybox:1.30.0
+</span></span><span class="line"><span class="cl">1.30.0: Pulling from library/busybox
+</span></span><span class="line"><span class="cl">Digest: sha256:bbb143159af9eabdf45511fd5aab4fd2475d4c0e7fd4a5e154b98e838488e510
+</span></span><span class="line"><span class="cl">Status: Downloaded newer image <span class="k">for</span> harbor.wang.org/library/busybox:1.30.0
+</span></span><span class="line"><span class="cl">harbor.wang.org/library/busybox:1.30.0
 </span></span></code></pre></td></tr></table>
 </div>
 </div>
