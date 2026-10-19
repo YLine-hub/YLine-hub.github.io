@@ -247,6 +247,10 @@
             <li><a href="#milvus-architecture">Milvus architecture</a></li>
             <li><a href="#milvus-collection-and-data-types">Milvus Collection and Data Types</a></li>
             <li><a href="#milvus-deployment">Milvus deployment</a></li>
+            <li><a href="#create-a-milvus-collection">Create a Milvus collection</a></li>
+            <li><a href="#milvus-entity-operations">Milvus entity operations</a></li>
+            <li><a href="#milvus-search">Milvus search</a></li>
+            <li><a href="#generate">Generate</a></li>
           </ol>
         </li>
       </ol>
@@ -1615,7 +1619,1206 @@
 </span></span></code></pre></td></tr></table>
 </div>
 </div><h4 id="milvus-deployment">Milvus deployment
-</h4>
+</h4><p>Pull the image</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">docker pull milvus
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>However, I already have the offline image package here, so I just need to load the image</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span><span class="lnt">51
+</span><span class="lnt">52
+</span><span class="lnt">53
+</span><span class="lnt">54
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">root@lin-server:/tools/docker/images# tree .
+</span></span><span class="line"><span class="cl">.
+</span></span><span class="line"><span class="cl">├── daemon.json
+</span></span><span class="line"><span class="cl">├── docker-compose.yml
+</span></span><span class="line"><span class="cl">├── docker-compose（官方原版）.yml
+</span></span><span class="line"><span class="cl">├── docker-compose<span class="o">[</span>详解版<span class="o">]</span>.yml
+</span></span><span class="line"><span class="cl">├── milvusedb.tar
+</span></span><span class="line"><span class="cl">├── minio.tar
+</span></span><span class="line"><span class="cl">├── mongo7.0.tar
+</span></span><span class="line"><span class="cl">├── mongo.tar
+</span></span><span class="line"><span class="cl">├── quay.io.coreos.etcd.tar
+</span></span><span class="line"><span class="cl">├── quay.io.minio.tar
+</span></span><span class="line"><span class="cl">└── zilliz.attu.tar
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="m">1</span> directory, <span class="m">11</span> files
+</span></span><span class="line"><span class="cl">root@lin-server:/tools/docker/images# docker load -i milvusedb.tar
+</span></span><span class="line"><span class="cl">root@lin-server:/tools/docker/images# docker load -i minio.tar
+</span></span><span class="line"><span class="cl">root@lin-server:/tools/docker/images# docker load -i mongo7.0.tar
+</span></span><span class="line"><span class="cl">root@lin-server:/tools/docker/images# docker load -i mongo.tar
+</span></span><span class="line"><span class="cl">root@lin-server:/tools/docker/images# docker load -i quay.io.coreos.etcd.tar
+</span></span><span class="line"><span class="cl">root@lin-server:/tools/docker/images# docker load -i quay.io.minio.tar
+</span></span><span class="line"><span class="cl">root@lin-server:/tools/docker/images# docker load -i zilliz.attu.tar
+</span></span><span class="line"><span class="cl">root@lin-server:/tools/docker/images# docker images
+</span></span><span class="line"><span class="cl">REPOSITORY            TAG                            IMAGE ID       CREATED         SIZE
+</span></span><span class="line"><span class="cl">mongo                 7.0                            3b023f7a08d8   <span class="m">4</span> months ago    874MB
+</span></span><span class="line"><span class="cl">mongo                 latest                         b6fc3eda4f9a   <span class="m">7</span> months ago    950MB
+</span></span><span class="line"><span class="cl">zilliz/attu           v2.5.10                        c75a41a64200   <span class="m">16</span> months ago   400MB
+</span></span><span class="line"><span class="cl">milvusdb/milvus       v2.5.5                         f483514c173e   <span class="m">19</span> months ago   1.73GB
+</span></span><span class="line"><span class="cl">quay.io/coreos/etcd   v3.5.18                        b9e6889272c9   <span class="m">21</span> months ago   59MB
+</span></span><span class="line"><span class="cl">quay.io/minio/minio   RELEASE.2024-12-18T13-15-44Z   6aed1b694901   <span class="m">22</span> months ago   179MB
+</span></span><span class="line"><span class="cl">minio/minio           RELEASE.2023-03-20T20-16-18Z   400c20c8aac0   <span class="m">3</span> years ago     252MB
+</span></span><span class="line"><span class="cl">root@lin-server:/tools/docker/images# docker tag quay.io/minio/minio:RELEASE.2024-12-18T13-15-44Z minio/minio:RELEASE.2024-12-18T13-15-44Z
+</span></span><span class="line"><span class="cl"><span class="c1"># run</span>
+</span></span><span class="line"><span class="cl">root@lin-server:/tools/docker/images# docker-compose -f docker-compose.yml down
+</span></span><span class="line"><span class="cl">root@lin-server:/tools/docker/images# docker-compose -f docker-compose.yml up -d
+</span></span><span class="line"><span class="cl"><span class="o">[</span>+<span class="o">]</span> up 6/6
+</span></span><span class="line"><span class="cl"> ✔ Network milvus              Created                                      0.7s
+</span></span><span class="line"><span class="cl"> ✔ Container milvus-minio      Started                                      9.5s
+</span></span><span class="line"><span class="cl"> ✔ Container milvus-etcd       Started                                      8.6s
+</span></span><span class="line"><span class="cl"> ✔ Container mongodb           Started                                      9.6s
+</span></span><span class="line"><span class="cl"> ✔ Container milvus-standalone Started                                     10.1s
+</span></span><span class="line"><span class="cl"> ✔ Container attu              Started                                     12.8s
+</span></span><span class="line"><span class="cl"> <span class="c1"># zilliz/attu:v2.5.10: milvus client</span>
+</span></span><span class="line"><span class="cl"> <span class="c1"># milvusdb/milvus:v2.5.5: milvus</span>
+</span></span><span class="line"><span class="cl"> <span class="c1"># minio/minio:RELEASE.2024-12-18T13-15-44Z: milvus 数据存储</span>
+</span></span><span class="line"><span class="cl"> <span class="c1"># quay.io/coreos/etcd:v3.5.25: milvus 存储集合结构</span>
+</span></span><span class="line"><span class="cl"> <span class="c1"># mongo:7.0: 与目前项目无关</span>
+</span></span><span class="line"><span class="cl"> root@lin-server:/tools/docker/images# docker ps -a
+</span></span><span class="line"><span class="cl">CONTAINER ID   IMAGE                                      COMMAND                  CREATED          STATUS                             PORTS                                                                                          NAMES
+</span></span><span class="line"><span class="cl">9c21f777e20c   zilliz/attu:v2.5.10                        <span class="s2">&#34;docker-entrypoint.s…&#34;</span>   <span class="m">36</span> seconds ago   Up <span class="m">25</span> seconds                      3000/tcp, 0.0.0.0:7000-&gt;7000/tcp, <span class="o">[</span>::<span class="o">]</span>:7000-&gt;7000/tcp                                          attu
+</span></span><span class="line"><span class="cl">88dbae2d0da4   milvusdb/milvus:v2.5.5                     <span class="s2">&#34;/tini -- milvus run…&#34;</span>   <span class="m">37</span> seconds ago   Up <span class="m">28</span> seconds <span class="o">(</span>healthy<span class="o">)</span>            0.0.0.0:9091-&gt;9091/tcp, <span class="o">[</span>::<span class="o">]</span>:9091-&gt;9091/tcp, 0.0.0.0:19530-&gt;19530/tcp, <span class="o">[</span>::<span class="o">]</span>:19530-&gt;19530/tcp   milvus-standalone
+</span></span><span class="line"><span class="cl">2ba38d18e7a7   quay.io/coreos/etcd:v3.5.25                <span class="s2">&#34;etcd -advertise-cli…&#34;</span>   <span class="m">39</span> seconds ago   Up <span class="m">33</span> seconds <span class="o">(</span>healthy<span class="o">)</span>            2379-2380/tcp                                                                                  milvus-etcd
+</span></span><span class="line"><span class="cl">f73441889414   minio/minio:RELEASE.2024-12-18T13-15-44Z   <span class="s2">&#34;/usr/bin/docker-ent…&#34;</span>   <span class="m">39</span> seconds ago   Up <span class="m">33</span> seconds <span class="o">(</span>health: starting<span class="o">)</span>   0.0.0.0:9000-9001-&gt;9000-9001/tcp, <span class="o">[</span>::<span class="o">]</span>:9000-9001-&gt;9000-9001/tcp                                milvus-minio
+</span></span><span class="line"><span class="cl">0543278b5704   mongo:7.0                                  <span class="s2">&#34;docker-entrypoint.s…&#34;</span>   <span class="m">39</span> seconds ago   Up <span class="m">33</span> seconds <span class="o">(</span>health: starting<span class="o">)</span>   0.0.0.0:27017-&gt;27017/tcp, <span class="o">[</span>::<span class="o">]</span>:27017-&gt;27017/tcp                                                mongodb
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h5 id="configure-port-forwarding">Configure port forwarding
+</h5><p>Because I use a Mac to connect to a Linux server, and the Milvus instance is deployed on a virtual machine created on that Linux server, my Mac cannot directly access the virtual machine. Therefore, port forwarding is required.</p>
+<ol>
+<li>Get the virtual machine&rsquo;s IP</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="o">[</span>root@localhost docker<span class="o">]</span><span class="c1"># virsh domiflist ubuntu24-docker-milvus</span>
+</span></span><span class="line"><span class="cl"> Interface   Type      Source    Model    MAC
+</span></span><span class="line"><span class="cl">-------------------------------------------------------------
+</span></span><span class="line"><span class="cl"> vnet0       network   default   virtio   52:54:00:4e:4f:97
+</span></span><span class="line"><span class="cl"><span class="o">[</span>root@localhost docker<span class="o">]</span><span class="c1"># ip neigh | grep -i &#34;52:54:00:4e:4f:97&#34;</span>
+</span></span><span class="line"><span class="cl">192.168.122.100 dev virbr0 lladdr 52:54:00:4e:4f:97 STALE
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="2">
+<li>Configure port forwarding on the Linux server</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span><span class="lnt">9
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 临时开启ip转发</span>
+</span></span><span class="line"><span class="cl">sudo sysctl -w net.ipv4.ip_forward<span class="o">=</span><span class="m">1</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">sudo iptables -t nat -A PREROUTING -p tcp -i wlp0s20f3 --dport <span class="m">7000</span> -j DNAT --to-destination 192.168.122.100:7000
+</span></span><span class="line"><span class="cl">sudo iptables -t nat -A PREROUTING -p tcp -i wlp0s20f3 --dport <span class="m">19530</span> -j DNAT --to-destination 192.168.122.100:19530
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 放行转发</span>
+</span></span><span class="line"><span class="cl">sudo iptables -I FORWARD -i wlp0s20f3 -o virbr0 -j ACCEPT
+</span></span><span class="line"><span class="cl">sudo iptables -I FORWARD -i virbr0 -o wlp0s20f3 -j ACCEPT
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h5 id="access-attu">Access attu
+</h5><p>Access link: http://192.168.122.100:7000</p>
+<p><img src="/p/agentretrieval-5/image-13.png"
+	width="2880"
+	height="1568"
+	srcset="/p/agentretrieval-5/image-13_hu_3d450e90c590f646.png 480w, /p/agentretrieval-5/image-13_hu_ed4d99d9d62f578.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="183"
+		data-flex-basis="440px"
+	
+></p>
+<p><img src="/p/agentretrieval-5/image-14.png"
+	width="2880"
+	height="1568"
+	srcset="/p/agentretrieval-5/image-14_hu_ae3dc219f6c02534.png 480w, /p/agentretrieval-5/image-14_hu_6c8e3512188271c4.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="183"
+		data-flex-basis="440px"
+	
+></p>
+<p><img src="/p/agentretrieval-5/image-15.png"
+	width="2880"
+	height="1568"
+	srcset="/p/agentretrieval-5/image-15_hu_2f373c452312654b.png 480w, /p/agentretrieval-5/image-15_hu_5badc2a9a2bf5661.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="183"
+		data-flex-basis="440px"
+	
+></p>
+<h4 id="create-a-milvus-collection">Create a Milvus collection
+</h4><p>Step</p>
+<p>(1) Build the schema information;</p>
+<p>(2) Add an index;</p>
+<p>(3) Create a collection.</p>
+<p>Download the plugin</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">pip install pymilvus
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>Create a Milvus collection</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span><span class="lnt">51
+</span><span class="lnt">52
+</span><span class="lnt">53
+</span><span class="lnt">54
+</span><span class="lnt">55
+</span><span class="lnt">56
+</span><span class="lnt">57
+</span><span class="lnt">58
+</span><span class="lnt">59
+</span><span class="lnt">60
+</span><span class="lnt">61
+</span><span class="lnt">62
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-py" data-lang="py"><span class="line"><span class="cl"><span class="c1"># 07_test_create_collection</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="s2">&#34;&#34;&#34;
+</span></span></span><span class="line"><span class="cl"><span class="s2">    @Author:yline
+</span></span></span><span class="line"><span class="cl"><span class="s2">    @Time:2026/10/17
+</span></span></span><span class="line"><span class="cl"><span class="s2">    @Desc:
+</span></span></span><span class="line"><span class="cl"><span class="s2">&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">pymilvus</span> <span class="kn">import</span> <span class="n">MilvusClient</span><span class="p">,</span> <span class="n">CollectionSchema</span><span class="p">,</span> <span class="n">DataType</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># pip install pymilvus</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Create a milvus client</span>
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">get_milvus_client</span><span class="p">():</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">MilvusClient</span><span class="p">(</span><span class="n">uri</span><span class="o">=</span><span class="s2">&#34;http://192.168.1.109:19530&#34;</span><span class="p">,</span><span class="n">token</span><span class="o">=</span><span class="s2">&#34;&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Create a schema           Collection ( table ) structure</span>
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">create_collection_schema</span><span class="p">(</span><span class="n">client</span><span class="p">:</span> <span class="n">MilvusClient</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">CollectionSchema</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="p">(</span><span class="n">client</span><span class="o">.</span><span class="n">create_schema</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># 自动为 id 字段赋值</span>
+</span></span><span class="line"><span class="cl">        <span class="n">auto_id</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">add_field</span><span class="p">(</span><span class="n">field_name</span><span class="o">=</span><span class="s2">&#34;id&#34;</span><span class="p">,</span> <span class="n">datatype</span><span class="o">=</span><span class="n">DataType</span><span class="o">.</span><span class="n">INT64</span><span class="p">,</span> <span class="n">is_primary</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>  <span class="c1"># 主键，必须是int64或varchar类型</span>
+</span></span><span class="line"><span class="cl">            <span class="o">.</span><span class="n">add_field</span><span class="p">(</span><span class="n">field_name</span><span class="o">=</span><span class="s2">&#34;dense_vector&#34;</span><span class="p">,</span> <span class="n">datatype</span><span class="o">=</span><span class="n">DataType</span><span class="o">.</span><span class="n">FLOAT_VECTOR</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1024</span><span class="p">)</span> <span class="c1"># 稠密向量字段</span>
+</span></span><span class="line"><span class="cl">            <span class="o">.</span><span class="n">add_field</span><span class="p">(</span><span class="n">field_name</span><span class="o">=</span><span class="s2">&#34;sparse_vector&#34;</span><span class="p">,</span> <span class="n">datatype</span><span class="o">=</span><span class="n">DataType</span><span class="o">.</span><span class="n">SPARSE_FLOAT_VECTOR</span><span class="p">)</span>   <span class="c1"># 稀疏向量字段</span>
+</span></span><span class="line"><span class="cl">            <span class="o">.</span><span class="n">add_field</span><span class="p">(</span><span class="n">field_name</span><span class="o">=</span><span class="s2">&#34;text&#34;</span><span class="p">,</span> <span class="n">datatype</span><span class="o">=</span><span class="n">DataType</span><span class="o">.</span><span class="n">VARCHAR</span><span class="p">,</span> <span class="n">max_length</span><span class="o">=</span><span class="mi">65535</span><span class="p">)</span>  <span class="c1"># 标量字段，即普通字段</span>
+</span></span><span class="line"><span class="cl">            <span class="o">.</span><span class="n">add_field</span><span class="p">(</span><span class="n">field_name</span><span class="o">=</span><span class="s2">&#34;metadata&#34;</span><span class="p">,</span> <span class="n">datatype</span><span class="o">=</span><span class="n">DataType</span><span class="o">.</span><span class="n">JSON</span><span class="p">,</span> <span class="n">max_length</span><span class="o">=</span><span class="mi">65535</span><span class="p">)</span>  <span class="c1"># 标量字段，即普通字段</span>
+</span></span><span class="line"><span class="cl">    <span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Index settings</span>
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">create_collection_index</span><span class="p">(</span><span class="n">client</span><span class="p">:</span> <span class="n">MilvusClient</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="n">index_params</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">prepare_index_params</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">    <span class="n">index_params</span><span class="o">.</span><span class="n">add_index</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">        <span class="n">field_name</span><span class="o">=</span><span class="s2">&#34;dense_vector&#34;</span><span class="p">,</span>  <span class="c1"># 字段名字</span>
+</span></span><span class="line"><span class="cl">        <span class="n">index_type</span><span class="o">=</span><span class="s2">&#34;HNSW&#34;</span><span class="p">,</span>  <span class="c1"># 分层导航小世界</span>
+</span></span><span class="line"><span class="cl">        <span class="n">metric_type</span><span class="o">=</span><span class="s2">&#34;L2&#34;</span><span class="p">,</span>   <span class="c1"># L2        欧几里得距离  相似度匹配：度量方式          也可以选择：余弦相似度 COSINE</span>
+</span></span><span class="line"><span class="cl">    <span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="n">index_params</span><span class="o">.</span><span class="n">add_index</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">        <span class="n">field_name</span><span class="o">=</span><span class="s2">&#34;sparse_vector&#34;</span><span class="p">,</span> <span class="c1"># 字段名字</span>
+</span></span><span class="line"><span class="cl">        <span class="n">index_type</span><span class="o">=</span><span class="s2">&#34;SPARSE_INVERTED_INDEX&#34;</span><span class="p">,</span> <span class="c1"># 倒排索引      参考 Elasticsearch    搜索引擎</span>
+</span></span><span class="line"><span class="cl">        <span class="n">metric_type</span><span class="o">=</span><span class="s2">&#34;IP&#34;</span><span class="p">,</span>   <span class="c1"># IP    内积          负无穷 ～ 正无穷   归一化处理 [0, 1]</span>
+</span></span><span class="line"><span class="cl">    <span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">index_params</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Create a collection</span>
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">create_collection</span><span class="p">(</span><span class="n">client</span><span class="p">:</span> <span class="n">MilvusClient</span><span class="p">,</span> <span class="n">collection_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&#34;demo_collection&#34;</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">client</span><span class="o">.</span><span class="n">has_collection</span><span class="p">(</span><span class="n">collection_name</span><span class="o">=</span><span class="n">collection_name</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">            <span class="n">client</span><span class="o">.</span><span class="n">drop_collection</span><span class="p">(</span><span class="n">collection_name</span><span class="o">=</span><span class="n">collection_name</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="n">client</span><span class="o">.</span><span class="n">create_collection</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">            <span class="n">collection_name</span><span class="o">=</span><span class="n">collection_name</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">            <span class="n">schema</span><span class="o">=</span><span class="n">create_collection_schema</span><span class="p">(</span><span class="n">client</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">            <span class="n">index_params</span><span class="o">=</span><span class="n">create_collection_index</span><span class="p">(</span><span class="n">client</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="nb">print</span><span class="p">(</span><span class="n">client</span><span class="o">.</span><span class="n">list_collections</span><span class="p">())</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="nb">print</span><span class="p">(</span><span class="n">client</span><span class="o">.</span><span class="n">describe_collection</span><span class="p">(</span><span class="n">collection_name</span><span class="o">=</span><span class="n">collection_name</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="n">client</span> <span class="o">=</span> <span class="n">get_milvus_client</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">    <span class="n">create_collection</span><span class="p">(</span><span class="n">client</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>response</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">[&#39;demo_collection&#39;]
+</span></span><span class="line"><span class="cl">{&#39;collection_name&#39;: &#39;demo_collection&#39;, &#39;auto_id&#39;: True, &#39;num_shards&#39;: 1, &#39;description&#39;: &#39;&#39;, &#39;fields&#39;: [{&#39;field_id&#39;: 100, &#39;name&#39;: &#39;id&#39;, &#39;description&#39;: &#39;&#39;, &#39;type&#39;: &lt;DataType.INT64: 5&gt;, &#39;params&#39;: {}, &#39;auto_id&#39;: True, &#39;is_primary&#39;: True}, {&#39;field_id&#39;: 101, &#39;name&#39;: &#39;dense_vector&#39;, &#39;description&#39;: &#39;&#39;, &#39;type&#39;: &lt;DataType.FLOAT_VECTOR: 101&gt;, &#39;params&#39;: {&#39;dim&#39;: 1024}}, {&#39;field_id&#39;: 102, &#39;name&#39;: &#39;sparse_vector&#39;, &#39;description&#39;: &#39;&#39;, &#39;type&#39;: &lt;DataType.SPARSE_FLOAT_VECTOR: 104&gt;, &#39;params&#39;: {}}, {&#39;field_id&#39;: 103, &#39;name&#39;: &#39;text&#39;, &#39;description&#39;: &#39;&#39;, &#39;type&#39;: &lt;DataType.VARCHAR: 21&gt;, &#39;params&#39;: {&#39;max_length&#39;: 65535}}, {&#39;field_id&#39;: 104, &#39;name&#39;: &#39;metadata&#39;, &#39;description&#39;: &#39;&#39;, &#39;type&#39;: &lt;DataType.VARCHAR: 21&gt;, &#39;params&#39;: {&#39;max_length&#39;: 65535}}], &#39;functions&#39;: [], &#39;aliases&#39;: [], &#39;collection_id&#39;: 469815829478347673, &#39;consistency_level&#39;: 2, &#39;properties&#39;: {}, &#39;num_partitions&#39;: 1, &#39;enable_dynamic_field&#39;: False, &#39;enable_namespace&#39;: False, &#39;created_timestamp&#39;: 469821227055710214, &#39;update_timestamp&#39;: 469821227055710214}
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/agentretrieval-5/image-16.png"
+	width="2880"
+	height="1568"
+	srcset="/p/agentretrieval-5/image-16_hu_33aea2119ad25ad8.png 480w, /p/agentretrieval-5/image-16_hu_977c9b8140f608cb.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="183"
+		data-flex-basis="440px"
+	
+></p>
+<p><img src="/p/agentretrieval-5/image-17.png"
+	width="2880"
+	height="1568"
+	srcset="/p/agentretrieval-5/image-17_hu_9094085d32e9fa2d.png 480w, /p/agentretrieval-5/image-17_hu_a8d8873abf6eb0a4.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="183"
+		data-flex-basis="440px"
+	
+></p>
+<h4 id="milvus-entity-operations">Milvus entity operations
+</h4><h5 id="insert-entities">Insert entities
+</h5><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span><span class="lnt">51
+</span><span class="lnt">52
+</span><span class="lnt">53
+</span><span class="lnt">54
+</span><span class="lnt">55
+</span><span class="lnt">56
+</span><span class="lnt">57
+</span><span class="lnt">58
+</span><span class="lnt">59
+</span><span class="lnt">60
+</span><span class="lnt">61
+</span><span class="lnt">62
+</span><span class="lnt">63
+</span><span class="lnt">64
+</span><span class="lnt">65
+</span><span class="lnt">66
+</span><span class="lnt">67
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-py" data-lang="py"><span class="line"><span class="cl"><span class="s2">&#34;&#34;&#34;
+</span></span></span><span class="line"><span class="cl"><span class="s2">    08_test_insert_data.py
+</span></span></span><span class="line"><span class="cl"><span class="s2">    RAG - 索引过程：将数据保存到向量数据库的过程
+</span></span></span><span class="line"><span class="cl"><span class="s2">&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">langchain_community.document_loaders</span> <span class="kn">import</span> <span class="n">UnstructuredWordDocumentLoader</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">langchain_text_splitters</span> <span class="kn">import</span> <span class="n">RecursiveCharacterTextSplitter</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">langchain_core.documents</span> <span class="kn">import</span> <span class="n">Document</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">pymilvus</span> <span class="kn">import</span> <span class="n">MilvusClient</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">FlagEmbedding</span> <span class="kn">import</span> <span class="n">BGEM3FlagModel</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">json</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">get_milvus_client</span><span class="p">():</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;创建Milvus客户端&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">MilvusClient</span><span class="p">(</span><span class="n">uri</span><span class="o">=</span><span class="s2">&#34;http://192.168.1.109:19530&#34;</span><span class="p">,</span> <span class="n">token</span><span class="o">=</span><span class="s2">&#34;&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">insert_data</span><span class="p">(</span><span class="n">client</span><span class="p">:</span> <span class="n">MilvusClient</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;向量数据库保存数据&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c1"># 1. 加载docx</span>
+</span></span><span class="line"><span class="cl">    <span class="n">document</span> <span class="o">=</span> <span class="n">UnstructuredWordDocumentLoader</span><span class="p">(</span><span class="n">file_path</span><span class="o">=</span><span class="s2">&#34;../assets/sample.docx&#34;</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&#34;single&#34;</span><span class="p">)</span><span class="o">.</span><span class="n">load</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c1"># 2. 递归字符分割器</span>
+</span></span><span class="line"><span class="cl">    <span class="n">recursive_char_splitter</span> <span class="o">=</span> <span class="n">RecursiveCharacterTextSplitter</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">        <span class="n">chunk_size</span><span class="o">=</span><span class="mi">400</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="n">chunk_overlap</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="n">length_function</span><span class="o">=</span><span class="nb">len</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="n">separators</span><span class="o">=</span><span class="p">[</span><span class="s2">&#34;</span><span class="se">\n\n</span><span class="s2">&#34;</span><span class="p">,</span><span class="s2">&#34;</span><span class="se">\n</span><span class="s2">&#34;</span><span class="p">,</span><span class="s2">&#34;。&#34;</span><span class="p">,</span><span class="s2">&#34;！&#34;</span><span class="p">,</span><span class="s2">&#34;？&#34;</span><span class="p">,</span><span class="s2">&#34;&#34;</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">    <span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c1"># 切片</span>
+</span></span><span class="line"><span class="cl">    <span class="n">chunks</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Document</span><span class="p">]</span> <span class="o">=</span> <span class="n">recursive_char_splitter</span><span class="o">.</span><span class="n">split_documents</span><span class="p">(</span><span class="n">document</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">chunks</span> <span class="o">=</span> <span class="n">chunks</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">20</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">    <span class="c1"># 向量化</span>
+</span></span><span class="line"><span class="cl">    <span class="n">bgem3_client</span> <span class="o">=</span> <span class="n">BGEM3FlagModel</span><span class="p">(</span><span class="s2">&#34;../assets/models/bge-m3&#34;</span><span class="p">,</span> <span class="n">return_dense</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">return_sparse</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">resp</span> <span class="o">=</span> <span class="n">bgem3_client</span><span class="o">.</span><span class="n">encode</span><span class="p">([</span><span class="n">doc</span><span class="o">.</span><span class="n">page_content</span> <span class="k">for</span> <span class="n">doc</span> <span class="ow">in</span> <span class="n">chunks</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="n">dense_vecs</span> <span class="o">=</span> <span class="n">resp</span><span class="p">[</span><span class="s1">&#39;dense_vecs&#39;</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">    <span class="n">sparse_vecs</span> <span class="o">=</span> <span class="n">resp</span><span class="p">[</span><span class="s1">&#39;lexical_weights&#39;</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c1"># 4. 实体封装</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;
+</span></span></span><span class="line"><span class="cl"><span class="s2">        参考数据结构
+</span></span></span><span class="line"><span class="cl"><span class="s2">        [
+</span></span></span><span class="line"><span class="cl"><span class="s2">            {page_content=&#39;第二编　物权...第一分编　通则&#39; metadata={&#39;source&#39;: &#39;../assets/sample.docx&#39;, &#39;start_index&#39;: 346}}
+</span></span></span><span class="line"><span class="cl"><span class="s2">            {page_content=&#39;第二编　物权...第一分编　通则&#39; metadata={&#39;source&#39;: &#39;../assets/sample.docx&#39;, &#39;start_index&#39;: 346}}
+</span></span></span><span class="line"><span class="cl"><span class="s2">        ]
+</span></span></span><span class="line"><span class="cl"><span class="s2">    &#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">entities</span> <span class="o">=</span> <span class="p">[]</span>   <span class="c1"># 多行数据</span>
+</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">doc</span><span class="p">,</span> <span class="n">dense_vector</span><span class="p">,</span> <span class="n">sparse_vector</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">chunks</span><span class="p">,</span> <span class="n">dense_vecs</span><span class="p">,</span> <span class="n">sparse_vecs</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">entity</span> <span class="o">=</span> <span class="p">{</span>  <span class="c1"># 一个字典就是一个实体对象，就是一行数据</span>
+</span></span><span class="line"><span class="cl">            <span class="s2">&#34;text&#34;</span><span class="p">:</span> <span class="n">doc</span><span class="o">.</span><span class="n">page_content</span><span class="p">,</span>                   <span class="c1"># 原内容</span>
+</span></span><span class="line"><span class="cl">            <span class="s2">&#34;metadata&#34;</span><span class="p">:</span> <span class="n">doc</span><span class="o">.</span><span class="n">metadata</span><span class="p">,</span>                  <span class="c1"># 元信息   JSON ，转换成JSON字符串</span>
+</span></span><span class="line"><span class="cl">            <span class="s2">&#34;dense_vector&#34;</span><span class="p">:</span> <span class="n">dense_vector</span><span class="p">,</span>               <span class="c1"># 稠密向量</span>
+</span></span><span class="line"><span class="cl">            <span class="s2">&#34;sparse_vector&#34;</span><span class="p">:</span> <span class="n">sparse_vector</span>              <span class="c1"># 稀疏向量</span>
+</span></span><span class="line"><span class="cl">        <span class="p">}</span>
+</span></span><span class="line"><span class="cl">        <span class="n">entities</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">entity</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c1"># 5. 批量存储</span>
+</span></span><span class="line"><span class="cl">    <span class="n">milvus_client</span> <span class="o">=</span> <span class="n">get_milvus_client</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="n">resp</span> <span class="o">=</span> <span class="n">milvus_client</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="n">collection_name</span><span class="o">=</span><span class="s2">&#34;demo_collection&#34;</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">entities</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&#34;数据保存成功条数:</span><span class="si">{</span><span class="n">resp</span><span class="o">.</span><span class="n">insert_count</span><span class="si">}</span><span class="s2">&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&#34;__main__&#34;</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="n">insert_data</span><span class="p">(</span><span class="n">get_milvus_client</span><span class="p">())</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h5 id="delete-entities">Delete entities
+</h5><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-py" data-lang="py"><span class="line"><span class="cl"><span class="s2">&#34;&#34;&#34;
+</span></span></span><span class="line"><span class="cl"><span class="s2">    @Author:yline
+</span></span></span><span class="line"><span class="cl"><span class="s2">    @Time:2026/10/19
+</span></span></span><span class="line"><span class="cl"><span class="s2">    @Desc:
+</span></span></span><span class="line"><span class="cl"><span class="s2">&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">pymilvus</span> <span class="kn">import</span> <span class="n">MilvusClient</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">get_milvus_client</span><span class="p">():</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;创建Milvus客户端&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">MilvusClient</span><span class="p">(</span><span class="n">uri</span><span class="o">=</span><span class="s2">&#34;http://192.168.1.109:19530&#34;</span><span class="p">,</span><span class="n">token</span><span class="o">=</span><span class="s2">&#34;&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">delete_data</span><span class="p">(</span><span class="n">client</span><span class="p">:</span> <span class="n">MilvusClient</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="n">resp</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">        <span class="n">collection_name</span><span class="o">=</span><span class="s2">&#34;demo_collection&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">filter</span><span class="o">=</span><span class="s2">&#34;id in [469859622222796036,469859622222796037]&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="nb">print</span><span class="p">(</span><span class="n">resp</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="n">delete_data</span><span class="p">(</span><span class="n">get_milvus_client</span><span class="p">())</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="s2">&#34;&#34;&#34;
+</span></span></span><span class="line"><span class="cl"><span class="s2">    {&#39;delete_count&#39;: 2}
+</span></span></span><span class="line"><span class="cl"><span class="s2">&#34;&#34;&#34;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="milvus-search">Milvus search
+</h4><h5 id="vector-search">Vector search
+</h5><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">  1
+</span><span class="lnt">  2
+</span><span class="lnt">  3
+</span><span class="lnt">  4
+</span><span class="lnt">  5
+</span><span class="lnt">  6
+</span><span class="lnt">  7
+</span><span class="lnt">  8
+</span><span class="lnt">  9
+</span><span class="lnt"> 10
+</span><span class="lnt"> 11
+</span><span class="lnt"> 12
+</span><span class="lnt"> 13
+</span><span class="lnt"> 14
+</span><span class="lnt"> 15
+</span><span class="lnt"> 16
+</span><span class="lnt"> 17
+</span><span class="lnt"> 18
+</span><span class="lnt"> 19
+</span><span class="lnt"> 20
+</span><span class="lnt"> 21
+</span><span class="lnt"> 22
+</span><span class="lnt"> 23
+</span><span class="lnt"> 24
+</span><span class="lnt"> 25
+</span><span class="lnt"> 26
+</span><span class="lnt"> 27
+</span><span class="lnt"> 28
+</span><span class="lnt"> 29
+</span><span class="lnt"> 30
+</span><span class="lnt"> 31
+</span><span class="lnt"> 32
+</span><span class="lnt"> 33
+</span><span class="lnt"> 34
+</span><span class="lnt"> 35
+</span><span class="lnt"> 36
+</span><span class="lnt"> 37
+</span><span class="lnt"> 38
+</span><span class="lnt"> 39
+</span><span class="lnt"> 40
+</span><span class="lnt"> 41
+</span><span class="lnt"> 42
+</span><span class="lnt"> 43
+</span><span class="lnt"> 44
+</span><span class="lnt"> 45
+</span><span class="lnt"> 46
+</span><span class="lnt"> 47
+</span><span class="lnt"> 48
+</span><span class="lnt"> 49
+</span><span class="lnt"> 50
+</span><span class="lnt"> 51
+</span><span class="lnt"> 52
+</span><span class="lnt"> 53
+</span><span class="lnt"> 54
+</span><span class="lnt"> 55
+</span><span class="lnt"> 56
+</span><span class="lnt"> 57
+</span><span class="lnt"> 58
+</span><span class="lnt"> 59
+</span><span class="lnt"> 60
+</span><span class="lnt"> 61
+</span><span class="lnt"> 62
+</span><span class="lnt"> 63
+</span><span class="lnt"> 64
+</span><span class="lnt"> 65
+</span><span class="lnt"> 66
+</span><span class="lnt"> 67
+</span><span class="lnt"> 68
+</span><span class="lnt"> 69
+</span><span class="lnt"> 70
+</span><span class="lnt"> 71
+</span><span class="lnt"> 72
+</span><span class="lnt"> 73
+</span><span class="lnt"> 74
+</span><span class="lnt"> 75
+</span><span class="lnt"> 76
+</span><span class="lnt"> 77
+</span><span class="lnt"> 78
+</span><span class="lnt"> 79
+</span><span class="lnt"> 80
+</span><span class="lnt"> 81
+</span><span class="lnt"> 82
+</span><span class="lnt"> 83
+</span><span class="lnt"> 84
+</span><span class="lnt"> 85
+</span><span class="lnt"> 86
+</span><span class="lnt"> 87
+</span><span class="lnt"> 88
+</span><span class="lnt"> 89
+</span><span class="lnt"> 90
+</span><span class="lnt"> 91
+</span><span class="lnt"> 92
+</span><span class="lnt"> 93
+</span><span class="lnt"> 94
+</span><span class="lnt"> 95
+</span><span class="lnt"> 96
+</span><span class="lnt"> 97
+</span><span class="lnt"> 98
+</span><span class="lnt"> 99
+</span><span class="lnt">100
+</span><span class="lnt">101
+</span><span class="lnt">102
+</span><span class="lnt">103
+</span><span class="lnt">104
+</span><span class="lnt">105
+</span><span class="lnt">106
+</span><span class="lnt">107
+</span><span class="lnt">108
+</span><span class="lnt">109
+</span><span class="lnt">110
+</span><span class="lnt">111
+</span><span class="lnt">112
+</span><span class="lnt">113
+</span><span class="lnt">114
+</span><span class="lnt">115
+</span><span class="lnt">116
+</span><span class="lnt">117
+</span><span class="lnt">118
+</span><span class="lnt">119
+</span><span class="lnt">120
+</span><span class="lnt">121
+</span><span class="lnt">122
+</span><span class="lnt">123
+</span><span class="lnt">124
+</span><span class="lnt">125
+</span><span class="lnt">126
+</span><span class="lnt">127
+</span><span class="lnt">128
+</span><span class="lnt">129
+</span><span class="lnt">130
+</span><span class="lnt">131
+</span><span class="lnt">132
+</span><span class="lnt">133
+</span><span class="lnt">134
+</span><span class="lnt">135
+</span><span class="lnt">136
+</span><span class="lnt">137
+</span><span class="lnt">138
+</span><span class="lnt">139
+</span><span class="lnt">140
+</span><span class="lnt">141
+</span><span class="lnt">142
+</span><span class="lnt">143
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-py" data-lang="py"><span class="line"><span class="cl"><span class="c1"># 10_test_hybrid_query.py</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Tuple</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">COLLECTION_NAME</span> <span class="o">=</span> <span class="s2">&#34;demo_collection&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">get_milvus_client</span><span class="p">(</span><span class="n">uri</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&#34;http://192.168.1.109:19530&#34;</span><span class="p">,</span> <span class="n">token</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&#34;&#34;</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="kn">from</span> <span class="nn">pymilvus</span> <span class="kn">import</span> <span class="n">MilvusClient</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">MilvusClient</span><span class="p">(</span><span class="n">uri</span><span class="o">=</span><span class="n">uri</span><span class="p">,</span> <span class="n">token</span><span class="o">=</span><span class="n">token</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">get_bge_m3_model</span><span class="p">():</span>
+</span></span><span class="line"><span class="cl">    <span class="kn">from</span> <span class="nn">FlagEmbedding</span> <span class="kn">import</span> <span class="n">BGEM3FlagModel</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">BGEM3FlagModel</span><span class="p">(</span><span class="n">model_name_or_path</span><span class="o">=</span><span class="s2">&#34;../assets/models/bge-m3&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">encode_query</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]:</span>
+</span></span><span class="line"><span class="cl">    <span class="n">all_embeddings</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">encode</span><span class="p">([</span><span class="n">query</span><span class="p">],</span> <span class="n">return_dense</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">return_sparse</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">dense_vec</span> <span class="o">=</span> <span class="n">all_embeddings</span><span class="p">[</span><span class="s2">&#34;dense_vecs&#34;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">    <span class="n">sparse_vec</span> <span class="o">=</span> <span class="n">all_embeddings</span><span class="p">[</span><span class="s2">&#34;lexical_weights&#34;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">dense_vec</span><span class="p">,</span> <span class="n">sparse_vec</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">print_hits</span><span class="p">(</span><span class="n">title</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">hits</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">dict</span><span class="p">]):</span>
+</span></span><span class="line"><span class="cl">    <span class="nb">print</span><span class="p">(</span><span class="s2">&#34;</span><span class="se">\n</span><span class="s2">&#34;</span> <span class="o">+</span> <span class="s2">&#34;=&#34;</span> <span class="o">*</span> <span class="mi">20</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="nb">print</span><span class="p">(</span><span class="n">title</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="nb">print</span><span class="p">(</span><span class="s2">&#34;=&#34;</span> <span class="o">*</span> <span class="mi">20</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">hit</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">hits</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">entity</span> <span class="o">=</span> <span class="n">hit</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&#34;entity&#34;</span><span class="p">,</span> <span class="p">{})</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">print</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">            <span class="p">{</span>
+</span></span><span class="line"><span class="cl">                <span class="s2">&#34;rank&#34;</span><span class="p">:</span> <span class="n">i</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                <span class="s2">&#34;id&#34;</span><span class="p">:</span> <span class="n">entity</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&#34;id&#34;</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">                <span class="s2">&#34;distance&#34;</span><span class="p">:</span> <span class="n">hit</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&#34;distance&#34;</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">                <span class="s2">&#34;text&#34;</span><span class="p">:</span> <span class="n">entity</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&#34;text&#34;</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">                <span class="s2">&#34;metadata&#34;</span><span class="p">:</span> <span class="n">entity</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&#34;metadata&#34;</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">            <span class="p">}</span>
+</span></span><span class="line"><span class="cl">        <span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">dense_vector_search_example</span><span class="p">(</span><span class="n">client</span><span class="p">,</span> <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">limit</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="n">model</span> <span class="o">=</span> <span class="n">get_bge_m3_model</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">    <span class="n">dense_vec</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">encode_query</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">query</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">results</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">search</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">        <span class="n">collection_name</span><span class="o">=</span><span class="n">COLLECTION_NAME</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="n">data</span><span class="o">=</span><span class="p">[</span><span class="n">dense_vec</span><span class="p">],</span>       <span class="c1"># 查询条件</span>
+</span></span><span class="line"><span class="cl">        <span class="n">anns_field</span><span class="o">=</span><span class="s2">&#34;dense_vector&#34;</span><span class="p">,</span>  <span class="c1"># 稠密字段名称</span>
+</span></span><span class="line"><span class="cl">        <span class="n">limit</span><span class="o">=</span><span class="n">limit</span><span class="p">,</span>    <span class="c1"># 返回 Top k</span>
+</span></span><span class="line"><span class="cl">        <span class="n">search_params</span><span class="o">=</span><span class="p">{</span><span class="s2">&#34;metric_type&#34;</span><span class="p">:</span> <span class="s2">&#34;L2&#34;</span><span class="p">},</span>    <span class="c1"># HNSW 索引，查找数据范围，根据L2欧几里得距离获取分数高的文档</span>
+</span></span><span class="line"><span class="cl">        <span class="n">output_fields</span><span class="o">=</span><span class="p">[</span><span class="s2">&#34;id&#34;</span><span class="p">,</span> <span class="s2">&#34;text&#34;</span><span class="p">,</span> <span class="s2">&#34;metadata&#34;</span><span class="p">],</span>
+</span></span><span class="line"><span class="cl">    <span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">print_hits</span><span class="p">(</span><span class="s2">&#34;稠密向量检索（vector）&#34;</span><span class="p">,</span> <span class="n">results</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">results</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">sparse_vector_search_example</span><span class="p">(</span><span class="n">client</span><span class="p">,</span> <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">limit</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="n">model</span> <span class="o">=</span> <span class="n">get_bge_m3_model</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">    <span class="n">_</span><span class="p">,</span> <span class="n">sparse_vec</span> <span class="o">=</span> <span class="n">encode_query</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">query</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">results</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">search</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">        <span class="n">collection_name</span><span class="o">=</span><span class="n">COLLECTION_NAME</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="n">data</span><span class="o">=</span><span class="p">[</span><span class="n">sparse_vec</span><span class="p">],</span>  <span class="c1"># 查询条件， 安装稀疏向量查询        看关键词    权重      BERT</span>
+</span></span><span class="line"><span class="cl">        <span class="n">anns_field</span><span class="o">=</span><span class="s2">&#34;sparse_vector&#34;</span><span class="p">,</span> <span class="c1">#   稀疏向量字段</span>
+</span></span><span class="line"><span class="cl">        <span class="n">limit</span><span class="o">=</span><span class="n">limit</span><span class="p">,</span>    <span class="c1"># 返回 Top K</span>
+</span></span><span class="line"><span class="cl">        <span class="n">search_params</span><span class="o">=</span><span class="p">{</span><span class="s2">&#34;metric_type&#34;</span><span class="p">:</span> <span class="s2">&#34;IP&#34;</span><span class="p">},</span>    <span class="c1"># 采用内积打分</span>
+</span></span><span class="line"><span class="cl">        <span class="n">output_fields</span><span class="o">=</span><span class="p">[</span><span class="s2">&#34;id&#34;</span><span class="p">,</span> <span class="s2">&#34;text&#34;</span><span class="p">,</span> <span class="s2">&#34;metadata&#34;</span><span class="p">],</span>     <span class="c1"># 返回字段</span>
+</span></span><span class="line"><span class="cl">    <span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">print_hits</span><span class="p">(</span><span class="s2">&#34;稀疏向量检索（sparse_vector）&#34;</span><span class="p">,</span> <span class="n">results</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">results</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">hybrid_vector_search_example_rrf</span><span class="p">(</span><span class="n">client</span><span class="p">,</span> <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">limit</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;混合向量检索&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="kn">from</span> <span class="nn">pymilvus</span> <span class="kn">import</span> <span class="n">AnnSearchRequest</span><span class="p">,</span> <span class="n">RRFRanker</span>
+</span></span><span class="line"><span class="cl">    <span class="n">model</span> <span class="o">=</span> <span class="n">get_bge_m3_model</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">    <span class="n">dense_vec</span><span class="p">,</span> <span class="n">sparse_vec</span> <span class="o">=</span> <span class="n">encode_query</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">query</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c1"># 第一路检索</span>
+</span></span><span class="line"><span class="cl">    <span class="n">dense_req</span> <span class="o">=</span> <span class="n">AnnSearchRequest</span><span class="p">(</span> <span class="c1"># 近似紧邻相似度查询</span>
+</span></span><span class="line"><span class="cl">        <span class="n">data</span><span class="o">=</span><span class="p">[</span><span class="n">dense_vec</span><span class="p">],</span>
+</span></span><span class="line"><span class="cl">        <span class="n">anns_field</span><span class="o">=</span><span class="s2">&#34;dense_vector&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="n">param</span><span class="o">=</span><span class="p">{</span><span class="s2">&#34;metric_type&#34;</span><span class="p">:</span> <span class="s2">&#34;L2&#34;</span><span class="p">},</span>
+</span></span><span class="line"><span class="cl">        <span class="n">limit</span><span class="o">=</span><span class="n">limit</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c1"># 第二路检索</span>
+</span></span><span class="line"><span class="cl">    <span class="n">sparse_req</span> <span class="o">=</span> <span class="n">AnnSearchRequest</span><span class="p">(</span>  <span class="c1"># 近似紧邻相似度查询</span>
+</span></span><span class="line"><span class="cl">        <span class="n">data</span><span class="o">=</span><span class="p">[</span><span class="n">sparse_vec</span><span class="p">],</span>
+</span></span><span class="line"><span class="cl">        <span class="n">anns_field</span><span class="o">=</span><span class="s2">&#34;sparse_vector&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="n">param</span><span class="o">=</span><span class="p">{</span><span class="s2">&#34;metric_type&#34;</span><span class="p">:</span> <span class="s2">&#34;IP&#34;</span><span class="p">},</span>
+</span></span><span class="line"><span class="cl">        <span class="n">limit</span><span class="o">=</span><span class="n">limit</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c1"># 混合检索</span>
+</span></span><span class="line"><span class="cl">    <span class="n">results</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">hybrid_search</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">        <span class="n">collection_name</span><span class="o">=</span><span class="n">COLLECTION_NAME</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="n">reqs</span><span class="o">=</span><span class="p">[</span><span class="n">dense_req</span><span class="p">,</span> <span class="n">sparse_req</span><span class="p">],</span>   <span class="c1"># 混合检索      稠密向量检索 + 稀疏向量检索</span>
+</span></span><span class="line"><span class="cl">        <span class="n">ranker</span><span class="o">=</span><span class="n">RRFRanker</span><span class="p">(</span><span class="n">k</span><span class="o">=</span><span class="mi">60</span><span class="p">),</span> <span class="c1"># 融合重排序 权重/（平滑参数+排名）    1/（60+排名）</span>
+</span></span><span class="line"><span class="cl">        <span class="n">limit</span><span class="o">=</span><span class="n">limit</span><span class="p">,</span>    <span class="c1"># 返回 Top k</span>
+</span></span><span class="line"><span class="cl">        <span class="n">output_fields</span><span class="o">=</span><span class="p">[</span><span class="s2">&#34;id&#34;</span><span class="p">,</span> <span class="s2">&#34;text&#34;</span><span class="p">,</span> <span class="s2">&#34;metadata&#34;</span><span class="p">],</span>
+</span></span><span class="line"><span class="cl">    <span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">print_hits</span><span class="p">(</span><span class="s2">&#34;混合向量检索（RRF 融合稠密+稀疏）&#34;</span><span class="p">,</span> <span class="n">results</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">results</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="n">client</span> <span class="o">=</span> <span class="n">get_milvus_client</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">    <span class="c1"># dense_vector_search_example(client, &#34;监护人需要对子女负哪些责任？&#34;)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;
+</span></span></span><span class="line"><span class="cl"><span class="s2">    ====================
+</span></span></span><span class="line"><span class="cl"><span class="s2">    稠密向量检索（vector）
+</span></span></span><span class="line"><span class="cl"><span class="s2">    ====================
+</span></span></span><span class="line"><span class="cl"><span class="s2">    {&#39;rank&#39;: 1, &#39;id&#39;: 469859622222796048, &#39;distance&#39;: 0.6153002977371216, &#39;text&#39;: &#39;监护人依法履行监护职责产生的权利，受法律保护。</span><span class="se">\n\n</span><span class="s2">监护人不履行监护职责或者侵害被监护人合法权益的，应当承担法律责任。</span><span class="se">\n\n</span><span class="s2">因发生突发事件等紧急情况，监护人暂时无法履行监护职责，被监护人的生活处于无人照料状态的，被监护人住所地的居民委员会、村民委员会或者民政部门应当为被监护人安排必要的临时生活照料措施。</span><span class="se">\n\n</span><span class="s2">第三十五条</span><span class="se">\u3000</span><span class="s2">监护人应当按照最有利于被监护人的原则履行监护职责。监护人除为维护被监护人利益外，不得处分被监护人的财产。</span><span class="se">\n\n</span><span class="s2">未成年人的监护人履行监护职责，在作出与被监护人利益有关的决定时，应当根据被监护人的年龄和智力状况，尊重被监护人的真实意愿。</span><span class="se">\n\n</span><span class="s2">成年人的监护人履行监护职责，应当最大程度地尊重被监护人的真实意愿，保障并协助被监护人实施与其智力、精神健康状况相适应的民事法律行为。对被监护人有能力独立处理的事务，监护人不得干涉。&#39;, &#39;metadata&#39;: &#39;{&#34;source&#34;: &#34;../assets/sample.docx&#34;}&#39;}
+</span></span></span><span class="line"><span class="cl"><span class="s2">    {&#39;rank&#39;: 2, &#39;id&#39;: 469859622222796045, &#39;distance&#39;: 0.6781315207481384, &#39;text&#39;: &#39;本条规定的有关组织包括：居民委员会、村民委员会、学校、医疗机构、妇女联合会、残疾人联合会、依法设立的老年人组织、民政部门等。</span><span class="se">\n\n</span><span class="s2">第二十五条</span><span class="se">\u3000</span><span class="s2">自然人以户籍登记或者其他有效身份登记记载的居所为住所；经常居所与住所不一致的，经常居所视为住所。</span><span class="se">\n\n</span><span class="s2">第二节</span><span class="se">\u3000</span><span class="s2">监护</span><span class="se">\n\n</span><span class="s2">第二十六条</span><span class="se">\u3000</span><span class="s2">父母对未成年子女负有抚养、教育和保护的义务。</span><span class="se">\n\n</span><span class="s2">成年子女对父母负有赡养、扶助和保护的义务。</span><span class="se">\n\n</span><span class="s2">第二十七条</span><span class="se">\u3000</span><span class="s2">父母是未成年子女的监护人。</span><span class="se">\n\n</span><span class="s2">未成年人的父母已经死亡或者没有监护能力的，由下列有监护能力的人按顺序担任监护人：</span><span class="se">\n\n</span><span class="s2">（一）祖父母、外祖父母；</span><span class="se">\n\n</span><span class="s2">（二）兄、姐；</span><span class="se">\n\n</span><span class="s2">（三）其他愿意担任监护人的个人或者组织，但是须经未成年人住所地的居民委员会、村民委员会或者民政部门同意。</span><span class="se">\n\n</span><span class="s2">第二十八条</span><span class="se">\u3000</span><span class="s2">无民事行为能力或者限制民事行为能力的成年人，由下列有监护能力的人按顺序担任监护人：</span><span class="se">\n\n</span><span class="s2">（一）配偶；</span><span class="se">\n\n</span><span class="s2">（二）父母、子女；</span><span class="se">\n\n</span><span class="s2">（三）其他近亲属；&#39;, &#39;metadata&#39;: &#39;{&#34;source&#34;: &#34;../assets/sample.docx&#34;}&#39;}
+</span></span></span><span class="line"><span class="cl"><span class="s2">    {&#39;rank&#39;: 3, &#39;id&#39;: 469859622222796047, &#39;distance&#39;: 0.7118428945541382, &#39;text&#39;: &#39;依据本条第一款规定指定监护人前，被监护人的人身权利、财产权利以及其他合法权益处于无人保护状态的，由被监护人住所地的居民委员会、村民委员会、法律规定的有关组织或者民政部门担任临时监护人。</span><span class="se">\n\n</span><span class="s2">监护人被指定后，不得擅自变更；擅自变更的，不免除被指定的监护人的责任。</span><span class="se">\n\n</span><span class="s2">第三十二条</span><span class="se">\u3000</span><span class="s2">没有依法具有监护资格的人的，监护人由民政部门担任，也可以由具备履行监护职责条件的被监护人住所地的居民委员会、村民委员会担任。</span><span class="se">\n\n</span><span class="s2">第三十三条</span><span class="se">\u3000</span><span class="s2">具有完全民事行为能力的成年人，可以与其近亲属、其他愿意担任监护人的个人或者组织事先协商，以书面形式确定自己的监护人，在自己丧失或者部分丧失民事行为能力时，由该监护人履行监护职责。</span><span class="se">\n\n</span><span class="s2">第三十四条</span><span class="se">\u3000</span><span class="s2">监护人的职责是代理被监护人实施民事法律行为，保护被监护人的人身权利、财产权利以及其他合法权益等。</span><span class="se">\n\n</span><span class="s2">监护人依法履行监护职责产生的权利，受法律保护。&#39;, &#39;metadata&#39;: &#39;{&#34;source&#34;: &#34;../assets/sample.docx&#34;}&#39;}
+</span></span></span><span class="line"><span class="cl"><span class="s2">    {&#39;rank&#39;: 4, &#39;id&#39;: 469859622222796049, &#39;distance&#39;: 0.7340986728668213, &#39;text&#39;: &#39;第三十六条</span><span class="se">\u3000</span><span class="s2">监护人有下列情形之一的，人民法院根据有关个人或者组织的申请，撤销其监护人资格，安排必要的临时监护措施，并按照最有利于被监护人的原则依法指定监护人：</span><span class="se">\n\n</span><span class="s2">（一）实施严重损害被监护人身心健康的行为；</span><span class="se">\n\n</span><span class="s2">（二）怠于履行监护职责，或者无法履行监护职责且拒绝将监护职责部分或者全部委托给他人，导致被监护人处于危困状态；</span><span class="se">\n\n</span><span class="s2">（三）实施严重侵害被监护人合法权益的其他行为。</span><span class="se">\n\n</span><span class="s2">本条规定的有关个人、组织包括：其他依法具有监护资格的人，居民委员会、村民委员会、学校、医疗机构、妇女联合会、残疾人联合会、未成年人保护组织、依法设立的老年人组织、民政部门等。</span><span class="se">\n\n</span><span class="s2">前款规定的个人和民政部门以外的组织未及时向人民法院申请撤销监护人资格的，民政部门应当向人民法院申请。</span><span class="se">\n\n</span><span class="s2">第三十七条</span><span class="se">\u3000</span><span class="s2">依法负担被监护人抚养费、赡养费、扶养费的父母、子女、配偶等，被人民法院撤销监护人资格后，应当继续履行负担的义务。&#39;, &#39;metadata&#39;: &#39;{&#34;source&#34;: &#34;../assets/sample.docx&#34;}&#39;}
+</span></span></span><span class="line"><span class="cl"><span class="s2">    {&#39;rank&#39;: 5, &#39;id&#39;: 469859622222796046, &#39;distance&#39;: 0.7552366256713867, &#39;text&#39;: &#39;（一）配偶；</span><span class="se">\n\n</span><span class="s2">（二）父母、子女；</span><span class="se">\n\n</span><span class="s2">（三）其他近亲属；</span><span class="se">\n\n</span><span class="s2">（四）其他愿意担任监护人的个人或者组织，但是须经被监护人住所地的居民委员会、村民委员会或者民政部门同意。</span><span class="se">\n\n</span><span class="s2">第二十九条</span><span class="se">\u3000</span><span class="s2">被监护人的父母担任监护人的，可以通过遗嘱指定监护人。</span><span class="se">\n\n</span><span class="s2">第三十条</span><span class="se">\u3000</span><span class="s2">依法具有监护资格的人之间可以协议确定监护人。协议确定监护人应当尊重被监护人的真实意愿。</span><span class="se">\n\n</span><span class="s2">第三十一条</span><span class="se">\u3000</span><span class="s2">对监护人的确定有争议的，由被监护人住所地的居民委员会、村民委员会或者民政部门指定监护人，有关当事人对指定不服的，可以向人民法院申请指定监护人；有关当事人也可以直接向人民法院申请指定监护人。</span><span class="se">\n\n</span><span class="s2">居民委员会、村民委员会、民政部门或者人民法院应当尊重被监护人的真实意愿，按照最有利于被监护人的原则在依法具有监护资格的人中指定监护人。&#39;, &#39;metadata&#39;: &#39;{&#34;source&#34;: &#34;../assets/sample.docx&#34;}&#39;}
+</span></span></span><span class="line"><span class="cl"><span class="s2">    &#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c1"># sparse_vector_search_example(client, &#34;监护人需要对子女负哪些责任？&#34;)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;
+</span></span></span><span class="line"><span class="cl"><span class="s2">    ====================
+</span></span></span><span class="line"><span class="cl"><span class="s2">    稀疏向量检索（sparse_vector）
+</span></span></span><span class="line"><span class="cl"><span class="s2">    ====================
+</span></span></span><span class="line"><span class="cl"><span class="s2">    {&#39;rank&#39;: 1, &#39;id&#39;: 469859622222796045, &#39;distance&#39;: 0.2111356109380722, &#39;text&#39;: &#39;本条规定的有关组织包括：居民委员会、村民委员会、学校、医疗机构、妇女联合会、残疾人联合会、依法设立的老年人组织、民政部门等。</span><span class="se">\n\n</span><span class="s2">第二十五条</span><span class="se">\u3000</span><span class="s2">自然人以户籍登记或者其他有效身份登记记载的居所为住所；经常居所与住所不一致的，经常居所视为住所。</span><span class="se">\n\n</span><span class="s2">第二节</span><span class="se">\u3000</span><span class="s2">监护</span><span class="se">\n\n</span><span class="s2">第二十六条</span><span class="se">\u3000</span><span class="s2">父母对未成年子女负有抚养、教育和保护的义务。</span><span class="se">\n\n</span><span class="s2">成年子女对父母负有赡养、扶助和保护的义务。</span><span class="se">\n\n</span><span class="s2">第二十七条</span><span class="se">\u3000</span><span class="s2">父母是未成年子女的监护人。</span><span class="se">\n\n</span><span class="s2">未成年人的父母已经死亡或者没有监护能力的，由下列有监护能力的人按顺序担任监护人：</span><span class="se">\n\n</span><span class="s2">（一）祖父母、外祖父母；</span><span class="se">\n\n</span><span class="s2">（二）兄、姐；</span><span class="se">\n\n</span><span class="s2">（三）其他愿意担任监护人的个人或者组织，但是须经未成年人住所地的居民委员会、村民委员会或者民政部门同意。</span><span class="se">\n\n</span><span class="s2">第二十八条</span><span class="se">\u3000</span><span class="s2">无民事行为能力或者限制民事行为能力的成年人，由下列有监护能力的人按顺序担任监护人：</span><span class="se">\n\n</span><span class="s2">（一）配偶；</span><span class="se">\n\n</span><span class="s2">（二）父母、子女；</span><span class="se">\n\n</span><span class="s2">（三）其他近亲属；&#39;, &#39;metadata&#39;: &#39;{&#34;source&#34;: &#34;../assets/sample.docx&#34;}&#39;}
+</span></span></span><span class="line"><span class="cl"><span class="s2">    {&#39;rank&#39;: 2, &#39;id&#39;: 469859622222796048, &#39;distance&#39;: 0.15783938765525818, &#39;text&#39;: &#39;监护人依法履行监护职责产生的权利，受法律保护。</span><span class="se">\n\n</span><span class="s2">监护人不履行监护职责或者侵害被监护人合法权益的，应当承担法律责任。</span><span class="se">\n\n</span><span class="s2">因发生突发事件等紧急情况，监护人暂时无法履行监护职责，被监护人的生活处于无人照料状态的，被监护人住所地的居民委员会、村民委员会或者民政部门应当为被监护人安排必要的临时生活照料措施。</span><span class="se">\n\n</span><span class="s2">第三十五条</span><span class="se">\u3000</span><span class="s2">监护人应当按照最有利于被监护人的原则履行监护职责。监护人除为维护被监护人利益外，不得处分被监护人的财产。</span><span class="se">\n\n</span><span class="s2">未成年人的监护人履行监护职责，在作出与被监护人利益有关的决定时，应当根据被监护人的年龄和智力状况，尊重被监护人的真实意愿。</span><span class="se">\n\n</span><span class="s2">成年人的监护人履行监护职责，应当最大程度地尊重被监护人的真实意愿，保障并协助被监护人实施与其智力、精神健康状况相适应的民事法律行为。对被监护人有能力独立处理的事务，监护人不得干涉。&#39;, &#39;metadata&#39;: &#39;{&#34;source&#34;: &#34;../assets/sample.docx&#34;}&#39;}
+</span></span></span><span class="line"><span class="cl"><span class="s2">    {&#39;rank&#39;: 3, &#39;id&#39;: 469859622222796046, &#39;distance&#39;: 0.14548422396183014, &#39;text&#39;: &#39;（一）配偶；</span><span class="se">\n\n</span><span class="s2">（二）父母、子女；</span><span class="se">\n\n</span><span class="s2">（三）其他近亲属；</span><span class="se">\n\n</span><span class="s2">（四）其他愿意担任监护人的个人或者组织，但是须经被监护人住所地的居民委员会、村民委员会或者民政部门同意。</span><span class="se">\n\n</span><span class="s2">第二十九条</span><span class="se">\u3000</span><span class="s2">被监护人的父母担任监护人的，可以通过遗嘱指定监护人。</span><span class="se">\n\n</span><span class="s2">第三十条</span><span class="se">\u3000</span><span class="s2">依法具有监护资格的人之间可以协议确定监护人。协议确定监护人应当尊重被监护人的真实意愿。</span><span class="se">\n\n</span><span class="s2">第三十一条</span><span class="se">\u3000</span><span class="s2">对监护人的确定有争议的，由被监护人住所地的居民委员会、村民委员会或者民政部门指定监护人，有关当事人对指定不服的，可以向人民法院申请指定监护人；有关当事人也可以直接向人民法院申请指定监护人。</span><span class="se">\n\n</span><span class="s2">居民委员会、村民委员会、民政部门或者人民法院应当尊重被监护人的真实意愿，按照最有利于被监护人的原则在依法具有监护资格的人中指定监护人。&#39;, &#39;metadata&#39;: &#39;{&#34;source&#34;: &#34;../assets/sample.docx&#34;}&#39;}
+</span></span></span><span class="line"><span class="cl"><span class="s2">    {&#39;rank&#39;: 4, &#39;id&#39;: 469859622222796050, &#39;distance&#39;: 0.1381663829088211, &#39;text&#39;: &#39;第三十八条</span><span class="se">\u3000</span><span class="s2">被监护人的父母或者子女被人民法院撤销监护人资格后，除对被监护人实施故意犯罪的外，确有悔改表现的，经其申请，人民法院可以在尊重被监护人真实意愿的前提下，视情况恢复其监护人资格，人民法院指定的监护人与被监护人的监护关系同时终止。</span><span class="se">\n\n</span><span class="s2">第三十九条</span><span class="se">\u3000</span><span class="s2">有下列情形之一的，监护关系终止：</span><span class="se">\n\n</span><span class="s2">（一）被监护人取得或者恢复完全民事行为能力；</span><span class="se">\n\n</span><span class="s2">（二）监护人丧失监护能力；</span><span class="se">\n\n</span><span class="s2">（三）被监护人或者监护人死亡；</span><span class="se">\n\n</span><span class="s2">（四）人民法院认定监护关系终止的其他情形。</span><span class="se">\n\n</span><span class="s2">监护关系终止后，被监护人仍然需要监护的，应当依法另行确定监护人。</span><span class="se">\n\n</span><span class="s2">第三节</span><span class="se">\u3000</span><span class="s2">宣告失踪和宣告死亡</span><span class="se">\n\n</span><span class="s2">第四十条</span><span class="se">\u3000</span><span class="s2">自然人下落不明满二年的，利害关系人可以向人民法院申请宣告该自然人为失踪人。</span><span class="se">\n\n</span><span class="s2">第四十一条</span><span class="se">\u3000</span><span class="s2">自然人下落不明的时间自其失去音讯之日起计算。战争期间下落不明的，下落不明的时间自战争结束之日或者有关机关确定的下落不明之日起计算。&#39;, &#39;metadata&#39;: &#39;{&#34;source&#34;: &#34;../assets/sample.docx&#34;}&#39;}
+</span></span></span><span class="line"><span class="cl"><span class="s2">    {&#39;rank&#39;: 5, &#39;id&#39;: 469859622222796047, &#39;distance&#39;: 0.13192446529865265, &#39;text&#39;: &#39;依据本条第一款规定指定监护人前，被监护人的人身权利、财产权利以及其他合法权益处于无人保护状态的，由被监护人住所地的居民委员会、村民委员会、法律规定的有关组织或者民政部门担任临时监护人。</span><span class="se">\n\n</span><span class="s2">监护人被指定后，不得擅自变更；擅自变更的，不免除被指定的监护人的责任。</span><span class="se">\n\n</span><span class="s2">第三十二条</span><span class="se">\u3000</span><span class="s2">没有依法具有监护资格的人的，监护人由民政部门担任，也可以由具备履行监护职责条件的被监护人住所地的居民委员会、村民委员会担任。</span><span class="se">\n\n</span><span class="s2">第三十三条</span><span class="se">\u3000</span><span class="s2">具有完全民事行为能力的成年人，可以与其近亲属、其他愿意担任监护人的个人或者组织事先协商，以书面形式确定自己的监护人，在自己丧失或者部分丧失民事行为能力时，由该监护人履行监护职责。</span><span class="se">\n\n</span><span class="s2">第三十四条</span><span class="se">\u3000</span><span class="s2">监护人的职责是代理被监护人实施民事法律行为，保护被监护人的人身权利、财产权利以及其他合法权益等。</span><span class="se">\n\n</span><span class="s2">监护人依法履行监护职责产生的权利，受法律保护。&#39;, &#39;metadata&#39;: &#39;{&#34;source&#34;: &#34;../assets/sample.docx&#34;}&#39;}
+</span></span></span><span class="line"><span class="cl"><span class="s2">    &#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="n">hybrid_vector_search_example_rrf</span><span class="p">(</span><span class="n">client</span><span class="p">,</span> <span class="s2">&#34;监护人需要对子女负哪些责任？&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;
+</span></span></span><span class="line"><span class="cl"><span class="s2">    ====================
+</span></span></span><span class="line"><span class="cl"><span class="s2">    混合向量检索（RRF 融合稠密+稀疏）
+</span></span></span><span class="line"><span class="cl"><span class="s2">    ====================
+</span></span></span><span class="line"><span class="cl"><span class="s2">    {&#39;rank&#39;: 1, &#39;id&#39;: 469859622222796045, &#39;distance&#39;: 0.032522473484277725, &#39;text&#39;: &#39;本条规定的有关组织包括：居民委员会、村民委员会、学校、医疗机构、妇女联合会、残疾人联合会、依法设立的老年人组织、民政部门等。</span><span class="se">\n\n</span><span class="s2">第二十五条</span><span class="se">\u3000</span><span class="s2">自然人以户籍登记或者其他有效身份登记记载的居所为住所；经常居所与住所不一致的，经常居所视为住所。</span><span class="se">\n\n</span><span class="s2">第二节</span><span class="se">\u3000</span><span class="s2">监护</span><span class="se">\n\n</span><span class="s2">第二十六条</span><span class="se">\u3000</span><span class="s2">父母对未成年子女负有抚养、教育和保护的义务。</span><span class="se">\n\n</span><span class="s2">成年子女对父母负有赡养、扶助和保护的义务。</span><span class="se">\n\n</span><span class="s2">第二十七条</span><span class="se">\u3000</span><span class="s2">父母是未成年子女的监护人。</span><span class="se">\n\n</span><span class="s2">未成年人的父母已经死亡或者没有监护能力的，由下列有监护能力的人按顺序担任监护人：</span><span class="se">\n\n</span><span class="s2">（一）祖父母、外祖父母；</span><span class="se">\n\n</span><span class="s2">（二）兄、姐；</span><span class="se">\n\n</span><span class="s2">（三）其他愿意担任监护人的个人或者组织，但是须经未成年人住所地的居民委员会、村民委员会或者民政部门同意。</span><span class="se">\n\n</span><span class="s2">第二十八条</span><span class="se">\u3000</span><span class="s2">无民事行为能力或者限制民事行为能力的成年人，由下列有监护能力的人按顺序担任监护人：</span><span class="se">\n\n</span><span class="s2">（一）配偶；</span><span class="se">\n\n</span><span class="s2">（二）父母、子女；</span><span class="se">\n\n</span><span class="s2">（三）其他近亲属；&#39;, &#39;metadata&#39;: &#39;{&#34;source&#34;: &#34;../assets/sample.docx&#34;}&#39;}
+</span></span></span><span class="line"><span class="cl"><span class="s2">    {&#39;rank&#39;: 2, &#39;id&#39;: 469859622222796048, &#39;distance&#39;: 0.032522473484277725, &#39;text&#39;: &#39;监护人依法履行监护职责产生的权利，受法律保护。</span><span class="se">\n\n</span><span class="s2">监护人不履行监护职责或者侵害被监护人合法权益的，应当承担法律责任。</span><span class="se">\n\n</span><span class="s2">因发生突发事件等紧急情况，监护人暂时无法履行监护职责，被监护人的生活处于无人照料状态的，被监护人住所地的居民委员会、村民委员会或者民政部门应当为被监护人安排必要的临时生活照料措施。</span><span class="se">\n\n</span><span class="s2">第三十五条</span><span class="se">\u3000</span><span class="s2">监护人应当按照最有利于被监护人的原则履行监护职责。监护人除为维护被监护人利益外，不得处分被监护人的财产。</span><span class="se">\n\n</span><span class="s2">未成年人的监护人履行监护职责，在作出与被监护人利益有关的决定时，应当根据被监护人的年龄和智力状况，尊重被监护人的真实意愿。</span><span class="se">\n\n</span><span class="s2">成年人的监护人履行监护职责，应当最大程度地尊重被监护人的真实意愿，保障并协助被监护人实施与其智力、精神健康状况相适应的民事法律行为。对被监护人有能力独立处理的事务，监护人不得干涉。&#39;, &#39;metadata&#39;: &#39;{&#34;source&#34;: &#34;../assets/sample.docx&#34;}&#39;}
+</span></span></span><span class="line"><span class="cl"><span class="s2">    {&#39;rank&#39;: 3, &#39;id&#39;: 469859622222796046, &#39;distance&#39;: 0.03125763311982155, &#39;text&#39;: &#39;（一）配偶；</span><span class="se">\n\n</span><span class="s2">（二）父母、子女；</span><span class="se">\n\n</span><span class="s2">（三）其他近亲属；</span><span class="se">\n\n</span><span class="s2">（四）其他愿意担任监护人的个人或者组织，但是须经被监护人住所地的居民委员会、村民委员会或者民政部门同意。</span><span class="se">\n\n</span><span class="s2">第二十九条</span><span class="se">\u3000</span><span class="s2">被监护人的父母担任监护人的，可以通过遗嘱指定监护人。</span><span class="se">\n\n</span><span class="s2">第三十条</span><span class="se">\u3000</span><span class="s2">依法具有监护资格的人之间可以协议确定监护人。协议确定监护人应当尊重被监护人的真实意愿。</span><span class="se">\n\n</span><span class="s2">第三十一条</span><span class="se">\u3000</span><span class="s2">对监护人的确定有争议的，由被监护人住所地的居民委员会、村民委员会或者民政部门指定监护人，有关当事人对指定不服的，可以向人民法院申请指定监护人；有关当事人也可以直接向人民法院申请指定监护人。</span><span class="se">\n\n</span><span class="s2">居民委员会、村民委员会、民政部门或者人民法院应当尊重被监护人的真实意愿，按照最有利于被监护人的原则在依法具有监护资格的人中指定监护人。&#39;, &#39;metadata&#39;: &#39;{&#34;source&#34;: &#34;../assets/sample.docx&#34;}&#39;}
+</span></span></span><span class="line"><span class="cl"><span class="s2">    {&#39;rank&#39;: 4, &#39;id&#39;: 469859622222796047, &#39;distance&#39;: 0.03125763311982155, &#39;text&#39;: &#39;依据本条第一款规定指定监护人前，被监护人的人身权利、财产权利以及其他合法权益处于无人保护状态的，由被监护人住所地的居民委员会、村民委员会、法律规定的有关组织或者民政部门担任临时监护人。</span><span class="se">\n\n</span><span class="s2">监护人被指定后，不得擅自变更；擅自变更的，不免除被指定的监护人的责任。</span><span class="se">\n\n</span><span class="s2">第三十二条</span><span class="se">\u3000</span><span class="s2">没有依法具有监护资格的人的，监护人由民政部门担任，也可以由具备履行监护职责条件的被监护人住所地的居民委员会、村民委员会担任。</span><span class="se">\n\n</span><span class="s2">第三十三条</span><span class="se">\u3000</span><span class="s2">具有完全民事行为能力的成年人，可以与其近亲属、其他愿意担任监护人的个人或者组织事先协商，以书面形式确定自己的监护人，在自己丧失或者部分丧失民事行为能力时，由该监护人履行监护职责。</span><span class="se">\n\n</span><span class="s2">第三十四条</span><span class="se">\u3000</span><span class="s2">监护人的职责是代理被监护人实施民事法律行为，保护被监护人的人身权利、财产权利以及其他合法权益等。</span><span class="se">\n\n</span><span class="s2">监护人依法履行监护职责产生的权利，受法律保护。&#39;, &#39;metadata&#39;: &#39;{&#34;source&#34;: &#34;../assets/sample.docx&#34;}&#39;}
+</span></span></span><span class="line"><span class="cl"><span class="s2">    {&#39;rank&#39;: 5, &#39;id&#39;: 469859622222796049, &#39;distance&#39;: 0.015625, &#39;text&#39;: &#39;第三十六条</span><span class="se">\u3000</span><span class="s2">监护人有下列情形之一的，人民法院根据有关个人或者组织的申请，撤销其监护人资格，安排必要的临时监护措施，并按照最有利于被监护人的原则依法指定监护人：</span><span class="se">\n\n</span><span class="s2">（一）实施严重损害被监护人身心健康的行为；</span><span class="se">\n\n</span><span class="s2">（二）怠于履行监护职责，或者无法履行监护职责且拒绝将监护职责部分或者全部委托给他人，导致被监护人处于危困状态；</span><span class="se">\n\n</span><span class="s2">（三）实施严重侵害被监护人合法权益的其他行为。</span><span class="se">\n\n</span><span class="s2">本条规定的有关个人、组织包括：其他依法具有监护资格的人，居民委员会、村民委员会、学校、医疗机构、妇女联合会、残疾人联合会、未成年人保护组织、依法设立的老年人组织、民政部门等。</span><span class="se">\n\n</span><span class="s2">前款规定的个人和民政部门以外的组织未及时向人民法院申请撤销监护人资格的，民政部门应当向人民法院申请。</span><span class="se">\n\n</span><span class="s2">第三十七条</span><span class="se">\u3000</span><span class="s2">依法负担被监护人抚养费、赡养费、扶养费的父母、子女、配偶等，被人民法院撤销监护人资格后，应当继续履行负担的义务。&#39;, &#39;metadata&#39;: &#39;{&#34;source&#34;: &#34;../assets/sample.docx&#34;}&#39;}
+</span></span></span><span class="line"><span class="cl"><span class="s2">    &#34;&#34;&#34;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h5 id="scalar-search">scalar search
+</h5><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span><span class="lnt">51
+</span><span class="lnt">52
+</span><span class="lnt">53
+</span><span class="lnt">54
+</span><span class="lnt">55
+</span><span class="lnt">56
+</span><span class="lnt">57
+</span><span class="lnt">58
+</span><span class="lnt">59
+</span><span class="lnt">60
+</span><span class="lnt">61
+</span><span class="lnt">62
+</span><span class="lnt">63
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-py" data-lang="py"><span class="line"><span class="cl"><span class="c1"># 11_test_scalar_query.py</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">pymilvus</span> <span class="kn">import</span> <span class="n">MilvusClient</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">COLLECTION_NAME</span> <span class="o">=</span> <span class="s2">&#34;demo_collection&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">get_milvus_client</span><span class="p">(</span><span class="n">uri</span><span class="p">:</span> <span class="nb">str</span><span class="o">=</span><span class="s2">&#34;http://192.168.1.109:19530&#34;</span><span class="p">,</span> <span class="n">token</span><span class="p">:</span> <span class="nb">str</span><span class="o">=</span><span class="s2">&#34;&#34;</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">MilvusClient</span><span class="p">(</span><span class="n">uri</span><span class="o">=</span><span class="n">uri</span><span class="p">,</span> <span class="n">token</span><span class="o">=</span><span class="n">token</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">scalar_query_examples</span><span class="p">(</span><span class="n">client</span><span class="p">,</span> <span class="n">like_keyword</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&#34;大模型&#34;</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="c1"># 对text字段进行检索</span>
+</span></span><span class="line"><span class="cl">    <span class="k">try</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="n">like_res</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">query</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">            <span class="n">collection_name</span><span class="o">=</span><span class="n">COLLECTION_NAME</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">            <span class="nb">filter</span><span class="o">=</span><span class="sa">f</span><span class="s1">&#39;text like &#34;%</span><span class="si">{</span><span class="n">like_keyword</span><span class="si">}</span><span class="s1">%&#34;&#39;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">            <span class="n">output_fields</span><span class="o">=</span><span class="p">[</span><span class="s2">&#34;id&#34;</span><span class="p">,</span> <span class="s2">&#34;text&#34;</span><span class="p">],</span>
+</span></span><span class="line"><span class="cl">            <span class="n">limit</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">print</span><span class="p">(</span><span class="s2">&#34;</span><span class="se">\n</span><span class="s2">&#34;</span> <span class="o">+</span> <span class="s2">&#34;=&#34;</span> <span class="o">*</span> <span class="mi">20</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;标量检索（query: text like &#34;%</span><span class="si">{</span><span class="n">like_keyword</span><span class="si">}</span><span class="s1">%&#34;）&#39;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">print</span><span class="p">(</span><span class="s2">&#34;=&#34;</span> <span class="o">*</span> <span class="mi">20</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">like_res</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="nb">print</span><span class="p">({</span><span class="s2">&#34;id&#34;</span><span class="p">:</span> <span class="n">row</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&#34;id&#34;</span><span class="p">),</span> <span class="s2">&#34;text&#34;</span><span class="p">:</span> <span class="n">row</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&#34;text&#34;</span><span class="p">)})</span>
+</span></span><span class="line"><span class="cl">    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">print</span><span class="p">(</span><span class="s2">&#34;VARCHAR like 过滤失败：&#34;</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># 对 metadata 字段进行检索</span>
+</span></span><span class="line"><span class="cl">    <span class="k">try</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="n">json_res</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">query</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">            <span class="n">collection_name</span><span class="o">=</span><span class="n">COLLECTION_NAME</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">            <span class="nb">filter</span><span class="o">=</span><span class="s1">&#39;metadata[&#34;source&#34;] like &#34;</span><span class="si">%s</span><span class="s1">ample%&#34;&#39;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">            <span class="n">output_fields</span><span class="o">=</span><span class="p">[</span><span class="s2">&#34;id&#34;</span><span class="p">,</span> <span class="s2">&#34;metadata&#34;</span><span class="p">],</span>
+</span></span><span class="line"><span class="cl">            <span class="n">limit</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">print</span><span class="p">(</span><span class="s2">&#34;</span><span class="se">\n</span><span class="s2">&#34;</span> <span class="o">+</span> <span class="s2">&#34;=&#34;</span> <span class="o">*</span> <span class="mi">20</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;标量检索（query: metadata[&#34;source&#34;] like &#34;</span><span class="si">%s</span><span class="s1">ample%&#34;）&#39;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">print</span><span class="p">(</span><span class="s2">&#34;=&#34;</span> <span class="o">*</span> <span class="mi">20</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">json_res</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="nb">print</span><span class="p">({</span><span class="s2">&#34;id&#34;</span><span class="p">:</span> <span class="n">row</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&#34;id&#34;</span><span class="p">),</span> <span class="s2">&#34;metadata&#34;</span><span class="p">:</span> <span class="n">row</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&#34;metadata&#34;</span><span class="p">)})</span>
+</span></span><span class="line"><span class="cl">    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">print</span><span class="p">(</span><span class="s2">&#34;JSON 过滤失败（metadata 结构不匹配或不支持该表达式）：&#34;</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="n">client</span> <span class="o">=</span> <span class="n">get_milvus_client</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">    <span class="n">scalar_query_examples</span><span class="p">(</span><span class="n">client</span><span class="p">,</span><span class="s2">&#34;监护人&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;
+</span></span></span><span class="line"><span class="cl"><span class="s2">    ====================
+</span></span></span><span class="line"><span class="cl"><span class="s2">    标量检索（query: text like &#34;%监护人%&#34;）
+</span></span></span><span class="line"><span class="cl"><span class="s2">    ====================
+</span></span></span><span class="line"><span class="cl"><span class="s2">    {&#39;id&#39;: 469859622222796067, &#39;text&#39;: &#39;八周岁以上的未成年人不能辨认自己行为的，适用前款规定。</span><span class="se">\n\n</span><span class="s2">第二十二条</span><span class="se">\u3000</span><span class="s2">不能完全辨认自己行为的成年人为限制民事行为能力人，实施民事法律行为由其法定代理人代理或者经其法定代理人同意、追认；但是，可以独立实施纯获利益的民事法律行为或者与其智力、精神健康状况相适应的民事法律行为。</span><span class="se">\n\n</span><span class="s2">第二十三条</span><span class="se">\u3000</span><span class="s2">无民事行为能力人、限制民事行为能力人的监护人是其法定代理人。</span><span class="se">\n\n</span><span class="s2">第二十四条</span><span class="se">\u3000</span><span class="s2">不能辨认或者不能完全辨认自己行为的成年人，其利害关系人或者有关组织，可以向人民法院申请认定该成年人为无民事行为能力人或者限制民事行为能力人。</span><span class="se">\n\n</span><span class="s2">被人民法院认定为无民事行为能力人或者限制民事行为能力人的，经本人、利害关系人或者有关组织申请，人民法院可以根据其智力、精神健康恢复的状况，认定该成年人恢复为限制民事行为能力人或者完全民事行为能力人。&#39;}
+</span></span></span><span class="line"><span class="cl"><span class="s2">    {&#39;id&#39;: 469859622222796068, &#39;text&#39;: &#39;本条规定的有关组织包括：居民委员会、村民委员会、学校、医疗机构、妇女联合会、残疾人联合会、依法设立的老年人组织、民政部门等。</span><span class="se">\n\n</span><span class="s2">第二十五条</span><span class="se">\u3000</span><span class="s2">自然人以户籍登记或者其他有效身份登记记载的居所为住所；经常居所与住所不一致的，经常居所视为住所。</span><span class="se">\n\n</span><span class="s2">第二节</span><span class="se">\u3000</span><span class="s2">监护</span><span class="se">\n\n</span><span class="s2">第二十六条</span><span class="se">\u3000</span><span class="s2">父母对未成年子女负有抚养、教育和保护的义务。</span><span class="se">\n\n</span><span class="s2">成年子女对父母负有赡养、扶助和保护的义务。</span><span class="se">\n\n</span><span class="s2">第二十七条</span><span class="se">\u3000</span><span class="s2">父母是未成年子女的监护人。</span><span class="se">\n\n</span><span class="s2">未成年人的父母已经死亡或者没有监护能力的，由下列有监护能力的人按顺序担任监护人：</span><span class="se">\n\n</span><span class="s2">（一）祖父母、外祖父母；</span><span class="se">\n\n</span><span class="s2">（二）兄、姐；</span><span class="se">\n\n</span><span class="s2">（三）其他愿意担任监护人的个人或者组织，但是须经未成年人住所地的居民委员会、村民委员会或者民政部门同意。</span><span class="se">\n\n</span><span class="s2">第二十八条</span><span class="se">\u3000</span><span class="s2">无民事行为能力或者限制民事行为能力的成年人，由下列有监护能力的人按顺序担任监护人：</span><span class="se">\n\n</span><span class="s2">（一）配偶；</span><span class="se">\n\n</span><span class="s2">（二）父母、子女；</span><span class="se">\n\n</span><span class="s2">（三）其他近亲属；&#39;}
+</span></span></span><span class="line"><span class="cl"><span class="s2">    {&#39;id&#39;: 469859622222796069, &#39;text&#39;: &#39;（一）配偶；</span><span class="se">\n\n</span><span class="s2">（二）父母、子女；</span><span class="se">\n\n</span><span class="s2">（三）其他近亲属；</span><span class="se">\n\n</span><span class="s2">（四）其他愿意担任监护人的个人或者组织，但是须经被监护人住所地的居民委员会、村民委员会或者民政部门同意。</span><span class="se">\n\n</span><span class="s2">第二十九条</span><span class="se">\u3000</span><span class="s2">被监护人的父母担任监护人的，可以通过遗嘱指定监护人。</span><span class="se">\n\n</span><span class="s2">第三十条</span><span class="se">\u3000</span><span class="s2">依法具有监护资格的人之间可以协议确定监护人。协议确定监护人应当尊重被监护人的真实意愿。</span><span class="se">\n\n</span><span class="s2">第三十一条</span><span class="se">\u3000</span><span class="s2">对监护人的确定有争议的，由被监护人住所地的居民委员会、村民委员会或者民政部门指定监护人，有关当事人对指定不服的，可以向人民法院申请指定监护人；有关当事人也可以直接向人民法院申请指定监护人。</span><span class="se">\n\n</span><span class="s2">居民委员会、村民委员会、民政部门或者人民法院应当尊重被监护人的真实意愿，按照最有利于被监护人的原则在依法具有监护资格的人中指定监护人。&#39;}
+</span></span></span><span class="line"><span class="cl"><span class="s2">    {&#39;id&#39;: 469859622222796070, &#39;text&#39;: &#39;依据本条第一款规定指定监护人前，被监护人的人身权利、财产权利以及其他合法权益处于无人保护状态的，由被监护人住所地的居民委员会、村民委员会、法律规定的有关组织或者民政部门担任临时监护人。</span><span class="se">\n\n</span><span class="s2">监护人被指定后，不得擅自变更；擅自变更的，不免除被指定的监护人的责任。</span><span class="se">\n\n</span><span class="s2">第三十二条</span><span class="se">\u3000</span><span class="s2">没有依法具有监护资格的人的，监护人由民政部门担任，也可以由具备履行监护职责条件的被监护人住所地的居民委员会、村民委员会担任。</span><span class="se">\n\n</span><span class="s2">第三十三条</span><span class="se">\u3000</span><span class="s2">具有完全民事行为能力的成年人，可以与其近亲属、其他愿意担任监护人的个人或者组织事先协商，以书面形式确定自己的监护人，在自己丧失或者部分丧失民事行为能力时，由该监护人履行监护职责。</span><span class="se">\n\n</span><span class="s2">第三十四条</span><span class="se">\u3000</span><span class="s2">监护人的职责是代理被监护人实施民事法律行为，保护被监护人的人身权利、财产权利以及其他合法权益等。</span><span class="se">\n\n</span><span class="s2">监护人依法履行监护职责产生的权利，受法律保护。&#39;}
+</span></span></span><span class="line"><span class="cl"><span class="s2">    {&#39;id&#39;: 469859622222796071, &#39;text&#39;: &#39;监护人依法履行监护职责产生的权利，受法律保护。</span><span class="se">\n\n</span><span class="s2">监护人不履行监护职责或者侵害被监护人合法权益的，应当承担法律责任。</span><span class="se">\n\n</span><span class="s2">因发生突发事件等紧急情况，监护人暂时无法履行监护职责，被监护人的生活处于无人照料状态的，被监护人住所地的居民委员会、村民委员会或者民政部门应当为被监护人安排必要的临时生活照料措施。</span><span class="se">\n\n</span><span class="s2">第三十五条</span><span class="se">\u3000</span><span class="s2">监护人应当按照最有利于被监护人的原则履行监护职责。监护人除为维护被监护人利益外，不得处分被监护人的财产。</span><span class="se">\n\n</span><span class="s2">未成年人的监护人履行监护职责，在作出与被监护人利益有关的决定时，应当根据被监护人的年龄和智力状况，尊重被监护人的真实意愿。</span><span class="se">\n\n</span><span class="s2">成年人的监护人履行监护职责，应当最大程度地尊重被监护人的真实意愿，保障并协助被监护人实施与其智力、精神健康状况相适应的民事法律行为。对被监护人有能力独立处理的事务，监护人不得干涉。&#39;}
+</span></span></span><span class="line"><span class="cl"><span class="s2">    
+</span></span></span><span class="line"><span class="cl"><span class="s2">    ====================
+</span></span></span><span class="line"><span class="cl"><span class="s2">    标量检索（query: metadata[&#34;source&#34;] like &#34;</span><span class="si">%s</span><span class="s2">ample%&#34;）
+</span></span></span><span class="line"><span class="cl"><span class="s2">    ====================
+</span></span></span><span class="line"><span class="cl"><span class="s2">    {&#39;id&#39;: 469859622222796059, &#39;metadata&#39;: {&#39;source&#39;: &#39;../assets/sample.docx&#39;}}
+</span></span></span><span class="line"><span class="cl"><span class="s2">    {&#39;id&#39;: 469859622222796060, &#39;metadata&#39;: {&#39;source&#39;: &#39;../assets/sample.docx&#39;}}
+</span></span></span><span class="line"><span class="cl"><span class="s2">    {&#39;id&#39;: 469859622222796061, &#39;metadata&#39;: {&#39;source&#39;: &#39;../assets/sample.docx&#39;}}
+</span></span></span><span class="line"><span class="cl"><span class="s2">    {&#39;id&#39;: 469859622222796062, &#39;metadata&#39;: {&#39;source&#39;: &#39;../assets/sample.docx&#39;}}
+</span></span></span><span class="line"><span class="cl"><span class="s2">    {&#39;id&#39;: 469859622222796063, &#39;metadata&#39;: {&#39;source&#39;: &#39;../assets/sample.docx&#39;}}
+</span></span></span><span class="line"><span class="cl"><span class="s2">    &#34;&#34;&#34;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="generate">Generate
+</h4><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span><span class="lnt">51
+</span><span class="lnt">52
+</span><span class="lnt">53
+</span><span class="lnt">54
+</span><span class="lnt">55
+</span><span class="lnt">56
+</span><span class="lnt">57
+</span><span class="lnt">58
+</span><span class="lnt">59
+</span><span class="lnt">60
+</span><span class="lnt">61
+</span><span class="lnt">62
+</span><span class="lnt">63
+</span><span class="lnt">64
+</span><span class="lnt">65
+</span><span class="lnt">66
+</span><span class="lnt">67
+</span><span class="lnt">68
+</span><span class="lnt">69
+</span><span class="lnt">70
+</span><span class="lnt">71
+</span><span class="lnt">72
+</span><span class="lnt">73
+</span><span class="lnt">74
+</span><span class="lnt">75
+</span><span class="lnt">76
+</span><span class="lnt">77
+</span><span class="lnt">78
+</span><span class="lnt">79
+</span><span class="lnt">80
+</span><span class="lnt">81
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-py" data-lang="py"><span class="line"><span class="cl"><span class="s2">&#34;&#34;&#34;
+</span></span></span><span class="line"><span class="cl"><span class="s2">    12_generate.py
+</span></span></span><span class="line"><span class="cl"><span class="s2">&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">os</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Dict</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">dotenv</span> <span class="kn">import</span> <span class="n">load_dotenv</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">langchain_openai</span> <span class="kn">import</span> <span class="n">ChatOpenAI</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">pymilvus</span> <span class="kn">import</span> <span class="n">MilvusClient</span><span class="p">,</span> <span class="n">AnnSearchRequest</span><span class="p">,</span> <span class="n">RRFRanker</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">FlagEmbedding</span> <span class="kn">import</span> <span class="n">BGEM3FlagModel</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">load_dotenv</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl"><span class="n">COLLECTION_NAME</span><span class="o">=</span><span class="s2">&#34;demo_collection&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">get_milvus_client</span><span class="p">(</span><span class="n">uri</span><span class="p">:</span> <span class="nb">str</span><span class="o">=</span><span class="s2">&#34;http://192.168.1.109:19530&#34;</span><span class="p">,</span> <span class="n">token</span><span class="p">:</span> <span class="nb">str</span><span class="o">=</span><span class="s2">&#34;&#34;</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">MilvusClient</span><span class="p">(</span><span class="n">uri</span><span class="o">=</span><span class="n">uri</span><span class="p">,</span> <span class="n">token</span><span class="o">=</span><span class="n">token</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">get_bge_m3_model</span><span class="p">():</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">BGEM3FlagModel</span><span class="p">(</span><span class="n">model_name_or_path</span><span class="o">=</span><span class="s2">&#34;../assets/models/bge-m3&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">encode_query</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]:</span>
+</span></span><span class="line"><span class="cl">    <span class="n">all_embeddings</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">encode</span><span class="p">([</span><span class="n">query</span><span class="p">],</span> <span class="n">return_dense</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">return_sparse</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">dense_vec</span> <span class="o">=</span> <span class="n">all_embeddings</span><span class="p">[</span><span class="s2">&#34;dense_vecs&#34;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">    <span class="n">sparse_vec</span> <span class="o">=</span> <span class="n">all_embeddings</span><span class="p">[</span><span class="s2">&#34;lexical_weights&#34;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">dense_vec</span><span class="p">,</span> <span class="n">sparse_vec</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">hybrid_vector_search_example_rrf</span><span class="p">(</span><span class="n">client</span><span class="p">:</span> <span class="n">MilvusClient</span><span class="p">,</span> <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">limit</span><span class="p">:</span> <span class="nb">int</span><span class="o">=</span><span class="mi">5</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="n">model</span> <span class="o">=</span> <span class="n">get_bge_m3_model</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">    <span class="n">dense_vec</span><span class="p">,</span> <span class="n">sparse_vec</span> <span class="o">=</span> <span class="n">encode_query</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">query</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="n">dense_req</span> <span class="o">=</span> <span class="n">AnnSearchRequest</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">        <span class="n">data</span><span class="o">=</span><span class="p">[</span><span class="n">dense_vec</span><span class="p">],</span>
+</span></span><span class="line"><span class="cl">        <span class="n">anns_field</span><span class="o">=</span><span class="s2">&#34;dense_vector&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="n">param</span><span class="o">=</span><span class="p">{</span><span class="s2">&#34;metric_type&#34;</span><span class="p">:</span> <span class="s2">&#34;L2&#34;</span><span class="p">},</span>
+</span></span><span class="line"><span class="cl">        <span class="n">limit</span><span class="o">=</span><span class="n">limit</span>
+</span></span><span class="line"><span class="cl">    <span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="n">sparse_req</span> <span class="o">=</span> <span class="n">AnnSearchRequest</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">        <span class="n">data</span><span class="o">=</span><span class="p">[</span><span class="n">sparse_vec</span><span class="p">],</span>
+</span></span><span class="line"><span class="cl">        <span class="n">anns_field</span><span class="o">=</span><span class="s2">&#34;sparse_vector&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="n">param</span><span class="o">=</span><span class="p">{</span><span class="s2">&#34;metric_type&#34;</span><span class="p">:</span> <span class="s2">&#34;IP&#34;</span><span class="p">},</span>
+</span></span><span class="line"><span class="cl">        <span class="n">limit</span><span class="o">=</span><span class="n">limit</span>
+</span></span><span class="line"><span class="cl">    <span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="n">results</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">hybrid_search</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">        <span class="n">collection_name</span><span class="o">=</span><span class="n">COLLECTION_NAME</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="n">reqs</span><span class="o">=</span><span class="p">[</span><span class="n">dense_req</span><span class="p">,</span> <span class="n">sparse_req</span><span class="p">],</span>
+</span></span><span class="line"><span class="cl">        <span class="n">ranker</span><span class="o">=</span><span class="n">RRFRanker</span><span class="p">(</span><span class="mi">60</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">        <span class="n">limit</span><span class="o">=</span><span class="n">limit</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="n">output_fields</span><span class="o">=</span><span class="p">[</span><span class="s2">&#34;id&#34;</span><span class="p">,</span><span class="s2">&#34;text&#34;</span><span class="p">,</span><span class="s2">&#34;metadata&#34;</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">    <span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="nb">print</span><span class="p">(</span><span class="s2">&#34;混合向量检索（RRF 融合稠密+稀疏）&#34;</span><span class="p">,</span> <span class="n">results</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">results</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">rag_demo</span><span class="p">(</span><span class="n">client</span><span class="p">:</span> <span class="n">MilvusClient</span><span class="p">,</span> <span class="n">query</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="n">llm</span> <span class="o">=</span> <span class="n">ChatOpenAI</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">        <span class="n">model</span><span class="o">=</span><span class="s2">&#34;glm-5.3-flash&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="n">temperature</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="n">api_key</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">&#34;ZAI_API_KEY&#34;</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">        <span class="n">base_url</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">&#34;ZAI_BASE_URL&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">retrieval_res</span> <span class="o">=</span> <span class="n">hybrid_vector_search_example_rrf</span><span class="p">(</span><span class="n">client</span><span class="p">,</span> <span class="n">query</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="n">context</span> <span class="o">=</span> <span class="s2">&#34;</span><span class="se">\n</span><span class="s2">&#34;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">hit</span><span class="p">[</span><span class="s2">&#34;entity&#34;</span><span class="p">][</span><span class="s2">&#34;text&#34;</span><span class="p">]</span> <span class="k">for</span> <span class="n">hit</span> <span class="ow">in</span> <span class="n">retrieval_res</span><span class="p">[</span><span class="mi">0</span><span class="p">]])</span>
+</span></span><span class="line"><span class="cl">    <span class="nb">print</span><span class="p">(</span><span class="s2">&#34;-&#34;</span> <span class="o">*</span> <span class="mi">50</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&#34;context:</span><span class="si">{</span><span class="n">context</span><span class="si">}</span><span class="s2">&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&#34;query:</span><span class="si">{</span><span class="n">query</span><span class="si">}</span><span class="s2">&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="nb">print</span><span class="p">(</span><span class="s2">&#34;-&#34;</span><span class="o">*</span><span class="mi">50</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">message_list</span> <span class="o">=</span> <span class="p">[</span>
+</span></span><span class="line"><span class="cl">        <span class="p">{</span><span class="s2">&#34;role&#34;</span><span class="p">:</span><span class="s2">&#34;system&#34;</span><span class="p">,</span><span class="s2">&#34;content&#34;</span><span class="p">:</span><span class="s2">&#34;你是一个专业的法律问答机器人，请根据上下文回答问题，当上下文无法回答问题时，请回答“根据上下文无法回答该问题&#34;</span><span class="p">},</span>
+</span></span><span class="line"><span class="cl">        <span class="p">{</span><span class="s2">&#34;role&#34;</span><span class="p">:</span><span class="s2">&#34;user&#34;</span><span class="p">,</span><span class="s2">&#34;content&#34;</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&#34;根据以下上下文回答问题：</span><span class="si">{</span><span class="n">context</span><span class="si">}</span><span class="se">\n</span><span class="s2">问题：</span><span class="si">{</span><span class="n">query</span><span class="si">}</span><span class="s2">&#34;</span><span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="p">]</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c1"># 生成文本</span>
+</span></span><span class="line"><span class="cl">    <span class="n">res</span> <span class="o">=</span> <span class="n">llm</span><span class="o">.</span><span class="n">invoke</span><span class="p">(</span><span class="n">message_list</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="nb">print</span><span class="p">(</span><span class="n">res</span><span class="o">.</span><span class="n">content</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="n">client</span> <span class="o">=</span> <span class="n">get_milvus_client</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">    <span class="n">rag_demo</span><span class="p">(</span><span class="n">client</span><span class="p">,</span><span class="s2">&#34;父母对未成年子女是否具有抚养权？&#34;</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div>
 </section>
 
 
