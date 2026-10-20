@@ -1,0 +1,1015 @@
+<!DOCTYPE html>
+<html lang="en-us" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="Add a local tool to the agent Add a tool schema in an OpenAI SDK call 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 55 56 57 58 59 60 61 62 63 64 65 66 67 68 69 70 71 72 73 74 75 76 77 78 79 80 81 82 83 84 85 86 87 88 89 90 91 92 &#34;&#34;&#34; 01_test_agent_openai.py &#34;&#34;&#34; import json import os from dotenv import load_dotenv from openai import OpenAI load_dotenv() # 1. 指向智谱的 OpenAI 兼容端点 client = OpenAI( api_key=os.getenv(&#34;ZAI_API_KEY&#34;), base_url=os.getenv(&#34;ZAI_BASE_URL&#34;) ) # 2. 通过JSON结构定义工具，包括工具名称，描述，參数等 tools = [ { &#34;type&#34;: &#34;function&#34;, # 类型，都是function，函数调用 &#34;function&#34;: { &#34;name&#34;: &#34;get_weather&#34;, # 函数名，工具方法名相同 &#34;description&#34;: &#34;获取地区特定日期的天气预报.&#34;, # 对函数的作用进行描述 &#34;parameters&#34;: { &#34;type&#34;: &#34;object&#34;, # 指定参数类型为object &#34;properties&#34;: { &#34;city&#34;: { # 第一个参数 &#34;type&#34;: &#34;string&#34;, # 参数类型 &#34;description&#34;: &#34;城市名称，例如 北京市&#34;, }, &#34;date&#34;: { # 第二个参数 &#34;type&#34;: &#34;string&#34;, # 参数类型 &#34;description&#34;: &#34;想要查询的天气日期 YYYY-MM-dd,例如 2023-12-25&#34; } }, &#34;required&#34;: [&#34;city&#34;, &#34;date&#34;], # 调用工具的话必须回传这两个参数 &#34;additionalProperties&#34;: False, # 额外的参数，不允许；限制大模型除了必传的参数，其他都不允许 }, &#34;strict&#34;: True, # 严格调用 }, }, ] # 工具函数，函数名与tools中相同 def get_weather(city, date): # 后方的天气可以调用天气预报的接口 return f&#34;{city} 今天 {date}天气是: 气象局播报【晴天，温度是 25 度，风向是南风。】&#34; # 假设来自气象局的天气数据 # 用户提示词 messages = [ # 注意，需要联网才能返回正确的时间 {&#34;role&#34;:&#34;system&#34;, &#34;content&#34;:&#34;如果大模型调用工具，日期必须按照格式传递： yyyy-MM-dd ；如果涉及今天，昨天，必须计算日期&#34;}, {&#34;role&#34;: &#34;user&#34;, &#34;content&#34;: &#34;北京 今天 日天气如何?&#34;} ] # 3. Prompt the model with tools defined response = client.chat.completions.create( model=&#34;glm-5.3-flash&#34;, # 或 &#34;glm-5.3&#34; messages=messages, tools=tools, ) for tool_call in response.choices[0].message.tool_calls or []: if tool_call.function.name == &#34;get_weather&#34;: # 获取大模型返回的参数 args = json.loads(tool_call.function.arguments) weather = get_weather(args[&#34;city&#34;], args[&#34;date&#34;]) # 4. 回传 assistant 的 tool_calls 消息（AI提示词） messages.append(response.choices[0].message) # 5. 将工具函数的执行结果添加到消息列表中（工具提示词） messages.append( { &#34;role&#34;: &#34;tool&#34;, &#34;tool_call_id&#34;: tool_call.id, &#34;content&#34;: json.dumps({&#34;weather&#34;: weather}), } ) # 6. 再次调用模型，生成最终回复 response = client.chat.completions.create( model=&#34;glm-5.3-flash&#34;, messages=messages, tools=tools, ) print(response.choices[0].message.content) response\n">
+<title>[Agent]Agents</title>
+
+<link rel='canonical' href='https://YLine-hub.github.io/p/agentagents/'>
+
+<link rel="stylesheet" href="/scss/style.min.663803bebe609202d5b39d848f2d7c2dc8b598a2d879efa079fa88893d29c49c.css"><meta property='og:title' content="[Agent]Agents">
+<meta property='og:description' content="Add a local tool to the agent Add a tool schema in an OpenAI SDK call 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 55 56 57 58 59 60 61 62 63 64 65 66 67 68 69 70 71 72 73 74 75 76 77 78 79 80 81 82 83 84 85 86 87 88 89 90 91 92 &#34;&#34;&#34; 01_test_agent_openai.py &#34;&#34;&#34; import json import os from dotenv import load_dotenv from openai import OpenAI load_dotenv() # 1. 指向智谱的 OpenAI 兼容端点 client = OpenAI( api_key=os.getenv(&#34;ZAI_API_KEY&#34;), base_url=os.getenv(&#34;ZAI_BASE_URL&#34;) ) # 2. 通过JSON结构定义工具，包括工具名称，描述，參数等 tools = [ { &#34;type&#34;: &#34;function&#34;, # 类型，都是function，函数调用 &#34;function&#34;: { &#34;name&#34;: &#34;get_weather&#34;, # 函数名，工具方法名相同 &#34;description&#34;: &#34;获取地区特定日期的天气预报.&#34;, # 对函数的作用进行描述 &#34;parameters&#34;: { &#34;type&#34;: &#34;object&#34;, # 指定参数类型为object &#34;properties&#34;: { &#34;city&#34;: { # 第一个参数 &#34;type&#34;: &#34;string&#34;, # 参数类型 &#34;description&#34;: &#34;城市名称，例如 北京市&#34;, }, &#34;date&#34;: { # 第二个参数 &#34;type&#34;: &#34;string&#34;, # 参数类型 &#34;description&#34;: &#34;想要查询的天气日期 YYYY-MM-dd,例如 2023-12-25&#34; } }, &#34;required&#34;: [&#34;city&#34;, &#34;date&#34;], # 调用工具的话必须回传这两个参数 &#34;additionalProperties&#34;: False, # 额外的参数，不允许；限制大模型除了必传的参数，其他都不允许 }, &#34;strict&#34;: True, # 严格调用 }, }, ] # 工具函数，函数名与tools中相同 def get_weather(city, date): # 后方的天气可以调用天气预报的接口 return f&#34;{city} 今天 {date}天气是: 气象局播报【晴天，温度是 25 度，风向是南风。】&#34; # 假设来自气象局的天气数据 # 用户提示词 messages = [ # 注意，需要联网才能返回正确的时间 {&#34;role&#34;:&#34;system&#34;, &#34;content&#34;:&#34;如果大模型调用工具，日期必须按照格式传递： yyyy-MM-dd ；如果涉及今天，昨天，必须计算日期&#34;}, {&#34;role&#34;: &#34;user&#34;, &#34;content&#34;: &#34;北京 今天 日天气如何?&#34;} ] # 3. Prompt the model with tools defined response = client.chat.completions.create( model=&#34;glm-5.3-flash&#34;, # 或 &#34;glm-5.3&#34; messages=messages, tools=tools, ) for tool_call in response.choices[0].message.tool_calls or []: if tool_call.function.name == &#34;get_weather&#34;: # 获取大模型返回的参数 args = json.loads(tool_call.function.arguments) weather = get_weather(args[&#34;city&#34;], args[&#34;date&#34;]) # 4. 回传 assistant 的 tool_calls 消息（AI提示词） messages.append(response.choices[0].message) # 5. 将工具函数的执行结果添加到消息列表中（工具提示词） messages.append( { &#34;role&#34;: &#34;tool&#34;, &#34;tool_call_id&#34;: tool_call.id, &#34;content&#34;: json.dumps({&#34;weather&#34;: weather}), } ) # 6. 再次调用模型，生成最终回复 response = client.chat.completions.create( model=&#34;glm-5.3-flash&#34;, messages=messages, tools=tools, ) print(response.choices[0].message.content) response\n">
+<meta property='og:url' content='https://YLine-hub.github.io/p/agentagents/'>
+<meta property='og:site_name' content='リンボの個人ブログ'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:published_time' content='2026-10-20T15:14:14&#43;08:00'/><meta property='article:modified_time' content='2026-10-20T15:14:14&#43;08:00'/>
+<meta name="twitter:title" content="[Agent]Agents">
+<meta name="twitter:description" content="Add a local tool to the agent Add a tool schema in an OpenAI SDK call 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 55 56 57 58 59 60 61 62 63 64 65 66 67 68 69 70 71 72 73 74 75 76 77 78 79 80 81 82 83 84 85 86 87 88 89 90 91 92 &#34;&#34;&#34; 01_test_agent_openai.py &#34;&#34;&#34; import json import os from dotenv import load_dotenv from openai import OpenAI load_dotenv() # 1. 指向智谱的 OpenAI 兼容端点 client = OpenAI( api_key=os.getenv(&#34;ZAI_API_KEY&#34;), base_url=os.getenv(&#34;ZAI_BASE_URL&#34;) ) # 2. 通过JSON结构定义工具，包括工具名称，描述，參数等 tools = [ { &#34;type&#34;: &#34;function&#34;, # 类型，都是function，函数调用 &#34;function&#34;: { &#34;name&#34;: &#34;get_weather&#34;, # 函数名，工具方法名相同 &#34;description&#34;: &#34;获取地区特定日期的天气预报.&#34;, # 对函数的作用进行描述 &#34;parameters&#34;: { &#34;type&#34;: &#34;object&#34;, # 指定参数类型为object &#34;properties&#34;: { &#34;city&#34;: { # 第一个参数 &#34;type&#34;: &#34;string&#34;, # 参数类型 &#34;description&#34;: &#34;城市名称，例如 北京市&#34;, }, &#34;date&#34;: { # 第二个参数 &#34;type&#34;: &#34;string&#34;, # 参数类型 &#34;description&#34;: &#34;想要查询的天气日期 YYYY-MM-dd,例如 2023-12-25&#34; } }, &#34;required&#34;: [&#34;city&#34;, &#34;date&#34;], # 调用工具的话必须回传这两个参数 &#34;additionalProperties&#34;: False, # 额外的参数，不允许；限制大模型除了必传的参数，其他都不允许 }, &#34;strict&#34;: True, # 严格调用 }, }, ] # 工具函数，函数名与tools中相同 def get_weather(city, date): # 后方的天气可以调用天气预报的接口 return f&#34;{city} 今天 {date}天气是: 气象局播报【晴天，温度是 25 度，风向是南风。】&#34; # 假设来自气象局的天气数据 # 用户提示词 messages = [ # 注意，需要联网才能返回正确的时间 {&#34;role&#34;:&#34;system&#34;, &#34;content&#34;:&#34;如果大模型调用工具，日期必须按照格式传递： yyyy-MM-dd ；如果涉及今天，昨天，必须计算日期&#34;}, {&#34;role&#34;: &#34;user&#34;, &#34;content&#34;: &#34;北京 今天 日天气如何?&#34;} ] # 3. Prompt the model with tools defined response = client.chat.completions.create( model=&#34;glm-5.3-flash&#34;, # 或 &#34;glm-5.3&#34; messages=messages, tools=tools, ) for tool_call in response.choices[0].message.tool_calls or []: if tool_call.function.name == &#34;get_weather&#34;: # 获取大模型返回的参数 args = json.loads(tool_call.function.arguments) weather = get_weather(args[&#34;city&#34;], args[&#34;date&#34;]) # 4. 回传 assistant 的 tool_calls 消息（AI提示词） messages.append(response.choices[0].message) # 5. 将工具函数的执行结果添加到消息列表中（工具提示词） messages.append( { &#34;role&#34;: &#34;tool&#34;, &#34;tool_call_id&#34;: tool_call.id, &#34;content&#34;: json.dumps({&#34;weather&#34;: weather}), } ) # 6. 再次调用模型，生成最终回复 response = client.chat.completions.create( model=&#34;glm-5.3-flash&#34;, messages=messages, tools=tools, ) print(response.choices[0].message.content) response\n">
+    <link rel="shortcut icon" href="/favicon.ico" />
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        
+            
+            <figure class="site-avatar">
+                <a href="/">
+                
+                    
+                    
+                    
+                        
+                        <img src="/img/avatar_hu_e071e112ba608175.png" width="300"
+                            height="300" class="site-logo" loading="lazy" alt="Avatar">
+                    
+                
+                </a>
+                
+                    <span class="emoji">🏖️</span>
+                
+            </figure>
+            
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">リンボの個人ブログ</a></h1>
+            <h2 class="site-description">努力不一定能获得回报，但不努力一定不会有回报。</h2>
+        </div>
+    </header><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-home" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <polyline points="5 12 3 12 12 3 21 12 19 12" />
+  <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7" />
+  <path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6" />
+</svg>
+
+
+
+                
+                <span>主页</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/%E5%85%B3%E4%BA%8E/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/archives/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/search/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-search" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="10" cy="10" r="7" />
+  <line x1="21" y1="21" x2="15" y2="15" />
+</svg>
+
+
+
+                
+                <span>搜索</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav id="TableOfContents">
+  <ol>
+    <li><a href="#add-a-local-tool-to-the-agent">Add a local tool to the agent</a>
+      <ol>
+        <li><a href="#add-a-tool-schema-in-an-openai-sdk-call">Add a tool schema in an OpenAI SDK call</a></li>
+        <li><a href="#define-a-tool-with-langchain">Define a tool with LangChain</a></li>
+        <li><a href="#add-local-tools-when-building-an-agent">Add local tools when building an agent</a></li>
+      </ol>
+    </li>
+  </ol>
+</nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            <a href="/categories/agent/" >
+                Agent
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/p/agentagents/">[Agent]Agents</a>
+        </h2>
+    
+        
+    </div>
+
+    
+    
+    
+    
+    <footer class="article-time">
+        
+            <div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                <time class="article-time--published">2026-10-20</time>
+            </div>
+        
+
+        
+    </footer>
+    
+
+    
+</div>
+
+</header>
+
+    <section class="article-content">
+    
+    
+    <h2 id="add-a-local-tool-to-the-agent">Add a local tool to the agent
+</h2><h3 id="add-a-tool-schema-in-an-openai-sdk-call">Add a tool schema in an OpenAI SDK call
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span><span class="lnt">51
+</span><span class="lnt">52
+</span><span class="lnt">53
+</span><span class="lnt">54
+</span><span class="lnt">55
+</span><span class="lnt">56
+</span><span class="lnt">57
+</span><span class="lnt">58
+</span><span class="lnt">59
+</span><span class="lnt">60
+</span><span class="lnt">61
+</span><span class="lnt">62
+</span><span class="lnt">63
+</span><span class="lnt">64
+</span><span class="lnt">65
+</span><span class="lnt">66
+</span><span class="lnt">67
+</span><span class="lnt">68
+</span><span class="lnt">69
+</span><span class="lnt">70
+</span><span class="lnt">71
+</span><span class="lnt">72
+</span><span class="lnt">73
+</span><span class="lnt">74
+</span><span class="lnt">75
+</span><span class="lnt">76
+</span><span class="lnt">77
+</span><span class="lnt">78
+</span><span class="lnt">79
+</span><span class="lnt">80
+</span><span class="lnt">81
+</span><span class="lnt">82
+</span><span class="lnt">83
+</span><span class="lnt">84
+</span><span class="lnt">85
+</span><span class="lnt">86
+</span><span class="lnt">87
+</span><span class="lnt">88
+</span><span class="lnt">89
+</span><span class="lnt">90
+</span><span class="lnt">91
+</span><span class="lnt">92
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-py" data-lang="py"><span class="line"><span class="cl"><span class="s2">&#34;&#34;&#34;
+</span></span></span><span class="line"><span class="cl"><span class="s2">    01_test_agent_openai.py
+</span></span></span><span class="line"><span class="cl"><span class="s2">&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">json</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">os</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">dotenv</span> <span class="kn">import</span> <span class="n">load_dotenv</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">openai</span> <span class="kn">import</span> <span class="n">OpenAI</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">load_dotenv</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 1. 指向智谱的 OpenAI 兼容端点</span>
+</span></span><span class="line"><span class="cl"><span class="n">client</span> <span class="o">=</span> <span class="n">OpenAI</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">    <span class="n">api_key</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">&#34;ZAI_API_KEY&#34;</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">    <span class="n">base_url</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">&#34;ZAI_BASE_URL&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 2. 通过JSON结构定义工具，包括工具名称，描述，參数等</span>
+</span></span><span class="line"><span class="cl"><span class="n">tools</span> <span class="o">=</span> <span class="p">[</span>
+</span></span><span class="line"><span class="cl">    <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;type&#34;</span><span class="p">:</span> <span class="s2">&#34;function&#34;</span><span class="p">,</span>         <span class="c1"># 类型，都是function，函数调用</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;function&#34;</span><span class="p">:</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">            <span class="s2">&#34;name&#34;</span><span class="p">:</span> <span class="s2">&#34;get_weather&#34;</span><span class="p">,</span>          <span class="c1"># 函数名，工具方法名相同</span>
+</span></span><span class="line"><span class="cl">            <span class="s2">&#34;description&#34;</span><span class="p">:</span> <span class="s2">&#34;获取地区特定日期的天气预报.&#34;</span><span class="p">,</span>    <span class="c1"># 对函数的作用进行描述</span>
+</span></span><span class="line"><span class="cl">            <span class="s2">&#34;parameters&#34;</span><span class="p">:</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">                <span class="s2">&#34;type&#34;</span><span class="p">:</span> <span class="s2">&#34;object&#34;</span><span class="p">,</span>       <span class="c1"># 指定参数类型为object</span>
+</span></span><span class="line"><span class="cl">                <span class="s2">&#34;properties&#34;</span><span class="p">:</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">                    <span class="s2">&#34;city&#34;</span><span class="p">:</span> <span class="p">{</span>       <span class="c1"># 第一个参数</span>
+</span></span><span class="line"><span class="cl">                        <span class="s2">&#34;type&#34;</span><span class="p">:</span> <span class="s2">&#34;string&#34;</span><span class="p">,</span>   <span class="c1"># 参数类型</span>
+</span></span><span class="line"><span class="cl">                        <span class="s2">&#34;description&#34;</span><span class="p">:</span> <span class="s2">&#34;城市名称，例如 北京市&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                    <span class="p">},</span>
+</span></span><span class="line"><span class="cl">                    <span class="s2">&#34;date&#34;</span><span class="p">:</span> <span class="p">{</span>       <span class="c1"># 第二个参数</span>
+</span></span><span class="line"><span class="cl">                        <span class="s2">&#34;type&#34;</span><span class="p">:</span> <span class="s2">&#34;string&#34;</span><span class="p">,</span>   <span class="c1"># 参数类型</span>
+</span></span><span class="line"><span class="cl">                        <span class="s2">&#34;description&#34;</span><span class="p">:</span> <span class="s2">&#34;想要查询的天气日期 YYYY-MM-dd,例如 2023-12-25&#34;</span>
+</span></span><span class="line"><span class="cl">                    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">                <span class="p">},</span>
+</span></span><span class="line"><span class="cl">                <span class="s2">&#34;required&#34;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&#34;city&#34;</span><span class="p">,</span> <span class="s2">&#34;date&#34;</span><span class="p">],</span>       <span class="c1"># 调用工具的话必须回传这两个参数</span>
+</span></span><span class="line"><span class="cl">                <span class="s2">&#34;additionalProperties&#34;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>  <span class="c1"># 额外的参数，不允许；限制大模型除了必传的参数，其他都不允许</span>
+</span></span><span class="line"><span class="cl">            <span class="p">},</span>
+</span></span><span class="line"><span class="cl">            <span class="s2">&#34;strict&#34;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>     <span class="c1"># 严格调用</span>
+</span></span><span class="line"><span class="cl">        <span class="p">},</span>
+</span></span><span class="line"><span class="cl">    <span class="p">},</span>
+</span></span><span class="line"><span class="cl"><span class="p">]</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 工具函数，函数名与tools中相同</span>
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">get_weather</span><span class="p">(</span><span class="n">city</span><span class="p">,</span> <span class="n">date</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="c1"># 后方的天气可以调用天气预报的接口</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="sa">f</span><span class="s2">&#34;</span><span class="si">{</span><span class="n">city</span><span class="si">}</span><span class="s2"> 今天 </span><span class="si">{</span><span class="n">date</span><span class="si">}</span><span class="s2">天气是: 气象局播报【晴天，温度是 25 度，风向是南风。】&#34;</span>    <span class="c1"># 假设来自气象局的天气数据</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 用户提示词</span>
+</span></span><span class="line"><span class="cl"><span class="n">messages</span> <span class="o">=</span> <span class="p">[</span>
+</span></span><span class="line"><span class="cl">    <span class="c1"># 注意，需要联网才能返回正确的时间</span>
+</span></span><span class="line"><span class="cl">    <span class="p">{</span><span class="s2">&#34;role&#34;</span><span class="p">:</span><span class="s2">&#34;system&#34;</span><span class="p">,</span> <span class="s2">&#34;content&#34;</span><span class="p">:</span><span class="s2">&#34;如果大模型调用工具，日期必须按照格式传递： yyyy-MM-dd ；如果涉及今天，昨天，必须计算日期&#34;</span><span class="p">},</span>
+</span></span><span class="line"><span class="cl">    <span class="p">{</span><span class="s2">&#34;role&#34;</span><span class="p">:</span> <span class="s2">&#34;user&#34;</span><span class="p">,</span> <span class="s2">&#34;content&#34;</span><span class="p">:</span> <span class="s2">&#34;北京 今天 日天气如何?&#34;</span><span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">]</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 3. Prompt the model with tools defined</span>
+</span></span><span class="line"><span class="cl"><span class="n">response</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">chat</span><span class="o">.</span><span class="n">completions</span><span class="o">.</span><span class="n">create</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">    <span class="n">model</span><span class="o">=</span><span class="s2">&#34;glm-5.3-flash&#34;</span><span class="p">,</span>   <span class="c1"># 或 &#34;glm-5.3&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">messages</span><span class="o">=</span><span class="n">messages</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="n">tools</span><span class="o">=</span><span class="n">tools</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl"><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">for</span> <span class="n">tool_call</span> <span class="ow">in</span> <span class="n">response</span><span class="o">.</span><span class="n">choices</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">message</span><span class="o">.</span><span class="n">tool_calls</span> <span class="ow">or</span> <span class="p">[]:</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="n">tool_call</span><span class="o">.</span><span class="n">function</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s2">&#34;get_weather&#34;</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># 获取大模型返回的参数</span>
+</span></span><span class="line"><span class="cl">        <span class="n">args</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">tool_call</span><span class="o">.</span><span class="n">function</span><span class="o">.</span><span class="n">arguments</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">weather</span> <span class="o">=</span> <span class="n">get_weather</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="s2">&#34;city&#34;</span><span class="p">],</span> <span class="n">args</span><span class="p">[</span><span class="s2">&#34;date&#34;</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="c1"># 4. 回传 assistant 的 tool_calls 消息（AI提示词）</span>
+</span></span><span class="line"><span class="cl">        <span class="n">messages</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">response</span><span class="o">.</span><span class="n">choices</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">message</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="c1"># 5. 将工具函数的执行结果添加到消息列表中（工具提示词）</span>
+</span></span><span class="line"><span class="cl">        <span class="n">messages</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">            <span class="p">{</span>
+</span></span><span class="line"><span class="cl">                <span class="s2">&#34;role&#34;</span><span class="p">:</span> <span class="s2">&#34;tool&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                <span class="s2">&#34;tool_call_id&#34;</span><span class="p">:</span> <span class="n">tool_call</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                <span class="s2">&#34;content&#34;</span><span class="p">:</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">({</span><span class="s2">&#34;weather&#34;</span><span class="p">:</span> <span class="n">weather</span><span class="p">}),</span>
+</span></span><span class="line"><span class="cl">            <span class="p">}</span>
+</span></span><span class="line"><span class="cl">        <span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="c1"># 6. 再次调用模型，生成最终回复</span>
+</span></span><span class="line"><span class="cl">        <span class="n">response</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">chat</span><span class="o">.</span><span class="n">completions</span><span class="o">.</span><span class="n">create</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">            <span class="n">model</span><span class="o">=</span><span class="s2">&#34;glm-5.3-flash&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">            <span class="n">messages</span><span class="o">=</span><span class="n">messages</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">            <span class="n">tools</span><span class="o">=</span><span class="n">tools</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="nb">print</span><span class="p">(</span><span class="n">response</span><span class="o">.</span><span class="n">choices</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">message</span><span class="o">.</span><span class="n">content</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>response</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">为您查询到北京今天的天气情况如下：
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">📍 **北京市天气**（2023年12月25日）
+</span></span><span class="line"><span class="cl">- 🌤️ **天气状况**：晴天
+</span></span><span class="line"><span class="cl">- 🌡️ **温度**：25度
+</span></span><span class="line"><span class="cl">- 💨 **风向**：南风
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">今天天气晴朗，温度适宜，很适合外出活动哦！不过早晚温差可能较大，建议您适当增减衣物。
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="define-a-tool-with-langchain">Define a tool with LangChain
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span><span class="lnt">51
+</span><span class="lnt">52
+</span><span class="lnt">53
+</span><span class="lnt">54
+</span><span class="lnt">55
+</span><span class="lnt">56
+</span><span class="lnt">57
+</span><span class="lnt">58
+</span><span class="lnt">59
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-py" data-lang="py"><span class="line"><span class="cl"><span class="s2">&#34;&#34;&#34;
+</span></span></span><span class="line"><span class="cl"><span class="s2">    02_test_langchain_tools.py
+</span></span></span><span class="line"><span class="cl"><span class="s2">&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">os</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">dotenv</span> <span class="kn">import</span> <span class="n">load_dotenv</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">langchain_core.messages</span> <span class="kn">import</span> <span class="n">HumanMessage</span><span class="p">,</span> <span class="n">ToolMessage</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">langchain.tools</span> <span class="kn">import</span> <span class="n">tool</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">langchain_openai</span> <span class="kn">import</span> <span class="n">ChatOpenAI</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">load_dotenv</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 可选：通过BaseModel详细定义工具的参数</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># from pydantic import BaseModel,Field</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># class GetWeatherArgs(BaseModel):</span>
+</span></span><span class="line"><span class="cl"><span class="c1">#     city: str = Field(description=&#34;城市名称&#34;)</span>
+</span></span><span class="line"><span class="cl"><span class="c1">#     date: str = Field(description=&#34;日期，格式为 YYYY-MM-DD&#34;)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 编写工具函数</span>
+</span></span><span class="line"><span class="cl"><span class="nd">@tool</span>
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">get_weather</span><span class="p">(</span><span class="n">city</span><span class="p">,</span> <span class="n">date</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;获取指定城市在指定日期的天气&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="sa">f</span><span class="s2">&#34;</span><span class="si">{</span><span class="n">city</span><span class="si">}</span><span class="s2"> 在 </span><span class="si">{</span><span class="n">date</span><span class="si">}</span><span class="s2"> 天气多云，有下雨的可能&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 定义大模型</span>
+</span></span><span class="line"><span class="cl"><span class="n">llm</span> <span class="o">=</span> <span class="n">ChatOpenAI</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">    <span class="n">model</span><span class="o">=</span><span class="s2">&#34;glm-5.3-flash&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="n">temperature</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="n">api_key</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">&#34;ZAI_API_KEY&#34;</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">    <span class="n">base_url</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">&#34;ZAI_BASE_URL&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 绑定工具函数</span>
+</span></span><span class="line"><span class="cl"><span class="n">llm</span> <span class="o">=</span> <span class="n">llm</span><span class="o">.</span><span class="n">bind_tools</span><span class="p">([</span><span class="n">get_weather</span><span class="p">])</span> <span class="c1"># 注意，必须重新赋值</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 定义消息列表</span>
+</span></span><span class="line"><span class="cl"><span class="n">message_list</span> <span class="o">=</span> <span class="p">[</span>
+</span></span><span class="line"><span class="cl">    <span class="n">HumanMessage</span><span class="p">(</span><span class="n">content</span><span class="o">=</span><span class="s2">&#34;北京 2024-12-25 的天气&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="p">]</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">res</span> <span class="o">=</span> <span class="n">llm</span><span class="o">.</span><span class="n">invoke</span><span class="p">(</span><span class="n">message_list</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">message_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">res</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 当前结果当中包含调用工具的出参</span>
+</span></span><span class="line"><span class="cl"><span class="nb">print</span><span class="p">(</span><span class="s1">&#39;LLM 的首次回复: &#39;</span><span class="p">,</span> <span class="n">res</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 解析调用工具的出参，手动调用工具</span>
+</span></span><span class="line"><span class="cl"><span class="n">tool_call</span> <span class="o">=</span> <span class="n">res</span><span class="o">.</span><span class="n">tool_calls</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl"><span class="n">args</span> <span class="o">=</span> <span class="n">tool_call</span><span class="p">[</span><span class="s1">&#39;args&#39;</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># pip install langchain-tavily</span>
+</span></span><span class="line"><span class="cl"><span class="n">call_tool_res</span> <span class="o">=</span> <span class="n">get_weather</span><span class="o">.</span><span class="n">invoke</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="nb">id</span> <span class="o">=</span> <span class="n">tool_call</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">#构造 Message 对象</span>
+</span></span><span class="line"><span class="cl"><span class="n">tool_message</span> <span class="o">=</span> <span class="n">ToolMessage</span><span class="p">(</span><span class="n">tool_call_id</span><span class="o">=</span><span class="nb">id</span><span class="p">,</span> <span class="n">content</span><span class="o">=</span><span class="n">call_tool_res</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">message_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tool_message</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">res</span> <span class="o">=</span> <span class="n">llm</span><span class="o">.</span><span class="n">invoke</span><span class="p">(</span><span class="n">message_list</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="nb">print</span><span class="p">(</span><span class="s1">&#39;基于工具调用返回信息后，LLM 的回复：&#39;</span><span class="p">,</span><span class="n">res</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>response</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-gdscript3" data-lang="gdscript3"><span class="line"><span class="cl"><span class="n">LLM</span> <span class="err">的首次回复</span><span class="p">:</span>  <span class="n">content</span><span class="o">=</span><span class="s1">&#39;&#39;</span> <span class="n">additional_kwargs</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;refusal&#39;</span><span class="p">:</span> <span class="n">None</span><span class="p">}</span> <span class="n">response_metadata</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;token_usage&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;completion_tokens&#39;</span><span class="p">:</span> <span class="mi">64</span><span class="p">,</span> <span class="s1">&#39;prompt_tokens&#39;</span><span class="p">:</span> <span class="mi">168</span><span class="p">,</span> <span class="s1">&#39;total_tokens&#39;</span><span class="p">:</span> <span class="mi">232</span><span class="p">,</span> <span class="s1">&#39;completion_tokens_details&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;accepted_prediction_tokens&#39;</span><span class="p">:</span> <span class="n">None</span><span class="p">,</span> <span class="s1">&#39;audio_tokens&#39;</span><span class="p">:</span> <span class="n">None</span><span class="p">,</span> <span class="s1">&#39;reasoning_tokens&#39;</span><span class="p">:</span> <span class="mi">41</span><span class="p">,</span> <span class="s1">&#39;rejected_prediction_tokens&#39;</span><span class="p">:</span> <span class="n">None</span><span class="p">},</span> <span class="s1">&#39;prompt_tokens_details&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;audio_tokens&#39;</span><span class="p">:</span> <span class="n">None</span><span class="p">,</span> <span class="s1">&#39;cached_tokens&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">}},</span> <span class="s1">&#39;model_provider&#39;</span><span class="p">:</span> <span class="s1">&#39;openai&#39;</span><span class="p">,</span> <span class="s1">&#39;model_name&#39;</span><span class="p">:</span> <span class="s1">&#39;glm-5.3-flash&#39;</span><span class="p">,</span> <span class="s1">&#39;system_fingerprint&#39;</span><span class="p">:</span> <span class="n">None</span><span class="p">,</span> <span class="s1">&#39;id&#39;</span><span class="p">:</span> <span class="s1">&#39;20261020155748a5086f1672d94a19&#39;</span><span class="p">,</span> <span class="s1">&#39;finish_reason&#39;</span><span class="p">:</span> <span class="s1">&#39;tool_calls&#39;</span><span class="p">,</span> <span class="s1">&#39;logprobs&#39;</span><span class="p">:</span> <span class="n">None</span><span class="p">}</span> <span class="n">id</span><span class="o">=</span><span class="s1">&#39;lc_run--01a15851-0b21-7db0-a6d4-5f6171d80338-0&#39;</span> <span class="n">tool_calls</span><span class="o">=</span><span class="p">[{</span><span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="s1">&#39;get_weather&#39;</span><span class="p">,</span> <span class="s1">&#39;args&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;city&#39;</span><span class="p">:</span> <span class="s1">&#39;北京&#39;</span><span class="p">,</span> <span class="s1">&#39;date&#39;</span><span class="p">:</span> <span class="s1">&#39;2024-12-25&#39;</span><span class="p">},</span> <span class="s1">&#39;id&#39;</span><span class="p">:</span> <span class="s1">&#39;call_-7163148998889435437&#39;</span><span class="p">,</span> <span class="s1">&#39;type&#39;</span><span class="p">:</span> <span class="s1">&#39;tool_call&#39;</span><span class="p">}]</span> <span class="n">invalid_tool_calls</span><span class="o">=</span><span class="p">[]</span> <span class="n">usage_metadata</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;input_tokens&#39;</span><span class="p">:</span> <span class="mi">168</span><span class="p">,</span> <span class="s1">&#39;output_tokens&#39;</span><span class="p">:</span> <span class="mi">64</span><span class="p">,</span> <span class="s1">&#39;total_tokens&#39;</span><span class="p">:</span> <span class="mi">232</span><span class="p">,</span> <span class="s1">&#39;input_token_details&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;cache_read&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">},</span> <span class="s1">&#39;output_token_details&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;reasoning&#39;</span><span class="p">:</span> <span class="mi">41</span><span class="p">}}</span>
+</span></span><span class="line"><span class="cl"><span class="err">基于工具调用返回信息后，</span><span class="n">LLM</span> <span class="err">的回复：</span> <span class="n">content</span><span class="o">=</span><span class="s1">&#39;北京 2024-12-25 的天气情况如下：</span><span class="se">\n\n</span><span class="s1">- **天气状况**：多云 ☁️</span><span class="se">\n</span><span class="s1">- **降水概率**：有下雨的可能 🌧️</span><span class="se">\n\n</span><span class="s1">建议您出门时携带雨具，以防万一。&#39;</span> <span class="n">additional_kwargs</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;refusal&#39;</span><span class="p">:</span> <span class="n">None</span><span class="p">}</span> <span class="n">response_metadata</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;token_usage&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;completion_tokens&#39;</span><span class="p">:</span> <span class="mi">91</span><span class="p">,</span> <span class="s1">&#39;prompt_tokens&#39;</span><span class="p">:</span> <span class="mi">211</span><span class="p">,</span> <span class="s1">&#39;total_tokens&#39;</span><span class="p">:</span> <span class="mi">302</span><span class="p">,</span> <span class="s1">&#39;completion_tokens_details&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;accepted_prediction_tokens&#39;</span><span class="p">:</span> <span class="n">None</span><span class="p">,</span> <span class="s1">&#39;audio_tokens&#39;</span><span class="p">:</span> <span class="n">None</span><span class="p">,</span> <span class="s1">&#39;reasoning_tokens&#39;</span><span class="p">:</span> <span class="mi">40</span><span class="p">,</span> <span class="s1">&#39;rejected_prediction_tokens&#39;</span><span class="p">:</span> <span class="n">None</span><span class="p">},</span> <span class="s1">&#39;prompt_tokens_details&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;audio_tokens&#39;</span><span class="p">:</span> <span class="n">None</span><span class="p">,</span> <span class="s1">&#39;cached_tokens&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">}},</span> <span class="s1">&#39;model_provider&#39;</span><span class="p">:</span> <span class="s1">&#39;openai&#39;</span><span class="p">,</span> <span class="s1">&#39;model_name&#39;</span><span class="p">:</span> <span class="s1">&#39;glm-5.3-flash&#39;</span><span class="p">,</span> <span class="s1">&#39;system_fingerprint&#39;</span><span class="p">:</span> <span class="n">None</span><span class="p">,</span> <span class="s1">&#39;id&#39;</span><span class="p">:</span> <span class="s1">&#39;202610201557541e841ec9613744d3&#39;</span><span class="p">,</span> <span class="s1">&#39;finish_reason&#39;</span><span class="p">:</span> <span class="s1">&#39;stop&#39;</span><span class="p">,</span> <span class="s1">&#39;logprobs&#39;</span><span class="p">:</span> <span class="n">None</span><span class="p">}</span> <span class="n">id</span><span class="o">=</span><span class="s1">&#39;lc_run--01a15851-2047-7383-83d9-2225de412ddd-0&#39;</span> <span class="n">tool_calls</span><span class="o">=</span><span class="p">[]</span> <span class="n">invalid_tool_calls</span><span class="o">=</span><span class="p">[]</span> <span class="n">usage_metadata</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;input_tokens&#39;</span><span class="p">:</span> <span class="mi">211</span><span class="p">,</span> <span class="s1">&#39;output_tokens&#39;</span><span class="p">:</span> <span class="mi">91</span><span class="p">,</span> <span class="s1">&#39;total_tokens&#39;</span><span class="p">:</span> <span class="mi">302</span><span class="p">,</span> <span class="s1">&#39;input_token_details&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;cache_read&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">},</span> <span class="s1">&#39;output_token_details&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;reasoning&#39;</span><span class="p">:</span> <span class="mi">40</span><span class="p">}}</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="add-local-tools-when-building-an-agent">Add local tools when building an agent
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span><span class="lnt">51
+</span><span class="lnt">52
+</span><span class="lnt">53
+</span><span class="lnt">54
+</span><span class="lnt">55
+</span><span class="lnt">56
+</span><span class="lnt">57
+</span><span class="lnt">58
+</span><span class="lnt">59
+</span><span class="lnt">60
+</span><span class="lnt">61
+</span><span class="lnt">62
+</span><span class="lnt">63
+</span><span class="lnt">64
+</span><span class="lnt">65
+</span><span class="lnt">66
+</span><span class="lnt">67
+</span><span class="lnt">68
+</span><span class="lnt">69
+</span><span class="lnt">70
+</span><span class="lnt">71
+</span><span class="lnt">72
+</span><span class="lnt">73
+</span><span class="lnt">74
+</span><span class="lnt">75
+</span><span class="lnt">76
+</span><span class="lnt">77
+</span><span class="lnt">78
+</span><span class="lnt">79
+</span><span class="lnt">80
+</span><span class="lnt">81
+</span><span class="lnt">82
+</span><span class="lnt">83
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-py" data-lang="py"><span class="line"><span class="cl"><span class="s2">&#34;&#34;&#34;
+</span></span></span><span class="line"><span class="cl"><span class="s2">    pip install langchain-tavily
+</span></span></span><span class="line"><span class="cl"><span class="s2">
+</span></span></span><span class="line"><span class="cl"><span class="s2">    tavily search engine
+</span></span></span><span class="line"><span class="cl"><span class="s2">&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">os</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">dotenv</span> <span class="kn">import</span> <span class="n">load_dotenv</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">langchain.agents</span> <span class="kn">import</span> <span class="n">create_agent</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">langchain_openai</span> <span class="kn">import</span> <span class="n">ChatOpenAI</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">langchain_tavily</span> <span class="kn">import</span> <span class="n">TavilySearch</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">load_dotenv</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 1. 创建一个模型</span>
+</span></span><span class="line"><span class="cl"><span class="n">llm</span> <span class="o">=</span> <span class="n">ChatOpenAI</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">    <span class="n">model</span><span class="o">=</span><span class="s2">&#34;glm-5.3-flash&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="n">temperature</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="n">base_url</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">&#34;ZAI_BASE_URL&#34;</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">    <span class="n">api_key</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">&#34;ZAI_API_KEY&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 2. 定义工具</span>
+</span></span><span class="line"><span class="cl"><span class="n">search</span> <span class="o">=</span> <span class="n">TavilySearch</span><span class="p">(</span><span class="n">max_results</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">tools</span> <span class="o">=</span> <span class="p">[</span><span class="n">search</span><span class="p">]</span>    <span class="c1"># 工具列表</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 3. 创建代理 - 智能体</span>
+</span></span><span class="line"><span class="cl"><span class="n">agent</span> <span class="o">=</span> <span class="n">create_agent</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">    <span class="n">model</span><span class="o">=</span><span class="n">llm</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="n">tools</span><span class="o">=</span><span class="n">tools</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="n">system_prompt</span><span class="o">=</span><span class="s2">&#34;你是一个会调用工具的助手，帮助用户解答问题&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 调用智能体。智能体对应所LLM大模型会自己决定是否调用Tavily引擎，联网获取天气预报数据。给与用户生成答案</span>
+</span></span><span class="line"><span class="cl"><span class="n">resp</span> <span class="o">=</span> <span class="n">agent</span><span class="o">.</span><span class="n">invoke</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">    <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;messages&#34;</span><span class="p">:</span> <span class="p">[(</span><span class="s2">&#34;user&#34;</span><span class="p">,</span> <span class="s2">&#34;温州瑞安今天天气如何？适合出去游玩吗？&#34;</span><span class="p">)]</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nb">print</span><span class="p">(</span><span class="n">resp</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="s2">&#34;&#34;&#34;
+</span></span></span><span class="line"><span class="cl"><span class="s2">{&#39;messages&#39;: [HumanMessage(content=&#39;温州瑞安今天天气如何？适合出去游玩吗？&#39;, additional_kwargs=</span><span class="si">{}</span><span class="s2">, response_metadata=</span><span class="si">{}</span><span class="s2">, id=&#39;da4ea4ae-37bd-4434-aaa9-2d8f0112607f&#39;), AIMessage(content=&#39;我来帮您查询温州瑞安今天的天气情况。&#39;, additional_kwargs={&#39;refusal&#39;: None}, response_metadata={&#39;token_usage&#39;: {&#39;completion_tokens&#39;: 97, &#39;prompt_tokens&#39;: 1665, &#39;total_tokens&#39;: 1762, &#39;completion_tokens_details&#39;: {&#39;accepted_prediction_tokens&#39;: None, &#39;audio_tokens&#39;: None, &#39;reasoning_tokens&#39;: 54, &#39;rejected_prediction_tokens&#39;: None}, &#39;prompt_tokens_details&#39;: {&#39;audio_tokens&#39;: None, &#39;cached_tokens&#39;: 0}}, &#39;model_provider&#39;: &#39;openai&#39;, &#39;model_name&#39;: &#39;glm-5.3-flash&#39;, &#39;system_fingerprint&#39;: None, &#39;id&#39;: &#39;20261020170559a77991898a2742c2&#39;, &#39;finish_reason&#39;: &#39;tool_calls&#39;, &#39;logprobs&#39;: None}, id=&#39;lc_run--01a1588f-77ce-7672-945e-a75eebd0a78c-0&#39;, tool_calls=[{&#39;name&#39;: &#39;tavily_search&#39;, &#39;args&#39;: {&#39;query&#39;: &#39;温州瑞安今天天气预报&#39;, &#39;search_depth&#39;: &#39;fast&#39;, &#39;time_range&#39;: &#39;day&#39;}, &#39;id&#39;: &#39;call_-7163149445566037200&#39;, &#39;type&#39;: &#39;tool_call&#39;}], invalid_tool_calls=[], usage_metadata={&#39;input_tokens&#39;: 1665, &#39;output_tokens&#39;: 97, &#39;total_tokens&#39;: 1762, &#39;input_token_details&#39;: {&#39;cache_read&#39;: 0}, &#39;output_token_details&#39;: {&#39;reasoning&#39;: 54}}), ToolMessage(content=&#39;{&#34;query&#34;: &#34;温州瑞安今天天气预报&#34;, &#34;follow_up_questions&#34;: null, &#34;answer&#34;: null, &#34;images&#34;: [], &#34;results&#34;: [{&#34;url&#34;: &#34;http://hk.zuzuche.com/weather/c261_d2026-10-19.html&#34;, &#34;title&#34;: &#34;昆明10月天气_昆明10月19日天气 - 昆明天气&#34;, &#34;content&#34;: &#34;[Z]</span><span class="se">\\</span><span class="s2">n:   肇庆</span><span class="se">\\</span><span class="s2">n:   泽当</span><span class="se">\\</span><span class="s2">n:   朝阳</span><span class="se">\\</span><span class="s2">n:   张家口</span><span class="se">\\</span><span class="s2">n:   湛江</span><span class="se">\\</span><span class="s2">n:   郑州</span><span class="se">\\</span><span class="s2">n:   株洲</span><span class="se">\\</span><span class="s2">n:   淄博</span><span class="se">\\</span><span class="s2">n:   自贡</span><span class="se">\\</span><span class="s2">n:   遵义</span><span class="se">\\</span><span class="s2">n:   中山</span><span class="se">\\</span><span class="s2">n:   扎兰屯</span><span class="se">\\</span><span class="s2">n:   昭通</span><span class="se">\\</span><span class="s2">n:   扎赉特旗</span><span class="se">\\</span><span class="s2">n:   卓资</span><span class="se">\\</span><span class="s2">n:   朱日和</span><span class="se">\\</span><span class="s2">n:   中卫</span><span class="se">\\</span><span class="s2">n:   漳州</span><span class="se">\\</span><span class="s2">n:   周口</span><span class="se">\\</span><span class="s2">n:   驻马店</span><span class="se">\\</span><span class="s2">n:   舟山</span><span class="se">\\</span><span class="s2">n:   镇江</span><span class="se">\\</span><span class="s2">n:   枣庄</span><span class="se">\\</span><span class="s2">n:   张掖</span><span class="se">\\</span><span class="s2">n:   资阳</span><span class="se">\\</span><span class="s2">n:   张家界</span><span class="se">\\</span><span class="s2">n:   珠海</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n #### 热门国家</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  西班牙天气 马尔代夫天气 美国天气 俄罗斯天气 挪威天气 南非天气 埃及天气 马来西亚天气 新西兰天气 澳洲天气 泰国天气 日本天气 韩国天气 英国天气 意大利天气 希腊天气 瑞士天气 法国天气 德国天气 加拿大天气</span><span class="se">\\</span><span class="s2">n #### 热门城市</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  旧金山天气 芝加哥天气 温哥华天气 多伦多天气 曼谷天气 大阪天气 东京天气 济州天气 首尔天气 澳门天气 柏林天气 慕尼黑天气 法兰克福天气 巴黎天气 巴塞罗那天气 马德里天气 罗马天气 米兰天气 伦敦天气 香港天气 [...] [W]</span><span class="se">\\</span><span class="s2">n:   渭南</span><span class="se">\\</span><span class="s2">n:   芜湖</span><span class="se">\\</span><span class="s2">n:   乌鲁木齐</span><span class="se">\\</span><span class="s2">n:   温州</span><span class="se">\\</span><span class="s2">n:   武汉</span><span class="se">\\</span><span class="s2">n:   无锡</span><span class="se">\\</span><span class="s2">n:   乌海</span><span class="se">\\</span><span class="s2">n:   乌兰浩特</span><span class="se">\\</span><span class="s2">n:   文山</span><span class="se">\\</span><span class="s2">n:   吴忠</span><span class="se">\\</span><span class="s2">n:   梧州</span><span class="se">\\</span><span class="s2">n:   威海</span><span class="se">\\</span><span class="s2">n:   潍坊</span><span class="se">\\</span><span class="s2">n:   文昌</span><span class="se">\\</span><span class="s2">n:   万宁</span><span class="se">\\</span><span class="s2">n:   五指山</span><span class="se">\\</span><span class="s2">n:   武威</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n[X]</span><span class="se">\\</span><span class="s2">n:   邢台</span><span class="se">\\</span><span class="s2">n:   西安</span><span class="se">\\</span><span class="s2">n:   厦门</span><span class="se">\\</span><span class="s2">n:   咸阳</span><span class="se">\\</span><span class="s2">n:   西宁</span><span class="se">\\</span><span class="s2">n:   徐州</span><span class="se">\\</span><span class="s2">n:   新巴尔虎左旗</span><span class="se">\\</span><span class="s2">n:   西双版纳</span><span class="se">\\</span><span class="s2">n:   新巴尔虎右旗</span><span class="se">\\</span><span class="s2">n:   宣城</span><span class="se">\\</span><span class="s2">n:   忻州</span><span class="se">\\</span><span class="s2">n:   兴和</span><span class="se">\\</span><span class="s2">n:   锡林浩特</span><span class="se">\\</span><span class="s2">n:   新乡</span><span class="se">\\</span><span class="s2">n:   许昌</span><span class="se">\\</span><span class="s2">n:   信阳</span><span class="se">\\</span><span class="s2">n:   襄阳</span><span class="se">\\</span><span class="s2">n:   孝感</span><span class="se">\\</span><span class="s2">n:   西沙群岛</span><span class="se">\\</span><span class="s2">n:   咸宁</span><span class="se">\\</span><span class="s2">n:   新余</span><span class="se">\\</span><span class="s2">n:   仙桃</span><span class="se">\\</span><span class="s2">n:   湘潭</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n[Y]</span><span class="se">\\</span><span class="s2">n:   延安</span><span class="se">\\</span><span class="s2">n:   营口</span><span class="se">\\</span><span class="s2">n:   阳江</span><span class="se">\\</span><span class="s2">n:   永州</span><span class="se">\\</span><span class="s2">n:   伊犁</span><span class="se">\\</span><span class="s2">n:   榆林</span><span class="se">\\</span><span class="s2">n:   阳泉</span><span class="se">\\</span><span class="s2">n:   烟台</span><span class="se">\\</span><span class="s2">n:   宜昌</span><span class="se">\\</span><span class="s2">n:   银川</span><span class="se">\\</span><span class="s2">n:   玉树</span><span class="se">\\</span><span class="s2">n:   牙克石</span><span class="se">\\</span><span class="s2">n:   伊春</span><span class="se">\\</span><span class="s2">n:   云浮</span><span class="se">\\</span><span class="s2">n:   玉溪</span><span class="se">\\</span><span class="s2">n:   玉林</span><span class="se">\\</span><span class="s2">n:   运城</span><span class="se">\\</span><span class="s2">n:   扬州</span><span class="se">\\</span><span class="s2">n:   盐城</span><span class="se">\\</span><span class="s2">n:   宜宾</span><span class="se">\\</span><span class="s2">n:   雅安</span><span class="se">\\</span><span class="s2">n:   鹰潭</span><span class="se">\\</span><span class="s2">n:   宜春</span><span class="se">\\</span><span class="s2">n:   益阳</span><span class="se">\\</span><span class="s2">n:   岳阳 [...] [M]</span><span class="se">\\</span><span class="s2">n:   梅州</span><span class="se">\\</span><span class="s2">n:   茂名</span><span class="se">\\</span><span class="s2">n:   马鞍山</span><span class="se">\\</span><span class="s2">n:   满洲里</span><span class="se">\\</span><span class="s2">n:   莫力达瓦旗</span><span class="se">\\</span><span class="s2">n:   牡丹江</span><span class="se">\\</span><span class="s2">n:   满都拉</span><span class="se">\\</span><span class="s2">n:   绵阳</span><span class="se">\\</span><span class="s2">n:   眉山</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n[N]</span><span class="se">\\</span><span class="s2">n:   南昌</span><span class="se">\\</span><span class="s2">n:   南京</span><span class="se">\\</span><span class="s2">n:   南宁</span><span class="se">\\</span><span class="s2">n:   那曲</span><span class="se">\\</span><span class="s2">n:   宁波</span><span class="se">\\</span><span class="s2">n:   那仁宝力格</span><span class="se">\\</span><span class="s2">n:   怒江</span><span class="se">\\</span><span class="s2">n:   南阳</span><span class="se">\\</span><span class="s2">n:   南平</span><span class="se">\\</span><span class="s2">n:   南通</span><span class="se">\\</span><span class="s2">n:   宁德</span><span class="se">\\</span><span class="s2">n:   南充</span><span class="se">\\</span><span class="s2">n:   南沙群岛</span><span class="se">\\</span><span class="s2">n:   宁冈</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n[P]</span><span class="se">\\</span><span class="s2">n:   盘锦</span><span class="se">\\</span><span class="s2">n:   萍乡</span><span class="se">\\</span><span class="s2">n:   普洱</span><span class="se">\\</span><span class="s2">n:   平顶山</span><span class="se">\\</span><span class="s2">n:   濮阳</span><span class="se">\\</span><span class="s2">n:   莆田</span><span class="se">\\</span><span class="s2">n:   攀枝花</span><span class="se">\\</span><span class="s2">n:   平凉</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n[Q]</span><span class="se">\\</span><span class="s2">n:   青岛</span><span class="se">\\</span><span class="s2">n:   齐齐哈尔</span><span class="se">\\</span><span class="s2">n:   泉州</span><span class="se">\\</span><span class="s2">n:   清远</span><span class="se">\\</span><span class="s2">n:   七台河</span><span class="se">\\</span><span class="s2">n:   钦州</span><span class="se">\\</span><span class="s2">n:   衢州</span><span class="se">\\</span><span class="s2">n:   琼海</span><span class="se">\\</span><span class="s2">n:   琼中</span><span class="se">\\</span><span class="s2">n:   潜江</span><span class="se">\\</span><span class="s2">n:   庆阳</span><span class="se">\\</span><span class="s2">n:   秦皇岛</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n[R]</span><span class="se">\\</span><span class="s2">n:   日喀则</span><span class="se">\\</span><span class="s2">n:   任丘</span><span class="se">\\</span><span class="s2">n:   日照&#34;, &#34;score&#34;: 0.097571015, &#34;raw_content&#34;: null, &#34;id&#34;: &#34;837883-00&#34;}, {&#34;url&#34;: &#34;https://train.qunar.com/train/tickets/hangzhou-to-wenzhou/2026-10-20&#34;, &#34;title&#34;: &#34;杭州到温州火车票｜高铁时刻表、票价余票参考｜去哪儿&#34;, &#34;content&#34;: &#34;显式日期页 · 当天事实快照 更新时间：</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n去哪儿实时查询 去哪儿火车票</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n杭州 → 温州</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n今天 10.16  明天 10.17  后天 10.18  周一 10.19  周二 10.20  周三 10.21  周四 10.22  周五 10.23  周六 10.24  周日 10.25  周一 10.26  周二 10.27  周三 10.28  周四 10.29  周五 10.30</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n火车 推荐车次   中转 中转方案   路线 热门备选</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n火车票主查询页 Route Query</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n杭州到温州高铁票 温州到杭州返程车票 杭州到温州车次列表 杭州到温州购票决策 杭州到温州经停时刻表 杭州到温州购票 FAQ 杭州到温州热门路线</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n单程 返程 中转换乘 高铁动车 计次票/定期票 推荐车次</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n退票 改签 变更到站 购票决策 购票 FAQ</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n相邻站点 相邻日期 热门时刻表 规则入口 中转方案 多路线日期</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n杭州 当前主查询站：杭州东</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n温州 当前主查询站：温州南</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n当前页面是 2026-10-20 车次事实的首选引用页；可查看今天起 15 天内日期入口，过期后保留为归档页。 [...] 高铁 / 动车 优先展示复兴号、热门晨间车次</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n推荐车次 完整车次列表 购票决策 经停站时刻表 复兴号 / 静音标签 中转与相邻站点 FAQ 热门路线</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n10-16 周五  10-17 周六  10-18 周日  10-19 周一  10-20 周二  10-21 周三  10-22 周四  10-23 周五  10-24 周六  10-25 周日  10-26 周一  10-27 周二  10-28 周三  10-29 周四  10-30 周五</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n今天 · 10-16 明天 · 10-17</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n车次类型</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n席别与状态</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n服务亮点</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n高级筛选</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n# 杭州到温州火车票｜高铁时刻表、票价余票参考</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n页面优先展示查询入口、日期切换、推荐车次、购票决策和服务标签，帮助快速比较直达、中转与经停信息； 下方继续补充 FAQ、规则与专题内容，方便一次看完整条出行链路。</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n先看推荐车次 先看购票决策 先看复兴号与静音标记 直达聚合入口</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n直达车次参考 161 趟</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n最早出发 02:53</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n最快全程 1时19分</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n⇄</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n最短耗时</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n二等座 有票  一等座 8张  商务座 5张  无座 抢票</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n最低价格 [...] 解答</span><span class="se">\\</span><span class="s2">n:   当前共 161 趟直达车次，其中普速（Z/T/数字字头）8趟、高铁（G字头）114趟、城际（C字头）4趟、动车（D字头）35趟。此外还有 21 条中转方案。</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">nQ04 杭州到温州最早和最晚发车几点？ </span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n解答</span><span class="se">\\</span><span class="s2">n:   当前最早发车K551次，杭州 2026-10-20 02:53 → 温州 2026-10-20 11:03，全程 8小时10分；最晚发车G7629次，杭州南 2026-10-20 21:31 → 温州南 2026-10-20 23:23，全程 1小时52分。</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n国务院公告 去哪儿火车票</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n### 春节/春运 · 返乡探亲 · 团圆回家</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n假期：春节/春运 人群：返乡探亲 场景：团圆回家</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n查看购票参考 ### 寒假 · 学生 · 返乡/研学</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n假期：寒假 人群：学生 场景：返乡/研学</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n查看购票参考</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n火车订票立减 8元，新用户专享&#34;, &#34;score&#34;: 0.078367025, &#34;raw_content&#34;: null, &#34;id&#34;: &#34;87c0d9-01&#34;}], &#34;response_time&#34;: 0.29, &#34;request_id&#34;: &#34;5aeda430-cebf-4942-9a48-97b7cd038803&#34;}&#39;, name=&#39;tavily_search&#39;, id=&#39;d5d85327-764c-49ec-ba73-7a46b85914bc&#39;, tool_call_id=&#39;call_-7163149445566037200&#39;), AIMessage(content=&#39;第一次搜索没有找到准确的天气信息，让我换个方式再搜索一下。&#39;, additional_kwargs={&#39;refusal&#39;: None}, response_metadata={&#39;token_usage&#39;: {&#39;completion_tokens&#39;: 103, &#39;prompt_tokens&#39;: 4065, &#39;total_tokens&#39;: 4168, &#39;completion_tokens_details&#39;: {&#39;accepted_prediction_tokens&#39;: None, &#39;audio_tokens&#39;: None, &#39;reasoning_tokens&#39;: 25, &#39;rejected_prediction_tokens&#39;: None}, &#39;prompt_tokens_details&#39;: {&#39;audio_tokens&#39;: None, &#39;cached_tokens&#39;: 0}}, &#39;model_provider&#39;: &#39;openai&#39;, &#39;model_name&#39;: &#39;glm-5.3-flash&#39;, &#39;system_fingerprint&#39;: None, &#39;id&#39;: &#39;20261020170608a27ca5748794421a&#39;, &#39;finish_reason&#39;: &#39;tool_calls&#39;, &#39;logprobs&#39;: None}, id=&#39;lc_run--01a1588f-9856-7c82-b20c-6683f9a44702-0&#39;, tool_calls=[{&#39;name&#39;: &#39;tavily_search&#39;, &#39;args&#39;: {&#39;query&#39;: &#39;瑞安天气 实时 温度 降雨&#39;, &#39;search_depth&#39;: &#39;advanced&#39;, &#39;time_range&#39;: &#39;week&#39;}, &#39;id&#39;: &#39;call_-7163149067608912805&#39;, &#39;type&#39;: &#39;tool_call&#39;}, {&#39;name&#39;: &#39;tavily_search&#39;, &#39;args&#39;: {&#39;query&#39;: &#39;瑞安市今日天气 适合出行吗&#39;, &#39;search_depth&#39;: &#39;advanced&#39;}, &#39;id&#39;: &#39;call_-7163149067608912804&#39;, &#39;type&#39;: &#39;tool_call&#39;}], invalid_tool_calls=[], usage_metadata={&#39;input_tokens&#39;: 4065, &#39;output_tokens&#39;: 103, &#39;total_tokens&#39;: 4168, &#39;input_token_details&#39;: {&#39;cache_read&#39;: 0}, &#39;output_token_details&#39;: {&#39;reasoning&#39;: 25}}), ToolMessage(content=&#39;{&#34;query&#34;: &#34;瑞安天气 实时 温度 降雨&#34;, &#34;follow_up_questions&#34;: null, &#34;answer&#34;: null, &#34;images&#34;: [], &#34;results&#34;: [{&#34;url&#34;: &#34;https://kuku.baidu.com/landing/tscp_doc/63f7cbde711e1d534bccc97c817ab70e&#34;, &#34;title&#34;: &#34;瑞安天气预报今天：29℃多云，未来一周晴多雨少出行必看&#34;, &#34;content&#34;: &#34;根据中央气象台及瑞安市气象台最新数据，今天（9月23日）瑞安天气为多云，气温约29℃，体感温度31.4℃，东南风微风，相对湿度60%，空气质量优，降水量0mm，日落时间17:53&#34;, &#34;score&#34;: 0.7992077, &#34;raw_content&#34;: null, &#34;id&#34;: &#34;cb45cd-00&#34;}, {&#34;url&#34;: &#34;https://www.weather.com.cn/weather/101210705.shtml&#34;, &#34;title&#34;: &#34;瑞安天气预报,瑞安7天天气预报,瑞安15天天气预报,瑞安天气查询&#34;, &#34;content&#34;: &#34;首页 预报 预警 雷达 云图 天气地图 专业产品 资讯 视频 节气</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n更多</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n台风路径 空间天气 图片 专题 环境 旅游 碳中和 气象科普 一带一路 产创平台</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n国内) 本地) 国际)</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n:   北京 上海 成都 杭州 南京 天津 深圳 重庆 西安 广州 青岛 武汉</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n:   故宫 阳朔漓江 龙门石窟 野三坡 颐和园 九寨沟 东方明珠 凤凰古城 秦始皇陵 桃花源</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n高球</span><span class="se">\\</span><span class="s2">n:   佘山 春城湖畔 华彬庄园 观澜湖 依必朗 旭宝 博鳌 玉龙雪山 番禺南沙 东方明珠</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n&lt;&lt;返回 全国</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n河北下辖区域</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n热门城市</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n:   曼谷 东京 首尔 吉隆坡 新加坡 巴黎 罗马 伦敦 雅典 柏林 纽约 温哥华 墨西哥城 哈瓦那 圣何塞 巴西利亚 布宜诺斯艾利斯 圣地亚哥 利马 基多 悉尼 墨尔本 惠灵顿 奥克兰 苏瓦 开罗 内罗毕 开普敦 维多利亚 拉巴特</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n:   亚洲 欧洲 北美洲 南美洲 非洲 大洋洲</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n全国&gt; 浙江 &gt; 温州&gt; 瑞安</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n 今天</span><span class="se">\\</span><span class="s2">n 7天</span><span class="se">\\</span><span class="s2">n 8-15天</span><span class="se">\\</span><span class="s2">n 40天</span><span class="se">\\</span><span class="s2">n 雷达图</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n # 12日（今天）</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  晴</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  29/20℃</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  &lt;3级</span><span class="se">\\</span><span class="s2">n # 13日（明天）</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  晴</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  29/21℃</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  &lt;3级</span><span class="se">\\</span><span class="s2">n # 14日（后天）</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  晴</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  27/19℃</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  &lt;3级</span><span class="se">\\</span><span class="s2">n # 15日（周四）</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  多云</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  25/20℃</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  &lt;3级</span><span class="se">\\</span><span class="s2">n # 16日（周五）</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  晴转小雨</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  27/22℃</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  &lt;3级</span><span class="se">\\</span><span class="s2">n # 17日（周六）</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  小雨</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  29/23℃</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  &lt;3级</span><span class="se">\\</span><span class="s2">n # 18日（周日）</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  小雨</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  30/23℃</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  &lt;3级</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n分时段预报 生活指数</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n蓝天预报 </span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n### 蓝天预报综合天气现象、能见度、空气质量等因子，预测未来一周的天空状况。 [...] 分时段预报 生活指数</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n蓝天预报 </span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n### 蓝天预报综合天气现象、能见度、空气质量等因子，预测未来一周的天空状况。</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n 天空蔚蓝 可见透彻蓝天，或有蓝天白云美景。</span><span class="se">\\</span><span class="s2">n 天空淡蓝 天空不够清澈，以浅蓝色为主。</span><span class="se">\\</span><span class="s2">n 天空阴沉 阴天或有雨雪，天空灰暗。</span><span class="se">\\</span><span class="s2">n 天空灰霾 出现霾或沙尘，天空灰蒙浑浊。</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n 易发 感冒指数</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  大幅度降温，适当增加衣服。</span><span class="se">\\</span><span class="s2">n 较适宜 运动指数</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  请适当降低运动强度，并及时补充水分。</span><span class="se">\\</span><span class="s2">n 较易发 过敏指数</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  外出需远离过敏源，适当采取防护措施。</span><span class="se">\\</span><span class="s2">n </span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  热 穿衣指数</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  适合穿T恤、短薄外套等夏季服装。)</span><span class="se">\\</span><span class="s2">n 适宜 洗车指数</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  天气较好，适合擦洗汽车。</span><span class="se">\\</span><span class="s2">n 很强 紫外线指数</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  涂擦SPF20以上，PA++护肤品，避强光。</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n 少发 感冒指数</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  感冒机率较低，避免长期处于空调屋中。</span><span class="se">\\</span><span class="s2">n 较适宜 运动指数</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  请适当降低运动强度，并及时补充水分。</span><span class="se">\\</span><span class="s2">n 较易发 过敏指数</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  外出需远离过敏源，适当采取防护措施。</span><span class="se">\\</span><span class="s2">n </span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  热 穿衣指数</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  适合穿T恤、短薄外套等夏季服装。)</span><span class="se">\\</span><span class="s2">n 适宜 洗车指数</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  天气较好，适合擦洗汽车。</span><span class="se">\\</span><span class="s2">n 很强 紫外线指数</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  涂擦SPF20以上，PA++护肤品，避强光。</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n 少发 感冒指数</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  无明显降温，感冒机率较低。</span><span class="se">\\</span><span class="s2">n 适宜 运动指数</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  天气较好，尽情感受运动的快乐吧。</span><span class="se">\\</span><span class="s2">n 较易发 过敏指数</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  外出需远离过敏源，适当采取防护措施。</span><span class="se">\\</span><span class="s2">n </span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  热 穿衣指数</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  适合穿T恤、短薄外套等夏季服装。)</span><span class="se">\\</span><span class="s2">n 适宜 洗车指数</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  天气较好，适合擦洗汽车。</span><span class="se">\\</span><span class="s2">n 很强 紫外线指数</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  涂擦SPF20以上，PA++护肤品，避强光。</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n 少发 感冒指数</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  无明显降温，感冒机率较低。</span><span class="se">\\</span><span class="s2">n 适宜 运动指数</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  天气较好，尽情感受运动的快乐吧。</span><span class="se">\\</span><span class="s2">n 较易发 过敏指数</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  外出需远离过敏源，适当采取防护措施。 [...] 天气较好，尽情感受运动的快乐吧。</span><span class="se">\\</span><span class="s2">n 较易发 过敏指数</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  外出需远离过敏源，适当采取防护措施。</span><span class="se">\\</span><span class="s2">n </span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  舒适 穿衣指数</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  建议穿长袖衬衫单裤等服装。)</span><span class="se">\\</span><span class="s2">n 较适宜 洗车指数</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  无雨且风力较小，易保持清洁度。</span><span class="se">\\</span><span class="s2">n 强 紫外线指数</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  涂擦SPF大于15、PA+防晒护肤品。</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n 较易发 感冒指数</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  天凉，湿度大，较易感冒。</span><span class="se">\\</span><span class="s2">n 适宜 运动指数</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  天气较好，尽情感受运动的快乐吧。</span><span class="se">\\</span><span class="s2">n 较易发 过敏指数</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  外出需远离过敏源，适当采取防护措施。</span><span class="se">\\</span><span class="s2">n </span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  热 穿衣指数</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  适合穿T恤、短薄外套等夏季服装。)</span><span class="se">\\</span><span class="s2">n 不宜 洗车指数</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  有雨，雨水和泥水会弄脏爱车。</span><span class="se">\\</span><span class="s2">n 很强 紫外线指数</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  涂擦SPF20以上，PA++护肤品，避强光。</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n 少发 感冒指数</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  感冒机率较低，避免长期处于空调屋中。</span><span class="se">\\</span><span class="s2">n 较不宜 运动指数</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  有降水，推荐您在室内进行休闲运动。</span><span class="se">\\</span><span class="s2">n 较易发 过敏指数</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  外出需远离过敏源，适当采取防护措施。</span><span class="se">\\</span><span class="s2">n </span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  热 穿衣指数</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  适合穿T恤、短薄外套等夏季服装。)</span><span class="se">\\</span><span class="s2">n 不宜 洗车指数</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  有雨，雨水和泥水会弄脏爱车。</span><span class="se">\\</span><span class="s2">n 最弱 紫外线指数</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  辐射弱，涂擦SPF8-12防晒护肤品。</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n 少发 感冒指数</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  感冒机率较低，避免长期处于空调屋中。</span><span class="se">\\</span><span class="s2">n 较不宜 运动指数</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  有降水，推荐您在室内进行休闲运动。</span><span class="se">\\</span><span class="s2">n 较易发 过敏指数</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  外出需远离过敏源，适当采取防护措施。</span><span class="se">\\</span><span class="s2">n </span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  热 穿衣指数</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  适合穿T恤、短薄外套等夏季服装。)</span><span class="se">\\</span><span class="s2">n 不宜 洗车指数</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  有雨，雨水和泥水会弄脏爱车。</span><span class="se">\\</span><span class="s2">n 最弱 紫外线指数</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  辐射弱，涂擦SPF8-12防晒护肤品。</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n# 天气资讯&#34;, &#34;score&#34;: 0.755078, &#34;raw_content&#34;: null, &#34;id&#34;: &#34;12a2f3-01&#34;}, {&#34;url&#34;: &#34;https://m.weather.com.cn/mweather15d/101210705.shtml&#34;, &#34;title&#34;: &#34;【瑞安天气预报15天_瑞安天气预报15天查询】-中国天气网&#34;, &#34;content&#34;: &#34;温度趋势</span><span class="se">\\</span><span class="s2">n </span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  降水趋势</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n台风中心   反馈 </span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n []( </span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n 首页</span><span class="se">\\</span><span class="s2">n 15天</span><span class="se">\\</span><span class="s2">n 40天</span><span class="se">\\</span><span class="s2">n 地图</span><span class="se">\\</span><span class="s2">n 资讯</span><span class="se">\\</span><span class="s2">n 更多&#34;, &#34;score&#34;: 0.5189612, &#34;raw_content&#34;: null, &#34;id&#34;: &#34;5bc494-02&#34;}, {&#34;url&#34;: &#34;http://weather.cma.cn/web/weather/58468&#34;, &#34;title&#34;: &#34;中国气象局-天气预报-城市预报&#34;, &#34;content&#34;: &#34;1. 首页</span><span class="se">\\</span><span class="s2">n2. 国内</span><span class="se">\\</span><span class="s2">n3. 浙江</span><span class="se">\\</span><span class="s2">n4. 余姚</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n 国内</span><span class="se">\\</span><span class="s2">n 国外</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n|</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n 北京市</span><span class="se">\\</span><span class="s2">n 天津市</span><span class="se">\\</span><span class="s2">n 河北省</span><span class="se">\\</span><span class="s2">n 山西省</span><span class="se">\\</span><span class="s2">n 内蒙古自治区</span><span class="se">\\</span><span class="s2">n 辽宁省</span><span class="se">\\</span><span class="s2">n 吉林省</span><span class="se">\\</span><span class="s2">n 黑龙江省</span><span class="se">\\</span><span class="s2">n 上海市</span><span class="se">\\</span><span class="s2">n 江苏省</span><span class="se">\\</span><span class="s2">n 浙江省</span><span class="se">\\</span><span class="s2">n 安徽省</span><span class="se">\\</span><span class="s2">n 福建省</span><span class="se">\\</span><span class="s2">n 江西省</span><span class="se">\\</span><span class="s2">n 山东省</span><span class="se">\\</span><span class="s2">n 河南省</span><span class="se">\\</span><span class="s2">n 湖北省</span><span class="se">\\</span><span class="s2">n 湖南省</span><span class="se">\\</span><span class="s2">n 广东省</span><span class="se">\\</span><span class="s2">n 广西壮族自治区</span><span class="se">\\</span><span class="s2">n 海南省</span><span class="se">\\</span><span class="s2">n 重庆市</span><span class="se">\\</span><span class="s2">n 四川省</span><span class="se">\\</span><span class="s2">n 贵州省</span><span class="se">\\</span><span class="s2">n 云南省</span><span class="se">\\</span><span class="s2">n 西藏自治区</span><span class="se">\\</span><span class="s2">n 陕西省</span><span class="se">\\</span><span class="s2">n 甘肃省</span><span class="se">\\</span><span class="s2">n 青海省</span><span class="se">\\</span><span class="s2">n 宁夏回族自治区</span><span class="se">\\</span><span class="s2">n 新疆维吾尔自治区</span><span class="se">\\</span><span class="s2">n 香港特别行政区</span><span class="se">\\</span><span class="s2">n 澳门特别行政区</span><span class="se">\\</span><span class="s2">n 台湾省</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n|</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n 余杭</span><span class="se">\\</span><span class="s2">n 南浔</span><span class="se">\\</span><span class="s2">n 平阳</span><span class="se">\\</span><span class="s2">n 德清</span><span class="se">\\</span><span class="s2">n 江北</span><span class="se">\\</span><span class="s2">n 海曙</span><span class="se">\\</span><span class="s2">n 湖州</span><span class="se">\\</span><span class="s2">n 玉环</span><span class="se">\\</span><span class="s2">n 苍南</span><span class="se">\\</span><span class="s2">n 衢江</span><span class="se">\\</span><span class="s2">n 象山</span><span class="se">\\</span><span class="s2">n 路桥</span><span class="se">\\</span><span class="s2">n 钱塘</span><span class="se">\\</span><span class="s2">n 黄岩</span><span class="se">\\</span><span class="s2">n 龙港</span><span class="se">\\</span><span class="s2">n 杭州</span><span class="se">\\</span><span class="s2">n 临安</span><span class="se">\\</span><span class="s2">n 临海</span><span class="se">\\</span><span class="s2">n 丽水</span><span class="se">\\</span><span class="s2">n 嘉兴</span><span class="se">\\</span><span class="s2">n 宁波</span><span class="se">\\</span><span class="s2">n 宁海</span><span class="se">\\</span><span class="s2">n 定海</span><span class="se">\\</span><span class="s2">n 嵊州</span><span class="se">\\</span><span class="s2">n 平湖</span><span class="se">\\</span><span class="s2">n 柯桥</span><span class="se">\\</span><span class="s2">n 洞头</span><span class="se">\\</span><span class="s2">n 温州</span><span class="se">\\</span><span class="s2">n 舟山</span><span class="se">\\</span><span class="s2">n 莲都</span><span class="se">\\</span><span class="s2">n 衢州</span><span class="se">\\</span><span class="s2">n 鄞州</span><span class="se">\\</span><span class="s2">n 金华</span><span class="se">\\</span><span class="s2">n 三门</span><span class="se">\\</span><span class="s2">n 上虞</span><span class="se">\\</span><span class="s2">n 东阳</span><span class="se">\\</span><span class="s2">n 临平</span><span class="se">\\</span><span class="s2">n 义乌</span><span class="se">\\</span><span class="s2">n 乐清</span><span class="se">\\</span><span class="s2">n 云和</span><span class="se">\\</span><span class="s2">n 仙居</span><span class="se">\\</span><span class="s2">n 余姚</span><span class="se">\\</span><span class="s2">n 兰溪</span><span class="se">\\</span><span class="s2">n 北仑</span><span class="se">\\</span><span class="s2">n 台州</span><span class="se">\\</span><span class="s2">n 嘉善</span><span class="se">\\</span><span class="s2">n 天台</span><span class="se">\\</span><span class="s2">n 奉化</span><span class="se">\\</span><span class="s2">n 安吉</span><span class="se">\\</span><span class="s2">n 富阳</span><span class="se">\\</span><span class="s2">n 岱山</span><span class="se">\\</span><span class="s2">n 嵊泗</span><span class="se">\\</span><span class="s2">n 常山</span><span class="se">\\</span><span class="s2">n 庆元</span><span class="se">\\</span><span class="s2">n 建德</span><span class="se">\\</span><span class="s2">n 开化</span><span class="se">\\</span><span class="s2">n 慈溪</span><span class="se">\\</span><span class="s2">n 文成</span><span class="se">\\</span><span class="s2">n 新昌</span><span class="se">\\</span><span class="s2">n 普陀</span><span class="se">\\</span><span class="s2">n 景宁</span><span class="se">\\</span><span class="s2">n 松阳</span><span class="se">\\</span><span class="s2">n 桐乡</span><span class="se">\\</span><span class="s2">n 桐庐</span><span class="se">\\</span><span class="s2">n 椒江</span><span class="se">\\</span><span class="s2">n 武义</span><span class="se">\\</span><span class="s2">n 永嘉</span><span class="se">\\</span><span class="s2">n 永康</span><span class="se">\\</span><span class="s2">n 江山</span><span class="se">\\</span><span class="s2">n 泰顺</span><span class="se">\\</span><span class="s2">n 浦江</span><span class="se">\\</span><span class="s2">n 海宁</span><span class="se">\\</span><span class="s2">n 海盐</span><span class="se">\\</span><span class="s2">n 淳安</span><span class="se">\\</span><span class="s2">n 温岭</span><span class="se">\\</span><span class="s2">n 瑞安</span><span class="se">\\</span><span class="s2">n 磐安</span><span class="se">\\</span><span class="s2">n 绍兴</span><span class="se">\\</span><span class="s2">n 缙云</span><span class="se">\\</span><span class="s2">n 萧山</span><span class="se">\\</span><span class="s2">n 诸暨</span><span class="se">\\</span><span class="s2">n 遂昌</span><span class="se">\\</span><span class="s2">n 镇海</span><span class="se">\\</span><span class="s2">n 长兴</span><span class="se">\\</span><span class="s2">n 青田</span><span class="se">\\</span><span class="s2">n 龙泉</span><span class="se">\\</span><span class="s2">n 龙游</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n更新</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n7天天气预报（2026/10/18 20:00发布）</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">nSun  </span><span class="se">\\</span><span class="s2">n10/18</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n小雨</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n西南风</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n微风</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n32℃</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n22℃</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n小雨</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n西南风</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n微风</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">nMon  </span><span class="se">\\</span><span class="s2">n10/19</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n晴</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n东北风</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n微风</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n29℃</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n晴</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n东北风</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n微风</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">nTue  </span><span class="se">\\</span><span class="s2">n10/20</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n晴</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n西南风</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n微风</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n小雨</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n西南风</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n微风</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">nWed  </span><span class="se">\\</span><span class="s2">n10/21</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n西南风</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n微风</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n晴</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n西南风</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n微风</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">nThu  </span><span class="se">\\</span><span class="s2">n10/22</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n小雨 [...] |  |  |  |  |  |  |  |  |  |</span><span class="se">\\</span><span class="s2">n ---  ---  ---  --- </span><span class="se">\\</span><span class="s2">n| 时间 | 08:00 | 11:00 | 14:00 | 17:00 | 20:00 | 23:00 | 02:00 | 05:00 |</span><span class="se">\\</span><span class="s2">n| 天气 |</span><span class="se">\\</span><span class="s2">n| 气温 | 20.8℃ | 24.6℃ | 25.9℃ | 27.2℃ | 26.4℃ | 24.6℃ | 22℃ | 26.3℃ |</span><span class="se">\\</span><span class="s2">n| 降水 | 0.1mm | 4.9mm | 0.1mm | 4.9mm | 0.1mm | 4.9mm | 0.1mm | 4.9mm |</span><span class="se">\\</span><span class="s2">n| 风速 | 3.1m/s | 2.3m/s | 2.6m/s | 3.3m/s | 2.5m/s | 3.1m/s | 3.3m/s | 2.5m/s |</span><span class="se">\\</span><span class="s2">n| 风向 | 东北风 | 东北风 | 东南风 | 东南风 | 东南风 | 东南风 | 东南风 | 东南风 |</span><span class="se">\\</span><span class="s2">n| 气压 | 1008.6hPa | 1008.7hPa | 1006.7hPa | 1007.4hPa | 1010.4hPa | 1010hPa | 1008.7hPa | 1011.4hPa |</span><span class="se">\\</span><span class="s2">n| 湿度 | 99.5% | 92.1% | 91.2% | 90.3% | 85.2% | 100% | 93.6% | 91.9% |</span><span class="se">\\</span><span class="s2">n| 云量 | 98.5% | 96.9% | 95.2% | 97.4% | 99.5% | 99.7% | 99.9% | 95.5% | [...] |  |  |  |  |  |  |  |  |  |</span><span class="se">\\</span><span class="s2">n ---  ---  ---  --- </span><span class="se">\\</span><span class="s2">n| 时间 | 08:00 | 11:00 | 14:00 | 17:00 | 20:00 | 23:00 | 02:00 | 05:00 |</span><span class="se">\\</span><span class="s2">n| 天气 |</span><span class="se">\\</span><span class="s2">n| 气温 | 26℃ | 30.4℃ | 33.2℃ | 29.1℃ | 26.1℃ | 23℃ | 21.9℃ | 21.8℃ |</span><span class="se">\\</span><span class="s2">n| 降水 | 无降水 | 无降水 | 无降水 | 无降水 | 无降水 | 0.3mm | 4.5mm | 0.6mm |</span><span class="se">\\</span><span class="s2">n| 风速 | 2.5m/s | 1.4m/s | 1.5m/s | 1.6m/s | 3.3m/s | 1.3m/s | 2.4m/s | 1m/s |</span><span class="se">\\</span><span class="s2">n| 风向 | 西南风 | 西北风 | 西北风 | 东北风 | 西北风 | 西北风 | 西北风 | 西北风 |</span><span class="se">\\</span><span class="s2">n| 气压 | 1011.7hPa | 1010.8hPa | 1009.3hPa | 1011hPa | 1013.6hPa | 1015hPa | 1015.5hPa | 1015.9hPa |</span><span class="se">\\</span><span class="s2">n| 湿度 | 83.7% | 73.1% | 72.6% | 80.2% | 67% | 96.7% | 97.4% | 96.5% |</span><span class="se">\\</span><span class="s2">n| 云量 | 4.2% | 10% | 5.9% | 10% | 8.5% | 65% | 70% | 65% |&#34;, &#34;score&#34;: 0.35441124, &#34;raw_content&#34;: null, &#34;id&#34;: &#34;963246-03&#34;}, {&#34;url&#34;: &#34;http://weather.cma.cn/web/weather/58544&#34;, &#34;title&#34;: &#34;中国气象局-天气预报-城市预报&#34;, &#34;content&#34;: &#34;气温, 21.3℃, 20.2℃ ; 降水, 0.7mm, 2.3mm ; 风速, 3.3m/s, 2.8m/s ; 风向, 东北风, 东北风 ; 气压, 1013hPa, 1014hPa&#34;, &#34;score&#34;: 0.3243108, &#34;raw_content&#34;: null, &#34;id&#34;: &#34;ab6076-04&#34;}], &#34;response_time&#34;: 4.26, &#34;request_id&#34;: &#34;0576d4c3-2e89-4c21-ac23-85272bbaf425&#34;}&#39;, name=&#39;tavily_search&#39;, id=&#39;062855da-20fb-45e6-8ceb-e2ad6964925e&#39;, tool_call_id=&#39;call_-7163149067608912805&#39;), ToolMessage(content=&#39;{&#34;query&#34;: &#34;瑞安市今日天气 适合出行吗&#34;, &#34;follow_up_questions&#34;: null, &#34;answer&#34;: null, &#34;images&#34;: [], &#34;results&#34;: [{&#34;url&#34;: &#34;https://kuku.baidu.com/landing/tscp_doc/63f7cbde711e1d534bccc97c817ab70e&#34;, &#34;title&#34;: &#34;瑞安天气预报今天：29℃多云，未来一周晴多雨少出行必看&#34;, &#34;content&#34;: &#34;安天气为多云,气温约29°C,体感温度31.4°C,东南风微风,相对湿度60%,空气质量优,降水量0mm,日落时间17:53。整体体感温暖较舒适,白天阳光充足,适合户外活动&#34;, &#34;score&#34;: 0.8473754, &#34;raw_content&#34;: null, &#34;id&#34;: &#34;585821-00&#34;}, {&#34;url&#34;: &#34;https://xn--kjv466h.com.hk/</span><span class="si">%E</span><span class="s2">7</span><span class="si">%91%</span><span class="s2">9E</span><span class="si">%E</span><span class="s2">5%AE</span><span class="si">%89%</span><span class="s2">E5%B8%82/</span><span class="si">%E</span><span class="s2">5%A4%A9</span><span class="si">%E</span><span class="s2">6%B0%A3&#34;, &#34;title&#34;: &#34;每小時及14日預報，今日天氣狀況- 瑞安市&#34;, &#34;content&#34;: &#34;答案每次請求根據瑞安市當前狀況更新。 瑞安市而家嘅天氣係點？ 而家喺瑞安市，中國，溫度係20.4°C（體感溫度21.9°C），天氣係clear。相對濕度係77%，風速係3.6 公里/小時&#34;, &#34;score&#34;: 0.7077487, &#34;raw_content&#34;: null, &#34;id&#34;: &#34;1cb65f-01&#34;}, {&#34;url&#34;: &#34;https://www.sina.cn/news/detail/5304919282418436.html&#34;, &#34;title&#34;: &#34;瑞安今日天气预报&#34;, &#34;content&#34;: &#34;瑞安市气象台06月01日08时发布的天气预报【瑞安市】 今天晴到多云，明天多云，局部阴有阵雨，后天多云转阴有阵雨或雷雨今天白天最高温度:31-33℃，&#34;, &#34;score&#34;: 0.6867278, &#34;raw_content&#34;: null, &#34;id&#34;: &#34;dd9bfb-02&#34;}, {&#34;url&#34;: &#34;https://zh.climate-data.org/</span><span class="si">%E</span><span class="s2">4%BA</span><span class="si">%9E%E</span><span class="s2">6%B4%B2/</span><span class="si">%E</span><span class="s2">4%B8%AD</span><span class="si">%E</span><span class="s2">5%9B%BD/</span><span class="si">%E</span><span class="s2">6%B5</span><span class="si">%99%</span><span class="s2">E6%B1</span><span class="si">%9F%E</span><span class="s2">7%9C%81/</span><span class="si">%E</span><span class="s2">7</span><span class="si">%91%</span><span class="s2">9E</span><span class="si">%E</span><span class="s2">5%AE</span><span class="si">%89%</span><span class="s2">E5%B8%82-2540&#34;, &#34;title&#34;: &#34;瑞安市 氣候：瑞安市 各月平均溫度，瑞安市 水溫&#34;, &#34;content&#34;: &#34;## Climate-Data.org</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">nClimate-Data.org</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n## Climate-Data.org</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">nClimate-Data.org</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n# 氣候 瑞安市</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n### 今日天气</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n### 明日天气</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n## 天气和气候数据及图表 in 瑞安市</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n氣候圖 // 每月天氣, 瑞安市</span><span class="se">\\</span><span class="s2">n每月平均溫度, 瑞安市</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n瑞安市 位於北半球。</span><span class="se">\\</span><span class="s2">n夏季始於 六月 結束之際，結束於 九月。夏季的月份包括：六月, 七月, 八月, 九月。</span><span class="se">\\</span><span class="s2">n造訪的最適當時機是 五月, 九月, 十月。</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n## 氣候圖 // 每月天氣 瑞安市</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n氣候圖 // 每月天氣, 瑞安市</span><span class="se">\\</span><span class="s2">n氣候圖 // 每月天氣, 瑞安市</span><span class="se">\\</span><span class="s2">nHotel Room with Beach View</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n降水量最少的月份為 十二月，僅有 67 mm 的降雨量。 大部分降水集中在 六月，平均達 272 mm。</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n## 🌡️ 每月平均溫度 瑞安市</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n每月平均溫度, 瑞安市</span><span class="se">\\</span><span class="s2">n每月平均溫度, 瑞安市</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n七月 月擁有最高的平均溫度，記錄最高溫為 27.6 °C。 在 一月 平均氣溫為 8.2 °C，是全年最低的平均氣溫。</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n## 按月天氣平均資料 瑞安市 [...] 瑞安市（东海）的年平均水溫為 20.10°C。</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n水溫最高的月份是 八月，水溫最高為 28.90°C。最低水溫為 12.00°C，將出現在 二月。</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n此地最髙平均水溫為 28.90°C，平均約在 21. 八月 達到。相較之下，最低平均水溫為 12.00°C，約在 08. 二月 出現。</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n瑞安市 最近的水域是 东海。</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n### ✈️ 靠近 瑞安市 的機場</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n瑞安市 最近的機場有：Wenzhou Longwan International Airport (WNZ) 26.64km,Taizhou Luqiao Airport (HYN) 116.39km,Yiwu Airport (YIW) 183.66km</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n您可以從這些城市搭機抵達 瑞安市：北京市 (NAY), 成都市 (CTU), 贵阳市 (KWE), 广州市 (CAN), 海口市 (HAK), 济南市 (TNA), 临沂市 (LYI), 南昌市 (KHN), 青岛市 (TAO), 汕头市 (SWA), 泉州市 (JJN), 乌鲁木齐 (URC), 咸阳 (XIY), 厦门市 (XMN), 武汉市 (WUH), 珠海市 (ZUH), 郑州市 (CGO), 哈尔滨 (HRB), 沈阳 (SHE), Jeju (CJU)</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">nPartner-Links</span><span class="se">\\</span><span class="s2">n预订您的酒店：</span><span class="se">\\</span><span class="s2">n瑞安市</span><span class="se">\\</span><span class="s2">n预订您的度假公寓：</span><span class="se">\\</span><span class="s2">n瑞安市</span><span class="se">\\</span><span class="s2">n在此预订您的活动：</span><span class="se">\\</span><span class="s2">n瑞安市</span><span class="se">\\</span><span class="s2">n在此预订您的活动：</span><span class="se">\\</span><span class="s2">n瑞安市</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n#### 熱門景點</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n#### 十月 的热门地点</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n#### 十一月 的热门地点</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n#### 附近地點</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n##### 關於</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n##### 法律 [...] |  | 一月 | 二月 | 三月 | 四月 | 五月 | 六月 | 七月 | 八月 | 九月 | 十月 | 十一月 | 十二月 |</span><span class="se">\\</span><span class="s2">n ---  ---  ---  ---  ---  --- </span><span class="se">\\</span><span class="s2">n| 平均溫度 °C | 8.2 | 9.3 | 12.2 | 16.8 | 21.1 | 24.6 | 27.6 | 27.3 | 24.7 | 20.3 | 15.4 | 9.9 |</span><span class="se">\\</span><span class="s2">n| 最低溫度 °C | 4.7 | 6 | 9.1 | 13.8 | 18.5 | 22.5 | 25.3 | 25.2 | 22.3 | 17.1 | 12.2 | 6.1 |</span><span class="se">\\</span><span class="s2">n| 最高溫度 °C | 11.8 | 13 | 16 | 20.4 | 24.2 | 27.3 | 30.5 | 30.2 | 27.6 | 23.7 | 18.9 | 13.9 |</span><span class="se">\\</span><span class="s2">n| 降水量 / 降雨量 公釐（英吋） | 78 | 83 | 126 | 133 | 186 | 272 | 158 | 244 | 185 | 92 | 89 | 67 |</span><span class="se">\\</span><span class="s2">n| 濕度(%) | 72% | 78% | 78% | 81% | 85% | 89% | 87% | 87% | 82% | 76% | 76% | 70% |</span><span class="se">\\</span><span class="s2">n| 雨天 (d) | 8 | 9 | 11 | 11 | 11 | 12 | 11 | 15 | 11 | 6 | 7 | 7 |</span><span class="se">\\</span><span class="s2">n| 平均日照時數 (小時) | 5.3 | 5.3 | 6.4 | 7.0 | 7.2 | 7.6 | 9.5 | 8.9 | 7.7 | 7.3 | 6.0 | 6.1 |</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">nData: 1991 - 2021 最低溫度 °C , 最高溫度 °C, 降水量 / 降雨量 公釐（英吋）, 濕度, 雨天.</span><span class="se">\\</span><span class="s2">nData: 1999 - 2019: 平均日照時數&#34;, &#34;score&#34;: 0.6824261, &#34;raw_content&#34;: null, &#34;id&#34;: &#34;6742bc-03&#34;}, {&#34;url&#34;: &#34;https://www.weather.com.cn/weather/101210705.shtml&#34;, &#34;title&#34;: &#34;瑞安天气预报,瑞安7天天气预报,瑞安15天天气预报,瑞安天气查询&#34;, &#34;content&#34;: &#34;天气较好，尽情感受运动的快乐吧。</span><span class="se">\\</span><span class="s2">n 较易发 过敏指数</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  外出需远离过敏源，适当采取防护措施。</span><span class="se">\\</span><span class="s2">n </span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  舒适 穿衣指数</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  建议穿长袖衬衫单裤等服装。)</span><span class="se">\\</span><span class="s2">n 较适宜 洗车指数</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  无雨且风力较小，易保持清洁度。</span><span class="se">\\</span><span class="s2">n 强 紫外线指数</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  涂擦SPF大于15、PA+防晒护肤品。</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n 较易发 感冒指数</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  天凉，湿度大，较易感冒。</span><span class="se">\\</span><span class="s2">n 适宜 运动指数</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  天气较好，尽情感受运动的快乐吧。</span><span class="se">\\</span><span class="s2">n 较易发 过敏指数</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  外出需远离过敏源，适当采取防护措施。</span><span class="se">\\</span><span class="s2">n </span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  热 穿衣指数</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  适合穿T恤、短薄外套等夏季服装。)</span><span class="se">\\</span><span class="s2">n 不宜 洗车指数</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  有雨，雨水和泥水会弄脏爱车。</span><span class="se">\\</span><span class="s2">n 很强 紫外线指数</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  涂擦SPF20以上，PA++护肤品，避强光。</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n 少发 感冒指数</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  感冒机率较低，避免长期处于空调屋中。</span><span class="se">\\</span><span class="s2">n 较不宜 运动指数</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  有降水，推荐您在室内进行休闲运动。</span><span class="se">\\</span><span class="s2">n 较易发 过敏指数</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  外出需远离过敏源，适当采取防护措施。</span><span class="se">\\</span><span class="s2">n </span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  热 穿衣指数</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  适合穿T恤、短薄外套等夏季服装。)</span><span class="se">\\</span><span class="s2">n 不宜 洗车指数</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  有雨，雨水和泥水会弄脏爱车。</span><span class="se">\\</span><span class="s2">n 最弱 紫外线指数</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  辐射弱，涂擦SPF8-12防晒护肤品。</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n 少发 感冒指数</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  感冒机率较低，避免长期处于空调屋中。</span><span class="se">\\</span><span class="s2">n 较不宜 运动指数</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  有降水，推荐您在室内进行休闲运动。</span><span class="se">\\</span><span class="s2">n 较易发 过敏指数</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  外出需远离过敏源，适当采取防护措施。</span><span class="se">\\</span><span class="s2">n </span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  热 穿衣指数</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  适合穿T恤、短薄外套等夏季服装。)</span><span class="se">\\</span><span class="s2">n 不宜 洗车指数</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  有雨，雨水和泥水会弄脏爱车。</span><span class="se">\\</span><span class="s2">n 最弱 紫外线指数</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  辐射弱，涂擦SPF8-12防晒护肤品。</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n# 天气资讯 [...] 首页 预报 预警 雷达 云图 天气地图 专业产品 资讯 视频 节气</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n更多</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n台风路径 空间天气 图片 专题 环境 旅游 碳中和 气象科普 一带一路 产创平台</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n国内) 本地) 国际)</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n:   北京 上海 成都 杭州 南京 天津 深圳 重庆 西安 广州 青岛 武汉</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n:   故宫 阳朔漓江 龙门石窟 野三坡 颐和园 九寨沟 东方明珠 凤凰古城 秦始皇陵 桃花源</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n高球</span><span class="se">\\</span><span class="s2">n:   佘山 春城湖畔 华彬庄园 观澜湖 依必朗 旭宝 博鳌 玉龙雪山 番禺南沙 东方明珠</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n&lt;&lt;返回 全国</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n河北下辖区域</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n热门城市</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n:   曼谷 东京 首尔 吉隆坡 新加坡 巴黎 罗马 伦敦 雅典 柏林 纽约 温哥华 墨西哥城 哈瓦那 圣何塞 巴西利亚 布宜诺斯艾利斯 圣地亚哥 利马 基多 悉尼 墨尔本 惠灵顿 奥克兰 苏瓦 开罗 内罗毕 开普敦 维多利亚 拉巴特</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n:   亚洲 欧洲 北美洲 南美洲 非洲 大洋洲</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n全国&gt; 浙江 &gt; 温州&gt; 瑞安</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n 今天</span><span class="se">\\</span><span class="s2">n 7天</span><span class="se">\\</span><span class="s2">n 8-15天</span><span class="se">\\</span><span class="s2">n 40天</span><span class="se">\\</span><span class="s2">n 雷达图</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n # 12日（今天）</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  晴</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  29/20℃</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  &lt;3级</span><span class="se">\\</span><span class="s2">n # 13日（明天）</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  晴</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  29/21℃</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  &lt;3级</span><span class="se">\\</span><span class="s2">n # 14日（后天）</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  晴</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  27/19℃</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  &lt;3级</span><span class="se">\\</span><span class="s2">n # 15日（周四）</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  多云</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  25/20℃</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  &lt;3级</span><span class="se">\\</span><span class="s2">n # 16日（周五）</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  晴转小雨</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  27/22℃</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  &lt;3级</span><span class="se">\\</span><span class="s2">n # 17日（周六）</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  小雨</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  29/23℃</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  &lt;3级</span><span class="se">\\</span><span class="s2">n # 18日（周日）</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  小雨</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  30/23℃</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  &lt;3级</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n分时段预报 生活指数</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n蓝天预报 </span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n### 蓝天预报综合天气现象、能见度、空气质量等因子，预测未来一周的天空状况。 [...] 分时段预报 生活指数</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n蓝天预报 </span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n### 蓝天预报综合天气现象、能见度、空气质量等因子，预测未来一周的天空状况。</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n 天空蔚蓝 可见透彻蓝天，或有蓝天白云美景。</span><span class="se">\\</span><span class="s2">n 天空淡蓝 天空不够清澈，以浅蓝色为主。</span><span class="se">\\</span><span class="s2">n 天空阴沉 阴天或有雨雪，天空灰暗。</span><span class="se">\\</span><span class="s2">n 天空灰霾 出现霾或沙尘，天空灰蒙浑浊。</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n 易发 感冒指数</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  大幅度降温，适当增加衣服。</span><span class="se">\\</span><span class="s2">n 较适宜 运动指数</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  请适当降低运动强度，并及时补充水分。</span><span class="se">\\</span><span class="s2">n 较易发 过敏指数</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  外出需远离过敏源，适当采取防护措施。</span><span class="se">\\</span><span class="s2">n </span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  热 穿衣指数</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  适合穿T恤、短薄外套等夏季服装。)</span><span class="se">\\</span><span class="s2">n 适宜 洗车指数</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  天气较好，适合擦洗汽车。</span><span class="se">\\</span><span class="s2">n 很强 紫外线指数</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  涂擦SPF20以上，PA++护肤品，避强光。</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n 少发 感冒指数</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  感冒机率较低，避免长期处于空调屋中。</span><span class="se">\\</span><span class="s2">n 较适宜 运动指数</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  请适当降低运动强度，并及时补充水分。</span><span class="se">\\</span><span class="s2">n 较易发 过敏指数</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  外出需远离过敏源，适当采取防护措施。</span><span class="se">\\</span><span class="s2">n </span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  热 穿衣指数</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  适合穿T恤、短薄外套等夏季服装。)</span><span class="se">\\</span><span class="s2">n 适宜 洗车指数</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  天气较好，适合擦洗汽车。</span><span class="se">\\</span><span class="s2">n 很强 紫外线指数</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  涂擦SPF20以上，PA++护肤品，避强光。</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n 少发 感冒指数</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  无明显降温，感冒机率较低。</span><span class="se">\\</span><span class="s2">n 适宜 运动指数</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  天气较好，尽情感受运动的快乐吧。</span><span class="se">\\</span><span class="s2">n 较易发 过敏指数</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  外出需远离过敏源，适当采取防护措施。</span><span class="se">\\</span><span class="s2">n </span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  热 穿衣指数</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  适合穿T恤、短薄外套等夏季服装。)</span><span class="se">\\</span><span class="s2">n 适宜 洗车指数</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  天气较好，适合擦洗汽车。</span><span class="se">\\</span><span class="s2">n 很强 紫外线指数</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  涂擦SPF20以上，PA++护肤品，避强光。</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n 少发 感冒指数</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  无明显降温，感冒机率较低。</span><span class="se">\\</span><span class="s2">n 适宜 运动指数</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  天气较好，尽情感受运动的快乐吧。</span><span class="se">\\</span><span class="s2">n 较易发 过敏指数</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n  外出需远离过敏源，适当采取防护措施。&#34;, &#34;score&#34;: 0.6796259, &#34;raw_content&#34;: null, &#34;id&#34;: &#34;f11c6f-04&#34;}], &#34;response_time&#34;: 4.35, &#34;request_id&#34;: &#34;7f5d84f4-dadd-406e-97c5-5201bf4ac346&#34;}&#39;, name=&#39;tavily_search&#39;, id=&#39;dba4a214-c6a2-4cb7-bca1-4002353ae2f5&#39;, tool_call_id=&#39;call_-7163149067608912804&#39;), AIMessage(content=&#39;已经为您查到了温州瑞安今天的天气情况，整理如下：</span><span class="se">\n\n</span><span class="s2">## ☀️ 瑞安今日天气概况</span><span class="se">\n\n</span><span class="s2">| 项目 | 情况 |</span><span class="se">\n</span><span class="s2">|------|------|</span><span class="se">\n</span><span class="s2">| 天气 | 晴 ☀️ |</span><span class="se">\n</span><span class="s2">| 气温 | 20℃ ~ 29℃ |</span><span class="se">\n</span><span class="s2">| 风力 | 微风（&lt;3级） |</span><span class="se">\n</span><span class="s2">| 降水 | 无降水 |</span><span class="se">\n</span><span class="s2">| 空气质量 | 优 |</span><span class="se">\n</span><span class="s2">| 湿度 | 约60% |</span><span class="se">\n\n</span><span class="s2">## 🎒 适合外出游玩吗？</span><span class="se">\n\n</span><span class="s2">**非常适合！** 今天瑞安天气晴朗，气温舒适，空气质量优良，是外出游玩的好日子。</span><span class="se">\n\n</span><span class="s2">### ✅ 有利条件</span><span class="se">\n</span><span class="s2">- 全天晴朗无雨，阳光充足</span><span class="se">\n</span><span class="s2">- 气温温和，体感舒适</span><span class="se">\n</span><span class="s2">- 微风轻拂，不闷热</span><span class="se">\n</span><span class="s2">- 运动指数为&#34;适宜&#34;，天气较好，可以尽情享受户外活动</span><span class="se">\n\n</span><span class="s2">### ⚠️ 温馨提示</span><span class="se">\n</span><span class="s2">1. **注意防晒**：今日紫外线指数很强，建议涂抹SPF20以上防晒霜，戴帽子或打遮阳伞 ☂️</span><span class="se">\n</span><span class="s2">2. **早晚温差大**：温差近10℃，建议随身携带一件薄外套，早晚穿</span><span class="se">\n</span><span class="s2">3. **及时补水**：白天最高29℃较暖和，户外活动记得多喝水</span><span class="se">\n\n</span><span class="s2">### 🗓️ 未来几天参考</span><span class="se">\n</span><span class="s2">- **今明两天**：晴，最适合出游 🌟</span><span class="se">\n</span><span class="s2">- **周五开始**：转小雨，如有出游计划建议趁今明两天安排</span><span class="se">\n\n</span><span class="s2">祝您游玩愉快！如果需要，我还可以帮您推荐瑞安的游玩景点～&#39;, additional_kwargs={&#39;refusal&#39;: None}, response_metadata={&#39;token_usage&#39;: {&#39;completion_tokens&#39;: 622, &#39;prompt_tokens&#39;: 11940, &#39;total_tokens&#39;: 12562, &#39;completion_tokens_details&#39;: {&#39;accepted_prediction_tokens&#39;: None, &#39;audio_tokens&#39;: None, &#39;reasoning_tokens&#39;: 270, &#39;rejected_prediction_tokens&#39;: None}, &#39;prompt_tokens_details&#39;: {&#39;audio_tokens&#39;: None, &#39;cached_tokens&#39;: 0}}, &#39;model_provider&#39;: &#39;openai&#39;, &#39;model_name&#39;: &#39;glm-5.3-flash&#39;, &#39;system_fingerprint&#39;: None, &#39;id&#39;: &#39;2026102017062062e5cc7ebbcd4be5&#39;, &#39;finish_reason&#39;: &#39;stop&#39;, &#39;logprobs&#39;: None}, id=&#39;lc_run--01a1588f-c935-79e0-9047-eab4693ed40c-0&#39;, tool_calls=[], invalid_tool_calls=[], usage_metadata={&#39;input_tokens&#39;: 11940, &#39;output_tokens&#39;: 622, &#39;total_tokens&#39;: 12562, &#39;input_token_details&#39;: {&#39;cache_read&#39;: 0}, &#39;output_token_details&#39;: {&#39;reasoning&#39;: 270}})]}
+</span></span></span><span class="line"><span class="cl"><span class="s2">&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nb">print</span><span class="p">(</span><span class="n">resp</span><span class="p">[</span><span class="s1">&#39;messages&#39;</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">content</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="s2">&#34;&#34;&#34;
+</span></span></span><span class="line"><span class="cl"><span class="s2">根据查询到的最新天气信息，为您整理温州瑞安今天的天气情况如下：
+</span></span></span><span class="line"><span class="cl"><span class="s2">
+</span></span></span><span class="line"><span class="cl"><span class="s2">## 🌤️ 瑞安今日天气
+</span></span></span><span class="line"><span class="cl"><span class="s2">
+</span></span></span><span class="line"><span class="cl"><span class="s2">| 项目 | 情况 |
+</span></span></span><span class="line"><span class="cl"><span class="s2">|------|------|
+</span></span></span><span class="line"><span class="cl"><span class="s2">| **天气状况** | 晴 ☀️ |
+</span></span></span><span class="line"><span class="cl"><span class="s2">| **气温** | 20℃ ~ 29℃ |
+</span></span></span><span class="line"><span class="cl"><span class="s2">| **风力** | 小于3级，微风 |
+</span></span></span><span class="line"><span class="cl"><span class="s2">| **湿度** | 约66%~70% |
+</span></span></span><span class="line"><span class="cl"><span class="s2">| **能见度** | 良好（约30公里）|
+</span></span></span><span class="line"><span class="cl"><span class="s2">
+</span></span></span><span class="line"><span class="cl"><span class="s2">## ✅ 适合出游吗？—— **非常适合！**
+</span></span></span><span class="line"><span class="cl"><span class="s2">
+</span></span></span><span class="line"><span class="cl"><span class="s2">**推荐理由：**
+</span></span></span><span class="line"><span class="cl"><span class="s2">- ☀️ **天气晴朗**：全天以晴为主，蓝天白云，视野通透
+</span></span></span><span class="line"><span class="cl"><span class="s2">- 🌡️ **温度舒适**：最高29℃，早晚20℃左右，秋高气爽
+</span></span></span><span class="line"><span class="cl"><span class="s2">- 💨 **风力温和**：微风轻拂，体感舒适
+</span></span></span><span class="line"><span class="cl"><span class="s2">- 🏃 **运动指数：适宜**——天气较好，可以尽情享受户外活动的快乐
+</span></span></span><span class="line"><span class="cl"><span class="s2">
+</span></span></span><span class="line"><span class="cl"><span class="s2">## 📝 出行小贴士
+</span></span></span><span class="line"><span class="cl"><span class="s2">
+</span></span></span><span class="line"><span class="cl"><span class="s2">1. **防晒**：今天紫外线较强，建议涂SPF15以上的防晒霜，戴好遮阳帽
+</span></span></span><span class="line"><span class="cl"><span class="s2">2. **穿衣**：白天穿T恤或薄长袖即可，早晚较凉建议备一件薄外套
+</span></span></span><span class="line"><span class="cl"><span class="s2">3. **补水**：白天温度较高，户外活动记得多喝水
+</span></span></span><span class="line"><span class="cl"><span class="s2">
+</span></span></span><span class="line"><span class="cl"><span class="s2">## 📅 未来几天提醒
+</span></span></span><span class="line"><span class="cl"><span class="s2">
+</span></span></span><span class="line"><span class="cl"><span class="s2">- **今明后三天**：持续晴天（29/20℃、29/21℃、27/19℃），都是出游好时机
+</span></span></span><span class="line"><span class="cl"><span class="s2">- **周五起**：转晴转小雨，周六周日有小雨，如果有出游计划，**建议今明两天抓紧安排**！
+</span></span></span><span class="line"><span class="cl"><span class="s2">
+</span></span></span><span class="line"><span class="cl"><span class="s2">祝您出游愉快！🎉
+</span></span></span><span class="line"><span class="cl"><span class="s2">&#34;&#34;&#34;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div>
+</section>
+
+
+    <footer class="article-footer">
+    
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+<aside class="related-content--wrapper">
+    <h2 class="section-title">相关文章</h2>
+    <div class="related-content">
+        <div class="flex article-list--tile">
+            
+                
+<article class="">
+    <a href="/p/agentretrieval-5/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Agent]Retrieval-5</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/agentcommit_the_code_to_gitee-4/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Agent]Commit_the_code_to_Gitee-4</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/agentdeploy_local_models_with_ollama-2/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Agent]Deploy_local_models_with_Ollama-2</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/agentcalling-an-llm-with-langchain-3/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Agent]Calling an LLM With LangChain-3</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/agentcalling-an-llm-without-a-framework-1/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Agent]Calling an LLM Without a Framework-1</h2>
+        </div>
+    </a>
+</article>
+
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+            2025 - 
+        
+        2026 リンボの個人ブログ
+    </section>
+    
+    <section class="powerby">
+         <br />
+        
+    </section>
+</footer>
+
+
+    
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+    
+    <div class="pswp__bg"></div>
+
+    
+    <div class="pswp__scroll-wrap">
+
+        
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+
+        
+        <div class="pswp__ui pswp__ui--hidden">
+
+            <div class="pswp__top-bar">
+
+                
+
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+
+                <button class="pswp__button pswp__button--share" title="Share"></button>
+
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+
+                
+                
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                        <div class="pswp__preloader__cut">
+                            <div class="pswp__preloader__donut"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div>
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.js"integrity="sha256-ePwmChbbvXbsO02lbM3HoHbSHTHFAeChekF1xKJdleo="crossorigin="anonymous"
+                defer
+                >
+            </script><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe-ui-default.min.js"integrity="sha256-UKkzOn/w1mBxRmLLGrSeyB4e1xbrp4xylgAWb3M42pU="crossorigin="anonymous"
+                defer
+                >
+            </script><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/default-skin/default-skin.min.css"crossorigin="anonymous"
+            ><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.css"crossorigin="anonymous"
+            >
+
+            </main>
+        </div>
+        <script 
+                src="https://cdn.jsdelivr.net/npm/node-vibrant@3.1.6/dist/vibrant.min.js"integrity="sha256-awcR2jno4kI5X0zL8ex0vi2z&#43;KMkF24hUW8WePSA9HM="crossorigin="anonymous"
+                
+                >
+            </script><script type="text/javascript" src="/ts/main.1e9a3bafd846ced4c345d084b355fb8c7bae75701c338f8a1f8a82c780137826.js" defer></script>
+<script>
+    (function () {
+        const customFont = document.createElement('link');
+        customFont.href = "https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap";
+
+        customFont.type = "text/css";
+        customFont.rel = "stylesheet";
+
+        document.head.appendChild(customFont);
+    }());
+</script>
+
+    </body>
+</html>
