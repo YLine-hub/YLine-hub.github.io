@@ -211,6 +211,7 @@
         <li><a href="#add-a-tool-schema-in-an-openai-sdk-call">Add a tool schema in an OpenAI SDK call</a></li>
         <li><a href="#define-a-tool-with-langchain">Define a tool with LangChain</a></li>
         <li><a href="#add-local-tools-when-building-an-agent">Add local tools when building an agent</a></li>
+        <li><a href="#langsmith">LangSmith</a></li>
       </ol>
     </li>
   </ol>
@@ -806,7 +807,363 @@
 </span></span></span><span class="line"><span class="cl"><span class="s2">&#34;&#34;&#34;</span>
 </span></span></code></pre></td></tr></table>
 </div>
+</div><p>If the agent executes multiple steps, this may take some time. To show intermediate progress, we can use streaming to return messages.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-py" data-lang="py"><span class="line"><span class="cl"><span class="s2">&#34;&#34;&#34;
+</span></span></span><span class="line"><span class="cl"><span class="s2">    04_test_langchain_agent_tavily_stream.py
+</span></span></span><span class="line"><span class="cl"><span class="s2">&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">os</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">time</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">dotenv</span> <span class="kn">import</span> <span class="n">load_dotenv</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">langchain.agents</span> <span class="kn">import</span> <span class="n">create_agent</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">langchain_openai</span> <span class="kn">import</span> <span class="n">ChatOpenAI</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">langchain_tavily</span> <span class="kn">import</span> <span class="n">TavilySearch</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">load_dotenv</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 定义模型</span>
+</span></span><span class="line"><span class="cl"><span class="n">llm</span> <span class="o">=</span> <span class="n">ChatOpenAI</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">    <span class="n">model</span><span class="o">=</span><span class="s2">&#34;glm-5.3-flash&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="n">temperature</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="n">base_url</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">&#34;ZAI_BASE_URL&#34;</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">    <span class="n">api_key</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">&#34;ZAI_API_KEY&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 定义 Tavily 搜索工具</span>
+</span></span><span class="line"><span class="cl"><span class="n">search</span> <span class="o">=</span> <span class="n">TavilySearch</span><span class="p">(</span><span class="n">max_results</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">tools</span> <span class="o">=</span> <span class="p">[</span><span class="n">search</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 创建 Agent</span>
+</span></span><span class="line"><span class="cl"><span class="n">agent</span> <span class="o">=</span> <span class="n">create_agent</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">    <span class="n">model</span><span class="o">=</span><span class="n">llm</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="n">tools</span><span class="o">=</span><span class="n">tools</span>
+</span></span><span class="line"><span class="cl"><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">for</span> <span class="n">chunk</span> <span class="ow">in</span> <span class="n">agent</span><span class="o">.</span><span class="n">stream</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">        <span class="p">{</span>
+</span></span><span class="line"><span class="cl">            <span class="s2">&#34;messages&#34;</span> <span class="p">:</span> <span class="p">[</span>
+</span></span><span class="line"><span class="cl">                <span class="p">{</span><span class="s2">&#34;role&#34;</span><span class="p">:</span><span class="s2">&#34;system&#34;</span><span class="p">,</span> <span class="s2">&#34;content&#34;</span><span class="p">:</span> <span class="s2">&#34;你是一位助手，需要调用工具来帮助用户。&#34;</span><span class="p">},</span>
+</span></span><span class="line"><span class="cl">                <span class="p">{</span><span class="s2">&#34;role&#34;</span><span class="p">:</span> <span class="s2">&#34;user&#34;</span><span class="p">,</span> <span class="s2">&#34;content&#34;</span><span class="p">:</span> <span class="s2">&#34;温州瑞安今天天气怎么样？&#34;</span><span class="p">},</span>
+</span></span><span class="line"><span class="cl">            <span class="p">]</span>
+</span></span><span class="line"><span class="cl">        <span class="p">},</span>
+</span></span><span class="line"><span class="cl">        <span class="n">stream_mode</span><span class="o">=</span><span class="s2">&#34;messages&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="nb">print</span><span class="p">(</span><span class="n">chunk</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">content</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="s2">&#34;&#34;</span><span class="p">,</span> <span class="n">flush</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mf">0.1</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
 </div>
+</div><p>response</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">{&#34;query&#34;: &#34;温州瑞安今天天气&#34;, &#34;follow_up_questions&#34;: null, &#34;answer&#34;: null, &#34;images&#34;: [], &#34;results&#34;: [{&#34;url&#34;: &#34;https://www.jshfe.com/ruian&#34;, &#34;title&#34;: &#34;【瑞安24小时实时天气】瑞安今天天气_瑞安今天的天气情况_今时天气预报网&#34;, &#34;score&#34;: 0.9610981, &#34;content&#34;: &#34;今时天气预报网\n\n今时天气预报网重庆上海北京成都哈尔滨广州深圳天津武汉南京杭州沈阳西安郑州青岛苏州厦门天气新闻\n\n当前位置：今时天气预报网 &gt; 浙江天气预报 &gt; 温州今天天气 &gt; 瑞安今天天气\n\n 2026年04月28日（星期二)\n # 瑞安今天天气\n ## 瑞安24小时最新天气预报查询\n  \n 8℃ ~ 18℃\n 晴转多云\n 东风转东北风 &lt;3级\n 瑞安明天天气 瑞安后天天气 瑞安天气预报7天(一周) 瑞安天气预报10天 瑞安天气预报15天 瑞安天气预报30天 瑞安天气预报40天 瑞安天气预报60天\n 瑞安市气象局28日(星期二) 7时预计，瑞安今日天气晴转多云，最低气温8℃，最高气温18℃，东风转东北风&lt;3级，今时天气预报网提醒您密切关注瑞安今天天气，辐射弱，涂擦SPF8-12防晒护肤品。天有不测风云，查询结果偶有误差，仅供参考！\n 紫外线指数：很强\n\n  涂擦SPF20以上，PA++护肤品，避强光。\n\n  运动指数：较易发\n\n  外出需远离过敏源，适当采取防护措施。\n\n  血糖指数：最弱\n\n  辐射弱，涂擦SPF8-12防晒护肤品。\n\n## 瑞安最近3天天气预报 [...] 暂无概况~\n\n瑞安天气一周调用\n\n瑞安今天天气：  \n2026年04月28日瑞安天气：晴转多云，气温8℃ ~ 18℃，东风转东北风&lt;3级  \n2026年04月29日瑞安天气：小雨转中雨，气温10℃ ~ 14℃，东北风转北风&lt;3级  \n2026年04月30日瑞安天气：小雨转晴，气温11℃ ~ 15℃，东北风转北风&lt;3级  \n2026年05月01日瑞安天气：晴，气温7℃ ~ 18℃，东北风转北风&lt;3级  \n2026年05月02日瑞安天气：晴，气温6℃ ~ 15℃，东北风转北风&lt;3级  \n2026年05月03日瑞安天气：晴转多云，气温7℃ ~ 14℃，东北风转北风&lt;3级  \n2026年05月04日瑞安天气：晴，气温6℃ ~ 17℃，东北风&lt;3级\n\n瑞安同城今天天气\n\n瑞安周边城市今天天气\n\n 鹿城今天天气\n 龙湾今天天气\n 瓯海今天天气\n 洞头今天天气\n 永嘉今天天气\n 平阳今天天气\n 苍南今天天气\n 文成今天天气\n 泰顺今天天气\n\n热门城市今天天气 [...] ## 瑞安最近3天天气预报\n\n### -瑞安最新、实时、准备天气预报查询。\n\n|  |  |  |  |  |  |\n ---  ---  --- |\n| 2026年04月28日（星期二) |  | 晴转多云 | 8℃ ~ 18℃ | 东风转东北风 | &lt;3级 |\n|\n| 2026年04月29日（星期三) |  | 小雨转中雨 | 10℃ ~ 14℃ | 东北风转北风 | &lt;3级 |\n|\n| 2026年04月30日（星期四) |  | 小雨转晴 | 11℃ ~ 15℃ | 东北风转北风 | &lt;3级 |\n\n瑞安天气概况\n\n暂无概况~\n\n瑞安天气一周调用&#34;, &#34;raw_content&#34;: null, &#34;id&#34;: &#34;73322d-00&#34;}, {&#34;url&#34;: &#34;https://www.mytxly.com/ruian/qiwen&#34;, &#34;title&#34;: &#34;瑞安气温,温州瑞安今天气温、明天温度、一周气温-旅游天气网&#34;, &#34;score&#34;: 0.9583822, &#34;content&#34;: &#34;05月20日18:00发布，数据:中国天气网；瑞安今天气温、一周气温查询！\n\n# 温州瑞安今天气温,一周气温\n\n今天 2026年05月20日 星期三 农历四月初四，温州瑞安今日气温为：28℃ ~ 22℃，以下是瑞安末来三天气温变化详细信息：(瑞安天气预报10天查询)\n\n 瑞安今天白天最高气温 28 ℃\n 瑞安今天夜间最低气温 22 ℃\n 瑞安明天白天最高气温 29 ℃\n 瑞安明天夜间最低气温 24 ℃\n 瑞安后天白天最高气温 28 ℃\n 瑞安后天夜间最低气温 21 ℃\n\n瑞安气温测量说明：温州瑞安天气预报中测量得到的气温，指在瑞安野外空气流通、不受太阳直射下测得的空气温度(一般在百叶箱内测定)。瑞安最高气温是一日内气温的最高值，一般出现在14-15时，瑞安最低气温一般出现在早晨5-6时。我国用摄氏温标，以℃表示摄氏度。一般一天观测4次（02、08、14、20四个时次），部分测站根据实际情况，一天观测3次（08、14、20三个时间段/次）；\n\n### 根据中央气象台提供的末来24小时温州瑞安今天气温实况走势图\n\n### 瑞安一周气温变化查询&#34;, &#34;raw_content&#34;: null, &#34;id&#34;: &#34;51dd09-01&#34;}, {&#34;url&#34;: &#34;https://m.mytxly.com/ruian/qiwen&#34;, &#34;title&#34;: &#34;瑞安气温,温州瑞安今天气温、明天温度、一周气温-旅游天气手机版&#34;, &#34;score&#34;: 0.9583042, &#34;content&#34;: &#34;全国天气\n 世界天气\n 旅游天气\n 历史天气\n 卫星云图\n 机场天气\n 天气预警\n 中国地图\n\n# 温州瑞安今天气温,一周气温\n\n今天 2026年05月15日 星期五 农历三月廿九，瑞安今日气温为：20℃ ~ 21℃，以下是瑞安末来三天气温变化详细信息：(瑞安天气预报10天查询)\n\n 瑞安今天白天最高气温 20 ℃，夜间最低气温 21 ℃\n 瑞安明天白天最高气温 25 ℃，夜间最低气温 21 ℃\n 瑞安后天白天最高气温 27 ℃，夜间最低气温 20 ℃\n\n瑞安气温测量说明：温州瑞安天气预报中测量得到的气温，指在瑞安野外空气流通、不受太阳直射下测得的空气温度(一般在百叶箱内测定)。瑞安最高气温是一日内气温的最高值，一般出现在14-15时，瑞安最低气温一般出现在早晨5-6时。我国用摄氏温标，以℃表示摄氏度。一般一天观测4次（02、08、14、20四个时次），部分测站根据实际情况，一天观测3次（08、14、20三个时间段/次）；\n\n### 瑞安一周气温变化查询 [...] ### 瑞安一周气温变化查询\n\n 05月15日气温 21 ℃ ~ 20 ℃ 东风\n 05月16日气温 21 ℃ ~ 25 ℃ 东风\n 05月17日气温 20 ℃ ~ 27 ℃ 东风\n 05月18日气温 20 ℃ ~ 27 ℃ 东风\n 05月19日气温 22 ℃ ~ 26 ℃ 东南风\n 05月20日气温 23 ℃ ~ 27 ℃ 东南风\n 05月21日气温 24 ℃ ~ 29 ℃ 东风\n\n一周天气 10天天气 15天天气 30天天气 瑞安天气指数 历史天气 pm2.5\n\n### 瑞安市周边城市一周气温查询\n\n- 鹿城 龙湾 瓯海 洞头 永嘉\n- 平阳 苍南 文成 泰顺 瑞安\n- 乐清\n\n瑞安上望天气预报瑞安东山天气预报瑞安东岩天气预报瑞安仙降天气预报瑞安北麂天气预报瑞安北龙天气预报瑞安塘下天气预报瑞安大南天气预报瑞安宁益天气预报瑞安安阳天气预报瑞安平阳坑天气预报瑞安曹村天气预报瑞安林溪天气预报瑞安枫岭天气预报瑞安桂峰天气预报瑞安桐浦天气预报瑞安梅屿天气预报瑞安永安天气预报瑞安汀田天气预报瑞安湖岭天气预报\n\n## 浙江瑞安实用查询\n\n生活必备神器&#34;, &#34;raw_content&#34;: null, &#34;id&#34;: &#34;9d19fb-02&#34;}, {&#34;url&#34;: &#34;http://202.146.219.22/ruian/qiwen&#34;, &#34;title&#34;: &#34;瑞安气温_温州瑞安今天气温_瑞安一周气温、现在、明天温度 - 天气预报网&#34;, &#34;score&#34;: 0.9517737, &#34;content&#34;: &#34;天气预报查询一周、10天 - 天气预报查询网  \n\n瑞安一周气温查询\n\n09月30日11:30发布，数据:中国天气网；瑞安今天气温、一周气温查询！\n\n 全国天气\n 世界天气\n 旅游天气\n 历史天气\n 空气质量\n 天气视频\n 卫星云图\n 机场天气\n 天气预警\n 中国地图\n\n当前位1置：天气预报网 &gt; 浙江天气预报10天 &gt; 温州天气预报10天 &gt; 瑞安天气预报10天&gt; 瑞安气温\n\n瑞安天气预报一周 10天天气 15天天气 30天天气 天气指数 历史天气 PM2.5\n\n# 温州瑞安今天气温,一周气温\n\n今天 2026年09月30日 星期三 农历八月二十，温州瑞安今日气温为：19℃ ~ 11℃，以下是瑞安末来三天气温变化详细信息：(瑞安天气预报10天查询)\n\n 瑞安今天白天最高气温 19 ℃\n 瑞安今天夜间最低气温 11 ℃\n 瑞安明天白天最高气温 15 ℃\n 瑞安明天夜间最低气温 8 ℃\n 瑞安后天白天最高气温 18 ℃\n 瑞安后天夜间最低气温 10 ℃ [...] 瑞安气温测量说明：温州瑞安天气预报中测量得到的气温，指在瑞安野外空气流通、不受太阳直射下测得的空气温度(一般在百叶箱内测定)。瑞安最高气温是一日内气温的最高值，一般出现在14-15时，瑞安最低气温一般出现在早晨5-6时。我国用摄氏温标，以℃表示摄氏度。一般一天观测4次（02、08、14、20四个时次），部分测站根据实际情况，一天观测3次（08、14、20三个时间段/次）；\n\n### 根据中央气象台提供的末来24小时温州瑞安今天气温实况走势图\n\n### 瑞安一周气温变化查询\n\n 09月30日气温 11 ℃ ~ 19 ℃ 东北风\n 10月01日气温 8 ℃ ~ 15 ℃ 北风\n 10月02日气温 10 ℃ ~ 18 ℃ 北风\n 10月03日气温 13 ℃ ~ 18 ℃ 北风\n 10月04日气温 11 ℃ ~ 18 ℃ 北风\n 10月05日气温 6 ℃ ~ 14 ℃ 北风\n 10月06日气温 5 ℃ ~ 12 ℃ 东风\n 09月30日瑞安天气预报查询\n\n温馨提示：关注生活关注气温变化，把瑞安气温分享给自己的亲朋好友吧，网址：,相关：瑞安天气预报10天、瑞安穿衣指数&#34;, &#34;raw_content&#34;: null, &#34;id&#34;: &#34;1d7f6d-03&#34;}, {&#34;url&#34;: &#34;https://www.fenlei.com.cn/jingdian/zhejiang_longjing.html&#34;, &#34;title&#34;: &#34;瑞安龙井天气_浙江省瑞安龙井今天天气预报查询 - 分类目录天气网&#34;, &#34;score&#34;: 0.94910634, &#34;content&#34;: &#34;分类目录天气网    \n\n 首页\n| 国内天气\n| 景点景区\n| 火车站\n| 飞机场\n| 汽车站\n| 体育场\n| 地标\n| 世界天气\n| 空气质量\n| 历史天气\n\n网站首页 &gt; 景点天气 &gt; 浙江景点天气 &gt; 温州景点天气 &gt; 瑞安龙井天气预报查询\n\n# 瑞安龙井天气\n\n浙江 温州 瑞安\n\n景点地址：温州市瑞安市 营业时间：暂无信息\n\n 今天天气\n 3天天气\n 一周天气\n 15日天气\n\n现在温度   30°C晴   \n空气质量：62　良  \n相对湿度：50% 舒适    今日白天天气   31°C晴  \n 东南风 一二级   今日夜间天气  23°C晴  \n 西南风 一二级 日出时间：05:04-05:04 日落时间：18:46-18:46 数据源于中央气象台 06月01日发布&#34;, &#34;raw_content&#34;: null, &#34;id&#34;: &#34;d616f4-04&#34;}], &#34;response_time&#34;: 0.49, &#34;request_id&#34;: &#34;2e392ffb-babb-441b-bcae-1bc1343315db&#34;}根据搜索到的最新天气信息，为您整理温州瑞安的天气情况如下：
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">## 🌤️ 瑞安今日天气概况
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">**当前天气：** 晴 ☀️
+</span></span><span class="line"><span class="cl">- **现在温度：** 约 30°C
+</span></span><span class="line"><span class="cl">- **今日白天：** 31°C，东南风 1-2 级
+</span></span><span class="line"><span class="cl">- **今日夜间：** 23°C，西南风 1-2 级
+</span></span><span class="line"><span class="cl">- **相对湿度：** 50%（体感舒适）
+</span></span><span class="line"><span class="cl">- **空气质量：** 62，等级“良” ✅
+</span></span><span class="line"><span class="cl">- **日出/日落：** 约 05:04 / 18:46
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">## 📋 未来几天趋势
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">| 日期 | 天气 | 气温 |
+</span></span><span class="line"><span class="cl">|------|------|------|
+</span></span><span class="line"><span class="cl">| 今天 | 晴 | 22℃ ~ 28-30℃ |
+</span></span><span class="line"><span class="cl">| 明天 | 多云为主 | 24℃ ~ 29℃ |
+</span></span><span class="line"><span class="cl">| 后天 | 多云 | 21℃ ~ 28℃ |
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">## 💡 温馨提示
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">- 天气晴热，**紫外线较强**，外出建议涂擦 SPF20 以上的防晒霜，注意遮阳补水 🧴
+</span></span><span class="line"><span class="cl">- 早晚温差较大（约 7-8°C），建议适当增减衣物
+</span></span><span class="line"><span class="cl">- 空气质量良好，适合户外活动和开窗通风
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">&gt; ⚠️ 注：不同天气网站的缓存数据更新时间略有差异，如需最精准的实时天气和预警信息，建议查看**中国天气网**或当地气象部门发布的最新预报。
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="langsmith">LangSmith
+</h3><blockquote>
+<p><a class="link" href="https://smith.langchain.com/"  target="_blank" rel="noopener"
+    >https://smith.langchain.com/</a></p>
+</blockquote>
+<p>To see more precisely how long each step takes, as well as the inputs and outputs, you can use LangSmith. LangSmith is a full-lifecycle development platform for debugging, testing, evaluating, and monitoring LLM applications (especially those built with LangChain and LangGraph), designed to help developers move from prototypes to production-grade applications.</p>
+<p>Example</p>
+<ol>
+<li>Create Agent</li>
+</ol>
+<p><img src="/p/agentagents/image.png"
+	width="2880"
+	height="1568"
+	srcset="/p/agentagents/image_hu_a27c64b03b32fe.png 480w, /p/agentagents/image_hu_d391c968ec8ef426.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="183"
+		data-flex-basis="440px"
+	
+></p>
+<p><img src="/p/agentagents/image-1.png"
+	width="2880"
+	height="1568"
+	srcset="/p/agentagents/image-1_hu_f76d3586b5055228.png 480w, /p/agentagents/image-1_hu_67306c735f236f2c.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="183"
+		data-flex-basis="440px"
+	
+></p>
+<ol start="2">
+<li>Click Production</li>
+</ol>
+<p><img src="/p/agentagents/image-2.png"
+	width="2880"
+	height="1568"
+	srcset="/p/agentagents/image-2_hu_c1759c930064664d.png 480w, /p/agentagents/image-2_hu_6947100945371be1.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="183"
+		data-flex-basis="440px"
+	
+></p>
+<ol start="3">
+<li>Configure environment</li>
+</ol>
+<p><img src="/p/agentagents/image-3.png"
+	width="2880"
+	height="1568"
+	srcset="/p/agentagents/image-3_hu_d0cfed1be6c8c78a.png 480w, /p/agentagents/image-3_hu_2435e92fdbd07c64.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="183"
+		data-flex-basis="440px"
+	
+></p>
+<p><img src="/p/agentagents/image-4.png"
+	width="2880"
+	height="1568"
+	srcset="/p/agentagents/image-4_hu_7dacf4565db738e1.png 480w, /p/agentagents/image-4_hu_6b10adcc06b7cef4.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="183"
+		data-flex-basis="440px"
+	
+></p>
+<p><font color=red>注意：按照上方红框内的配置，监控会展示在一个新的default项目中</font></p>
+<p><img src="/p/agentagents/image-8.png"
+	width="1682"
+	height="556"
+	srcset="/p/agentagents/image-8_hu_331bd34af0150437.png 480w, /p/agentagents/image-8_hu_bcc202a5da076e61.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="302"
+		data-flex-basis="726px"
+	
+></p>
+<p><img src="/p/agentagents/image-5.png"
+	width="2880"
+	height="1568"
+	srcset="/p/agentagents/image-5_hu_850c86c7fba4e074.png 480w, /p/agentagents/image-5_hu_986e3d918dda25c2.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="183"
+		data-flex-basis="440px"
+	
+></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="nv">LANGSMITH_TRACING</span><span class="o">=</span><span class="nb">true</span>
+</span></span><span class="line"><span class="cl"><span class="nv">LANGSMITH_ENDPOINT</span><span class="o">=</span>https://api.smith.langchain.com
+</span></span><span class="line"><span class="cl"><span class="nv">LANGSMITH_API_KEY</span><span class="o">=</span>&lt;API_KEY&gt;
+</span></span><span class="line"><span class="cl"><span class="nv">LANGSMITH_PROJECT</span><span class="o">=</span>langchaingraph261021
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><font color=red>注意：按照上方红框内的配置，监控会展示在一个新的名称为langchaingraph261021项目中</font></p>
+<p><img src="/p/agentagents/image-7.png"
+	width="1684"
+	height="556"
+	srcset="/p/agentagents/image-7_hu_94efb9cf33d70d68.png 480w, /p/agentagents/image-7_hu_7b68d53e6f66f23c.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="302"
+		data-flex-basis="726px"
+	
+></p>
+<ol start="4">
+<li>Run code</li>
+</ol>
+<p><img src="/p/agentagents/image-6.png"
+	width="2880"
+	height="1568"
+	srcset="/p/agentagents/image-6_hu_80b4e0139e53dbf2.png 480w, /p/agentagents/image-6_hu_c5f43002272c0556.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="183"
+		data-flex-basis="440px"
+	
+></p>
+<p><font color=red>将两个追踪项目删除后，使用最后一个配置重新测试了一下，还是会生成一个新的项目</font></p>
+<p><img src="/p/agentagents/image-9.png"
+	width="2482"
+	height="1042"
+	srcset="/p/agentagents/image-9_hu_2298c6b9fdb368c.png 480w, /p/agentagents/image-9_hu_e07e3a5efe6dcc00.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="238"
+		data-flex-basis="571px"
+	
+></p>
+<p><img src="/p/agentagents/image-10.png"
+	width="2870"
+	height="804"
+	srcset="/p/agentagents/image-10_hu_bbb42ee6557967dc.png 480w, /p/agentagents/image-10_hu_9247f1fdd9111920.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="356"
+		data-flex-basis="856px"
+	
+></p>
+<p><img src="/p/agentagents/image-11.png"
+	width="2870"
+	height="1322"
+	srcset="/p/agentagents/image-11_hu_c7bd3696636b5c3.png 480w, /p/agentagents/image-11_hu_1dbdb1f657a5fef2.png 1024w"
+	loading="lazy"
+	
+		alt="alt text"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="217"
+		data-flex-basis="521px"
+	
+></p>
+
 </section>
 
 
